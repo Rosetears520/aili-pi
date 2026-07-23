@@ -87,3 +87,12 @@
 - [COMPUTED] The package now keeps its exact embedded snapshot for provenance/reproducibility but declares only the bundled `pi-web-access` librarian skill to Pi. A guarded npm lifecycle synchronizer runs only below Pi-managed npm package roots and replaces only real matching global skill directories.
 - [COMPUTED] A direct approved synchronization updated 64 existing global AILI skill directories; no unmatched skill was added or removed.
 - [FRAME] The npm package itself, Extensions, prompts, theme, and librarian skill remain installed; only duplicate runtime discovery of the embedded AILI snapshot is removed.
+
+## 2026-07-24 — Generic subagent and Pi-native global AGENTS contract
+
+- [KNOWN|USER] The user selected a material replacement of public `aili_task` with the full pinned generic `subagent` surface, retaining 19 `aili.*` profiles as optional agents; upstream lifecycle actions, async/background, broad version-bounded fan-out, worktree, external `cwd`, and configurable sandbox become public. Credential/auth/private-key targets remain hard-denied and external writes remain under the active vendor permission policy.
+- [KNOWN|USER] The user selected Pi-native synchronization of portable governance mechanisms from `aili-workflows/templates/opencode-global-AGENTS.md`, not a byte-for-byte OpenCode prompt copy.
+- [COMPUTED] The current adapter deliberately conflicts with this direction: `src/runtime/subagents.ts` enforces two active children, project-only boundaries, no background/worktree, forced headless/shared/no-sandbox, and AILI-only normalized results. The pinned upstream package exposes the requested generic lifecycle. `pi-permission-modes` documents protected path gating for file tools and parsed bash paths.
+- [COMPUTED] The upstream template was fetched read-only at current pinned upstream commit `7eb35f357ad489f5841ee10dac1e44549c1bdb76`; SHA-256 is `45b2c81650433c64e6316f078d1cdb11779cf3a0309eabdbd3fd64d616f3f2c0`.
+- [FRAME] Classification: `BUILD_MATERIAL_DISCOVERY`; runtime implementation is stopped. The new report, design, proposal/context, affected specs, task queue, and draft test plan are the DEFINE write-back. The preceding test-plan acceptance is invalid for task 10.
+- [OPEN QUESTION] No user decision is currently missing for the draft contract. Real provider/sandbox/external-directory/global-home probes, if later needed, remain separately exact-approval operations rather than implicit effects of the new generic tool.

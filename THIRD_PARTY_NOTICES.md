@@ -9,9 +9,9 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - Revision: 7eb35f357ad489f5841ee10dac1e44549c1bdb76
 - Version: 0.2.7
 - License: MIT
-- Source files: upstream/aili-workflows.lock.json#files (471 exact skill files), manifests/roles.json#records[].sourcePath (19 exact role source files)
+- Source files: upstream/aili-workflows.lock.json#files (471 exact skill files), manifests/roles.json#records[].sourcePath (19 exact role source files), upstream/opencode-global-agents.lock.json (pinned source template revision/hash)
 - Reused symbols/patterns: 64 canonical skill bodies and owned assets, 19 child-role prompt bodies
-- Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output
+- Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output; templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded
 
 ## @agwab/pi-subagent
 
@@ -22,7 +22,7 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - License: MIT
 - Source files: src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts
 - Reused symbols/patterns: runSubagent API, headless lifecycle, artifact envelope
-- Local changes: AILI calls the pinned API through a thin role/path/tool policy adapter; no upstream source is copied
+- Local changes: AILI registers the full pinned upstream subagent tool schema, injects a non-removable credential guard, and relies on the ambient AILI pi-permission-modes registration exactly once in each child; no upstream source is copied
 
 ## pi-permission-modes
 

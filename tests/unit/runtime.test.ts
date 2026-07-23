@@ -52,7 +52,8 @@ describe("AILI runtime composition", () => {
     expect(harness.registeredCommands).not.toContain("aili-mode");
     expect(harness.registeredShortcuts).toContain("alt+m");
     expect(harness.registeredShortcuts).not.toContain("ctrl+shift+alt+a");
-    expect(harness.registeredTools).toEqual(expect.arrayContaining(["aili_task", "web_search", "fetch_content", "get_search_content"]));
+    expect(harness.registeredTools).toEqual(expect.arrayContaining(["subagent", "web_search", "fetch_content", "get_search_content"]));
+    expect(harness.registeredTools).not.toContain("aili_task");
   });
 
   it("appends only dynamic runtime state while the static ROSE adapter is global", async () => {

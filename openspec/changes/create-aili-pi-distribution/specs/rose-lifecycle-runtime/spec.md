@@ -87,3 +87,21 @@
 #### Scenario: Installed adapter is inspected
 - **WHEN** [框架内] template and installed marker block are checked
 - **THEN** [框架内] required Pi-safe rules are present and excluded OpenCode-only controls are absent
+
+## Superseding Pi-native Global AGENTS Synchronization Revision — 2026-07-24
+
+[已知|用户] The user selected a Pi-native synchronization of `aili-workflows/templates/opencode-global-AGENTS.md`, not a byte-for-byte OpenCode prompt copy. The source SHALL be pinned to `aili-workflows@7eb35f357ad489f5841ee10dac1e44549c1bdb76` and its source content hash SHALL be recorded; runtime SHALL not fetch `main`.
+
+### Requirement: Global adapter synchronizes portable governance mechanisms
+[框架内] The Pi global adapter SHALL carry the portable cross-project mechanisms from the pinned source: instruction precedence, untrusted-content handling, bounded skill/lifecycle routing, delegation benefit/authority discipline, exact approvals, evidence-before-editing, claim hygiene, scope control, minimal verification, user-language output, and project-rule precedence. It SHALL express generic delegation through the public `subagent` contract and must not reintroduce `aili_task`.
+
+#### Scenario: Portable governance is inspected
+- **WHEN** [框架内] the packaged adapter and its source-lock/provenance record are checked
+- **THEN** [框架内] each portable mechanism has a Pi-native mapping with the pinned source revision/hash
+
+### Requirement: OpenCode-specific control planes remain excluded
+[框架内] The synchronized adapter SHALL exclude OpenCode-only command/path/attachment control planes, including Task/task_id packet protocol, A33 attachment admission, OpenCode permission syntax, CodeGraph initialization authority, OpenCode-only global-file installation instructions, and mandatory formal lifecycle dependencies. It SHALL not duplicate project-local facts, commands, architecture, or test placement from the global source.
+
+#### Scenario: Excluded mechanism is searched
+- **WHEN** [框架内] the packaged Pi adapter is scanned for excluded OpenCode-only controls
+- **THEN** [框架内] no excluded control is active and generic Pi `subagent`/permission semantics remain the only relevant runtime contract

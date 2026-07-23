@@ -2,10 +2,10 @@
 
 ## Document Status
 
-- [已知|用户] **State:** `ACCEPTED_WEB_ACCESS_REVISION` on 2026-07-23. The user explicitly accepted the complete web-access and default quota-state revision and resumed BUILD.
-- [工具结果] **Generated from:** `proposal.md`, `design.md`, `tasks.md`, six capability specs, `interview.md`, `context.md`, `upstream-skill-migration.md`.
-- [工具结果] **Current execution evidence:** prior product evidence applies only to unchanged historical requirements. No fresh native-integration implementation or verification evidence exists.
-- [框架内] **BUILD rule:** user acceptance of this final test plan is necessary but does not grant Git init, dependency/lockfile, external repository attachment/write, commit/push, npm publish, or release permission.
+- [已知|用户] **State:** `DRAFT_GENERIC_SUBAGENT_AND_PI_NATIVE_AGENTS_SYNC_REVISION` on 2026-07-24. The prior `ACCEPTED_WEB_ACCESS_REVISION` does not accept the material public subagent/global-governance delta.
+- [工具结果] **Generated from:** `proposal.md`, `design.md`, `tasks.md`, six capability specs, `interview.md`, `context.md`, `upstream-skill-migration.md`, and `subagent-runtime-revision-report.md`.
+- [工具结果] **Current execution evidence:** prior product evidence applies only to unaffected historical requirements. The generic subagent and Pi-native global-AGENTS revision has no implementation or verification evidence yet.
+- [框架内] **BUILD rule:** user acceptance of this revised final test plan is necessary but does not grant dependency/lockfile, external directory/global-home, external repository attachment/write, commit/push, npm publish, or release permission.
 
 ## Scope Under Test
 
@@ -13,7 +13,7 @@
 
 [已知|用户] macOS support, Theme/TUI/font implementation, native Windows, `pi-workflow` integration, automatic global-resource pruning, and any claim of OS isolation are outside this change. `theme-references.md` is input for a later DEFINE, not a current visual acceptance surface.
 
-[框架内] **Current superseding scope:** the web dependency is `pi-web-access@0.13.0`, its complete upstream surface is included, and quota state maintenance is default-enabled. The final WEB-* rows below supersede earlier native-search/quota rows.
+[框架内] **Current superseding scope:** the web dependency is `pi-web-access@0.13.0`, its complete upstream surface is included, and quota state maintenance is default-enabled. The final WEB-* rows below supersede earlier native-search/quota rows. This draft additionally replaces public `aili_task` with the complete pinned `@agwab/pi-subagent@0.4.8` generic `subagent` lifecycle surface, preserves `aili.<role>` profiles as optional agents, and synchronizes portable governance mechanisms from the pinned upstream global AGENTS template.
 
 ## Status Legend
 
@@ -45,14 +45,15 @@
 | ROSE-4 | natural-language intent/gates | 3.2-3.3 | routing fixtures | prompt/evaluator tests | correct mode; slash grants no authority | planned |
 | ROSE-5 | project rules precedence | 3.5 | project-rule fixtures | with/without `AGENTS.md` tests | rules narrow; facts not fabricated | planned |
 | ROSE-6 | resource conflict visibility | 3.4, 4.4 | conflict fixture | doctor conflict test | non-pass + exact source | planned |
-| SUB-1 | exactly 19 Pi profiles | 5.2 | generated profiles/manifest | role generator validator | 19 expected, no unexpected/missing semantics | planned |
-| SUB-2 | fresh/single-use/terminal | 5.3, 5.7 | orchestrator/process fixtures | repeated role + stale-ID tests | distinct UUID/PID; resume rejected | planned |
-| SUB-3 | concurrency two | 5.3, 5.7 | semaphore tests | three-task concurrency fixture | active never exceeds 2 | planned |
-| SUB-4 | no recursive delegation | 5.4, 5.7 | child resource fixture | child tool inventory/invocation | no `aili_task`; explicit limitation | planned |
-| SUB-5 | authority intersection | 5.4, 5.7, 6.4 | policy fixtures | parent/role/mode matrix | no widening path | planned |
-| SUB-6 | bounded stream/result protocol | 5.5, 5.7 | protocol schema/limits | normal/oversize/malformed fixtures | 50 KiB final cap; explicit error/truncation | planned |
-| SUB-7 | Unix process-tree cancellation | 5.6-5.7 | process-tree fixture | AbortSignal/Ctrl+C test | no orphan; exactly-once cancelled result | planned |
-| SUB-8 | representative auth paths | 5.8 | sanitized auth fixtures/log scan | API-key + supported login path test | child works; no copied/logged secret | unverified |
+| SUB-1 | generic `subagent` public contract | 10.1, 10.3 | runtime/tool discovery fixtures | schema/action registration test | `subagent` only; complete pinned action/run surface; `aili_task` absent | planned |
+| SUB-2 | optional 19 `aili.<role>` profiles | 10.2 | generated profiles/manifest | global agent resolution fixture | role path works but generic/non-role run does not require it | planned |
+| SUB-3 | generic lifecycle and durable artifacts | 10.1, 10.3, 10.5 | disposable run fixtures | run/status/logs/wait/interrupt/mark-background/reconcile | correct existing-run state; no fabricated new run | planned |
+| SUB-4 | upstream parallel fan-out | 10.3, 10.5 | concurrency fixtures | default/max/version-bound cap, fail-fast, sibling cancel | no AILI two-child cap; documented upstream cap enforced | planned |
+| SUB-5 | worktree and external `cwd` | 10.5 | disposable Git/external fixtures | explicit worktree success/failure/cleanup and non-credential external target | no silent worktree downgrade; permission result visible | planned |
+| SUB-6 | credential hard denial | 10.4 | seeded-secret/parsed-bash fixtures | file tools and nested bash against protected paths | denied; no content in output/artifact/telemetry | planned |
+| SUB-7 | sandbox and provider domains | 10.6 | sandbox fixtures | false, deny-all, explicit-domain, unavailable paths | effective domains/degradation visible; no isolation claim | planned |
+| SUB-8 | structural non-recursion | 10.3 | child tool inventory fixture | generic worker attempts delegation | no child `subagent` tool | planned |
+| SUB-9 | representative auth paths | 10.6 | sanitized auth fixtures/log scan | API-key + supported login path test | child works; no copied/logged secret | unverified |
 | PERM-1 | standard starts each session | 6.1 | mode-state tests | two-session reset fixture | each starts standard | planned |
 | PERM-2 | bounded project-local automation | 6.2-6.3, 6.6 | policy fixtures | ordinary local read/write/command cases | mode-level prompt omitted only when all ceilings allow | planned |
 | PERM-3 | policy intersection | 5.4, 6.2-6.4 | policy matrix | allow/ask/deny cross-product | deny/narrow wins | planned |
@@ -219,16 +220,17 @@ openspec validate create-aili-pi-distribution --strict
 - [框架内] All six capability specs are covered by fresh test evidence; no required matrix row is failed or unverified at SHIP.
 - [框架内] Every embedded skill and all 19 roles have complete compatibility/provenance/verification records; stable candidate has no unexplained `blocked`.
 - [框架内] Linux clean/repeat/failure flows pass; macOS and native Windows are documented unsupported, fail before mutation, and are never reported verified.
-- [框架内] No child process orphan, recursive delegation, stale-context reuse, concurrency >2, silent output loss, permission widening, noninteractive ask allow, secret leakage, or false doctor PASS is observed.
+- [框架内] No child process orphan, recursive delegation, silent lifecycle-state loss, credential-path disclosure, permission widening, noninteractive ask allow, silent worktree downgrade, misleading sandbox claim, or false doctor PASS is observed. Upstream version-bound concurrency is allowed and verified rather than capped by AILI at two.
 - [框架内] Package dry-run contains only intended resources/licenses/notices and no secret, unrelated artifact, semantic skill overlay, or theme implementation.
 - [框架内] Final implementation diff, OpenSpec strict validation, documentation, security claims, and current upstream/Pi revisions are reconciled with this plan.
 
 ## Acceptance Record
 
-- [已知|用户] **Current acceptance:** `ACCEPTED_WEB_ACCESS_REVISION` on 2026-07-23; the user selected “接受并恢复 BUILD” after the full web-access surface, side effects, default quota state, test plan, and replacement-dependency approval effect were presented.
+- [工具结果] **Historical acceptance:** `ACCEPTED_WEB_ACCESS_REVISION` on 2026-07-23 covered the then-current web-access/quota/native-integration contract only; it is not acceptance for the 2026-07-24 generic-subagent/global-AGENTS revision.
+- [已知|用户] **Current acceptance:** `ACCEPTED_GENERIC_SUBAGENT_AND_PI_NATIVE_AGENTS_SYNC_REVISION` on 2026-07-23; the user explicitly replied “接受”.
 - [工具结果] **Waivers:** none.
 - [工具结果] **Named residuals accepted as completion evidence:** none; rows marked `planned`/`unverified` still require fresh BUILD/SHIP evidence and cannot support completion claims.
-- [框架内] **Effect of acceptance:** it permits the revised BUILD contract only. Dependency/lockfile changes and each real `~/.pi/agent/` write remain separately governed operations.
+- [框架内] **Effect of acceptance:** it permits task 10 BUILD contract only. Dependency/lockfile changes and each real external-directory, sandbox, provider, or `~/.pi/agent/` write remain separately governed operations.
 
 ## Superseding Native-Integration Acceptance Revision — 2026-07-23
 
@@ -241,12 +243,12 @@ openspec validate create-aili-pi-distribution --strict
 | INT-3 | `pi-quota-status` delegation | disposable HOME fixture observes quota registration/config without touching the real Pi home | passed |
 | INT-4 | Vendor permission UX | fixture proves only `Default/Plan/Build/YOLO`, `/perm`, `Alt+M`; old AILI mode command/shortcut are absent | passed |
 | INT-5 | Sandbox degradation | Linux fixtures cover usable Bubblewrap and missing/incompatible prerequisites; output never asserts isolation | passed |
-| INT-6 | Pi-subagent lifecycle ownership | adapter API test proves spawn/cancel/artifact call path; old owned lifecycle is absent from runtime composition | passed |
-| INT-7 | AILI child policy boundary | role/tool/path/headless matrix proves max two, no recursion/resume/background/worktree/retry, and non-empty write boundaries | passed |
-| INT-8 | Global prompt resource | disposable HOME tests create/update only marker-bounded AILI block; preserve unrelated content; malformed markers fail without mutation | passed |
-| INT-9 | Global role resources | disposable HOME tests install exactly 19 namespaced profiles; unowned collision fails; stale profiles are reported but not removed | passed |
-| INT-10 | Pi-safe ROSE adapter | template/content test proves retained ROSE principles and excluded OpenCode-only protocol | passed |
-| INT-11 | Exact provenance and doctor | NOTICE/SBOM/registry/doctor identify four integrations, global state, sandbox state and missing-resource state | passed |
+| INT-6 | Pi-subagent lifecycle ownership | superseded by GSA-1 through GSA-9 generic lifecycle coverage | superseded |
+| INT-7 | AILI child policy boundary | superseded by GSA-2 through GSA-6; no former two-child/project-only contract | superseded |
+| INT-8 | Global prompt resource | superseded by GSA-10/GSA-11 source-derived adapter and preservation coverage | superseded |
+| INT-9 | Global role resources | retained by GSA-2 and requires fresh generic-agent coverage | superseded |
+| INT-10 | Pi-safe ROSE adapter | superseded by GSA-10 source pin/mapping/exclusion coverage | superseded |
+| INT-11 | Exact provenance and doctor | superseded for changed subagent/global-template records by GSA-12 | superseded |
 | INT-12 | Authorized real-global probe | only after a distinct exact approval, a minimal `~/.pi/agent/` installation/update check verifies targets; otherwise this row remains unverified | passed |
 
 ### Revised verification sequence
@@ -256,10 +258,11 @@ openspec validate create-aili-pi-distribution --strict
 3. [框架内] Run integration tests only with fakes/disposable HOME until an exact real-global write approval exists.
 4. [框架内] Treat native provider network tests, real quota/auth state, and real global resource installation as unverified unless their own operation approvals and fresh evidence exist.
 
-### Revised exit criteria
+### Historical native-integration exit criteria
 
-- [框架内] INT-1 through INT-11 have fresh passing evidence, with no old owned mode/lifecycle surface left active.
-- [框架内] INT-12 is passing only after a separately approved real-global probe; otherwise no global-installation completion claim is permitted.
+[框架内] The following criteria are historical for the generic-subagent/global-AGENTS delta; GSA-1 through GSA-12 define the current affected exit criteria.
+
+- [框架内] INT-12 remains passing only for its prior separately approved real-global probe; any changed global-adapter installation claim needs GSA-11 evidence and a fresh exact approval.
 - [框架内] No test, doctor, README, or package claim describes vendor sandbox availability as OS isolation or claims unperformed external writes.
 
 ## Superseding Web-Access and Quota Revision — 2026-07-23
@@ -287,3 +290,29 @@ openspec validate create-aili-pi-distribution --strict
 | GSK-3 | Unsafe same-name non-directory/symlink | No replacement occurs | negative sync fixture | planned |
 | GSK-4 | Ordinary repository npm install | Synchronizer skips all global mutation outside Pi-managed npm roots | managed-root predicate fixture | planned |
 | GSK-5 | Package resource manifest | Snapshot remains packaged; Pi declares only `pi-web-access`'s bundled `librarian` skill | package/integration/E2E checks | planned |
+
+## Superseding Generic Subagent and Pi-native Global AGENTS Revision — 2026-07-24
+
+[已知|用户] This draft reflects the approved direction only: public `subagent` replaces `aili_task`; 19 `aili.<role>` profiles remain optional; the pinned upstream lifecycle, async/actions, broad bounded fan-out, explicit worktree/external `cwd`, and configurable sandbox are exposed; credential paths remain hard-denied; external writes use active vendor permission confirmation; and portable global-AGENTS governance is synchronized through a pinned Pi-native adapter. All earlier `SUB-*`, `INT-6`, `INT-7`, and former bounded-child exit criteria are historical where they require AILI two-child/project-only/terminal behavior.
+
+| ID | Requirement / risk | Task | Focused verification | Expected evidence | Status |
+|---|---|---|---|---|---|
+| GSA-1 | `subagent` replaces `aili_task` | 10.1 | extension discovery plus parameter/action schema fixture | exactly one generic tool; no legacy tool; all pinned actions accepted | passed |
+| GSA-2 | Optional AILI role / generic agent / agentless path | 10.2 | disposable global-profile and fake-run fixtures | `aili.code-scout`, non-AILI named agent, and valid agentless/role-context paths are distinguishable | passed |
+| GSA-3 | Durable async lifecycle | 10.3, 10.5 | fake process/artifact fixture | async run can be statused/logged/waited/interrupted/marked/reconciled without re-launch | passed |
+| GSA-4 | Version-bounded broad fan-out | 10.3, 10.5 | upstream-cap fixture | documented max tasks/concurrency plus fail-fast/cancel-sibling behavior are retained; no AILI 2-cap | passed |
+| GSA-5 | External non-credential access and writes | 10.5 | disposable external-root + no-UI fixtures | explicit external `cwd` accepted; vendor allow/ask/deny is visible; headless ask denies | passed |
+| GSA-6 | Credential hard denial including bash | 10.4 | protected-file and nested `bash -c` fixture in each relevant permission mode | file content never reaches child output, run log, artifact, telemetry, or result | passed |
+| GSA-7 | Explicit worktree | 10.5 | Git and non-Git fixtures | requested isolation creates/captures/cleans or fails loudly; no silent shared fallback | passed |
+| GSA-8 | Sandbox controls | 10.6 | deny-all, explicit provider-domain, unavailable sandbox fixtures | input validation, effective domain record, visible degradation; no universal isolation claim | passed |
+| GSA-9 | Child non-recursion | 10.3 | generic worker tool-inventory fixture | child excludes `subagent` under all supported backends | passed |
+| GSA-10 | Pi-native AGENTS source pin/derivation | 10.7 | source-hash, generated-template, excluded-control scan | source revision/hash recorded; portable mappings present; OpenCode-only controls absent | passed |
+| GSA-11 | User global prompt preservation | 10.7 | disposable-HOME marker install/update/conflict fixture | only marker-owned block mutates; unrelated content survives; no real HOME mutation | passed |
+| GSA-12 | Public docs/doctor/provenance | 10.8 | package, doctor JSON, README, provenance validation | generic capability, risks, source mapping and operational limits are visible | passed |
+
+### Revised acceptance prerequisites
+
+1. [框架内] Run `openspec validate create-aili-pi-distribution --strict` after the revised artifacts are coherent.
+2. [已知|用户] The user explicitly accepts this final revised test plan before any task 10 runtime implementation.
+3. [框架内] Dependency/lockfile modification is not expected for this revision because `@agwab/pi-subagent@0.4.8` is already pinned; any discovered package change remains separately approved.
+4. [框架内] Real provider, sandbox, external-directory, or `~/.pi/agent/` test operations each require separate exact approval; disposable fixtures may cover their non-production behavior.

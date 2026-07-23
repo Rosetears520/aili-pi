@@ -3,24 +3,30 @@
   "platform": "linux",
   "piVersion": "0.81.1",
   "status": "passed",
-  "approvedScope": "fresh code-scout child; read-only package.json boundary; no project mutation; four separately approved provider attempts, with the latest passing after legacy permission-runtime removal refreshed the adapter binding",
+  "approvedScope": "generic agentless headless child; read-only package.json boundary; no business-file mutation, bash, worktree, sandbox, external cwd, or global-home access; only approved temporary run artifacts were created and removed",
   "probes": [
     {
-      "id": "native-subagent-api-fixture",
-      "command": "npx vitest run tests/unit/subagents.test.ts",
+      "id": "generic-subagent-fixtures",
+      "command": "npx vitest run tests/unit/subagents.test.ts tests/integration/generic-subagent.test.ts",
       "status": "passed"
     },
     {
-      "id": "code-scout-read-package",
-      "command": "AILI_LIVE_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
+      "id": "generic-agentless-read-package",
+      "command": "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
+      "status": "passed",
+      "changedFiles": 0
+    },
+    {
+      "id": "generic-credential-guard",
+      "command": "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
       "status": "passed",
       "changedFiles": 0
     }
   ],
   "implementation": {
-    "src/runtime/subagents.ts": "260429148e4b15db5a3dcc470d22c2661ffc7037de28bb227ba68262ec8be88c",
-    "tests/unit/subagents.test.ts": "48691168ca18e6a7038590a1ec348927e2328ed2009f0129138aef2dec715dcd",
-    "tests/integration/live-subagent.test.ts": "8ca54fafe77b8a58c36207ac0f72340188a70ce125871a6630cdb2b934629fd5"
+    "src/runtime/subagents.ts": "b33e0ab1dba44212ada389fcca98774d98220396ead94951dee073df54784b0a",
+    "tests/unit/subagents.test.ts": "6ae824df46b3ae5b8744bcdef144372281cfca7a4b752ac26fd2d70f0b6cdc6c",
+    "tests/integration/live-subagent.test.ts": "46a907526890c4cd4a4e1d768fca51173c9a0c3db37ac83ba57db23d54d7f339"
   },
   "credentialHandling": "Existing Pi authentication was used by Pi; AILI did not copy, print, or modify authentication files."
 }

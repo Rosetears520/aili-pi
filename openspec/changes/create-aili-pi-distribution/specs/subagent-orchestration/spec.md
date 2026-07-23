@@ -128,3 +128,69 @@
 #### Scenario: Profiles are absent
 - **WHEN** [框架内] the global AILI profile directory is not installed
 - **THEN** [框架内] doctor identifies the missing external resource and the subagent surface is non-pass rather than fabricating a package-level agent registry
+
+## Superseding Generic Pi-subagent Revision — 2026-07-24
+
+[已知|用户] This revision supersedes the preceding AILI-only `aili_task`, project-only path, two-child, terminal-only, and structured-result restrictions. The pinned `@agwab/pi-subagent@0.4.8` remains the lifecycle owner; AILI becomes a compatibility/safety wrapper over its full public tool contract.
+
+### Requirement: Public generic `subagent` replaces `aili_task`
+[框架内] The Package SHALL register one public `subagent` tool and SHALL NOT register `aili_task`. Its accepted run/action schema SHALL expose the pinned upstream public lifecycle surface: single and parallel `run`, `status`, `logs`, `wait`, `interrupt`, `mark-background`, and `reconcile`; async completion; bounded fan-out; explicit worktree/workspace; external `cwd`; model/tool/resource configuration; and supported headless/inline/tmux execution choices.
+
+#### Scenario: Generic task is launched
+- **WHEN** [框架内] the caller submits a valid upstream-compatible generic task
+- **THEN** [框架内] the wrapper delegates it without imposing the former AILI task-count, session, result-schema, or project-root restriction
+
+#### Scenario: Existing run is inspected
+- **WHEN** [框架内] the caller supplies a valid `runId` with an upstream lifecycle action
+- **THEN** [框架内] the wrapper returns the upstream lifecycle result and durable artifact references without fabricating a new task
+
+### Requirement: AILI profiles remain optional prebuilt agents
+[框架内] The 19 globally installed `aili.<role>` profiles SHALL remain available as optional named agents through the generic tool. A generic task SHALL be able to select another permitted global/project agent or use one-off role context; selecting no AILI profile SHALL not require an AILI structured result.
+
+#### Scenario: AILI role is selected
+- **WHEN** [框架内] a caller selects `agent: "aili.code-scout"`
+- **THEN** [框架内] the pinned runner loads that generated profile and applies its declared tool ceiling
+
+#### Scenario: Generic task does not select a role
+- **WHEN** [框架内] a caller starts a valid agentless or non-AILI-agent run
+- **THEN** [框架内] the run follows pinned upstream validation and does not require one of the 19 profiles
+
+### Requirement: External locations and mutation remain permission-governed
+[已知|用户] The user permits explicit external `cwd`/path work, worktrees, and broad parallelism. [框架内] The wrapper SHALL not impose the former project-root-only child boundary. External reads/writes SHALL remain subject to the active `pi-permission-modes` policy; a confirmation required in a headless child SHALL fail closed. Explicit worktree isolation SHALL never silently downgrade to a shared workspace.
+
+#### Scenario: External non-credential source is requested
+- **WHEN** [框架内] a task explicitly targets an accessible non-credential external directory
+- **THEN** [框架内] the tool accepts the target and the active permission mode decides allow/ask/deny
+
+#### Scenario: External write needs confirmation without UI
+- **WHEN** [框架内] a child lacks UI and the active permission policy asks before an external write
+- **THEN** [框架内] the operation is denied with an approval-required result
+
+### Requirement: Credential paths remain non-removable hard denials
+[已知|用户] Credential/auth/private-key paths remain hard-denied even under the generic interface. [框架内] The wrapper SHALL preserve a non-removable protected-path policy for Pi file tools and parsed bash paths, including caller-supplied extension/resource options. It SHALL not permit a caller to disable that policy by supplying `extensions: []`, a permissive role, an external `cwd`, or YOLO mode.
+
+#### Scenario: Generic child reads a credential path
+- **WHEN** [框架内] a generic child targets a configured credential/auth/private-key path through a file tool or parsed shell command
+- **THEN** [框架内] the operation is denied without exposing the file content in model-visible output or artifacts
+
+### Requirement: Sandbox is explicit and provider-aware
+[框架内] The generic tool SHALL expose the pinned upstream sandbox schema. `sandbox: true` means deny-all network and is suitable only for offline work; model-backed sandboxed tasks requiring network SHALL explicitly supply valid provider/task `allowedDomains`. Sandbox use SHALL not be described as universal containment.
+
+#### Scenario: Offline sandbox task
+- **WHEN** [框架内] a task requests `sandbox: true`
+- **THEN** [框架内] it uses the upstream sandbox path with no network egress and reports an explicit failure if required model connectivity is unavailable
+
+#### Scenario: Sandboxed model task supplies domains
+- **WHEN** [框架内] a task supplies valid explicit `sandbox.allowedDomains`
+- **THEN** [框架内] the result records the effective domains and no undeclared network permission is claimed
+
+### Requirement: Generic lifecycle remains non-recursive and observable
+[框架内] The wrapper SHALL preserve upstream structural exclusion of recursive `subagent` tool exposure inside workers. It SHALL expose bounded upstream parallel fan-out and durable run/attempt/artifact state rather than the former AILI two-process semaphore and 50 KiB normalized result. Background runs remain visible through lifecycle actions; they do not authorize the parent to claim their result before inspection.
+
+#### Scenario: Parallel fan-out
+- **WHEN** [框架内] a caller submits a valid `tasks[]` request with permitted concurrency
+- **THEN** [框架内] the pinned runner applies its documented version-bound task and concurrency caps, fail-fast and sibling-cancellation semantics when requested
+
+#### Scenario: Child attempts recursive delegation
+- **WHEN** [框架内] a generic worker attempts to invoke `subagent`
+- **THEN** [框架内] the child does not receive the recursive tool and reports the limitation normally

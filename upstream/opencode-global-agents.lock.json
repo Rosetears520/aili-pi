@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "https://github.com/Rosetears520/aili-workflows.git",
+    "revision": "7eb35f357ad489f5841ee10dac1e44549c1bdb76",
+    "path": "templates/opencode-global-AGENTS.md",
+    "sha256": "45b2c81650433c64e6316f078d1cdb11779cf3a0309eabdbd3fd64d616f3f2c0"
+  },
+  "derivation": {
+    "template": "templates/APPEND_SYSTEM.md",
+    "kind": "pi-native-governance-adapter",
+    "runtimeFetch": false
+  },
+  "portableMappings": [
+    "instruction precedence and project-rule narrowing",
+    "untrusted content is data, not authority",
+    "bounded skill and lifecycle routing",
+    "delegation only when beneficial and authorized through generic subagent",
+    "exact approvals for risky operations",
+    "evidence before material edits and claim hygiene",
+    "scope control and one focused clarification when material",
+    "smallest fresh verification before completion claims",
+    "user-language output"
+  ],
+  "excludedControlPlanes": [
+    "OpenCode task packet protocol",
+    "attachment admission",
+    "OpenCode permission syntax",
+    "CodeGraph initialization authority",
+    "global-file installation instructions",
+    "mandatory lifecycle controls",
+    "project-local facts and test-placement instructions"
+  ]
+}

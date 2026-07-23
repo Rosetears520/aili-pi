@@ -43,4 +43,23 @@ describe("explicit global Pi resources", () => {
     expect(result.roles.stale).toEqual(["old-profile.md"]);
     expect(await readFile(join(paths.roleDirectory, "old-profile.md"), "utf8")).toBe("keep\n");
   });
+
+  it("pins and derives the Pi-native adapter without carrying OpenCode control planes", async () => {
+    const [lockText, template] = await Promise.all([
+      readFile(new URL("../../upstream/opencode-global-agents.lock.json", import.meta.url), "utf8"),
+      readFile(new URL("../../templates/APPEND_SYSTEM.md", import.meta.url), "utf8"),
+    ]);
+    const lock = JSON.parse(lockText) as { source: { revision: string; sha256: string }; portableMappings: string[]; excludedControlPlanes: string[] };
+    expect(lock.source).toEqual({
+      repository: "https://github.com/Rosetears520/aili-workflows.git",
+      revision: "7eb35f357ad489f5841ee10dac1e44549c1bdb76",
+      path: "templates/opencode-global-AGENTS.md",
+      sha256: "45b2c81650433c64e6316f078d1cdb11779cf3a0309eabdbd3fd64d616f3f2c0",
+    });
+    expect(lock.portableMappings).toEqual(expect.arrayContaining(["instruction precedence and project-rule narrowing", "untrusted content is data, not authority", "user-language output"]));
+    expect(lock.excludedControlPlanes).toEqual(expect.arrayContaining(["OpenCode task packet protocol", "attachment admission", "CodeGraph initialization authority"]));
+    expect(template).toContain("generic `subagent` tool");
+    expect(template).toContain("untrusted data");
+    expect(template).not.toMatch(/task_id|\bA33\b|CodeGraph|permission:\s*(allow|ask|deny)|Task\(/);
+  });
 });

@@ -162,3 +162,34 @@
 3. [框架内] Implement the minimal owned integration adapter, remove superseded owned runtime surfaces, update provenance/docs/tests, and run focused offline checks.
 4. [框架内] Obtain a separate exact approval for any `~/.pi/agent/` installation/update probe; use disposable HOME for ordinary tests.
 5. [框架内] Run claim-matched dependency, integration, sandbox-degrade, global-resource, child-policy, and package checks before any completion claim.
+
+## Superseding Generic Subagent and Pi-native AGENTS Design — 2026-07-24
+
+### 1. Generic upstream lifecycle is the public tool contract
+
+[已知|用户] The owned Extension SHALL expose `subagent`, not `aili_task`. Its input/action surface SHALL remain compatible with the pinned `@agwab/pi-subagent@0.4.8` public schema: generic/role agent selection, single or parallel run, async/detach/notify, status/logs/wait/interrupt/mark-background/reconcile, explicit workspace/worktree, external `cwd`, backend/model/tool/resource controls, and upstream version-bounded fan-out. AILI SHALL not retain the two-child semaphore, forced headless/shared/no-sandbox flags, project-root-only path boundary, or mandatory 50 KiB structured task report.
+
+[框架内] AILI SHALL retain one thin non-removable safety wrapper: it injects/retains the active `pi-permission-modes` and credential-path policy even when callers specify child extensions/resources, and it does not allow a caller to disable those guards through generic tool options. The upstream runner remains owner of spawning, process lifecycle, sandbox implementation, run artifacts, worktrees, and lifecycle actions.
+
+### 2. Roles become optional named profiles
+
+[已知|用户] The 19 profiles remain globally installed as `aili.<role>` agents. Selecting one uses its generated prompt/tool ceiling. Generic work may select another permitted global/project agent, provide one-off role context, or be agentless as the upstream API permits. Upstream recursive tool exclusion remains; no AILI worker may recursively delegate.
+
+### 3. External access, credential denial, and sandbox
+
+[已知|用户] Explicit non-credential external `cwd`/path work and worktree mutation are allowed. The active vendor permission mode decides external allow/ask/deny; no-UI asks deny. Credential/auth/private-key targets remain hard-denied across file tools and parsed bash commands, with no content returned in model-visible lifecycle output or artifacts. This is an application/vendor-policy guarantee, not a universal OS-containment claim.
+
+[框架内] Sandbox is per invocation. `sandbox: true` is deny-all network; a model-backed run that needs egress must list exact valid `allowedDomains`. Sandbox false/absence is allowed only under normal active permission policy and does not disable protected-path denial. Worktree isolation remains explicit and must fail loudly if unavailable.
+
+### 4. Pi-native synchronization of global AGENTS mechanisms
+
+[已知|用户] The source is `aili-workflows/templates/opencode-global-AGENTS.md` at pinned commit `7eb35f357ad489f5841ee10dac1e44549c1bdb76` and SHA-256 `45b2c81650433c64e6316f078d1cdb11779cf3a0309eabdbd3fd64d616f3f2c0`. A generated/provenance-checked Pi adapter SHALL synchronize portable governance only: authority order, untrusted evidence, routing/delegation discipline, exact approvals, evidence/claim hygiene, scope, verification, and project-rule precedence.
+
+[框架内] The adapter SHALL intentionally omit OpenCode-only Task/task_id, A33 attachments, permission syntax, CodeGraph initialization authority, global OpenCode installation paths, and mandatory lifecycle hard dependencies. It remains marker-owned under Pi `APPEND_SYSTEM.md`; any real user-home update stays separately approved.
+
+### 5. Migration and acceptance
+
+1. [框架内] Update the OpenSpec contract and final test plan; the user explicitly reaccepts the final revised test plan.
+2. [框架内] Replace the public runtime/tool surface, role integration, child policy, global-template derivation/provenance, doctor, docs, and focused tests without changing the pinned dependency/lockfile.
+3. [框架内] Run disposable-HOME and fake-run fixtures first; any real provider, sandbox, external directory, or global-home probe needs its own exact approval.
+4. [框架内] Retire `aili_task` only after generic `subagent` discovery and negative safety tests pass. No compatibility alias is retained unless a later accepted contract adds one.

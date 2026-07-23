@@ -11,7 +11,7 @@
 - [已知|用户] Compatibility：全量 inventory 使用 `native/adapted/optional/blocked`；稳定版无未解释 `blocked`。
 - [已知|用户] Pi policy：clean install 使用官方 latest；已有 Pi 不强更；`--update-pi` 显式升级；不兼容时在 AILI mutation 前 fail-closed。
 - [已知|用户] Platform：本 change 的稳定支持范围仅为 Linux；macOS 与 native Windows 均不在本 change 的支持或发布门禁内（来源：2026-07-23 当前会话范围修订决定）。
-- [已知|用户] Subagent：`@agwab/pi-subagent` 的 pinned API 承担 child lifecycle；AILI 保留 fresh、single-use、terminal、max concurrency 2、no automatic resume/retry/recursion 的 policy adapter。
+- [已知|用户] Subagent：`@agwab/pi-subagent@0.4.8` 的 pinned API 承担 child lifecycle；公开 `subagent` 工具暴露其完整 lifecycle/async/status/logs/wait/interrupt/reconcile、bounded parallel fan-out、worktree、external `cwd` 和可配置 sandbox 表面。19 个 `aili.*` profiles 保留为可选预置；credential/auth/private-key paths remain non-removable hard denials, and external writes remain subject to `pi-permission-modes` confirmation/headless-deny behavior.
 - [已知|用户] Reuse：官方/社区代码均需固定 revision；社区采用前必须通过 license/provenance/API/maintenance audit。
 - [已知|用户] Mode：采用 `pi-permission-modes` 的 `Default/Plan/Build/YOLO`、`/perm` 和 `Alt+M`；保留其 high-risk confirmation/headless behavior。Bubblewrap sandbox 可用时启用，缺失/不兼容时显式降级，不作隔离承诺。
 - [已知|用户] Installer：薄 bootstrap；核心不接管 Pi settings、认证、receipt 或 update/remove。
@@ -27,7 +27,7 @@
 - [已知|用户] 拒绝默认安装全部 optional integrations。
 - [已知|用户] 拒绝首版覆盖 macOS、native Windows、OS sandbox 或视觉主题实现。
 - [已知|用户] 拒绝手写重造 web search、quota、permission mode 和 child lifecycle；AILI 只保留明确的 policy/configuration adapter。
-- [框架内] 拒绝默认启用 pi-subagent worktree、background、resume、automatic redispatch 或 stale-profile prune；这些能力须在独立 DEFINE 中接受。
+- [已知|用户] 接受 upstream `pi-subagent` 的 explicit worktree/background/lifecycle actions and version-bounded parallel fan-out through the generic `subagent` tool. Recursive child delegation remains structurally unavailable; stale AILI profiles are still never pruned automatically.
 
 ## Unverified Residuals
 
@@ -47,11 +47,12 @@
 - **Skill snapshot**：从一个固定 canonical commit/hash 原样嵌入 AILI Pi release 的生成产物。_Avoid_: runtime latest sync。
 - **Capability registry**：记录 skill/tool/integration 的 provider、status、side-effect class 与 doctor probe 的 source of truth。
 - **Role profile**：从 AILI role 语义生成的 Pi child prompt/tool/policy 配置，不是 Pi Package 原生 agent resource。
-- **Task invocation**：一次新 UUID、fresh child process、single-use、terminal 的 subagent 执行。
+- **Generic subagent run**：通过 pinned upstream `subagent` schema 创建、查询、等待、中断或协调的 durable run/attempt lifecycle；background completion requires explicit later inspection.
+- **AILI profile**：可选的 `aili.<role>` global Pi agent profile that narrows a generic run with a prebuilt role prompt/tool ceiling.
 - **Delegated permission modes**：`pi-permission-modes` 的 `Default/Plan/Build/YOLO`、`/perm` 和 `Alt+M`。_Avoid_: 以旧 AILI modes 或无条件授权描述它。
 - **Sandbox degradation**：vendor sandbox prerequisites/topology 不满足时的显式降级状态。_Avoid_: 与 OS isolation 或 universal containment 互换。
 - **Optional pack**：需要用户显式选择的外部 capability 集合；缺失时为 `SKIP/WARN`，不得伪报成功。
 
 ## Next Gate
 
-[工具结果] The 2026-07-23 web-access/full-surface and quota-default Test Plan is accepted and strict-valid. BUILD may resume only for its accepted contract; replacing `pi-web-search`, global resource writes, commit/push/publish/release remain separate exact operation gates.
+[已知|用户] The user approved a material generic-subagent and Pi-native global-AGENTS synchronization direction on 2026-07-24. The previously accepted test plan does not cover that delta. DEFINE artifacts must be revised and a new final `test-plan.md` acceptance is required before affected BUILD work; no runtime/global-resource/dependency/lockfile mutation is authorized by this decision alone.

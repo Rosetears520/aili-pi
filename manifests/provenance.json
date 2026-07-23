@@ -10,14 +10,16 @@
       "status": "adapted",
       "sourceFiles": [
         "upstream/aili-workflows.lock.json#files (471 exact skill files)",
-        "manifests/roles.json#records[].sourcePath (19 exact role source files)"
+        "manifests/roles.json#records[].sourcePath (19 exact role source files)",
+        "upstream/opencode-global-agents.lock.json (pinned source template revision/hash)"
       ],
       "symbols": ["64 canonical skill bodies and owned assets", "19 child-role prompt bodies"],
       "localChanges": [
         "skills/** is an exact byte-for-byte snapshot with no semantic overlay",
-        "role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output"
+        "role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output",
+        "templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded"
       ],
-      "verification": ["npm run verify:skills", "npm run verify:roles"]
+      "verification": ["npm run verify:skills", "npm run verify:roles", "tests/unit/global-resources.test.ts"]
     },
     {
       "name": "@agwab/pi-subagent",
@@ -28,8 +30,8 @@
       "status": "dependency",
       "sourceFiles": ["src/api.ts", "src/runners/headless-model.ts", "src/artifacts/result.ts"],
       "symbols": ["runSubagent API", "headless lifecycle", "artifact envelope"],
-      "localChanges": ["AILI calls the pinned API through a thin role/path/tool policy adapter; no upstream source is copied"],
-      "verification": ["tests/unit/subagents.test.ts", "tests/integration/extension-load.test.ts"]
+      "localChanges": ["AILI registers the full pinned upstream subagent tool schema, injects a non-removable credential guard, and relies on the ambient AILI pi-permission-modes registration exactly once in each child; no upstream source is copied"],
+      "verification": ["tests/unit/subagents.test.ts", "tests/integration/package-runtime.test.ts"]
     },
     {
       "name": "pi-permission-modes",

@@ -48,3 +48,11 @@
 - [工具结果] The revised runtime also changes `package.json`/lockfile through four audited production dependencies; that operation remains separately gated until this revised test plan is accepted.
 - [推断] `aili-workflows` 需要一个独立、受其仓库规则约束的 upstream migration lane；本 proposal 只规定清单和依赖合同，不授予跨仓库写入或 attachment 权限。
 - [已知|用户] 核心 bootstrap 不接管用户 Pi settings、不修改认证、不复制 `pi install/update/remove`，也不提前建立通用 receipt framework；未来 optional pack 如产生 Package 外部文件，必须另行定义所有权与 rollback。
+
+## Superseding Generic Subagent and Pi-native AGENTS Revision — 2026-07-24
+
+[已知|用户] Replace public `aili_task` with a generic `subagent` tool backed by the complete pinned `@agwab/pi-subagent@0.4.8` lifecycle surface. Preserve the 19 generated `aili.<role>` profiles as optional named agents, not as a prerequisite for generic work. Enable upstream lifecycle actions, async/background state, bounded parallel fan-out, worktree, explicit external `cwd`, and configurable sandboxing. Credential/auth/private-key paths remain hard-denied, including through parsed child bash paths; non-credential external writes remain governed by `pi-permission-modes` confirmation and headless fail-closed behavior.
+
+[已知|用户] Synchronize the portable governance mechanisms in `aili-workflows/templates/opencode-global-AGENTS.md` through a revision/hash-pinned Pi-native global adapter. Preserve instruction precedence, untrusted-content handling, bounded routing/delegation, approval, evidence, verification, scope, and user-language behavior. Do not copy OpenCode-only Task/task_id, attachment/A33, permission, CodeGraph-init, installation, or mandatory lifecycle control planes.
+
+[框架内] The preceding accepted test plan does not authorize implementation of this material public/runtime contract change. The revised design, capability specs, task list, and final test plan require explicit reacceptance before BUILD; external global resource writes, dependency/lockfile changes, Git, and release operations remain independently gated.

@@ -35,7 +35,7 @@
     {
       "id": "subagent.dispatch",
       "provider": "@agwab/pi-subagent",
-      "adapterOwner": "aili thin policy adapter over @agwab/pi-subagent/api@0.4.8",
+      "adapterOwner": "aili generic wrapper over @agwab/pi-subagent@0.4.8 with mandatory credential guard",
       "platforms": ["linux"],
       "class": "required",
       "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "delegated" },

@@ -47,7 +47,7 @@ The package does not write global AILI resources during extension load. After re
 /aili-install-global-resources
 ```
 
-That command creates or updates only the AILI marker block in `~/.pi/agent/APPEND_SYSTEM.md` and installs the 19 packaged profiles at `~/.pi/agent/agents/aili/`. It preserves unrelated prompt content, rejects malformed markers or an unowned profile collision, and reports stale profiles without pruning them.
+That command creates or updates only the AILI marker block in `~/.pi/agent/APPEND_SYSTEM.md` and installs the 19 packaged profiles at `~/.pi/agent/agents/aili/`. The marker block is a Pi-native governance derivation of the pinned `aili-workflows` global AGENTS template: it retains instruction precedence, untrusted-content handling, approval/evidence/verification discipline, bounded delegation, project-rule precedence, and user-language output, while excluding OpenCode-only control planes. It preserves unrelated prompt content, rejects malformed markers or an unowned profile collision, and reports stale profiles without pruning them.
 
 ## Rem Cyberdeck
 
@@ -71,7 +71,7 @@ Zentui enables its experimental fixed-bottom editor by default when the installe
 - `pi-web-access@0.13.0` provides its complete upstream web-search, content-fetch, curator, clone/PDF/video, and bundled-skill surface. Its provider fallback, network traffic, config/credential paths, clone cache, temporary curator service, downloads, and optional browser-cookie access are upstream behavior; inspect its tool requests and configuration before use.
 - `pi-quota-status@0.3.0` is enabled by default. It may maintain `~/.pi/agent/pi-quota-status/state.json`; `/quota config` creates its configuration template.
 - `pi-permission-modes@2.2.0` provides the permission UI and sandbox degradation behavior above. AILI does not retain `/aili-mode` or `Ctrl+Shift+Alt+A` as competing controls.
-- `@agwab/pi-subagent@0.4.8` owns child spawn, cancellation, JSONL handling, and artifacts. AILI adds only role/tool/path policy projection, a two-child ceiling, and structured-result normalization. AILI children do not expose resume, worktree, background, recursive dispatch, or automatic retry.
+- `@agwab/pi-subagent@0.4.8` owns the generic `subagent` tool, child spawn, cancellation, durable run/artifact lifecycle, bounded parallel fan-out, async actions, worktrees, external `cwd`, and sandbox options. The 19 `aili.<role>` profiles are optional named agents; generic or agentless runs do not use an AILI-only result schema. AILI injects an immutable credential-path guard; child Pi processes load the ambient AILI `pi-permission-modes` registration exactly once. The upstream runner excludes recursive `subagent` exposure inside workers.
 
 ## Optional capability packs
 
@@ -86,13 +86,14 @@ When unavailable, runtime and doctor output use explicit `SKIP`/`WARN` results a
 
 ## Security boundary
 
-AILI adds role/tool/path projection and structured-result redaction around the native integrations. Vendor permission and sandbox behavior remains vendor-owned. Neither AILI nor Pi provides a universal OS sandbox: trusted extensions, user-authority processes, ambient network access, and filesystem races remain in the user trust domain. Inspect exact approval targets and do not put credentials in task text.
+AILI injects a non-removable guard that denies standard Pi file-tool and parsed-bash access to credential, authentication, and private-key paths, including from an external `cwd`, a YOLO permission mode, or a caller-supplied child extension list. Child Pi processes load the ambient AILI `pi-permission-modes` registration exactly once, so vendor permission prompts and sandbox behavior remain active; headless confirmation requests fail closed. The guard does not make arbitrary third-party extension code safe: extensions remain trusted code and may have direct process authority. Neither AILI nor Pi provides a universal OS sandbox or containment: trusted extensions, user-authority processes, ambient network access, and filesystem races remain in the user trust domain. Inspect exact approval targets and do not put credentials in task text.
 
-Child roles are fresh, single-use processes with no resume, chaining, background continuation, recursive delegation, or automatic retry. At most two child processes run concurrently. Output and diagnostics are bounded and redacted; provider/model behavior still depends on the configured Pi environment.
+Use `subagent` lifecycle actions (`status`, `logs`, `wait`, `interrupt`, `mark-background`, and `reconcile`) to inspect durable async work. Upstream fan-out is version-bounded rather than capped by AILI at two; background completion is not evidence until inspected. Provider/model behavior still depends on the configured Pi environment.
 
 ## Provenance and reproducibility
 
 - `upstream/aili-workflows.lock.json` pins the exact canonical 64-skill/471-file snapshot.
+- `upstream/opencode-global-agents.lock.json` pins the global AGENTS source revision/hash and documents its Pi-native derivation.
 - `manifests/skill-compatibility.json` records one compatibility state per skill.
 - `manifests/roles.json` records the 19 generated Pi role profiles.
 - `manifests/provenance.json`, `manifests/sbom.json`, and `THIRD_PARTY_NOTICES.md` record adapted/reference sources and the exact npm lock inventory.

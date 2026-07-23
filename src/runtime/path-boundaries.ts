@@ -53,7 +53,7 @@ function isMissingPathError(error: unknown): boolean {
   return error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT";
 }
 
-function isProtectedCredentialPath(path: string): boolean {
+export function isProtectedCredentialPath(path: string): boolean {
   const normalized = path.replaceAll("\\", "/").toLowerCase();
   const basename = normalized.split("/").at(-1) ?? "";
   if (/^\.env(?:\..+)?$/.test(basename)) return true;

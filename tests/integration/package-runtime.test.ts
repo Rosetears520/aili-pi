@@ -17,7 +17,8 @@ describe("offline packaged runtime discovery", () => {
     const shortcuts = [...extension.shortcuts.keys()];
     expect(commands).toEqual(expect.arrayContaining(["aili-doctor", "aili-install-global-resources", "perm", "quota"]));
     expect(commands).not.toContain("aili-mode");
-    expect(tools).toEqual(expect.arrayContaining(["aili_task", "web_search", "fetch_content", "get_search_content"]));
+    expect(tools).toEqual(expect.arrayContaining(["subagent", "web_search", "fetch_content", "get_search_content"]));
+    expect(tools).not.toContain("aili_task");
     expect(shortcuts).toContain("alt+m");
     expect(shortcuts).not.toContain("ctrl+shift+alt+a");
     expect([...extension.handlers.keys()]).toEqual(expect.arrayContaining(["before_agent_start", "session_start", "tool_call"]));

@@ -3,7 +3,7 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "@rosetears/aili-pi-0.0.0-development",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/20ca31338e3b820af273e6b72c98bd3f",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/4326541e956e5e266160f3dab73372d5",
   "creationInfo": {
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
@@ -31,7 +31,7 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=7eb35f357ad489f5841ee10dac1e44549c1bdb76; files=upstream/aili-workflows.lock.json#files (471 exact skill files), manifests/roles.json#records[].sourcePath (19 exact role source files); symbols=64 canonical skill bodies and owned assets, 19 child-role prompt bodies; local changes=skills/** is an exact byte-for-byte snapshot with no semantic overlay | role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output"
+      "comment": "revision=7eb35f357ad489f5841ee10dac1e44549c1bdb76; files=upstream/aili-workflows.lock.json#files (471 exact skill files), manifests/roles.json#records[].sourcePath (19 exact role source files), upstream/opencode-global-agents.lock.json (pinned source template revision/hash); symbols=64 canonical skill bodies and owned assets, 19 child-role prompt bodies; local changes=skills/** is an exact byte-for-byte snapshot with no semantic overlay | role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output | templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded"
     },
     {
       "SPDXID": "SPDXRef-source-agwab-pi-subagent-7cd9ea345a",
@@ -43,7 +43,7 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=daa7b83819116a62008ad17aa65fcd50fefbafd0; files=src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts; symbols=runSubagent API, headless lifecycle, artifact envelope; local changes=AILI calls the pinned API through a thin role/path/tool policy adapter; no upstream source is copied"
+      "comment": "revision=daa7b83819116a62008ad17aa65fcd50fefbafd0; files=src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts; symbols=runSubagent API, headless lifecycle, artifact envelope; local changes=AILI registers the full pinned upstream subagent tool schema, injects a non-removable credential guard, and relies on the ambient AILI pi-permission-modes registration exactly once in each child; no upstream source is copied"
     },
     {
       "SPDXID": "SPDXRef-source-pi-permission-modes-9b38b384cd",

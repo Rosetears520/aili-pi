@@ -148,7 +148,11 @@ export async function validateLiveVerification(): Promise<string[]> {
       implementation?: Record<string, string>;
     }>("manifests/live-verification.json");
     if (evidence.schemaVersion !== 1 || evidence.platform !== "linux" || evidence.piVersion !== "0.81.1" || evidence.status !== "passed") errors.push("live verification: identity is incomplete or non-pass");
-    if (evidence.probes?.length !== 2 || evidence.probes.some((probe) => probe.status !== "passed") || evidence.probes.find((probe) => probe.id === "code-scout-read-package")?.changedFiles !== 0) errors.push("live verification: required probes are missing, non-pass, or mutated files");
+    const genericProbe = evidence.probes?.find((probe) => probe.id === "generic-agentless-read-package");
+    const credentialProbe = evidence.probes?.find((probe) => probe.id === "generic-credential-guard");
+    if (evidence.probes?.length !== 3 || evidence.probes.some((probe) => probe.status !== "passed") || genericProbe?.changedFiles !== 0 || credentialProbe?.changedFiles !== 0) {
+      errors.push("live verification: required probes are missing, non-pass, or mutated files");
+    }
     for (const [filePath, expected] of Object.entries(evidence.implementation ?? {})) {
       const content = await readFile(new URL(filePath, ROOT), "utf8");
       const actual = createHash("sha256").update(content).digest("hex");
