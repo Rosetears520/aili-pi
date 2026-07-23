@@ -283,7 +283,7 @@ export const defaultConfig: PolishedTuiConfig = {
 		cost: false,
 		sessionDuration: true,
 		username: false,
-		time: true,
+		time: false,
 		os: false,
 		packageVersion: false,
 		gitCommit: false,

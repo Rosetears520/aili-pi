@@ -40,7 +40,6 @@
       "./extensions/zentui/index.ts"
     ],
     "skills": [
-      "./skills",
       "./node_modules/pi-web-access/skills"
     ],
     "prompts": [
@@ -58,6 +57,7 @@
     "node": ">=22.19.0"
   },
   "scripts": {
+    "postinstall": "node scripts/sync-global-skills.mjs --if-pi-managed",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "sync:skills": "node --experimental-strip-types scripts/sync-skills.ts",

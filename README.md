@@ -35,6 +35,8 @@ pi update npm:@rosetears/aili-pi
 pi remove npm:@rosetears/aili-pi
 ```
 
+During a Pi-managed npm install or update, the package replaces only existing same-name directories in `~/.agents/skills/` with its pinned AILI skill snapshot. It does not create package-only skills, alter differently named skills, retain backups, or load its embedded AILI snapshot as a second Pi skill source. The package remains installed for its Extensions, prompts, theme, and bundled `librarian` skill.
+
 Removal is destructive for this Package. It does not remove Pi and must not be presented as rollback when replacing a pre-existing AILI installation.
 
 ### Explicit global resources
@@ -110,6 +112,6 @@ npm run validate:release
 - **Doctor is non-pass:** inspect the exact `ERROR`, `WARN`, `SKIP`, or `UNVERIFIED` component. Missing optional packs are not core execution success.
 - **Permission shortcut does nothing:** use `/perm`; terminal multiplexers may consume `Alt+M`.
 - **Global resources are non-pass:** run `/aili-install-global-resources` only after reviewing the exact `~/.pi/agent/` targets. A malformed marker or an unowned role collision intentionally leaves files unchanged.
-- **Offline use:** the installed Package embeds the pinned skills and does not fetch `aili-workflows` at runtime. First-time Pi/package installation still requires the relevant package sources.
+- **Offline use:** the installed Package embeds the pinned skills and does not fetch `aili-workflows` at runtime. Its Pi-managed npm lifecycle synchronizes only pre-existing same-name global skills from that embedded fixed snapshot. First-time Pi/package installation still requires the relevant package sources.
 
 See `THIRD_PARTY_NOTICES.md` for source and license details. No official endorsement by the Pi maintainers is claimed.

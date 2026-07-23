@@ -275,3 +275,15 @@ openspec validate create-aili-pi-distribution --strict
 | WEB-5 | Permission/provenance coverage | permission fixtures and provenance cover web-access custom tools and side effects without reimplementing them | passed |
 
 [框架内] Acceptance permits this revised BUILD contract only. A subsequent exact dependency operation must remove the installed `pi-web-search` dependency and add `pi-web-access`; no production integration edit may begin before that separate operation is approved.
+
+## Superseding Global Skill Synchronization Revision — 2026-07-23
+
+[已知|用户] The user selected `~/.agents/skills/` as the sole runtime source for AILI skills. A Pi-managed npm package install/update replaces only existing same-name global skill directories from the package's fixed embedded snapshot; it never creates package-only directories or alters differently named user skills. The package retains the snapshot but does not register it through `pi.skills`.
+
+| ID | Test | Expected result | Evidence | Status |
+|---|---|---|---|---|
+| GSK-1 | Existing same-name global directory | Replaced exactly from the embedded snapshot; no stale file remains | disposable-HOME sync test | planned |
+| GSK-2 | Global-only and package-only names | Both remain absent/unmodified as applicable | disposable-HOME sync test | planned |
+| GSK-3 | Unsafe same-name non-directory/symlink | No replacement occurs | negative sync fixture | planned |
+| GSK-4 | Ordinary repository npm install | Synchronizer skips all global mutation outside Pi-managed npm roots | managed-root predicate fixture | planned |
+| GSK-5 | Package resource manifest | Snapshot remains packaged; Pi declares only `pi-web-access`'s bundled `librarian` skill | package/integration/E2E checks | planned |

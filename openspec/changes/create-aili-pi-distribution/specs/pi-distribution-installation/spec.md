@@ -91,3 +91,31 @@
 #### Scenario: A stale AILI profile exists
 - **WHEN** [框架内] a previously managed profile is no longer in the current manifest
 - **THEN** [框架内] the action leaves it in place, reports it as stale, and does not delete it automatically
+
+## Superseding Embedded Skill Discovery Requirements — 2026-07-23
+
+### Requirement: Pi-managed package installation refreshes only matching global skills
+[已知|用户] The npm package lifecycle SHALL use its embedded pinned snapshot to replace only existing same-name real directories beneath `~/.agents/skills/`. It SHALL not create package-only skill directories, alter differently named user skills, retain a backup after a successful replacement, fetch a moving upstream source, or run outside Pi-managed npm package roots.
+
+#### Scenario: Matching global AILI skill exists
+- **WHEN** [框架内] Pi installs or updates the npm package and `~/.agents/skills/<name>/` already exists as a real directory matching an embedded snapshot skill name
+- **THEN** [框架内] the existing directory is replaced with the fixed embedded snapshot contents
+
+#### Scenario: Global user skill has no embedded same-name skill
+- **WHEN** [框架内] a directory exists only in `~/.agents/skills/`
+- **THEN** [框架内] package installation leaves it unchanged
+
+#### Scenario: Embedded skill has no existing global directory
+- **WHEN** [框架内] a snapshot skill name is absent from `~/.agents/skills/`
+- **THEN** [框架内] package installation does not create it
+
+#### Scenario: Package is installed outside Pi-managed npm ownership
+- **WHEN** [框架内] a contributor runs an ordinary repository `npm install` or the package root is otherwise outside Pi-managed npm directories
+- **THEN** [框架内] the lifecycle synchronizer performs no global skill mutation
+
+### Requirement: Embedded AILI snapshot is not a second Pi discovery source
+[已知|用户] The published package SHALL retain its exact embedded skill snapshot for reproducible release and global synchronization, but `package.json#pi.skills` SHALL register only non-conflicting bundled skills.
+
+#### Scenario: Pi discovers package skills after installation
+- **WHEN** [框架内] Pi loads `@rosetears/aili-pi`
+- **THEN** [框架内] it discovers the bundled `librarian` skill without registering the embedded AILI snapshot as a duplicate source

@@ -7,7 +7,7 @@ interface PackageManifest {
   bin?: unknown;
   engines?: { node?: string };
   files?: string[];
-  pi?: { extensions?: string[]; prompts?: string[]; themes?: string[] };
+  pi?: { extensions?: string[]; prompts?: string[]; skills?: string[]; themes?: string[] };
 }
 
 async function readManifest(): Promise<PackageManifest> {
@@ -33,7 +33,7 @@ describe("Pi package baseline", () => {
 
   it("references package resources that exist", async () => {
     const manifest = await readManifest();
-    const resources = [...(manifest.pi?.extensions ?? []), ...(manifest.pi?.prompts ?? []), ...(manifest.pi?.themes ?? [])];
+    const resources = [...(manifest.pi?.extensions ?? []), ...(manifest.pi?.prompts ?? []), ...(manifest.pi?.skills ?? []), ...(manifest.pi?.themes ?? [])];
 
     await Promise.all(resources.map((resource) => access(new URL(`../../${resource}`, import.meta.url))));
   });
@@ -55,6 +55,12 @@ describe("Pi package baseline", () => {
     expect(contents.every((content) => content.startsWith("---\ndescription:"))).toBe(true);
     expect(contents.join("\n")).toContain("does not itself grant approval");
     expect(contents.join("\n")).toContain("not a fifth lifecycle mode");
+  });
+
+  it("keeps the AILI snapshot packaged but registers only the non-conflicting librarian skill", async () => {
+    const manifest = await readManifest();
+    expect(manifest.files).toContain("skills/");
+    expect(manifest.pi?.skills).toEqual(["./node_modules/pi-web-access/skills"]);
   });
 
   it("includes user documentation and generated provenance gates", async () => {

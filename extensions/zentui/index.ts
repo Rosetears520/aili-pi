@@ -190,10 +190,13 @@ export default function (pi: ExtensionAPI) {
 		lastDurationLabel = "";
 		const segments = currentConfig.footerSegments;
 		const format = currentConfig.footerFormat ?? "";
-		const needsWallClock = segments.time || /\$\{?time\b/.test(format);
+		// The clock belongs to the editor's upper-right metadata, not the footer.
+		// Keep a lightweight refresh tick while that editor chrome is enabled.
+		const needsWallClock =
+			currentConfig.features.editor || segments.time || /\$\{?time\b/.test(format);
 		const needsDuration =
 			segments.sessionDuration || /\$\{?(?:session_duration|duration)\b/.test(format);
-		if (!currentConfig.features.statusLine || !(needsWallClock || needsDuration)) return;
+		if (!(needsWallClock || (currentConfig.features.statusLine && needsDuration))) return;
 
 		const timer = setInterval(() => {
 			if (!sessionLifecycle.isCurrent()) return;

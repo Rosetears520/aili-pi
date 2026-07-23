@@ -43,7 +43,7 @@ if (!installed.includes(packageRoot)) throw new Error("Pi list did not report th
 const smoke = await run(pi, ["--list-models"], environment);
 if (smoke.includes("Failed to load extension")) throw new Error("installed Package failed Extension loading");
 const packageJson = JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8")) as { pi?: { extensions?: string[]; prompts?: string[]; skills?: string[] } };
-if (packageJson.pi?.extensions?.length !== 1 || packageJson.pi?.prompts?.length !== 5 || packageJson.pi?.skills?.length !== 2 || !packageJson.pi.skills.includes("./node_modules/pi-web-access/skills")) throw new Error("packed resource declarations are incomplete");
+if (packageJson.pi?.extensions?.length !== 4 || packageJson.pi?.prompts?.length !== 5 || packageJson.pi?.skills?.length !== 1 || packageJson.pi.skills[0] !== "./node_modules/pi-web-access/skills") throw new Error("packed resource declarations are incomplete");
 await run(pi, ["remove", packageRoot], environment);
 const removed = await run(pi, ["list"], environment);
 if (!removed.includes("No packages installed")) throw new Error("Pi Package removal did not reconcile settings");

@@ -79,3 +79,11 @@
 - [KNOWN|USER] Required behavior remains explicit: the shortcut must both open and close bounded-YOLO mode, while `/aili-mode` remains the fallback.
 - [COMPUTED] Registration/unit evidence is insufficient to override this manual failure. Test Plan rows R-5, PERM-12, and MAN-3 are marked failed pending focused reproduction and repair.
 - [FRAME] Effect: task 8.6 remains open and BUILD cannot be declared complete. No shortcut repair was started because the user requested durable recording and ended work for the night.
+
+## 2026-07-23 — Global AILI skill synchronization
+
+- [KNOWN|USER] The user selected `~/.agents/skills/` as the single runtime source for AILI skills and explicitly approved overwriting only existing same-name skill directories from the fixed embedded snapshot, with no backup, no package-only additions, and no changes to differently named user skills.
+- [INFERRED] This changes global filesystem side effects and package skill discovery, so the installation specification and acceptance plan were revised before implementation.
+- [COMPUTED] The package now keeps its exact embedded snapshot for provenance/reproducibility but declares only the bundled `pi-web-access` librarian skill to Pi. A guarded npm lifecycle synchronizer runs only below Pi-managed npm package roots and replaces only real matching global skill directories.
+- [COMPUTED] A direct approved synchronization updated 64 existing global AILI skill directories; no unmatched skill was added or removed.
+- [FRAME] The npm package itself, Extensions, prompts, theme, and librarian skill remain installed; only duplicate runtime discovery of the embedded AILI snapshot is removed.

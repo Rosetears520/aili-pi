@@ -23,7 +23,7 @@ describe("offline packaged runtime discovery", () => {
     expect([...extension.handlers.keys()]).toEqual(expect.arrayContaining(["before_agent_start", "session_start", "tool_call"]));
   });
 
-  it("discovers exactly the pinned skills, prompts, and generated roles from local files", async () => {
+  it("ships the pinned snapshot without registering it as a duplicate Pi skill source", async () => {
     const [compatibility, roles, packageJson] = await Promise.all([
       readFile(new URL("../../manifests/skill-compatibility.json", import.meta.url), "utf8").then(JSON.parse),
       readFile(new URL("../../manifests/roles.json", import.meta.url), "utf8").then(JSON.parse),
@@ -36,7 +36,7 @@ describe("offline packaged runtime discovery", () => {
     expect(packageJson.pi.prompts).toEqual([
       "./prompts/ideate.md", "./prompts/define.md", "./prompts/build.md", "./prompts/ship.md", "./prompts/local-review.md",
     ]);
-    expect(packageJson.pi.skills).toEqual(["./skills", "./node_modules/pi-web-access/skills"]);
+    expect(packageJson.pi.skills).toEqual(["./node_modules/pi-web-access/skills"]);
     expect(await readFile(new URL("../../node_modules/pi-web-access/skills/librarian/SKILL.md", import.meta.url), "utf8")).toContain("Librarian");
     await Promise.all(skillDirectories.map((name) => readFile(new URL(`../../skills/${name}/SKILL.md`, import.meta.url), "utf8")));
   });
