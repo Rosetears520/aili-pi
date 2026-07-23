@@ -25,3 +25,24 @@ P1 ASSET UPDATE 2026-07-23
 [COMPUTED] NodeNext compatibility adaptations add explicit relative `.js` specifiers and change the Matrix lifecycle listener to Pi's `session_before_switch` event. Package tests declare all four Extensions.
 [COMPUTED] Provenance now records exact Sakura revision `165a1f8011a12a58a6409b56b8a6c0416cd9b589`; its LICENSE and NOTICE are packaged under `licenses/` and `notices/`; README documents the fixed editor and its terminal interaction boundary.
 [FRAME] Per user instruction, no further automated verification is run until the implementation is presented for user-led testing. Required next evidence: provenance generation/validation, package dry-run, full test suite, strict OpenSpec validation, and manual Linux Pi TUI matrix.
+
+USER UI OVERRIDE 2026-07-23
+[KNOWN|USER] Restore the Matrix animation's original Sakura visual palette and dark trail target from `pi-sakura-cyberdeck@165a1f8011a12a58a6409b56b8a6c0416cd9b589`.
+[KNOWN|USER] Present an observed Codex short-window status such as `5h 38% 9:49AM (29/07)` as `codex 38% 9:49AM (29/07)`, preserving the percentage and reset text while removing the `5h` label.
+[COMPUTED] `extensions/matrix/index.ts` now uses the exact upstream Matrix background, head, palette, and fallback RGB values; lifecycle and bounded animation behavior are unchanged.
+[COMPUTED] `extensions/zentui/extension-status.ts` performs display-only relabeling for the `pi-quota-status` slot: `5h` becomes `codex` and `Wk` remains presented as `7d`; quota polling, dimensions, percentages, and reset timestamps remain upstream-owned and unchanged.
+[COMPUTED] `npm run generate:provenance` synchronized `THIRD_PARTY_NOTICES.md` and `manifests/sbom.json` with the canonical provenance changes.
+[DRIFT] The Matrix palette request narrows the accepted “Rem visuals” requirement; recorded in `drift-log.md` for DEFINE write-back before SHIP.
+[UNVERIFIED] Automated checks remain deferred under the prior user-led testing instruction; focused source/test expectations were updated but not executed.
+
+SHIP AUTHORIZATION 2026-07-23
+[KNOWN|USER] The user explicitly approved the exact `0.1.5` package/lockfile bump, task-scoped commit, push to `origin/main`, `v0.1.5` tag, public npm publication, and local Pi installation.
+[COMPUTED] DEFINE write-back records the Sakura Matrix palette exception and display-only quota labels in `context.md`, `design.md`, the requirement delta, and `test-plan.md`; the drift item is resolved pending strict validation.
+[COMPUTED] `package.json` and `package-lock.json` now target `0.1.5`; verification, release audit, closeout evidence, and external release operations follow.
+
+SHIP VERIFICATION 2026-07-23
+[PASS] Focused quota fixtures: 2/2; typecheck; full Vitest suite (18 files passed, 2 live/global files skipped; 70 tests passed, 3 live/global tests skipped); generated/package/skills/roles/capability/compatibility/provenance/stable-release validators; native Linux local Package E2E; package and publish dry-runs; strict validation for both affected OpenSpec changes.
+[REPAIR] The approved `0.1.5` lockfile-only version bump changed its evidence digest. `manifests/adapter-evidence.json` was refreshed to the exact new SHA-256, then compatibility and provenance validation passed.
+[PASS] Package dry-run reports `@rosetears/aili-pi@0.1.5`, 6,152 intended files, no task-local `.pi/`, `graphify-out/`, OpenSpec, tests, `.tmp/`, artifacts, or environment files.
+[WARN] `npm audit --omit=dev --audit-level=high` exits successfully but reports one moderate `protobufjs@7.6.4` advisory under the non-packaged Pi development/peer dependency. The production `@agwab/pi-subagent` path resolves fixed `protobufjs@7.6.5`; the tarball contains neither vulnerable path nor Pi itself. No unapproved dependency mutation was made.
+[UNVERIFIED] Interactive Matrix/footer/fixed-editor visual behavior requires a restarted Pi session after installation. No real provider call was authorized for an automated nested-TUI probe.

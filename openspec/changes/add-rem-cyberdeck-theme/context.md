@@ -6,10 +6,11 @@
 
 ## Confirmed Decisions
 
-- [已知|用户] 以 `pi-sakura-cyberdeck@165a1f8011a12a58a6409b56b8a6c0416cd9b589` 为精确 MIT 源：除 Rem 头像和 Rem 配色外，直接复用其 Theme、header、matrix、Zentui editor/footer 与 fixed-editor。
+- [已知|用户] 以 `pi-sakura-cyberdeck@165a1f8011a12a58a6409b56b8a6c0416cd9b589` 为精确 MIT 源：直接复用其 Theme、header、matrix、Zentui editor/footer 与 fixed-editor；header、Theme 和 Zentui 使用 Rem 视觉，Matrix 明确保留该 revision 的 Sakura 暗色拖尾与粉彩 RGB 调色板。
 - [已知|用户] Package SHALL expose four Extensions: the existing AILI entry plus copied Sakura header, matrix, and Zentui entries. 固定编辑器默认启用；若 Pi 内部 TUI 或终端能力检查不通过，回退原生 editor，不得破坏会话。
 - [已知|用户] 用户提供的头像位于 `assets/rem-head.txt`，只用于本 change 的 header。
 - [工具结果] 现有 Package 已集成 `pi-quota-status@0.3.0`；本 change 复用它的 status，不新增 quota 请求或持久化协议。
+- [已知|用户] footer 仅改写 quota 展示标签：短窗口 `5h` 显示为 `codex`，周窗口 `Wk` 显示为 `7d`；百分比、重置时间、轮询和状态维度保持不变。
 - [工具结果] 当前 Package 是 Linux-only；不得扩展平台支持。
 
 ## Boundaries

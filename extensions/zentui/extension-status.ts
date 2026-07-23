@@ -43,9 +43,8 @@ function hasVisibleStatusText(value: string): boolean {
 }
 
 function formatQuotaWindowLabel(key: string, text: string): string {
-	// pi-quota-status uses the compact upstream label `Wk`. Rem Cyberdeck
-	// presents the same weekly Codex window as the more explicit `7d`.
-	return key === "pi-quota-status" ? text.replace(/\bWk\b/g, "7d") : text;
+	if (key !== "pi-quota-status") return text;
+	return text.replace(/\b5h\b/g, "codex").replace(/\bWk\b/g, "7d");
 }
 
 export function sanitizeExtensionStatusOriginalText(value: string): string {

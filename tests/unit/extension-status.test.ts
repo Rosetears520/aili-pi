@@ -3,7 +3,19 @@ import { collectExtensionStatusSegments } from "../../extensions/zentui/extensio
 import { defaultConfig } from "../../extensions/zentui/config.js";
 
 describe("Zentui extension statuses", () => {
-  it("renders the upstream Codex weekly quota window as 7d without fabricating a 5h window", () => {
+  it("renders the Codex short-window quota without the 5h label", () => {
+    const statuses = collectExtensionStatusSegments(
+      new Map([["pi-quota-status", "5h 38% 9:49AM (29/07)"]]),
+      defaultConfig,
+    );
+
+    expect(statuses.right).toContainEqual(expect.objectContaining({
+      key: "pi-quota-status",
+      text: "codex 38% 9:49AM (29/07)",
+    }));
+  });
+
+  it("renders the upstream Codex weekly quota window as 7d without fabricating a short window", () => {
     const statuses = collectExtensionStatusSegments(
       new Map([["pi-quota-status", "Wk 50% 9:49AM (29/07)"]]),
       defaultConfig,

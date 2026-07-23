@@ -3,9 +3,9 @@
 ## Architecture
 
 1. `themes/rem-cyberdeck.json` supplies the complete Pi palette.
-2. Three copied visual Extensions own their upstream surfaces independently: header, Matrix working animation/widget, and Zentui footer/editor chrome/fixed-editor compositor. The AILI Extension registers none of these competing UI surfaces.
+2. Three copied visual Extensions own their upstream surfaces independently: header, Matrix working animation/widget, and Zentui footer/editor chrome/fixed-editor compositor. Header, Theme, and Zentui use the Rem visual system; Matrix intentionally retains the pinned Sakura revision's dark trail target and pastel RGB palette. The AILI Extension registers none of these competing UI surfaces.
 3. Header, Matrix, widget and footer use their existing public Pi APIs. Footer reads `footerData`, `ctx.getContextUsage()`, session usage and existing extension statuses. It never polls quota.
-4. The fixed-editor enhancement is copied from the exact Sakura source revision, retaining its above-editor probe, strict writable-surface inspection, terminal compositor, and teardown behavior. Only Rem visual assets/palette may change without a further reuse revision.
+4. The fixed-editor enhancement is copied from the exact Sakura source revision, retaining its above-editor probe, strict writable-surface inspection, terminal compositor, and teardown behavior. Rem visual changes remain limited to the header, Theme, and Zentui surfaces; Matrix palette changes require an explicit contract update such as the current Sakura exception.
 
 ## Compatibility and degradation
 
@@ -28,7 +28,7 @@
 | context/tokens | `ctx.getContextUsage()` and session assistant usage | `n/a`/zero only when observed |
 | local time | local clock | omitted only when unavailable |
 | permission/network | existing Extension status entries | retained; no value fabricated |
-| quota | upstream `pi-quota-status` status slot | no value fabricated |
+| quota | upstream `pi-quota-status` status slot; display-only leading-label mapping `5h` → `codex`, `Wk` → `7d` | no value fabricated; percentage/reset text preserved |
 
 On a narrow terminal, the footer splits primary left/right content across two lines rather than truncating it. The OS icon and runtime-version segments are disabled by default.
 

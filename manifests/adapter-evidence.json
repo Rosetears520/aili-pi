@@ -11,7 +11,7 @@
         "vitest run tests/unit/runtime.test.ts"
       ],
       "artifacts": [
-        { "path": "package-lock.json", "sha256": "986d6ad3d9d31b82ebd0aabe08dacec09a28b524fc7281d928d3486abf27f981" },
+        { "path": "package-lock.json", "sha256": "13a5c034edf3b61af5256471163522fe44171c4dfedf4a85d915c4c442e53c56" },
         { "path": "tests/integration/extension-load.test.ts", "sha256": "f2fdceb965f55bc481acc6457eee5cac9499dac08e8c3d17ca60efd07f13e96c" },
         { "path": "tests/unit/runtime.test.ts", "sha256": "9e99920e7e16529f109771d659f611c9fa580941a5dbf924b2d9d117dd3adeee" }
       ]

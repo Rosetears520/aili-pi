@@ -44,7 +44,7 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - License: MIT
 - Source files: src/index.ts, src/paths.ts
 - Reused symbols/patterns: quota footer, /quota, global state maintenance
-- Local changes: AILI initializes the pinned upstream extension; upstream owns quota polling and state files
+- Local changes: AILI initializes the pinned upstream extension; upstream owns quota polling and state files; Zentui relabels the displayed 5h prefix as codex and Wk as 7d without changing quota data
 
 ## pi-web-access
 
@@ -99,7 +99,7 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - License: MIT
 - Source files: extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**
 - Reused symbols/patterns: header, matrix animation, Zentui footer, fixed editor compositor
-- Local changes: registered as three additional Pi Package Extensions; header avatar loads the supplied Rem asset; Sakura palette values are replaced with the Rem palette; relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract
+- Local changes: registered as three additional Pi Package Extensions; header avatar loads the supplied Rem asset; Zentui palette values use the Rem palette while the Matrix animation retains the upstream Sakura palette; relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract
 
 ## npm dependency inventory
 

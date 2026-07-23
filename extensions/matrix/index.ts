@@ -7,17 +7,15 @@ const WIDGET_KEY = "sakura-matrix-engine";
 const CONFIG_PATH = join(homedir(), ".pi", "agent", "sakura-cyberdeck-matrix.json");
 const RESET = "\x1b[0m";
 const GLYPHS = [..."0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾗﾘﾙﾚﾛﾜﾝ"];
-// Matrix glyphs use foreground colors only. Blend trails into the user's
-// white terminal background to simulate transparency without terminal alpha.
-const BG: RGB = [255, 255, 255];
-const TEXT: RGB = [255, 255, 255];
+const BG: RGB = [20, 17, 26];
+const TEXT: RGB = [247, 238, 248];
 const CANDY: readonly RGB[] = [
-  [136, 184, 255], // sakura
-  [125, 228, 255], // sakura-iro
-  [188, 167, 255], // petal
-  [188, 167, 255], // lavender
-  [125, 228, 255], // sky
-  [140, 230, 194], // mint
+  [242, 167, 198], // sakura
+  [252, 201, 185], // sakura-iro
+  [239, 195, 230], // petal
+  [199, 184, 245], // lavender
+  [159, 211, 242], // sky
+  [174, 229, 197], // mint
 ];
 const WORKING_INDICATOR = "◆";
 const PHASE_MESSAGES: Record<Phase, string> = {
@@ -101,7 +99,7 @@ function colorize(char: string, color: RGB, bold = false): string {
 }
 
 function workingIndicatorFrame(): string {
-  return colorize(WORKING_INDICATOR, CANDY[0] ?? [136, 184, 255], true);
+  return colorize(WORKING_INDICATOR, CANDY[0] ?? [242, 167, 198], true);
 }
 
 function stableGlyph(seed: number, row: number, timeSlice: number): string {
@@ -127,7 +125,7 @@ export function createDrops(width: number, density: number, height: number): Dro
       length,
       gap,
       seed: Math.floor(random() * 0x7fffffff) ^ (index * 7919),
-      color: CANDY[index % CANDY.length] ?? [136, 184, 255],
+      color: CANDY[index % CANDY.length] ?? [242, 167, 198],
     };
   });
 }

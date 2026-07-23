@@ -7,15 +7,19 @@ The Package SHALL expose one `rem-cyberdeck` Theme JSON with every required curr
 - **WHEN** the Package is loaded by Pi
 - **THEN** Pi discovers exactly the declared Rem theme resource and it validates against the current theme schema
 
-### Requirement: Copied visual Extensions preserve Sakura behavior with Rem visuals
-The copied header and Matrix Extensions SHALL render the supplied Rem Unicode/Braille header and bounded working animation using their upstream public Pi UI APIs. The AILI Extension SHALL not register competing header, footer, widget, or working-indicator surfaces.
+### Requirement: Copied visual Extensions preserve Sakura behavior with explicit palette ownership
+The copied header and Matrix Extensions SHALL render the supplied Rem Unicode/Braille header and bounded working animation using their upstream public Pi UI APIs. The header, Theme, and Zentui surfaces SHALL use the Rem visuals, while the Matrix animation SHALL retain the pinned Sakura revision's dark trail target and pastel RGB palette. The AILI Extension SHALL not register competing header, footer, widget, or working-indicator surfaces.
 
 #### Scenario: Narrow terminal
 - **WHEN** terminal width cannot fit the header artwork
 - **THEN** each output line is safely truncated to the render width and the session remains usable
 
 ### Requirement: Footer reports bounded live state without a new quota poller
-The footer SHALL render available cwd, Git branch/status, context usage, token count, local time, and existing extension status entries (including permission and network state); it SHALL omit operating-system and runtime-version segments, wrap to a second line rather than truncate when its primary left/right content cannot fit, and reuse `pi-quota-status` rather than creating quota requests or state files.
+The footer SHALL render available cwd, Git branch/status, context usage, token count, local time, and existing extension status entries (including permission and network state); it SHALL omit operating-system and runtime-version segments, wrap to a second line rather than truncate when its primary left/right content cannot fit, and reuse `pi-quota-status` rather than creating quota requests or state files. For display only, a leading quota window label `5h` SHALL render as `codex` and `Wk` SHALL render as `7d`, preserving the remaining percentage and reset text.
+
+#### Scenario: Quota status is available
+- **WHEN** `pi-quota-status` supplies a short-window or weekly status string
+- **THEN** only the recognized leading window label is rewritten and all following quota text remains unchanged
 
 #### Scenario: Quota is unavailable
 - **WHEN** no supported authenticated quota source is available
