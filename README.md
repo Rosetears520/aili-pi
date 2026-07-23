@@ -72,6 +72,11 @@ Zentui enables its experimental fixed-bottom editor by default when the installe
 - `pi-quota-status@0.3.0` is enabled by default. It may maintain `~/.pi/agent/pi-quota-status/state.json`; `/quota config` creates its configuration template.
 - `pi-permission-modes@2.2.0` provides the permission UI and sandbox degradation behavior above. AILI does not retain `/aili-mode` or `Ctrl+Shift+Alt+A` as competing controls.
 - `@agwab/pi-subagent@0.4.8` owns the generic `subagent` tool, child spawn, cancellation, durable run/artifact lifecycle, bounded parallel fan-out, async actions, worktrees, external `cwd`, and sandbox options. The 19 `aili.<role>` profiles are optional named agents; generic or agentless runs do not use an AILI-only result schema. AILI injects an immutable credential-path guard; child Pi processes load the ambient AILI `pi-permission-modes` registration exactly once. The upstream runner excludes recursive `subagent` exposure inside workers.
+- `pi-cache-optimizer@2.6.18` provides `/cache-optimizer`, provider cache diagnostics, cache statistics, and prompt-cache optimization. It may maintain `~/.pi/agent/pi-cache-optimizer-stats.json`; `/cache-optimizer fix` is interactive and is the only command that may propose editing `models.json`.
+- `pi-markdown-preview@0.10.1` provides `/preview`, `/preview-browser`, `/preview-pdf`, `/preview-clear-cache`, and the `preview_export` tool. Terminal/browser previews require a Chromium executable; PDF export additionally requires Pandoc and a LaTeX engine.
+- `@narumitw/pi-lsp@0.25.0` provides language-agnostic `lsp_diagnostics`, `lsp_fix`, and `/lsp`. It supports routes for C/C++, Python, CSS/SCSS, JavaScript/TypeScript, Go, Rust, Java, Kotlin, Bash, YAML, Terraform, and other languages. It does not download language servers; install the required commands separately and configure project routes in `.pi/pi-lsp.json` or user routes in `~/.pi/agent/pi-lsp.json`.
+
+These three community extensions are initialized by the single AILI Extension entry and remain upstream-owned code. AILI does not load `pi-lens` alongside `@narumitw/pi-lsp`, because both provide overlapping LSP tools.
 
 ## Optional capability packs
 

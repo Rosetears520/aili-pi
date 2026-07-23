@@ -57,6 +57,39 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - Reused symbols/patterns: web_search, fetch_content, get_search_content, curator and bundled librarian skill
 - Local changes: AILI initializes the complete pinned upstream surface through its sole Extension entry; no upstream source is copied
 
+## pi-cache-optimizer
+
+- Status: dependency
+- Source: https://github.com/jiangge/pi-cache-optimizer.git
+- Revision: npm:2.6.18
+- Version: 2.6.18
+- License: MIT
+- Source files: index.ts
+- Reused symbols/patterns: default Extension, /cache-optimizer, cache statistics, prompt cache hooks
+- Local changes: AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied
+
+## pi-markdown-preview
+
+- Status: dependency
+- Source: https://github.com/omaclaren/pi-markdown-preview.git
+- Revision: npm:0.10.1
+- Version: 0.10.1
+- License: MIT
+- Source files: index.ts, shared/, client/
+- Reused symbols/patterns: default Extension, /preview, /preview-browser, /preview-pdf, preview_export
+- Local changes: AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied
+
+## @narumitw/pi-lsp
+
+- Status: dependency
+- Source: https://github.com/narumiruna/pi-extensions.git
+- Revision: npm:0.25.0
+- Version: 0.25.0
+- License: MIT
+- Source files: extensions/pi-lsp/src/pi-lsp.ts, extensions/pi-lsp/src/
+- Reused symbols/patterns: default Extension, lsp_diagnostics, lsp_fix, /lsp
+- Local changes: AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied
+
 ## pi-sakura-cyberdeck
 
 - Status: adapted
@@ -70,6 +103,6 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 
 ## npm dependency inventory
 
-The exact 350-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
+The exact 424-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
 
 Runtime dependencies are initialized through the single AILI Extension entry; no third-party source tree is copied into this package.

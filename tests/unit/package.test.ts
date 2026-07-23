@@ -8,6 +8,7 @@ interface PackageManifest {
   engines?: { node?: string };
   files?: string[];
   pi?: { extensions?: string[]; prompts?: string[]; skills?: string[]; themes?: string[] };
+  bundledDependencies?: string[];
 }
 
 async function readManifest(): Promise<PackageManifest> {
@@ -29,6 +30,9 @@ describe("Pi package baseline", () => {
     ]);
     expect(manifest.pi?.prompts).toHaveLength(5);
     expect(manifest.pi?.themes).toEqual(["./themes/rem-cyberdeck.json"]);
+    expect(manifest.bundledDependencies).toEqual(expect.arrayContaining([
+      "@narumitw/pi-lsp", "pi-cache-optimizer", "pi-markdown-preview",
+    ]));
   });
 
   it("references package resources that exist", async () => {

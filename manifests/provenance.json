@@ -70,6 +70,42 @@
       "verification": ["tests/unit/runtime.test.ts", "tests/integration/extension-load.test.ts"]
     },
     {
+      "name": "pi-cache-optimizer",
+      "repository": "https://github.com/jiangge/pi-cache-optimizer.git",
+      "revision": "npm:2.6.18",
+      "version": "2.6.18",
+      "license": "MIT",
+      "status": "dependency",
+      "sourceFiles": ["index.ts"],
+      "symbols": ["default Extension", "/cache-optimizer", "cache statistics", "prompt cache hooks"],
+      "localChanges": ["AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied"],
+      "verification": ["tests/unit/runtime.test.ts", "tests/integration/package-runtime.test.ts", "npm pack --dry-run --json"]
+    },
+    {
+      "name": "pi-markdown-preview",
+      "repository": "https://github.com/omaclaren/pi-markdown-preview.git",
+      "revision": "npm:0.10.1",
+      "version": "0.10.1",
+      "license": "MIT",
+      "status": "dependency",
+      "sourceFiles": ["index.ts", "shared/", "client/"],
+      "symbols": ["default Extension", "/preview", "/preview-browser", "/preview-pdf", "preview_export"],
+      "localChanges": ["AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied"],
+      "verification": ["tests/unit/runtime.test.ts", "tests/integration/package-runtime.test.ts", "npm pack --dry-run --json"]
+    },
+    {
+      "name": "@narumitw/pi-lsp",
+      "repository": "https://github.com/narumiruna/pi-extensions.git",
+      "revision": "npm:0.25.0",
+      "version": "0.25.0",
+      "license": "MIT",
+      "status": "dependency",
+      "sourceFiles": ["extensions/pi-lsp/src/pi-lsp.ts", "extensions/pi-lsp/src/"],
+      "symbols": ["default Extension", "lsp_diagnostics", "lsp_fix", "/lsp"],
+      "localChanges": ["AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied"],
+      "verification": ["tests/unit/runtime.test.ts", "tests/integration/package-runtime.test.ts", "npm pack --dry-run --json"]
+    },
+    {
       "name": "pi-sakura-cyberdeck",
       "repository": "https://github.com/beautifulrem/pi-sakura-cyberdeck.git",
       "revision": "165a1f8011a12a58a6409b56b8a6c0416cd9b589",

@@ -8,12 +8,12 @@
       "sourceRevision": "7eb35f357ad489f5841ee10dac1e44549c1bdb76",
       "verification": [
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/permissions.test.ts"
+        "vitest run tests/unit/runtime.test.ts"
       ],
       "artifacts": [
-        { "path": "package-lock.json", "sha256": "9198e65c8343ddc8eccc5533b4ac5707c482b7e19d6e2724d2a6839150ca7c4f" },
-        { "path": "tests/integration/extension-load.test.ts", "sha256": "1e27e98a557d6d4f77e21f945052d7ec3283564b8df84594cbf0169d4912c828" },
-        { "path": "tests/unit/permissions.test.ts", "sha256": "8c12d4c3fc37e8cefbc5e8c56bea0a74dd04ac2541383c36b4fd6f04b38798bd" }
+        { "path": "package-lock.json", "sha256": "986d6ad3d9d31b82ebd0aabe08dacec09a28b524fc7281d928d3486abf27f981" },
+        { "path": "tests/integration/extension-load.test.ts", "sha256": "f2fdceb965f55bc481acc6457eee5cac9499dac08e8c3d17ca60efd07f13e96c" },
+        { "path": "tests/unit/runtime.test.ts", "sha256": "96a2206db8aabe82d3a44216b55915a37c06623d74711e00b20e0a5615b72591" }
       ]
     },
     {
@@ -24,21 +24,21 @@
       "verification": [
         "npm run verify:roles",
         "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/unit/permissions.test.ts",
+        "vitest run tests/integration/generic-permission.test.ts",
         "AILI_LIVE_SUBAGENT_PROBE=static npx vitest run tests/integration/live-subagent.test.ts",
         "AILI_LIVE_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
       ],
       "artifacts": [
-        { "path": "src/runtime/subagents.ts", "sha256": "e0fa58c32cc052c938e9817be69059f7fbceaf1718a6446d6395c8d0abdd2789" },
-        { "path": "src/runtime/child-guard.ts", "sha256": "687d238a1ef24f215b11e967d1d56b172569c334294278186df2dee02b54a543" },
-        { "path": "src/runtime/permissions.ts", "sha256": "20c4404d893cc30733fde5a69fb4f6cf1458f08cae18ab8c8095127b6ef27dc9" },
-        { "path": "tests/unit/subagents.test.ts", "sha256": "3028298f7e392dfb7bffc119de0a8c00f252618f1c18f4fa17f392e003773653" },
-        { "path": "tests/unit/child-guard.test.ts", "sha256": "6319952f5dd3eab025788f155bdb558317ebca7f686a2373c90a3c0f15f4dbcb" },
-        { "path": "tests/unit/permissions.test.ts", "sha256": "8c12d4c3fc37e8cefbc5e8c56bea0a74dd04ac2541383c36b4fd6f04b38798bd" },
+        { "path": "src/runtime/subagents.ts", "sha256": "b33e0ab1dba44212ada389fcca98774d98220396ead94951dee073df54784b0a" },
+        { "path": "src/runtime/child-guard.ts", "sha256": "9da3c1d80805fd76bbf7a7fd253dff44f0756439fdee039bd7d7fd30766329e1" },
+        { "path": "src/runtime/credential-guard.ts", "sha256": "01d76ff0a9a2a0a08a2d2e52b6ed050d925df5e5bea1e6194130e00bfe22cde3" },
+        { "path": "tests/unit/subagents.test.ts", "sha256": "6ae824df46b3ae5b8744bcdef144372281cfca7a4b752ac26fd2d70f0b6cdc6c" },
+        { "path": "tests/unit/child-guard.test.ts", "sha256": "b187d6d84cd0829ae5474e133b4df911a80b75b9e89622b8543a1c5894be4974" },
+        { "path": "tests/integration/generic-permission.test.ts", "sha256": "1e113af5b5cce59f365bc12a1735e1aa269c0a739fe6fc7aa4c9131818869ce5" },
         { "path": "tests/unit/roles.test.ts", "sha256": "72b61af16ff66506aaaceac28c92d8b3756741e3c4df0544686b3d4940215b57" },
-        { "path": "scripts/sync-roles.ts", "sha256": "a0abb655b7df270019a674b56a38bbadcfe3d6dc2599b17c04a2584f32c2d532" },
-        { "path": "tests/integration/live-subagent.test.ts", "sha256": "dd4f546e2f2f04e6f8a9c0577320a7538089af6a319b5de4f10a36c891c81339" },
-        { "path": "manifests/live-verification.json", "sha256": "6a4d6defd2d01c6a65acd558aeb1d1aa8c828777edd4273005aa9ff4392c7bd1" }
+        { "path": "scripts/sync-roles.ts", "sha256": "a4fd66c95d91ebd92f0b1c6164a84809c4b5a1bf1e185dbdd61af23688dd2d9c" },
+        { "path": "tests/integration/live-subagent.test.ts", "sha256": "46a907526890c4cd4a4e1d768fca51173c9a0c3db37ac83ba57db23d54d7f339" },
+        { "path": "manifests/live-verification.json", "sha256": "18cb0a6a0558f17c11b4ee890a8af07f7b1ba9960084eb4e7235610730c34066" }
       ]
     }
   ]

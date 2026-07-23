@@ -6,6 +6,18 @@ export const NATIVE_INTEGRATIONS = [
   "pi-permission-modes@2.2.0",
   "pi-quota-status@0.3.0",
   "pi-web-access@0.13.0",
+  "pi-cache-optimizer@2.6.18",
+  "pi-markdown-preview@0.10.1",
+  "@narumitw/pi-lsp@0.25.0",
+] as const;
+
+const INTEGRATION_MODULES = [
+  "pi-permission-modes/src/index.ts",
+  "pi-quota-status",
+  "pi-web-access",
+  "pi-cache-optimizer/index.ts",
+  "pi-markdown-preview",
+  "@narumitw/pi-lsp/src/pi-lsp.ts",
 ] as const;
 
 /**
@@ -14,11 +26,7 @@ export const NATIVE_INTEGRATIONS = [
  * command, tool, permission, or provider behavior.
  */
 export async function registerNativeIntegrations(pi: ExtensionAPI): Promise<void> {
-  for (const moduleName of [
-    "pi-permission-modes/src/index.ts",
-    "pi-quota-status",
-    "pi-web-access",
-  ]) {
+  for (const moduleName of INTEGRATION_MODULES) {
     const loaded = await import(moduleName) as { default?: unknown };
     if (typeof loaded.default !== "function") {
       throw new Error(`${moduleName} does not expose an Extension default export`);

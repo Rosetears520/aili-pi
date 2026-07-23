@@ -46,19 +46,29 @@ describe("AILI runtime composition", () => {
     ]);
   });
 
-  it("registers delegated permission and web surfaces without legacy AILI mode controls", async () => {
+  it("registers delegated and selected community surfaces without legacy AILI mode controls", async () => {
     const harness = await runtimeHarness();
-    expect(harness.registeredCommands).toEqual(expect.arrayContaining(["aili-doctor", "aili-install-global-resources", "perm"]));
+    expect(harness.registeredCommands).toEqual(expect.arrayContaining([
+      "aili-doctor", "aili-install-global-resources", "perm",
+      "cache-optimizer", "preview", "preview-browser", "preview-pdf", "preview-clear-cache", "lsp",
+    ]));
     expect(harness.registeredCommands).not.toContain("aili-mode");
     expect(harness.registeredShortcuts).toContain("alt+m");
     expect(harness.registeredShortcuts).not.toContain("ctrl+shift+alt+a");
-    expect(harness.registeredTools).toEqual(expect.arrayContaining(["subagent", "web_search", "fetch_content", "get_search_content"]));
+    expect(harness.registeredTools).toEqual(expect.arrayContaining([
+      "subagent", "web_search", "fetch_content", "get_search_content", "preview_export", "lsp_diagnostics", "lsp_fix",
+    ]));
     expect(harness.registeredTools).not.toContain("aili_task");
   });
 
   it("appends only dynamic runtime state while the static ROSE adapter is global", async () => {
     const harness = await runtimeHarness();
-    const results = await Promise.all(harness.beforeStart.map((handler) => handler(event([{ path: "/project/AGENTS.md", content: "rules" }]), undefined as never)));
+    const context = {
+      model: undefined,
+      modelRegistry: undefined,
+      sessionManager: { getSessionId: () => "test-session" },
+    };
+    const results = await Promise.all(harness.beforeStart.map((handler) => handler(event([{ path: "/project/AGENTS.md", content: "rules" }]), context as never)));
     const result = results.find((candidate) => candidate?.systemPrompt?.includes("AILI runtime summary"));
     expect(result).toBeDefined();
     expect(result?.systemPrompt).toMatch(/^PI BASE PROMPT/);
