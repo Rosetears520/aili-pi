@@ -2,9 +2,9 @@
 
 ## Document Status
 
-- [已知|用户] **State:** `DRAFT_GENERIC_SUBAGENT_AND_PI_NATIVE_AGENTS_SYNC_REVISION` on 2026-07-24. The prior `ACCEPTED_WEB_ACCESS_REVISION` does not accept the material public subagent/global-governance delta.
-- [工具结果] **Generated from:** `proposal.md`, `design.md`, `tasks.md`, six capability specs, `interview.md`, `context.md`, `upstream-skill-migration.md`, and `subagent-runtime-revision-report.md`.
-- [工具结果] **Current execution evidence:** prior product evidence applies only to unaffected historical requirements. The generic subagent and Pi-native global-AGENTS revision has no implementation or verification evidence yet.
+- [已知|用户] **State:** `ACCEPTED_BENEFIT_BASED_DELEGATION_POLICY_REVISION` on 2026-07-24. This supersedes the strict delegation-first mutation gate while retaining the accepted generic-subagent and Pi-native global-AGENTS contract.
+- [工具结果] **Generated from:** `proposal.md`, `design.md`, `tasks.md`, six capability specs, `interview.md`, `context.md`, `upstream-skill-migration.md`, `subagent-runtime-revision-report.md`, and the accepted benefit-based delegation correction.
+- [工具结果] **Current execution evidence:** task 10 and unaffected prior evidence remain applicable. Strict delegation-gate evidence is superseded; fresh focused/full tests, compatibility/provenance/release validation, Linux Package E2E, package dry-run, and strict OpenSpec validation pass for the benefit-based policy.
 - [框架内] **BUILD rule:** user acceptance of this revised final test plan is necessary but does not grant dependency/lockfile, external directory/global-home, external repository attachment/write, commit/push, npm publish, or release permission.
 
 ## Scope Under Test
@@ -226,11 +226,11 @@ openspec validate create-aili-pi-distribution --strict
 
 ## Acceptance Record
 
-- [工具结果] **Historical acceptance:** `ACCEPTED_WEB_ACCESS_REVISION` on 2026-07-23 covered the then-current web-access/quota/native-integration contract only; it is not acceptance for the 2026-07-24 generic-subagent/global-AGENTS revision.
-- [已知|用户] **Current acceptance:** `ACCEPTED_GENERIC_SUBAGENT_AND_PI_NATIVE_AGENTS_SYNC_REVISION` on 2026-07-23; the user explicitly replied “接受”.
+- [工具结果] **Historical acceptance:** `ACCEPTED_WEB_ACCESS_REVISION` and `ACCEPTED_GENERIC_SUBAGENT_AND_PI_NATIVE_AGENTS_SYNC_REVISION` cover their respective superseded scopes.
+- [已知|用户] **Current acceptance:** `ACCEPTED_BENEFIT_BASED_DELEGATION_POLICY_REVISION` on 2026-07-24; the user explicitly approved C′, deletion of the strict gate files, benefit-based delegation, and main-agent decision/integration ownership.
 - [工具结果] **Waivers:** none.
 - [工具结果] **Named residuals accepted as completion evidence:** none; rows marked `planned`/`unverified` still require fresh BUILD/SHIP evidence and cannot support completion claims.
-- [框架内] **Effect of acceptance:** it permits task 10 BUILD contract only. Dependency/lockfile changes and each real external-directory, sandbox, provider, or `~/.pi/agent/` write remain separately governed operations.
+- [框架内] **Effect of acceptance:** it permits the task 11 repository-local policy correction while retaining the accepted task 10 contract. Dependency/lockfile changes and each real external-directory, sandbox, provider, or `~/.pi/agent/` write remain separately governed operations.
 
 ## Superseding Native-Integration Acceptance Revision — 2026-07-23
 
@@ -316,3 +316,29 @@ openspec validate create-aili-pi-distribution --strict
 2. [已知|用户] The user explicitly accepts this final revised test plan before any task 10 runtime implementation.
 3. [框架内] Dependency/lockfile modification is not expected for this revision because `@agwab/pi-subagent@0.4.8` is already pinned; any discovered package change remains separately approved.
 4. [框架内] Real provider, sandbox, external-directory, or `~/.pi/agent/` test operations each require separate exact approval; disposable fixtures may cover their non-production behavior.
+
+## Superseding Benefit-Based Delegation Policy Revision — 2026-07-24
+
+[已知|用户] The user explicitly selected model-directed, benefit-based delegation and rejected any per-loop/session subagent requirement. Subagents should improve efficiency and preserve main-agent context; the main agent owns decisions, scope, integration, and final verification. This revision does not grant commit, push, publish, dependency, global-home, external-provider, or attachment-write approval.
+
+| ID | Requirement | Task | Focused verification | Expected evidence | Status |
+|---|---|---|---|---|---|
+| DP-1 | No delegation-only mutation blocker | 11.1 | runtime composition fixture and source/package inspection | no delegation-gate component/source; parent mutation is not conditioned on a completed subagent run | passed |
+| DP-2 | Benefit-based runtime guidance | 11.2 | runtime-summary fixture | guidance names efficiency/context benefits, main-agent decision/integration ownership, bounded delegation, and valid direct work | passed |
+| DP-3 | Pi-native global guidance | 11.2 | global-resource derivation fixture | installed template encourages beneficial delegation and rejects calls made merely to unlock editing | passed |
+| DP-4 | Independent safety controls remain | 11.1, 11.3 | credential/subagent/permission fixtures | credential guard and vendor permission ownership pass without a child marker exemption | passed |
+| DP-5 | Public docs and evidence agree | 11.3 | README/OpenSpec/adapter validation and package dry-run | no strict-gate claim or stale gate artifact remains | passed |
+
+### Benefit-based delegation verification commands
+
+```bash
+npm run typecheck
+npx vitest run tests/unit/runtime.test.ts tests/unit/global-resources.test.ts tests/unit/subagents.test.ts tests/unit/child-guard.test.ts tests/integration/generic-permission.test.ts
+npm test
+npm run validate:compatibility
+npm run validate:provenance
+npm run validate:release
+npm pack --dry-run --json
+openspec validate create-aili-pi-distribution --strict
+git diff --check
+```

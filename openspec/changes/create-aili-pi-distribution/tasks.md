@@ -89,3 +89,9 @@
 - [x] 10.6 [框架内] Prove sandbox false/deny-all/explicit-domain paths and visible degradation without claiming universal isolation; obtain separate exact approval before any real provider/sandbox/external-directory probe.
 - [x] 10.7 [框架内] Add a pinned source/hash record and Pi-native derivation for `aili-workflows/templates/opencode-global-AGENTS.md`; synchronize portable governance mechanisms, exclude OpenCode-only control planes, and update marker/global-resource preservation tests without touching real `~/.pi/agent/`.
 - [x] 10.8 [框架内] Update README, capability registry, provenance/SBOM, doctor, package/load fixtures, focused tests, and release validation; rerun strict OpenSpec validation and request separate approval for any real global-home, dependency/lockfile, commit, push, publish, or release operation.
+
+## 11. Benefit-based delegation policy
+
+- [x] 11.1 [框架内] Remove the strict parent mutation gate, its child-only marker coupling, and all per-loop/session delegation-unlock behavior while preserving independent credential and permission controls.
+- [x] 11.2 [框架内] Add Pi-owned runtime and global-adapter guidance that presents subagents as an efficiency/context-preservation mechanism, keeps decisions/scope/integration/final verification with the main agent, encourages bounded execution delegation when it has clear net benefit, and permits direct work otherwise.
+- [x] 11.3 [框架内] Add focused composition/guidance tests, update README/OpenSpec/evidence, and prove that no delegation-only blocker remains while credential/path policy and vendor permission ownership remain intact.

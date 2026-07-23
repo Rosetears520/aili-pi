@@ -1,6 +1,6 @@
 # Latest Session Handoff
 
-snapshot_path: `handoffs/20260723T004734Z--shortcut-pending.md`
-snapshot_id: `20260723T004734Z--shortcut-pending`
-sha256: `b9c18e46f7ef0eb7f49faeececf8f32235c49e967c6d71225b155ab06230286c`
-finalized_at: `2026-07-23T00:51:00.389660Z`
+snapshot_path: `handoffs/20260723T093458Z--delegation-gate-relaxation.md`
+snapshot_id: `20260723T093458Z--delegation-gate-relaxation`
+sha256: `7b1d123e8e0511808e53626a93ae973fc1448d874a80e48c982f87554e89e099`
+finalized_at: `2026-07-23T09:37:00.446798Z`

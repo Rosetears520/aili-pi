@@ -105,3 +105,26 @@
 #### Scenario: Excluded mechanism is searched
 - **WHEN** [框架内] the packaged Pi adapter is scanned for excluded OpenCode-only controls
 - **THEN** [框架内] no excluded control is active and generic Pi `subagent`/permission semantics remain the only relevant runtime contract
+
+## Superseding Benefit-Based Delegation Policy — 2026-07-24
+
+[已知|用户] The user explicitly replaced the strict parent mutation gate with model-directed, benefit-based delegation. Subagents are intended to improve execution efficiency and preserve the main agent's context; the main agent remains responsible for decisions, scope, integration, and final verification.
+
+### Requirement: Delegation is encouraged by net benefit and never used as a mutation unlock
+[框架内] The AILI runtime SHALL communicate that bounded discovery, implementation, testing, or other execution SHOULD be delegated when specialist capability, parallelism, evidence isolation, or context preservation provides clear net benefit. It SHALL also communicate that direct parent work remains valid when delegation overhead outweighs that benefit. AILI MUST NOT block `write`, `edit`, `lsp_fix`, shell, or other mutation solely because no `subagent` call completed, and MUST NOT impose per-loop, per-turn, or per-session delegation quotas. Credential protection, vendor permission modes, exact approvals, and other independent safety gates SHALL remain unchanged.
+
+#### Scenario: Independent work has clear benefit
+- **WHEN** [框架内] a task has a suitable specialist, parallel independent units, or evidence that would materially pollute the main context
+- **THEN** [框架内] the runtime guidance encourages a bounded `subagent` assignment while the main agent retains decisions and integration ownership
+
+#### Scenario: Direct work has lower overhead
+- **WHEN** [框架内] the task is bounded, dependent, overlapping, or otherwise lacks clear delegation benefit
+- **THEN** [框架内] the parent may inspect, mutate, and verify directly without first calling `subagent`
+
+#### Scenario: Delegation fails or is unavailable
+- **WHEN** [框架内] a subagent run fails, returns no evidence, or is unavailable
+- **THEN** [框架内] AILI does not treat that result as completion and does not require another run merely to unlock parent mutation
+
+#### Scenario: Safety policy evaluates an operation
+- **WHEN** [框架内] credential, permission, external-operation, destructive, Git, publication, or release policy applies
+- **THEN** [框架内] that policy continues to allow, ask, or deny independently of whether delegation occurred

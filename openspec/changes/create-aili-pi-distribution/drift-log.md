@@ -96,3 +96,21 @@
 - [COMPUTED] The upstream template was fetched read-only at current pinned upstream commit `7eb35f357ad489f5841ee10dac1e44549c1bdb76`; SHA-256 is `45b2c81650433c64e6316f078d1cdb11779cf3a0309eabdbd3fd64d616f3f2c0`.
 - [FRAME] Classification: `BUILD_MATERIAL_DISCOVERY`; runtime implementation is stopped. The new report, design, proposal/context, affected specs, task queue, and draft test plan are the DEFINE write-back. The preceding test-plan acceptance is invalid for task 10.
 - [OPEN QUESTION] No user decision is currently missing for the draft contract. Real provider/sandbox/external-directory/global-home probes, if later needed, remain separately exact-approval operations rather than implicit effects of the new generic tool.
+
+## 2026-07-24 — Delegation-first parent mutation gate
+
+- [KNOWN|USER] The user explicitly approved a parent-session harness gate after observing that eligible mutation work could be completed without proactive subagent delegation.
+- [COMPUTED] The narrow implementation is a Pi `tool_call`/`tool_result` middleware gate: direct `write`/`edit`, write-enabled `lsp_fix`, and unknown or shell-mutating commands are blocked until a successful `subagent` run completes in the current agent loop; read-only inspection remains available.
+- [COMPUTED] Generic children receive an in-process marker from the already-required credential guard, so the parent-only gate does not block child mutation. The credential/path guard remains independently active.
+- [INFERRED] This changes the public parent tool-sequencing contract and is therefore recorded as a superseding runtime revision rather than treated as an implementation-only refactor.
+- [COMPUTED] Focused and full local verification passed; adapter evidence hashes were refreshed for the changed subagent boundary. No live provider probe was rerun because this gate change did not receive separate real-provider approval.
+- [UNVERIFIED] One read-only design subagent dispatch failed at model startup and returned no usable findings; no automatic retry occurred.
+
+### Superseding resolution — benefit-based delegation
+
+- [KNOWN|USER] The user found the strict gate too absolute, cited latency and unnecessary consumption, and approved model-directed C′: encourage delegation without requiring or prohibiting it.
+- [KNOWN|USER] Subagents are now explicitly framed as a way to improve execution efficiency and preserve main-agent context. The main agent owns decisions, scope, integration, and final verification; bounded discovery, implementation, testing, and other execution may be delegated when appropriate.
+- [INFERRED] Session-once enforcement would still manufacture a meaningless first call, while a tool-call-layer complexity classifier could not reliably distinguish simple from complex intent. Removing the delegation-only blocker is therefore narrower and more predictable than adding another heuristic gate.
+- [COMPUTED] The strict middleware and its tests were removed, runtime registration and child-marker coupling were reverted, and Pi-owned runtime/global guidance now uses explicit net-benefit routing with a direct-work fast path.
+- [COMPUTED] Credential denial, vendor permission modes, exact operation approvals, and all other independent safety gates remain unchanged and passed their focused/full local checks.
+- [FRAME] The preceding strict-gate record is retained as historical drift evidence only and no longer describes current contract or runtime behavior.

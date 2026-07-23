@@ -74,6 +74,11 @@ describe("AILI runtime composition", () => {
     expect(result?.systemPrompt).toMatch(/^PI BASE PROMPT/);
     expect(result?.systemPrompt).toContain("rose_static_rules=global APPEND_SYSTEM marker resource");
     expect(result?.systemPrompt).toContain("project_rules=loaded (/project/AGENTS.md)");
+    expect(result?.systemPrompt).toContain("delegation_policy=benefit-based");
+    expect(result?.systemPrompt).toContain("subagents improve efficiency and preserve parent context");
+    expect(result?.systemPrompt).toContain("the main agent owns decisions, scope, integration, and final verification");
+    expect(result?.systemPrompt).toContain("direct work remains allowed and no subagent call unlocks mutation");
+    expect(result?.systemPrompt).not.toContain("delegation_gate=");
     expect(result?.systemPrompt).toContain("permission_runtime=pi-permission-modes");
   });
 });
