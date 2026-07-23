@@ -20,9 +20,9 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - Revision: daa7b83819116a62008ad17aa65fcd50fefbafd0
 - Version: 0.4.8
 - License: MIT
-- Source files: src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts
-- Reused symbols/patterns: runSubagent API, headless lifecycle, artifact envelope
-- Local changes: AILI registers the full pinned upstream subagent tool schema, injects a non-removable credential guard, and relies on the ambient AILI pi-permission-modes registration exactly once in each child; no upstream source is copied
+- Source files: src/index.ts, src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts
+- Reused symbols/patterns: subagent tool renderCall, runSubagent API, headless lifecycle, artifact envelope
+- Local changes: AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading to upstream run-call rendering, injects a non-removable credential guard, and relies on the ambient AILI pi-permission-modes registration exactly once in each child; no upstream source is copied
 
 ## pi-permission-modes
 
@@ -42,9 +42,9 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - Revision: 742b3e40b88fbf3d5dcd9d39af96d37bd26bb436
 - Version: 0.3.0
 - License: MIT
-- Source files: src/index.ts, src/paths.ts
-- Reused symbols/patterns: quota footer, /quota, global state maintenance
-- Local changes: AILI initializes the pinned upstream extension; upstream owns quota polling and state files; Zentui relabels the displayed 5h prefix as codex and Wk as 7d without changing quota data
+- Source files: src/index.ts, src/subscription.ts, src/format.ts, src/paths.ts
+- Reused symbols/patterns: quota footer, Codex subscription windows, /quota, global state maintenance
+- Local changes: AILI initializes the pinned upstream extension; upstream owns quota polling and state files; Zentui shows one canonical weekly segment as codex, preferring explicit Wk and using the dependency's legacy-mislabeled 5h primary only as fallback, without changing selected percentage or reset data
 
 ## pi-web-access
 
@@ -66,7 +66,7 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - License: MIT
 - Source files: index.ts
 - Reused symbols/patterns: default Extension, /cache-optimizer, cache statistics, prompt cache hooks
-- Local changes: AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied
+- Local changes: AILI initializes the pinned upstream extension through its single Extension entry; Zentui defaults its pi-cache-stats footer placement off while leaving cache commands and collection unchanged; no upstream source is copied
 
 ## pi-markdown-preview
 
@@ -99,7 +99,7 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - License: MIT
 - Source files: extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**
 - Reused symbols/patterns: header, matrix animation, Zentui footer, fixed editor compositor
-- Local changes: registered as three additional Pi Package Extensions; header avatar loads the supplied Rem asset; Zentui palette values use the Rem palette while the Matrix animation retains the upstream Sakura palette; relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract
+- Local changes: registered as three additional Pi Package Extensions; header avatar loads the supplied Rem asset; Zentui shell palette uses Rem while Matrix and the reasoning trail retain the upstream Sakura palette; overflowing Matrix tracks are sampled deterministically across the complete terminal width while retaining the 96-track budget and ordinary-width behavior; relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract
 
 ## npm dependency inventory
 

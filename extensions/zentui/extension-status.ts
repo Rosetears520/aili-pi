@@ -21,8 +21,18 @@ export type ExtensionStatusSegmentsByPlacement = {
 
 const safeSgrPattern = /\x1b\[[0-9;:]*m/g;
 const sgrPlaceholderPattern = /__ZENTUI_SGR_(\d+)__/g;
+const quotaSegmentSeparatorPattern = /\s+·\s+/;
+const quotaWeeklyLabelPattern = /^(?:wk|weekly|7d)\b/i;
+const quotaLegacyLabelPattern = /^5h\b/i;
+const quotaDisplayLabelPattern = /^((?:\x1b\[[0-9;:]*m)*)\s*(?:wk|weekly|7d|5h)\b/i;
+
+function statusPriority(key: string): number {
+	return key === "pi-quota-status" ? 0 : 1;
+}
 
 function compareKeys(a: ExtensionStatusSegment, b: ExtensionStatusSegment): number {
+	const priorityDifference = statusPriority(a.key) - statusPriority(b.key);
+	if (priorityDifference !== 0) return priorityDifference;
 	return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
 }
 
@@ -42,9 +52,23 @@ function hasVisibleStatusText(value: string): boolean {
 	return sanitizeExtensionStatusText(value).length > 0;
 }
 
+function quotaSegmentLabel(segment: string): "weekly" | "legacy" | undefined {
+	const plain = normalizeStatusWhitespace(stripVTControlCharacters(segment));
+	if (quotaWeeklyLabelPattern.test(plain)) return "weekly";
+	if (quotaLegacyLabelPattern.test(plain)) return "legacy";
+	return undefined;
+}
+
 function formatQuotaWindowLabel(key: string, text: string): string {
 	if (key !== "pi-quota-status") return text;
-	return text.replace(/\b5h\b/g, "codex").replace(/\bWk\b/g, "7d");
+	const segments = text.split(quotaSegmentSeparatorPattern);
+	const selected =
+		segments.find((segment) => quotaSegmentLabel(segment) === "weekly") ??
+		segments.find((segment) => quotaSegmentLabel(segment) === "legacy");
+	if (!selected) return text;
+	return selected.replace(quotaDisplayLabelPattern, (_match, sgrPrefix: string) =>
+		`${sgrPrefix}codex`,
+	);
 }
 
 export function sanitizeExtensionStatusOriginalText(value: string): string {

@@ -1,9 +1,41 @@
+import { stripVTControlCharacters } from "node:util";
 import { describe, expect, it } from "vitest";
 import registerCredentialGuard, { bashMentionsCredentialPath, isProtectedChildPath } from "../../src/runtime/credential-guard.js";
-import { protectSubagentParams, registerSubagent } from "../../src/runtime/subagents.js";
+import {
+  protectSubagentParams,
+  registerSubagent,
+  wrapSubagentTool,
+} from "../../src/runtime/subagents.js";
 
 function extensions(value: unknown): string[] {
   return (value as { extensions?: string[] }).extensions ?? [];
+}
+
+type RenderableTool = {
+  name: string;
+  renderCall?: (args: unknown, theme: unknown) => { render(width: number): string[] };
+};
+
+const plainTheme = {
+  fg: (_style: string, text: string) => text,
+  bold: (text: string) => text,
+};
+
+async function captureSubagentTool(): Promise<RenderableTool> {
+  let captured: RenderableTool | undefined;
+  await registerSubagent({
+    registerTool(tool: RenderableTool) { captured = tool; },
+    registerCommand() {},
+  } as never);
+  if (!captured) throw new Error("subagent tool was not registered");
+  return captured;
+}
+
+function renderCall(tool: RenderableTool, args: unknown, width = 240): string[] {
+  if (!tool.renderCall) throw new Error("subagent tool has no renderCall");
+  return tool.renderCall(args, plainTheme).render(width).map((line) =>
+    stripVTControlCharacters(line).trimEnd(),
+  );
 }
 
 describe("generic Pi-subagent wrapper", () => {
@@ -56,6 +88,66 @@ describe("generic Pi-subagent wrapper", () => {
   it("leaves lifecycle actions untouched so upstream status/logs/wait/interrupt/background/reconcile retain their schema", () => {
     const action = { action: "reconcile", runId: "run-123", cwd: "/tmp/external", runsDir: ".runs" };
     expect(protectSubagentParams(action)).toBe(action);
+  });
+
+  it("does not synthesize a renderer when the upstream tool has none", () => {
+    const wrapped = wrapSubagentTool({ name: "subagent", execute: async () => "ok" });
+    expect(wrapped.renderCall).toBeUndefined();
+    expect(typeof wrapped.execute).toBe("function");
+  });
+
+  it("renders a named Agent header above the unchanged upstream single-run call", async () => {
+    const lines = renderCall(await captureSubagentTool(), {
+      agent: "aili.code-scout",
+      task: "inspect the quota integration",
+    });
+
+    expect(lines[0]).toBe("Agent: aili.code-scout");
+    expect(lines[0]).not.toContain("quota integration");
+    expect(lines[1]).toContain("subagent run · single · aili.code-scout");
+  });
+
+  it("summarizes parallel Agent names, duplicates, and agentless tasks", async () => {
+    const lines = renderCall(await captureSubagentTool(), {
+      mode: "parallel",
+      tasks: [
+        { agent: "aili.code-scout", task: "one" },
+        { agent: "aili.code-scout", task: "two" },
+        { task: "three" },
+      ],
+    });
+
+    expect(lines[0]).toBe("Agents: aili.code-scout ×2, agentless");
+    expect(lines[0]).not.toMatch(/\bone\b|\btwo\b|\bthree\b/);
+    expect(lines[1]).toContain("subagent run · parallel · 3 runs");
+  });
+
+  it("shows agentless for an unnamed run", async () => {
+    const lines = renderCall(await captureSubagentTool(), { task: "inspect" });
+    expect(lines[0]).toBe("Agent: agentless");
+  });
+
+  it("sanitizes and bounds the Agent heading", async () => {
+    const lines = renderCall(await captureSubagentTool(), {
+      agent: `bad\x1b[31m\nna\u202Eme${"x".repeat(100)}`,
+      task: "inspect",
+    });
+
+    expect(lines[0]).toMatch(/^Agent: bad name/);
+    expect(lines[0]).not.toContain("\x1b");
+    expect([...lines[0]!]).toHaveLength(55);
+    expect(lines[0]).toMatch(/…$/);
+  });
+
+  it("does not claim an Agent for lifecycle-only actions", async () => {
+    const lines = renderCall(await captureSubagentTool(), {
+      action: "status",
+      runId: "run-123",
+    });
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("subagent status · run-123");
+    expect(lines[0]).not.toContain("Agent:");
   });
 });
 

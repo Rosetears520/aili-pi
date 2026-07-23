@@ -3,7 +3,7 @@
   "platform": "linux",
   "piVersion": "0.81.1",
   "status": "passed",
-  "approvedScope": "generic agentless headless child; read-only package.json boundary; no business-file mutation, bash, worktree, sandbox, external cwd, or global-home access; only approved temporary run artifacts were created and removed",
+  "approvedScope": "generic agentless headless children; one read-only repository package.json probe and one disposable external .env denial probe; no business-file mutation, bash, worktree, sandbox, or global-home access; only approved temporary run artifacts were created and removed",
   "probes": [
     {
       "id": "generic-subagent-fixtures",
@@ -24,8 +24,8 @@
     }
   ],
   "implementation": {
-    "src/runtime/subagents.ts": "b33e0ab1dba44212ada389fcca98774d98220396ead94951dee073df54784b0a",
-    "tests/unit/subagents.test.ts": "6ae824df46b3ae5b8744bcdef144372281cfca7a4b752ac26fd2d70f0b6cdc6c",
+    "src/runtime/subagents.ts": "4fa3ca548e2d2038410f0c9a3a2e41c5137ebf2dff7987d3e0be6e62bb9f6412",
+    "tests/unit/subagents.test.ts": "93602a401e058d1870922b213f8f0a00dc35e869a704b0c551442d3d8454054a",
     "tests/integration/live-subagent.test.ts": "46a907526890c4cd4a4e1d768fca51173c9a0c3db37ac83ba57db23d54d7f339"
   },
   "credentialHandling": "Existing Pi authentication was used by Pi; AILI did not copy, print, or modify authentication files."

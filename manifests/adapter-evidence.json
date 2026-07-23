@@ -11,7 +11,7 @@
         "vitest run tests/unit/runtime.test.ts"
       ],
       "artifacts": [
-        { "path": "package-lock.json", "sha256": "13a5c034edf3b61af5256471163522fe44171c4dfedf4a85d915c4c442e53c56" },
+        { "path": "package-lock.json", "sha256": "b1356fd5c37f5e69387fb7d4acaeb3777c8d117f3906e51def4d5f8918b7391e" },
         { "path": "tests/integration/extension-load.test.ts", "sha256": "f2fdceb965f55bc481acc6457eee5cac9499dac08e8c3d17ca60efd07f13e96c" },
         { "path": "tests/unit/runtime.test.ts", "sha256": "9e99920e7e16529f109771d659f611c9fa580941a5dbf924b2d9d117dd3adeee" }
       ]
@@ -29,16 +29,16 @@
         "AILI_LIVE_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
       ],
       "artifacts": [
-        { "path": "src/runtime/subagents.ts", "sha256": "b33e0ab1dba44212ada389fcca98774d98220396ead94951dee073df54784b0a" },
+        { "path": "src/runtime/subagents.ts", "sha256": "4fa3ca548e2d2038410f0c9a3a2e41c5137ebf2dff7987d3e0be6e62bb9f6412" },
         { "path": "src/runtime/child-guard.ts", "sha256": "9da3c1d80805fd76bbf7a7fd253dff44f0756439fdee039bd7d7fd30766329e1" },
         { "path": "src/runtime/credential-guard.ts", "sha256": "01d76ff0a9a2a0a08a2d2e52b6ed050d925df5e5bea1e6194130e00bfe22cde3" },
-        { "path": "tests/unit/subagents.test.ts", "sha256": "6ae824df46b3ae5b8744bcdef144372281cfca7a4b752ac26fd2d70f0b6cdc6c" },
+        { "path": "tests/unit/subagents.test.ts", "sha256": "93602a401e058d1870922b213f8f0a00dc35e869a704b0c551442d3d8454054a" },
         { "path": "tests/unit/child-guard.test.ts", "sha256": "b187d6d84cd0829ae5474e133b4df911a80b75b9e89622b8543a1c5894be4974" },
         { "path": "tests/integration/generic-permission.test.ts", "sha256": "1e113af5b5cce59f365bc12a1735e1aa269c0a739fe6fc7aa4c9131818869ce5" },
         { "path": "tests/unit/roles.test.ts", "sha256": "72b61af16ff66506aaaceac28c92d8b3756741e3c4df0544686b3d4940215b57" },
         { "path": "scripts/sync-roles.ts", "sha256": "a4fd66c95d91ebd92f0b1c6164a84809c4b5a1bf1e185dbdd61af23688dd2d9c" },
         { "path": "tests/integration/live-subagent.test.ts", "sha256": "46a907526890c4cd4a4e1d768fca51173c9a0c3db37ac83ba57db23d54d7f339" },
-        { "path": "manifests/live-verification.json", "sha256": "18cb0a6a0558f17c11b4ee890a8af07f7b1ba9960084eb4e7235610730c34066" }
+        { "path": "manifests/live-verification.json", "sha256": "4080de48114ef5aea3a5cc201e3b704acf65833c5dee64c38cd9b41f44740c04" }
       ]
     }
   ]

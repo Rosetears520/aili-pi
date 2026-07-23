@@ -28,9 +28,9 @@
       "version": "0.4.8",
       "license": "MIT",
       "status": "dependency",
-      "sourceFiles": ["src/api.ts", "src/runners/headless-model.ts", "src/artifacts/result.ts"],
-      "symbols": ["runSubagent API", "headless lifecycle", "artifact envelope"],
-      "localChanges": ["AILI registers the full pinned upstream subagent tool schema, injects a non-removable credential guard, and relies on the ambient AILI pi-permission-modes registration exactly once in each child; no upstream source is copied"],
+      "sourceFiles": ["src/index.ts", "src/api.ts", "src/runners/headless-model.ts", "src/artifacts/result.ts"],
+      "symbols": ["subagent tool renderCall", "runSubagent API", "headless lifecycle", "artifact envelope"],
+      "localChanges": ["AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading to upstream run-call rendering, injects a non-removable credential guard, and relies on the ambient AILI pi-permission-modes registration exactly once in each child; no upstream source is copied"],
       "verification": ["tests/unit/subagents.test.ts", "tests/integration/package-runtime.test.ts"]
     },
     {
@@ -52,10 +52,10 @@
       "version": "0.3.0",
       "license": "MIT",
       "status": "dependency",
-      "sourceFiles": ["src/index.ts", "src/paths.ts"],
-      "symbols": ["quota footer", "/quota", "global state maintenance"],
-      "localChanges": ["AILI initializes the pinned upstream extension; upstream owns quota polling and state files; Zentui relabels the displayed 5h prefix as codex and Wk as 7d without changing quota data"],
-      "verification": ["tests/unit/runtime.test.ts", "tests/integration/extension-load.test.ts"]
+      "sourceFiles": ["src/index.ts", "src/subscription.ts", "src/format.ts", "src/paths.ts"],
+      "symbols": ["quota footer", "Codex subscription windows", "/quota", "global state maintenance"],
+      "localChanges": ["AILI initializes the pinned upstream extension; upstream owns quota polling and state files; Zentui shows one canonical weekly segment as codex, preferring explicit Wk and using the dependency's legacy-mislabeled 5h primary only as fallback, without changing selected percentage or reset data"],
+      "verification": ["tests/unit/extension-status.test.ts", "tests/unit/runtime.test.ts", "tests/integration/extension-load.test.ts"]
     },
     {
       "name": "pi-web-access",
@@ -78,8 +78,8 @@
       "status": "dependency",
       "sourceFiles": ["index.ts"],
       "symbols": ["default Extension", "/cache-optimizer", "cache statistics", "prompt cache hooks"],
-      "localChanges": ["AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied"],
-      "verification": ["tests/unit/runtime.test.ts", "tests/integration/package-runtime.test.ts", "npm pack --dry-run --json"]
+      "localChanges": ["AILI initializes the pinned upstream extension through its single Extension entry; Zentui defaults its pi-cache-stats footer placement off while leaving cache commands and collection unchanged; no upstream source is copied"],
+      "verification": ["tests/unit/runtime.test.ts", "tests/unit/extension-status.test.ts", "tests/integration/package-runtime.test.ts", "npm pack --dry-run --json"]
     },
     {
       "name": "pi-markdown-preview",
@@ -113,8 +113,8 @@
       "status": "adapted",
       "sourceFiles": ["extensions/header/index.ts", "extensions/matrix/index.ts", "extensions/zentui/**"],
       "symbols": ["header", "matrix animation", "Zentui footer", "fixed editor compositor"],
-      "localChanges": ["registered as three additional Pi Package Extensions", "header avatar loads the supplied Rem asset", "Zentui palette values use the Rem palette while the Matrix animation retains the upstream Sakura palette", "relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract"],
-      "verification": ["npm run typecheck", "npm test", "npm pack --dry-run --json"]
+      "localChanges": ["registered as three additional Pi Package Extensions", "header avatar loads the supplied Rem asset", "Zentui shell palette uses Rem while Matrix and the reasoning trail retain the upstream Sakura palette", "overflowing Matrix tracks are sampled deterministically across the complete terminal width while retaining the 96-track budget and ordinary-width behavior", "relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract"],
+      "verification": ["tests/unit/matrix.test.ts", "tests/unit/zentui-gradient.test.ts", "npm run typecheck", "npm test", "npm pack --dry-run --json"]
     }
   ]
 }

@@ -3,7 +3,7 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "@rosetears/aili-pi-0.0.0-development",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/13a5c034edf3b61af5256471163522fe",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/b1356fd5c37f5e69387fb7d4acaeb377",
   "creationInfo": {
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
@@ -43,7 +43,7 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=daa7b83819116a62008ad17aa65fcd50fefbafd0; files=src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts; symbols=runSubagent API, headless lifecycle, artifact envelope; local changes=AILI registers the full pinned upstream subagent tool schema, injects a non-removable credential guard, and relies on the ambient AILI pi-permission-modes registration exactly once in each child; no upstream source is copied"
+      "comment": "revision=daa7b83819116a62008ad17aa65fcd50fefbafd0; files=src/index.ts, src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts; symbols=subagent tool renderCall, runSubagent API, headless lifecycle, artifact envelope; local changes=AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading to upstream run-call rendering, injects a non-removable credential guard, and relies on the ambient AILI pi-permission-modes registration exactly once in each child; no upstream source is copied"
     },
     {
       "SPDXID": "SPDXRef-source-pi-permission-modes-9b38b384cd",
@@ -67,7 +67,7 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=742b3e40b88fbf3d5dcd9d39af96d37bd26bb436; files=src/index.ts, src/paths.ts; symbols=quota footer, /quota, global state maintenance; local changes=AILI initializes the pinned upstream extension; upstream owns quota polling and state files; Zentui relabels the displayed 5h prefix as codex and Wk as 7d without changing quota data"
+      "comment": "revision=742b3e40b88fbf3d5dcd9d39af96d37bd26bb436; files=src/index.ts, src/subscription.ts, src/format.ts, src/paths.ts; symbols=quota footer, Codex subscription windows, /quota, global state maintenance; local changes=AILI initializes the pinned upstream extension; upstream owns quota polling and state files; Zentui shows one canonical weekly segment as codex, preferring explicit Wk and using the dependency's legacy-mislabeled 5h primary only as fallback, without changing selected percentage or reset data"
     },
     {
       "SPDXID": "SPDXRef-source-pi-web-access-7a2e6bb486",
@@ -91,7 +91,7 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=npm:2.6.18; files=index.ts; symbols=default Extension, /cache-optimizer, cache statistics, prompt cache hooks; local changes=AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied"
+      "comment": "revision=npm:2.6.18; files=index.ts; symbols=default Extension, /cache-optimizer, cache statistics, prompt cache hooks; local changes=AILI initializes the pinned upstream extension through its single Extension entry; Zentui defaults its pi-cache-stats footer placement off while leaving cache commands and collection unchanged; no upstream source is copied"
     },
     {
       "SPDXID": "SPDXRef-source-pi-markdown-preview-43f49610ac",
@@ -126,7 +126,7 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=165a1f8011a12a58a6409b56b8a6c0416cd9b589; files=extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**; symbols=header, matrix animation, Zentui footer, fixed editor compositor; local changes=registered as three additional Pi Package Extensions | header avatar loads the supplied Rem asset | Zentui palette values use the Rem palette while the Matrix animation retains the upstream Sakura palette | relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract"
+      "comment": "revision=165a1f8011a12a58a6409b56b8a6c0416cd9b589; files=extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**; symbols=header, matrix animation, Zentui footer, fixed editor compositor; local changes=registered as three additional Pi Package Extensions | header avatar loads the supplied Rem asset | Zentui shell palette uses Rem while Matrix and the reasoning trail retain the upstream Sakura palette | overflowing Matrix tracks are sampled deterministically across the complete terminal width while retaining the 96-track budget and ordinary-width behavior | relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract"
     },
     {
       "SPDXID": "SPDXRef-node-modules-agent-base-e28bede7a2",

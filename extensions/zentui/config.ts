@@ -301,6 +301,7 @@ export const defaultConfig: PolishedTuiConfig = {
 	extensionStatuses: {
 		defaultPlacement: "right",
 		placements: {
+			"pi-cache-stats": "off",
 			"pi-quota-status": "right",
 			"dual-subscription-quota": "left",
 			"codex-goal": "middle",
@@ -793,8 +794,14 @@ export function mergeConfig(parsed: unknown): PolishedTuiConfig {
 		gitMetrics,
 		extensionStatuses: {
 			defaultPlacement: extensionStatuses.defaultPlacement,
-			placements: { ...extensionStatuses.placements },
-			colorModes: { ...extensionStatuses.colorModes },
+			placements: {
+				...defaultConfig.extensionStatuses.placements,
+				...extensionStatuses.placements,
+			},
+			colorModes: {
+				...defaultConfig.extensionStatuses.colorModes,
+				...extensionStatuses.colorModes,
+			},
 		},
 		fixedEditor,
 	};

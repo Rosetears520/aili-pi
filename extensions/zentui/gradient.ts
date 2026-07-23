@@ -4,11 +4,11 @@ export type RGB = readonly [number, number, number];
 
 export const SAKURA_MACARON_GRADIENT = "sakura-macaron-gradient";
 export const SAKURA_MACARON_STOPS: readonly RGB[] = [
-	[136, 184, 255], // sakura pink  #88B8FF
-	[125, 228, 255], // sakura-iro   #7DE4FF
-	[188, 167, 255], // petal        #BCA7FF
-	[188, 167, 255], // lavender     #BCA7FF
-	[125, 228, 255], // sky macaron  #7DE4FF
+	[242, 167, 198], // sakura pink  #F2A7C6
+	[252, 201, 185], // sakura-iro   #FCC9B9
+	[239, 195, 230], // petal        #EFC3E6
+	[199, 184, 245], // lavender     #C7B8F5
+	[159, 211, 242], // sky macaron  #9FD3F2
 ];
 
 const RESET = "\x1b[0m";
@@ -29,7 +29,7 @@ function sampleGradient(position: number): RGB {
 	const normalized = Math.max(0, Math.min(1, position));
 	const scaled = normalized * (stops.length - 1);
 	const index = Math.min(stops.length - 2, Math.floor(scaled));
-	const from = stops[index] ?? SAKURA_MACARON_STOPS[0] ?? [136, 184, 255];
+	const from = stops[index] ?? SAKURA_MACARON_STOPS[0] ?? [242, 167, 198];
 	const to = stops[index + 1] ?? from;
 	return mix(from, to, scaled - index);
 }

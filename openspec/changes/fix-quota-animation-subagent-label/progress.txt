@@ -1,0 +1,67 @@
+BUILD GOAL
+goal_id: build-fix-quota-animation-subagent-label-20260723
+change: fix-quota-animation-subagent-label
+repository_root: /home/rosetears/code/aili-pi
+scope: Repair Codex quota/footer priority, Sakura Matrix/reasoning visuals including ultra-wide coverage, and requested-Agent labels above subagent run calls.
+permission_policy: User accepted the revised final test plan with “ok，你直接做”. Repository-local implementation is approved. Dependency/lockfile changes, external provider calls, Git commit/push/tag, publication, release, installation, and further user-state writes remain separately gated.
+
+QUEUE
+P1 Matrix feedback loop and responsive/Sakura repair (tasks 3.1-3.4): complete. Owner ROSE. Evidence: deterministic matrix/gradient unit fixtures and README controls.
+P2 Quota footer repair (tasks 2.1-2.3): complete after P1. Owner ROSE. Evidence: coexistence/priority/single-weekly fixtures.
+P3 Subagent Agent label (tasks 4.1-4.3): complete after P2. Owner ROSE. Evidence: renderer/schema/execute/lifecycle fixtures.
+P4 Docs, provenance, and final verification (tasks 5.1-5.3): automated release evidence complete; installation/restarted-TUI observation still separately gated. Owner ROSE. Evidence: provenance/compatibility/release gates, live probes, package dry-run, strict OpenSpec.
+
+CHECKPOINT 2026-07-23
+objective: Record final test-plan acceptance and enter BUILD.
+acceptance: User explicitly replied “ok，你直接做” after the revised Matrix diagnosis and implementation plan were shown.
+git: branch fix/quota-animation-subagent-label; no tracked implementation edits at entry; untracked .pi/ and graphify-out/ remain excluded and untouched.
+verification: `openspec validate fix-quota-animation-subagent-label --strict` and `git diff --check` passed immediately before acceptance; refresh required after implementation.
+next_action: Add the deterministic Matrix regression feedback loop, then make the smallest responsive-selection and exact-gradient repair.
+
+USER QUOTA CORRECTION 2026-07-23
+[KNOWN|USER] Codex paid users have one 7-day quota rather than separate 5h/weekly limits; show only one footer segment.
+[COMPUTED] Current state labels the active dimension `5h`, but its observed-to-reset span is about 5.6 days. Dependency source hard-codes `primary_window` as `5h`, so this is upstream label drift.
+[DECISION] Prefer explicit `weekly`/`Wk`; use legacy `5h` only as fallback; render exactly one `codex <percent> <reset>` segment with selected values unchanged.
+[ACCEPTED] User confirmed “可以，只展示一个就可以了”. DEFINE artifacts and the test-plan acceptance addendum were updated before implementation.
+
+P1 SAVEPOINT 2026-07-23
+[RED] Focused fixtures reproduced all four ultra-wide right-band failures and both Rem-vs-Sakura gradient mismatches; ordinary sequence/visible-width checks passed.
+[COMPUTED] Matrix now samples overflowing active tracks deterministically across the complete width while retaining the 96-track cap and exact candidate≤96 behavior. Default density/height/fps and temporal gaps are unchanged.
+[COMPUTED] Zentui reasoning gradient stops/fallback now use the pinned Sakura pastel values.
+[PASS] `npx vitest run tests/unit/matrix.test.ts tests/unit/zentui-gradient.test.ts`: 2 files, 11 tests passed.
+[NEXT] Implement the single canonical Codex weekly footer and cache/quota priority fixtures.
+
+P2 SAVEPOINT 2026-07-23
+[RED] Focused fixtures reproduced explicit weekly being labeled `7d`, duplicate 5h/Wk output, safe-original duplicate output, cache default visibility, and lexical cache-before-quota ordering.
+[COMPUTED] Zentui now defaults `pi-cache-stats` off, gives `pi-quota-status` first-fit priority when cache is explicitly enabled, prefers explicit weekly data, and uses legacy `5h` only as the one-segment compatibility fallback.
+[COMPUTED] Selected percentage/reset text and safe original SGR are preserved; unknown/unavailable status text remains unchanged.
+[PASS] `npx vitest run tests/unit/extension-status.test.ts`: 1 file, 7 tests passed.
+[NEXT] Add the bounded Agent/Agents header wrapper above upstream subagent run calls.
+
+P3 SAVEPOINT 2026-07-23
+[RED] Focused renderer fixtures reproduced the missing separate named/parallel/agentless headings while existing schema, credential guard, and lifecycle tests stayed green.
+[COMPUTED] The wrapper now adds a sanitized and bounded requested-Agent heading above the unchanged upstream component, aggregates duplicates, represents unnamed tasks as `agentless`, omits headings for lifecycle actions, and does not synthesize a renderer when upstream has none.
+[PASS] `npx vitest run tests/unit/subagents.test.ts`: 1 file, 12 tests passed.
+[REPAIR] Initial typecheck found `params.tasks` remained `unknown`; a local narrowed `tasks` binding fixed the root typing issue.
+[PASS] Fresh `npm run typecheck` and the 12 focused subagent tests passed after repair.
+[NEXT] Update README/provenance/adapter evidence, then run the accepted final verification matrix.
+
+P4 VERIFICATION 2026-07-23
+[COMPUTED] README, canonical provenance, generated notices/SBOM, Sakura NOTICE, and adapter evidence describe the bounded Matrix, one-weekly-quota, cache placement, and requested-Agent adaptations.
+[PASS] Focused affected suite: 4 files, 32 tests. Typecheck passed. Full Vitest: 20 files passed, 2 skipped; 94 tests passed, 3 skipped.
+[PASS] Adapter compatibility and provenance validators; package dry-run (`0.1.5`, 6,152 files, no forbidden task-local paths); strict OpenSpec; `git diff --check`.
+[PASS] After the user separately authorized the existing live probes, generic fixtures (23 tests), one read-only package child, and one disposable credential-denial child passed. Temporary artifacts were removed and no business files changed.
+[PASS] `manifests/live-verification.json` now binds the changed wrapper/test hashes; adapter compatibility and stable release validation pass.
+[UNVERIFIED] Restarted TUI visuals, authenticated footer observation, named-Agent TUI appearance, publication, and installation have not run.
+[NEXT] Request exact version/commit/push/tag/publish/install authorization only if the user wants to publish this release-ready implementation.
+
+SHIP AUTHORIZATION 2026-07-23
+[KNOWN|USER] After receiving the exact proposed operations, the user replied “发版”, authorizing the `0.1.6` package/lockfile version bump, task-scoped commits, push to `origin/main`, annotated `v0.1.6`, public npm publication, and local Pi installation.
+[COMPUTED] `package.json` and `package-lock.json` now target `0.1.6`; no dependency version changed. Adapter evidence was refreshed to the exact new lock digest and deterministic provenance/SBOM generation succeeded.
+[NEXT] Run the complete fresh release-readiness matrix, inspect/stage only task-scoped files, then execute the authorized Git/npm/install operations if no blocker appears.
+
+SHIP PREFLIGHT 2026-07-23
+[PASS] Post-bump focused suite (4 files/32 tests), typecheck, full Vitest (20 files passed, 2 skipped; 94 tests passed, 3 skipped), generated/package/skills/roles/capability/compatibility/provenance/stable-release validators, Linux Package E2E, and strict validation for all three relevant OpenSpec changes.
+[PASS] Package/publish dry-runs report `0.1.6`, 6,152 files, and no `.pi/`, graphify, OpenSpec, plan, tests, temp, artifacts, or env paths in the tarball. Dry-run shasum: `35de25e5461709a10744adb90b1fbded199ebc3f`.
+[WARN] `npm audit --omit=dev --audit-level=high` exits 0 with one moderate `protobufjs@7.6.4` advisory under the Pi development/peer path; no high/critical finding and the tarball does not bundle that path. No unapproved dependency repair was applied.
+[NEXT] Inspect the exact release diff, stage task-scoped files only, commit, and push/tag/publish/install under the user's authorization.

@@ -6,7 +6,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 const WIDGET_KEY = "sakura-matrix-engine";
 const CONFIG_PATH = join(homedir(), ".pi", "agent", "sakura-cyberdeck-matrix.json");
 const RESET = "\x1b[0m";
-const GLYPHS = [..."0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾗﾘﾙﾚﾛﾜﾝ"];
+export const SAKURA_MATRIX_GLYPHS = [..."0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾗﾘﾙﾚﾛﾜﾝ"];
 const BG: RGB = [20, 17, 26];
 const TEXT: RGB = [247, 238, 248];
 const CANDY: readonly RGB[] = [
@@ -18,6 +18,7 @@ const CANDY: readonly RGB[] = [
   [174, 229, 197], // mint
 ];
 const WORKING_INDICATOR = "◆";
+const MAX_DROPS = 96;
 const PHASE_MESSAGES: Record<Phase, string> = {
   thinking: "Weaving the next move…",
   working: "Composing the response…",
@@ -106,7 +107,16 @@ function stableGlyph(seed: number, row: number, timeSlice: number): string {
   let hash = Math.imul(seed ^ (row + 17), 0x45d9f3b);
   hash = Math.imul(hash ^ timeSlice, 0x45d9f3b);
   hash ^= hash >>> 16;
-  return GLYPHS[Math.abs(hash) % GLYPHS.length] ?? "0";
+  return SAKURA_MATRIX_GLYPHS[Math.abs(hash) % SAKURA_MATRIX_GLYPHS.length] ?? "0";
+}
+
+function selectBoundedColumns(columns: readonly number[]): number[] {
+  if (columns.length <= MAX_DROPS) return [...columns];
+  const lastIndex = columns.length - 1;
+  return Array.from({ length: MAX_DROPS }, (_, index) => {
+    const sourceIndex = Math.round((index * lastIndex) / (MAX_DROPS - 1));
+    return columns[sourceIndex] ?? 0;
+  });
 }
 
 export function createDrops(width: number, density: number, height: number): Drop[] {
@@ -114,7 +124,7 @@ export function createDrops(width: number, density: number, height: number): Dro
   const columns = Array.from({ length: Math.ceil(width / 2) }, (_, index) => index * 2);
   const active = columns.filter(() => random() < density);
   const selected = active.length >= 8 ? active : columns.slice(0, Math.min(columns.length, 8));
-  return selected.slice(0, 96).map((x, index) => {
+  return selectBoundedColumns(selected).map((x, index) => {
     const length = 3 + Math.floor(random() * 5);
     const gap = 1 + Math.floor(random() * 5);
     const cycle = height + length + gap;
