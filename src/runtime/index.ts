@@ -5,6 +5,7 @@ import { registerDoctor } from "./doctor.js";
 import { registerAiliTask } from "./subagents.js";
 import { registerNativeIntegrations } from "./native-integrations.js";
 import { registerGlobalResourceCommand } from "./global-resources.js";
+import { registerRemCyberdeck } from "./rem-cyberdeck.js";
 
 export const runtimeComponents: readonly RuntimeComponent[] = [
   { id: "rose-context", availability: "available", register: registerRoseContext },
@@ -12,6 +13,7 @@ export const runtimeComponents: readonly RuntimeComponent[] = [
   { id: "task-runtime", availability: "available", register: registerAiliTask },
   { id: "native-integrations", availability: "available", register: registerNativeIntegrations },
   { id: "global-resources", availability: "available", register: registerGlobalResourceCommand },
+  { id: "rem-cyberdeck", availability: "available", register: registerRemCyberdeck },
   { id: "capability-registry", availability: "available" },
   { id: "doctor", availability: "available", register: registerDoctor },
   { id: "shortcuts", availability: "available" },

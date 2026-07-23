@@ -66,6 +66,17 @@
       "symbols": ["web_search", "fetch_content", "get_search_content", "curator and bundled librarian skill"],
       "localChanges": ["AILI initializes the complete pinned upstream surface through its sole Extension entry; no upstream source is copied"],
       "verification": ["tests/unit/runtime.test.ts", "tests/integration/extension-load.test.ts"]
+    },
+    {
+      "name": "pi-sakura-cyberdeck",
+      "repository": "https://github.com/beautifulrem/pi-sakura-cyberdeck.git",
+      "revision": "165a1f8011a12a58a6409b56b8a6c0416cd9b589",
+      "license": "MIT",
+      "status": "adapted",
+      "sourceFiles": ["extensions/header/index.ts", "extensions/matrix/index.ts", "extensions/zentui/**"],
+      "symbols": ["header", "matrix animation", "Zentui footer", "fixed editor compositor"],
+      "localChanges": ["registered as three additional Pi Package Extensions", "header avatar loads the supplied Rem asset", "Sakura palette values are replaced with the Rem palette", "relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract"],
+      "verification": ["npm run typecheck", "npm test", "npm pack --dry-run --json"]
     }
   ]
 }

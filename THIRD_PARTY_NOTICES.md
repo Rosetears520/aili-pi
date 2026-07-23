@@ -57,6 +57,17 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - Reused symbols/patterns: web_search, fetch_content, get_search_content, curator and bundled librarian skill
 - Local changes: AILI initializes the complete pinned upstream surface through its sole Extension entry; no upstream source is copied
 
+## pi-sakura-cyberdeck
+
+- Status: adapted
+- Source: https://github.com/beautifulrem/pi-sakura-cyberdeck.git
+- Revision: 165a1f8011a12a58a6409b56b8a6c0416cd9b589
+- Version: undefined
+- License: MIT
+- Source files: extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**
+- Reused symbols/patterns: header, matrix animation, Zentui footer, fixed editor compositor
+- Local changes: registered as three additional Pi Package Extensions; header avatar loads the supplied Rem asset; Sakura palette values are replaced with the Rem palette; relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract
+
 ## npm dependency inventory
 
 The exact 350-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.

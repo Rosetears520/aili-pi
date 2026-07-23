@@ -15,29 +15,35 @@ async function readManifest(): Promise<PackageManifest> {
 }
 
 describe("Pi package baseline", () => {
-  it("declares one AILI extension, five prompts, and no replacement CLI or theme", async () => {
+  it("declares one AILI extension, five prompts, one Rem theme, and no replacement CLI", async () => {
     const manifest = await readManifest();
 
     expect(manifest.name).toBe("@rosetears/aili-pi");
     expect(manifest.bin).toBeUndefined();
     expect(manifest.engines?.node).toBe(">=22.19.0");
-    expect(manifest.pi?.extensions).toEqual(["./extensions/index.ts"]);
+    expect(manifest.pi?.extensions).toEqual([
+      "./extensions/index.ts",
+      "./extensions/header/index.ts",
+      "./extensions/matrix/index.ts",
+      "./extensions/zentui/index.ts",
+    ]);
     expect(manifest.pi?.prompts).toHaveLength(5);
-    expect(manifest.pi?.themes).toBeUndefined();
+    expect(manifest.pi?.themes).toEqual(["./themes/rem-cyberdeck.json"]);
   });
 
   it("references package resources that exist", async () => {
     const manifest = await readManifest();
-    const resources = [...(manifest.pi?.extensions ?? []), ...(manifest.pi?.prompts ?? [])];
+    const resources = [...(manifest.pi?.extensions ?? []), ...(manifest.pi?.prompts ?? []), ...(manifest.pi?.themes ?? [])];
 
     await Promise.all(resources.map((resource) => access(new URL(`../../${resource}`, import.meta.url))));
   });
 
-  it("exposes only the owned entry as an Extension resource", async () => {
+  it("exposes the AILI entry plus the three selected Sakura-derived Extension resources", async () => {
     const manifest = await readManifest();
-    expect(manifest.pi?.extensions).toEqual(["./extensions/index.ts"]);
+    expect(manifest.pi?.extensions).toHaveLength(4);
     expect(manifest.files).toContain("extensions/");
     expect(manifest.files).toContain("src/");
+    expect(manifest.files).toContain("themes/");
   });
 
   it("packages five described prompts with explicit lifecycle boundaries", async () => {
@@ -57,6 +63,7 @@ describe("Pi package baseline", () => {
     const readme = await readFile(new URL("../../README.md", import.meta.url), "utf8");
     expect(readme).toContain("universal OS sandbox");
     expect(readme).toContain("/aili-doctor");
-    expect(readme).toContain("Theme, TUI, and font resources are deferred");
+    expect(readme).toContain("Rem Cyberdeck");
+    expect(readme).toContain("fixed-bottom editor");
   });
 });

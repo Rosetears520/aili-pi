@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/earendil-works/pi/main/packages/coding-agent/src/modes/interactive/theme/theme-schema.json",
+  "name": "rem-cyberdeck",
+  "vars": {
+    "void": "#10121D",
+    "panel": "#191D2E",
+    "raised": "#242A42",
+    "text": "#E8EEFF",
+    "muted": "#9DA9C8",
+    "dim": "#64708F",
+    "rem": "#88B8FF",
+    "cyan": "#7DE4FF",
+    "violet": "#BCA7FF",
+    "ice": "#D6F4FF",
+    "mint": "#8CE6C2",
+    "gold": "#F3CE83",
+    "coral": "#FF93B1",
+    "border": "#4C5B86",
+    "borderMuted": "#303A5B"
+  },
+  "colors": {
+    "accent": "rem", "border": "border", "borderAccent": "cyan", "borderMuted": "borderMuted",
+    "success": "mint", "error": "coral", "warning": "gold", "muted": "muted", "dim": "dim", "text": "text", "thinkingText": "ice",
+    "selectedBg": "raised", "userMessageBg": "", "userMessageText": "text", "customMessageBg": "", "customMessageText": "text", "customMessageLabel": "violet",
+    "toolPendingBg": "", "toolSuccessBg": "", "toolErrorBg": "", "toolTitle": "cyan", "toolOutput": "ice",
+    "mdHeading": "rem", "mdLink": "cyan", "mdLinkUrl": "muted", "mdCode": "gold", "mdCodeBlock": "text", "mdCodeBlockBorder": "borderMuted", "mdQuote": "ice", "mdQuoteBorder": "violet", "mdHr": "borderMuted", "mdListBullet": "rem",
+    "toolDiffAdded": "mint", "toolDiffRemoved": "coral", "toolDiffContext": "muted",
+    "syntaxComment": "muted", "syntaxKeyword": "violet", "syntaxFunction": "cyan", "syntaxVariable": "rem", "syntaxString": "mint", "syntaxNumber": "gold", "syntaxType": "ice", "syntaxOperator": "violet", "syntaxPunctuation": "text",
+    "thinkingOff": "dim", "thinkingMinimal": "muted", "thinkingLow": "cyan", "thinkingMedium": "violet", "thinkingHigh": "rem", "thinkingXhigh": "coral", "thinkingMax": "coral", "bashMode": "mint"
+  },
+  "export": { "pageBg": "#10121D", "cardBg": "#191D2E", "infoBg": "#242A42" }
+}

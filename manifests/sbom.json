@@ -82,6 +82,17 @@
       "comment": "revision=npm:0.13.0; files=index.ts, skills/; symbols=web_search, fetch_content, get_search_content, curator and bundled librarian skill; local changes=AILI initializes the complete pinned upstream surface through its sole Extension entry; no upstream source is copied"
     },
     {
+      "SPDXID": "SPDXRef-source-pi-sakura-cyberdeck-7125826ba0",
+      "name": "pi-sakura-cyberdeck",
+      "downloadLocation": "https://github.com/beautifulrem/pi-sakura-cyberdeck/commit/165a1f8011a12a58a6409b56b8a6c0416cd9b589",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [],
+      "primaryPackagePurpose": "SOURCE",
+      "comment": "revision=165a1f8011a12a58a6409b56b8a6c0416cd9b589; files=extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**; symbols=header, matrix animation, Zentui footer, fixed editor compositor; local changes=registered as three additional Pi Package Extensions | header avatar loads the supplied Rem asset | Sakura palette values are replaced with the Rem palette | relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-agent-base-e28bede7a2",
       "name": "agent-base",
       "versionInfo": "7.1.4",
@@ -6042,6 +6053,11 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-source-pi-web-access-7a2e6bb486"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-source-pi-sakura-cyberdeck-7125826ba0"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",

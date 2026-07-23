@@ -23,15 +23,21 @@
     "manifests/",
     "upstream/",
     "scripts/",
+    "themes/",
     "templates/",
     "install.sh",
+    "licenses/",
+    "notices/",
     "README.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
   ],
   "pi": {
     "extensions": [
-      "./extensions/index.ts"
+      "./extensions/index.ts",
+      "./extensions/header/index.ts",
+      "./extensions/matrix/index.ts",
+      "./extensions/zentui/index.ts"
     ],
     "skills": [
       "./skills",
@@ -43,6 +49,9 @@
       "./prompts/build.md",
       "./prompts/ship.md",
       "./prompts/local-review.md"
+    ],
+    "themes": [
+      "./themes/rem-cyberdeck.json"
     ]
   },
   "engines": {

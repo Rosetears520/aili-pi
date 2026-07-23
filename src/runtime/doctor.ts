@@ -41,7 +41,7 @@ export async function runDoctor(
     });
     results.push({ id: "package", status: dependencyState ? "PASS" : "ERROR", evidence: `version=${packageJson.version ?? "unverified"}; node=${packageJson.engines?.node ?? "unverified"}; native_dependencies=${dependencyState ? "exact" : "drift"}` });
     const resources = [...(packageJson.pi?.extensions ?? []), ...(packageJson.pi?.prompts ?? []), ...(packageJson.pi?.skills ?? [])];
-    results.push({ id: "package.resources", status: resources.length === 8 ? "PASS" : "ERROR", evidence: `declared=${resources.length}` });
+    results.push({ id: "package.resources", status: resources.length === 11 ? "PASS" : "ERROR", evidence: `declared=${resources.length}` });
   } catch (error) {
     results.push({ id: "package", status: "ERROR", evidence: boundedError(error) });
   }

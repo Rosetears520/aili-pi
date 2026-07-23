@@ -8,7 +8,7 @@
 - Node.js 22.19.0 or newer
 - Pi 0.81.1 or newer with the Package and Extension APIs used by this release
 
-macOS and native Windows are not supported by this bootstrap and fail before installation mutation. Theme, TUI, and font resources are deferred to a separate change.
+macOS and native Windows are not supported by this bootstrap and fail before installation mutation.
 
 ## Install
 
@@ -46,6 +46,12 @@ The package does not write global AILI resources during extension load. After re
 ```
 
 That command creates or updates only the AILI marker block in `~/.pi/agent/APPEND_SYSTEM.md` and installs the 19 packaged profiles at `~/.pi/agent/agents/aili/`. It preserves unrelated prompt content, rejects malformed markers or an unowned profile collision, and reports stale profiles without pruning them.
+
+## Rem Cyberdeck
+
+The package supplies the `rem-cyberdeck` theme plus three additional Pi Extensions: a Rem header, matrix animation, and Zentui footer/editor surface. They are derived from `pi-sakura-cyberdeck` at revision `165a1f8011a12a58a6409b56b8a6c0416cd9b589` under MIT; see `THIRD_PARTY_NOTICES.md` and `notices/pi-sakura-cyberdeck-NOTICE.txt`.
+
+Zentui enables its experimental fixed-bottom editor by default when the installed Pi TUI exposes the required private layout capabilities. If capability detection or installation fails, it keeps Pi's native editor and emits a warning. The feature uses the terminal alternate screen; its default mouse scrolling can interfere with terminal text selection and tmux scrollback. Use Zentui's `/zentui` settings to disable the fixed editor or mouse scrolling.
 
 ## Commands and modes
 

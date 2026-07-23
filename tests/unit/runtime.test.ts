@@ -42,7 +42,7 @@ describe("AILI runtime composition", () => {
   it("exports one extension entry and keeps native integrations behind it", () => {
     expect(runtimeComponents.map((component) => component.id)).toEqual([
       "rose-context", "lifecycle-routing", "task-runtime", "native-integrations",
-      "global-resources", "capability-registry", "doctor", "shortcuts", "status",
+      "global-resources", "rem-cyberdeck", "capability-registry", "doctor", "shortcuts", "status",
     ]);
   });
 
