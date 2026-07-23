@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "name": "aili-workflows",
+      "repository": "https://github.com/Rosetears520/aili-workflows.git",
+      "revision": "7eb35f357ad489f5841ee10dac1e44549c1bdb76",
+      "version": "0.2.7",
+      "license": "MIT",
+      "status": "adapted",
+      "sourceFiles": [
+        "upstream/aili-workflows.lock.json#files (471 exact skill files)",
+        "manifests/roles.json#records[].sourcePath (19 exact role source files)"
+      ],
+      "symbols": ["64 canonical skill bodies and owned assets", "19 child-role prompt bodies"],
+      "localChanges": [
+        "skills/** is an exact byte-for-byte snapshot with no semantic overlay",
+        "role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output"
+      ],
+      "verification": ["npm run verify:skills", "npm run verify:roles"]
+    },
+    {
+      "name": "@agwab/pi-subagent",
+      "repository": "https://github.com/AgwaB/pi-subagent.git",
+      "revision": "daa7b83819116a62008ad17aa65fcd50fefbafd0",
+      "version": "0.4.8",
+      "license": "MIT",
+      "status": "dependency",
+      "sourceFiles": ["src/api.ts", "src/runners/headless-model.ts", "src/artifacts/result.ts"],
+      "symbols": ["runSubagent API", "headless lifecycle", "artifact envelope"],
+      "localChanges": ["AILI calls the pinned API through a thin role/path/tool policy adapter; no upstream source is copied"],
+      "verification": ["tests/unit/subagents.test.ts", "tests/integration/extension-load.test.ts"]
+    },
+    {
+      "name": "pi-permission-modes",
+      "repository": "https://github.com/wynainfo/pi-permission-modes.git",
+      "revision": "23d65d10a53b67043cae42322acf9044d6edb196",
+      "version": "2.2.0",
+      "license": "MIT",
+      "status": "dependency",
+      "sourceFiles": ["src/index.ts", "permission-mode.defaults.json"],
+      "symbols": ["Default/Plan/Build/YOLO", "/perm", "Alt+M", "sandbox degradation"],
+      "localChanges": ["AILI initializes the pinned upstream extension and does not retain a competing AILI mode command or shortcut"],
+      "verification": ["tests/unit/runtime.test.ts", "tests/integration/extension-load.test.ts"]
+    },
+    {
+      "name": "pi-quota-status",
+      "repository": "https://github.com/hafiezul/pi-quota-status.git",
+      "revision": "742b3e40b88fbf3d5dcd9d39af96d37bd26bb436",
+      "version": "0.3.0",
+      "license": "MIT",
+      "status": "dependency",
+      "sourceFiles": ["src/index.ts", "src/paths.ts"],
+      "symbols": ["quota footer", "/quota", "global state maintenance"],
+      "localChanges": ["AILI initializes the pinned upstream extension; upstream owns quota polling and state files"],
+      "verification": ["tests/unit/runtime.test.ts", "tests/integration/extension-load.test.ts"]
+    },
+    {
+      "name": "pi-web-access",
+      "repository": "https://github.com/ttttmr/pi-web-access.git",
+      "revision": "npm:0.13.0",
+      "version": "0.13.0",
+      "license": "MIT",
+      "status": "dependency",
+      "sourceFiles": ["index.ts", "skills/"],
+      "symbols": ["web_search", "fetch_content", "get_search_content", "curator and bundled librarian skill"],
+      "localChanges": ["AILI initializes the complete pinned upstream surface through its sole Extension entry; no upstream source is copied"],
+      "verification": ["tests/unit/runtime.test.ts", "tests/integration/extension-load.test.ts"]
+    }
+  ]
+}

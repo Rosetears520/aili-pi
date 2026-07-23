@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "providers": [
+    "pi-core",
+    "aili-core",
+    "pi-web-access",
+    "pi-quota-status",
+    "pi-permission-modes",
+    "@agwab/pi-subagent",
+    "optional-pack:web-research",
+    "optional-pack:browser-qa",
+    "optional-pack:artifact-runtime"
+  ],
+  "capabilities": [
+    {
+      "id": "repo.read",
+      "provider": "pi-core",
+      "adapterOwner": "pi-core",
+      "platforms": ["linux"],
+      "class": "required",
+      "risk": { "secret": "none", "network": "none", "sideEffect": "read-only" },
+      "probe": { "id": "pi.tools.read", "kind": "runtime-api", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "repo.read" }
+    },
+    {
+      "id": "repo.write",
+      "provider": "pi-permission-modes",
+      "adapterOwner": "pi-permission-modes@2.2.0",
+      "platforms": ["linux"],
+      "class": "required",
+      "risk": { "secret": "possible", "network": "none", "sideEffect": "local-write" },
+      "probe": { "id": "aili.permissions.write", "kind": "runtime-component", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "repo.write" }
+    },
+    {
+      "id": "subagent.dispatch",
+      "provider": "@agwab/pi-subagent",
+      "adapterOwner": "aili thin policy adapter over @agwab/pi-subagent/api@0.4.8",
+      "platforms": ["linux"],
+      "class": "required",
+      "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "delegated" },
+      "probe": { "id": "aili.roles.dispatch", "kind": "runtime-component", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "subagent.dispatch" }
+    },
+    {
+      "id": "memory.project",
+      "provider": "aili-core",
+      "adapterOwner": "project-memory",
+      "platforms": ["linux"],
+      "class": "optional",
+      "risk": { "secret": "possible", "network": "none", "sideEffect": "local-write" },
+      "probe": { "id": "aili.memory.project", "kind": "optional-pack", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "memory.project" },
+      "optionalPack": {
+        "id": "project-memory",
+        "missingBehavior": "Durable project memory is unavailable.",
+        "enableGuidance": "Enable only after a project-local memory contract is accepted.",
+        "sideEffects": ["project-local database writes"],
+        "futureOwner": "aili-pi"
+      }
+    },
+    {
+      "id": "web.fetch",
+      "provider": "pi-web-access",
+      "adapterOwner": "pi-web-access@0.13.0",
+      "platforms": ["linux"],
+      "class": "required",
+      "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "external-read-local-cache-and-process" },
+      "probe": { "id": "pi-web-access.extension", "kind": "extension-load", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "web.fetch" }
+    },
+    {
+      "id": "browser.qa",
+      "provider": "optional-pack:browser-qa",
+      "adapterOwner": "optional-pack:browser-qa",
+      "platforms": ["linux"],
+      "class": "optional",
+      "risk": { "secret": "possible", "network": "possible", "sideEffect": "browser-process" },
+      "probe": { "id": "pack.browser-qa", "kind": "optional-pack", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "browser.qa" },
+      "optionalPack": {
+        "id": "browser-qa",
+        "missingBehavior": "Browser-rendered behavior cannot be inspected.",
+        "enableGuidance": "Install a separately accepted browser QA provider and browser runtime.",
+        "sideEffects": ["browser installation", "browser process", "possible network access"],
+        "futureOwner": "provider adapter"
+      }
+    },
+    {
+      "id": "artifact.store",
+      "provider": "optional-pack:artifact-runtime",
+      "adapterOwner": "optional-pack:artifact-runtime",
+      "platforms": ["linux"],
+      "class": "optional",
+      "risk": { "secret": "possible", "network": "none", "sideEffect": "local-write" },
+      "probe": { "id": "pack.artifact-runtime.store", "kind": "optional-pack", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "artifact.store" },
+      "optionalPack": {
+        "id": "artifact-runtime",
+        "missingBehavior": "Durable artifact storage is unavailable.",
+        "enableGuidance": "Install only the artifact provider required by the accepted task.",
+        "sideEffects": ["local files", "possible toolchain installation"],
+        "futureOwner": "artifact provider adapter"
+      }
+    },
+    {
+      "id": "artifact.transform",
+      "provider": "optional-pack:artifact-runtime",
+      "adapterOwner": "optional-pack:artifact-runtime",
+      "platforms": ["linux"],
+      "class": "optional",
+      "risk": { "secret": "possible", "network": "possible", "sideEffect": "process-and-write" },
+      "probe": { "id": "pack.artifact-runtime.transform", "kind": "optional-pack", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "artifact.transform" },
+      "optionalPack": {
+        "id": "artifact-runtime",
+        "missingBehavior": "Format-specific artifact transformation is unavailable.",
+        "enableGuidance": "Install only the formatter/toolchain required by the accepted task.",
+        "sideEffects": ["process execution", "local files", "possible downloads"],
+        "futureOwner": "artifact provider adapter"
+      }
+    }
+  ]
+}

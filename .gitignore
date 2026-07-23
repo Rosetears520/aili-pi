@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+.tmp/
+.codegraph/
+.worktrees/
+artifacts/test-results/

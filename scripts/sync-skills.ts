@@ -1,0 +1,356 @@
+import { createHash } from "node:crypto";
+import {
+  cp,
+  lstat,
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { basename, dirname, relative, resolve, sep } from "node:path";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const SNAPSHOT = resolve(ROOT, "skills");
+const LOCK = resolve(ROOT, "upstream/aili-workflows.lock.json");
+const COMPATIBILITY = resolve(ROOT, "manifests/skill-compatibility.json");
+const REPOSITORY = "https://github.com/Rosetears520/aili-workflows.git";
+
+type FileRecord = { path: string; sha256: string; bytes: number };
+type AnchorRecord = {
+  id: string;
+  disposition: string;
+  occurrences: Array<{ path: string; lines: number[] }>;
+};
+
+interface LockFile {
+  schemaVersion: 1;
+  repository: string;
+  commit: string;
+  repositoryTree: string;
+  skillTree: string;
+  skillRoot: ".agents/skills";
+  skillCount: number;
+  fileCount: number;
+  contentHash: string;
+  synchronizedAt: string;
+  files: FileRecord[];
+  skills: Array<{ name: string; sourceHash: string; files: string[] }>;
+}
+
+const anchorPatterns = [
+  {
+    id: "backend.opencode",
+    pattern: /\bopencode\b|\.opencode\/|~\/\.config\/opencode\//gi,
+    disposition: "retained as current adapter evidence; Pi must map the capability",
+  },
+  {
+    id: "tool.subagent",
+    pattern: /\bTask\b|task_id|subagent_type|subagent\.dispatch/gi,
+    disposition: "mapped through subagent.dispatch or blocked",
+  },
+  {
+    id: "tool.browser",
+    pattern: /playwright_|Playwright MCP|Chrome DevTools MCP|browser\.qa/gi,
+    disposition: "mapped through browser.qa or optional",
+  },
+  {
+    id: "tool.symbol-graph",
+    pattern: /\bCodeGraph\b|codegraph_|\bGraphify\b/gi,
+    disposition: "mapped through repository graph capabilities or optional",
+  },
+  {
+    id: "backend.openspec",
+    pattern: /\bOpenSpec\b|openspec\//gi,
+    disposition: "retained as an artifact backend contract; no completion authority",
+  },
+  {
+    id: "path.backend-home",
+    pattern: /~\/\.agents\/|~\/\.pi\/|\.config\/opencode/gi,
+    disposition: "must resolve through the active adapter or remain blocked",
+  },
+  {
+    id: "external.side-effect",
+    pattern: /\b(download|install|publish|release|upload|network|credential|secret)\b/gi,
+    disposition: "retained behind explicit capability and operation gates",
+  },
+] as const;
+
+function sha256(content: Buffer | string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
+function posixPath(path: string): string {
+  return path.split(sep).join("/");
+}
+
+function git(source: string, args: string[]): string {
+  return execFileSync("git", ["-C", source, ...args], { encoding: "utf8" }).trim();
+}
+
+async function collectFiles(root: string): Promise<FileRecord[]> {
+  const records: FileRecord[] = [];
+
+  async function visit(directory: string): Promise<void> {
+    const entries = await readdir(directory, { withFileTypes: true });
+    entries.sort((left, right) => left.name.localeCompare(right.name));
+    for (const entry of entries) {
+      const absolute = resolve(directory, entry.name);
+      const metadata = await lstat(absolute);
+      if (metadata.isSymbolicLink()) {
+        throw new Error(`symbolic links are not allowed in the skill snapshot: ${absolute}`);
+      }
+      if (metadata.isDirectory()) {
+        await visit(absolute);
+      } else if (metadata.isFile()) {
+        const content = await readFile(absolute);
+        records.push({
+          path: posixPath(relative(root, absolute)),
+          sha256: sha256(content),
+          bytes: content.byteLength,
+        });
+      }
+    }
+  }
+
+  await visit(root);
+  return records.sort((left, right) => left.path.localeCompare(right.path));
+}
+
+function aggregateHash(files: FileRecord[]): string {
+  return sha256(files.map((file) => `${file.path}\0${file.sha256}\0${file.bytes}\n`).join(""));
+}
+
+function skillHash(files: FileRecord[]): string {
+  return aggregateHash(files);
+}
+
+function parseDescription(markdown: string): string {
+  const match = markdown.match(/^---\s*\n[\s\S]*?^description:\s*(.+)$/m);
+  return match?.[1]?.trim() ?? "Unverified: frontmatter description was not parsed";
+}
+
+function stopOutcomes(markdown: string): string[] {
+  return ["complete", "need-user", "need-evidence", "material-delta", "blocked", "Unverified"]
+    .filter((outcome) => markdown.includes(outcome));
+}
+
+function textContent(content: Buffer): string | undefined {
+  if (content.includes(0)) return undefined;
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(content);
+  } catch {
+    return undefined;
+  }
+}
+
+async function anchorInventory(skillRoot: string, files: FileRecord[]): Promise<AnchorRecord[]> {
+  const anchors: AnchorRecord[] = [];
+  for (const anchor of anchorPatterns) {
+    const occurrences: Array<{ path: string; lines: number[] }> = [];
+    for (const file of files) {
+      const content = textContent(await readFile(resolve(skillRoot, file.path)));
+      if (content === undefined) continue;
+      const lines = content.split(/\r?\n/);
+      const matchingLines = lines
+        .map((line, index) => {
+          anchor.pattern.lastIndex = 0;
+          return anchor.pattern.test(line) ? index + 1 : undefined;
+        })
+        .filter((line): line is number => line !== undefined);
+      if (matchingLines.length > 0) occurrences.push({ path: file.path, lines: matchingLines });
+    }
+    if (occurrences.length > 0) {
+      anchors.push({ id: anchor.id, disposition: anchor.disposition, occurrences });
+    }
+  }
+  return anchors;
+}
+
+function parseArgs(): { verify: boolean; source?: string; revision?: string } {
+  const args = process.argv.slice(2);
+  if (args.length === 1 && args[0] === "--verify") return { verify: true };
+  const sourceIndex = args.indexOf("--source");
+  const revisionIndex = args.indexOf("--revision");
+  if (sourceIndex < 0 || revisionIndex < 0 || !args[sourceIndex + 1] || !args[revisionIndex + 1]) {
+    throw new Error("usage: sync-skills.ts --source <aili-workflows-root> --revision <40-char-sha> | --verify");
+  }
+  return { verify: false, source: resolve(args[sourceIndex + 1]), revision: args[revisionIndex + 1] };
+}
+
+async function verifySnapshot(): Promise<void> {
+  const lock = JSON.parse(await readFile(LOCK, "utf8")) as LockFile;
+  const compatibility = JSON.parse(await readFile(COMPATIBILITY, "utf8")) as {
+    source: { commit: string; contentHash: string };
+    records: Array<Record<string, unknown> & { name: string; sourceHash: string }>;
+  };
+  const files = await collectFiles(SNAPSHOT);
+  const actualHash = aggregateHash(files);
+  const expectedFiles = JSON.stringify(lock.files);
+  const actualFiles = JSON.stringify(files);
+  if (actualFiles !== expectedFiles || actualHash !== lock.contentHash) {
+    throw new Error("generated skill snapshot drifted from upstream/aili-workflows.lock.json");
+  }
+  if (compatibility.source.commit !== lock.commit || compatibility.source.contentHash !== lock.contentHash) {
+    throw new Error("skill compatibility source does not match the lock");
+  }
+  const expectedSkills = new Map(lock.skills.map((skill) => [skill.name, skill.sourceHash]));
+  const seen = new Set<string>();
+  for (const record of compatibility.records) {
+    if (seen.has(record.name)) throw new Error(`duplicate compatibility record: ${record.name}`);
+    seen.add(record.name);
+    if (expectedSkills.get(record.name) !== record.sourceHash) {
+      throw new Error(`compatibility source hash mismatch: ${record.name}`);
+    }
+    for (const field of [
+      "sourcePath",
+      "requiredCapabilities",
+      "backendAnchors",
+      "adapterOwner",
+      "verification",
+      "status",
+      "reason",
+      "unverified",
+    ]) {
+      if (!(field in record)) throw new Error(`missing compatibility field ${field}: ${record.name}`);
+    }
+  }
+  const missing = [...expectedSkills.keys()].filter((name) => !seen.has(name));
+  const unknown = [...seen].filter((name) => !expectedSkills.has(name));
+  if (missing.length || unknown.length) {
+    throw new Error(`compatibility coverage mismatch; missing=${missing.join(",")} unknown=${unknown.join(",")}`);
+  }
+  console.log(`PASS: ${lock.skillCount} skills and ${lock.fileCount} files match ${lock.commit}`);
+}
+
+async function synchronize(source: string, revision: string): Promise<void> {
+  if (!/^[0-9a-f]{40}$/.test(revision)) throw new Error("revision must be a lowercase 40-character SHA");
+  const head = git(source, ["rev-parse", "HEAD"]);
+  const status = git(source, ["status", "--porcelain", "--untracked-files=all"]);
+  const repositoryTree = git(source, ["rev-parse", "HEAD^{tree}"]);
+  const skillTree = git(source, ["rev-parse", "HEAD:.agents/skills"]);
+  const synchronizedAt = git(source, ["show", "-s", "--format=%cI", "HEAD"]);
+  const origin = git(source, ["remote", "get-url", "origin"]);
+  if (head !== revision) throw new Error(`source HEAD ${head} does not match ${revision}`);
+  if (status) throw new Error("source repository is dirty; synchronization refused");
+  if (origin.replace(/\.git$/, "") !== REPOSITORY.replace(/\.git$/, "")) {
+    throw new Error(`unexpected source origin: ${origin}`);
+  }
+  try {
+    await lstat(SNAPSHOT);
+    throw new Error("skills/ already exists; verify it and use a separately approved replacement operation");
+  } catch (error) {
+    if (error instanceof Error && !error.message.includes("ENOENT")) throw error;
+  }
+
+  const sourceSkillRoot = resolve(source, ".agents/skills");
+  const upstreamCapabilities = JSON.parse(
+    await readFile(resolve(source, "manifests/skill-capabilities.json"), "utf8"),
+  ) as {
+    profiles: Record<string, { requiredCapabilities: string[]; optionalCapabilities: string[] }>;
+    assignments: Array<{ profile: string; skills: string[] }>;
+  };
+  const profileBySkill = new Map<string, string>();
+  for (const assignment of upstreamCapabilities.assignments) {
+    for (const skill of assignment.skills) {
+      if (profileBySkill.has(skill)) throw new Error(`duplicate upstream capability assignment: ${skill}`);
+      profileBySkill.set(skill, assignment.profile);
+    }
+  }
+
+  const files = await collectFiles(sourceSkillRoot);
+  const skillNames = (await readdir(sourceSkillRoot, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right));
+  if (skillNames.length !== profileBySkill.size || skillNames.some((name) => !profileBySkill.has(name))) {
+    throw new Error("upstream skill directories and capability assignments are not bijective");
+  }
+
+  const skills: LockFile["skills"] = [];
+  const records = [];
+  for (const name of skillNames) {
+    const skillFiles = files
+      .filter((file) => file.path === name || file.path.startsWith(`${name}/`))
+      .map((file) => ({ ...file, path: file.path.slice(name.length + 1) }));
+    const sourceHash = skillHash(skillFiles);
+    const profileName = profileBySkill.get(name)!;
+    const profile = upstreamCapabilities.profiles[profileName];
+    if (!profile) throw new Error(`missing upstream capability profile: ${profileName}`);
+    const markdown = await readFile(resolve(sourceSkillRoot, name, "SKILL.md"), "utf8");
+    const anchors = await anchorInventory(resolve(sourceSkillRoot, name), skillFiles);
+    const optional = ["web-research", "browser-qa", "memory", "artifact-runtime"].includes(profileName);
+    skills.push({ name, sourceHash, files: skillFiles.map((file) => file.path) });
+    records.push({
+      name,
+      sourcePath: `.agents/skills/${name}`,
+      sourceHash,
+      files: skillFiles,
+      triggers: {
+        description: parseDescription(markdown),
+        nearMissDeclared: /do not|don't|near miss|仅当|不要|不负责/i.test(markdown),
+        stopOutcomes: stopOutcomes(markdown),
+      },
+      backendAnchors: anchors,
+      requiredCapabilities: profile.requiredCapabilities,
+      optionalCapabilities: profile.optionalCapabilities,
+      canonicalChange: "none in aili-pi; consume the pinned upstream body without semantic transformation",
+      adapterOwner: optional ? `optional-pack:${profileName}` : `planned:aili-pi:${profileName}`,
+      verification: ["snapshot-hash:verified", "pi-discovery:pending", "pi-behavior:pending"],
+      status: optional ? "optional" : "blocked",
+      reason: optional
+        ? `The ${profileName} capability is not bundled until its optional provider is verified.`
+        : `The required ${profileName} Pi adapter has not yet passed behavior verification.`,
+      unverified: ["Pi discovery and behavior evidence are pending later BUILD packages."],
+    });
+  }
+
+  const lock: LockFile = {
+    schemaVersion: 1,
+    repository: REPOSITORY,
+    commit: revision,
+    repositoryTree,
+    skillTree,
+    skillRoot: ".agents/skills",
+    skillCount: skillNames.length,
+    fileCount: files.length,
+    contentHash: aggregateHash(files),
+    synchronizedAt,
+    files,
+    skills,
+  };
+  const compatibility = {
+    schemaVersion: 1,
+    source: {
+      repository: REPOSITORY,
+      commit: revision,
+      tree: skillTree,
+      contentHash: lock.contentHash,
+    },
+    allowedStatuses: ["native", "adapted", "optional", "blocked"],
+    records,
+  };
+
+  const stage = resolve(ROOT, `.tmp/sync-skills-${process.pid}`);
+  await rm(stage, { recursive: true, force: true });
+  await mkdir(dirname(stage), { recursive: true });
+  await cp(sourceSkillRoot, stage, { recursive: true, preserveTimestamps: false });
+  await mkdir(dirname(LOCK), { recursive: true });
+  await mkdir(dirname(COMPATIBILITY), { recursive: true });
+  await writeFile(`${LOCK}.tmp`, `${JSON.stringify(lock, null, 2)}\n`, { flag: "wx" });
+  await writeFile(`${COMPATIBILITY}.tmp`, `${JSON.stringify(compatibility, null, 2)}\n`, { flag: "wx" });
+  await rename(stage, SNAPSHOT);
+  await rename(`${LOCK}.tmp`, LOCK);
+  await rename(`${COMPATIBILITY}.tmp`, COMPATIBILITY);
+  await verifySnapshot();
+}
+
+const args = parseArgs();
+if (args.verify) {
+  await verifySnapshot();
+} else {
+  await synchronize(args.source!, args.revision!);
+}

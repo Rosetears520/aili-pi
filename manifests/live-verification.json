@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "platform": "linux",
+  "piVersion": "0.81.1",
+  "status": "passed",
+  "approvedScope": "fresh code-scout child; read-only package.json boundary; no project mutation; four separately approved provider attempts, with the latest passing after legacy permission-runtime removal refreshed the adapter binding",
+  "probes": [
+    {
+      "id": "native-subagent-api-fixture",
+      "command": "npx vitest run tests/unit/subagents.test.ts",
+      "status": "passed"
+    },
+    {
+      "id": "code-scout-read-package",
+      "command": "AILI_LIVE_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
+      "status": "passed",
+      "changedFiles": 0
+    }
+  ],
+  "implementation": {
+    "src/runtime/subagents.ts": "260429148e4b15db5a3dcc470d22c2661ffc7037de28bb227ba68262ec8be88c",
+    "tests/unit/subagents.test.ts": "48691168ca18e6a7038590a1ec348927e2328ed2009f0129138aef2dec715dcd",
+    "tests/integration/live-subagent.test.ts": "8ca54fafe77b8a58c36207ac0f72340188a70ce125871a6630cdb2b934629fd5"
+  },
+  "credentialHandling": "Existing Pi authentication was used by Pi; AILI did not copy, print, or modify authentication files."
+}

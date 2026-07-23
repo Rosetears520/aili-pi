@@ -1,0 +1,91 @@
+{
+  "name": "@rosetears/aili-pi",
+  "version": "0.1.0",
+  "description": "AILI and ROSE distribution for official Pi",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rosetears520/aili-pi.git"
+  },
+  "keywords": [
+    "pi-package",
+    "pi",
+    "aili",
+    "rose"
+  ],
+  "files": [
+    "extensions/",
+    "src/",
+    "roles/",
+    "skills/",
+    "prompts/",
+    "manifests/",
+    "upstream/",
+    "scripts/",
+    "templates/",
+    "install.sh",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions/index.ts"
+    ],
+    "skills": [
+      "./skills",
+      "./node_modules/pi-web-access/skills"
+    ],
+    "prompts": [
+      "./prompts/ideate.md",
+      "./prompts/define.md",
+      "./prompts/build.md",
+      "./prompts/ship.md",
+      "./prompts/local-review.md"
+    ]
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "sync:skills": "node --experimental-strip-types scripts/sync-skills.ts",
+    "verify:skills": "node --experimental-strip-types scripts/sync-skills.ts --verify",
+    "validate:skills": "npm run verify:skills",
+    "sync:roles": "node --experimental-strip-types scripts/sync-roles.ts",
+    "verify:roles": "node --experimental-strip-types scripts/sync-roles.ts --verify",
+    "validate:roles": "npm run verify:roles",
+    "sync:adapters": "node --experimental-strip-types scripts/apply-adapter-evidence.ts",
+    "validate:compatibility": "node --experimental-strip-types scripts/apply-adapter-evidence.ts --verify",
+    "generate:provenance": "node --experimental-strip-types scripts/generate-provenance.ts",
+    "validate:provenance": "node --experimental-strip-types scripts/generate-provenance.ts --verify",
+    "validate:capabilities": "node --experimental-strip-types scripts/validate-runtime.ts",
+    "validate:release": "node --experimental-strip-types scripts/validate-runtime.ts --release",
+    "test:doctor": "vitest run tests/unit/doctor.test.ts",
+    "test:bootstrap": "vitest run tests/bootstrap/bootstrap.test.ts",
+    "test:integration": "vitest run tests/integration",
+    "test:audit-redaction": "vitest run tests/unit/permissions.test.ts tests/unit/subagents.test.ts",
+    "test:e2e:linux-clean": "vitest run tests/bootstrap/bootstrap.test.ts && node --experimental-strip-types scripts/local-package-e2e.ts linux",
+    "validate:generated": "vitest run tests/unit/generated.test.ts",
+    "validate:package": "vitest run tests/unit/package.test.ts"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.81.1",
+    "@types/node": "24.12.4",
+    "typebox": "1.1.38",
+    "typescript": "5.9.3",
+    "vitest": "4.1.9"
+  },
+  "dependencies": {
+    "@agwab/pi-subagent": "0.4.8",
+    "pi-permission-modes": "2.2.0",
+    "pi-quota-status": "0.3.0",
+    "pi-web-access": "0.13.0"
+  }
+}
