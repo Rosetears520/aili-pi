@@ -2,10 +2,10 @@
 
 ## 结论
 
-- **状态：** `RELEASE_AUTHORIZED_WITH_INTERACTIVE_TUI_UNVERIFIED`
+- **状态：** `RELEASED_AND_INSTALLED_WITH_INTERACTIVE_TUI_UNVERIFIED`
 - **目标：** 将当前任务范围发布为 `@rosetears/aili-pi@0.1.5`，推送到 `origin/main`，创建 `v0.1.5`，并更新本机 Pi Package。
 - **用户授权：** 2026-07-23 已明确批准 `0.1.5` package/lockfile bump、任务范围提交、推送 `origin/main`、`v0.1.5` tag、公开 npm 发布和本机 Pi 安装。
-- **BUILD gate：** 自动化与包发布门禁通过；交互式 Matrix/footer/fixed-editor 视觉矩阵尚未验证，发布后需重启 Pi 观察。
+- **BUILD gate：** 自动化与包发布门禁通过；registry 与本机安装均已验证。交互式 Matrix/footer/fixed-editor 视觉矩阵尚未验证，需重启 Pi 观察。
 
 ## 本次交付
 
@@ -30,6 +30,15 @@
 | source palette comparison | PASS | 本地 pinned checkout HEAD 为 `165a1f8…`；Matrix BG/TEXT/CANDY/fallback values 一致 |
 | interactive Linux TUI matrix | UNVERIFIED | 需要安装后重启 Pi；未获授权进行真实 provider nested-TUI call |
 
+## Release execution evidence
+
+- Release commit：`407b17384787a7068e502a219d50e78f3b50feb8`。
+- `origin/main` 推送成功；annotated `v0.1.5` tag peel 到同一 release commit。
+- npm registry：`@rosetears/aili-pi@0.1.5`，`latest=0.1.5`，`gitHead=407b17384787a7068e502a219d50e78f3b50feb8`，shasum `87b613ac73d273411390a59c900abb3b73643b7d`。
+- 本机执行 `pi install npm:@rosetears/aili-pi@latest` 成功；production install audit 为 0 vulnerabilities。
+- `pi list` 显示 `npm:@rosetears/aili-pi@latest`；安装目录 package version 为 `0.1.5`。
+- 安装后的 Matrix 与 quota formatter 文件 SHA-256 分别与 release worktree 完全一致。
+
 ## Release-blocker audit
 
 - **Blocking：** 无已发现的代码、类型、测试、包内容、provenance、registry 或 stable-release blocker。
@@ -46,16 +55,15 @@
 
 ## Branch/worktree hygiene
 
-- 当前工作分支：`build/create-aili-pi-distribution`；发布目标：`origin/main`。
-- 任务范围文件将显式暂存。
+- 当前工作分支：`build/create-aili-pi-distribution`；release commit 已快进推送到 `origin/main`。
+- 仅任务范围文件被显式暂存并提交。
 - `.pi/` 为先前 subagent run artifacts，`graphify-out/` 为本地分析缓存；两者不暂存、不删除、不进入 npm tarball。
 - `.tmp/` 为 ignored、任务本地 dry-run/E2E evidence；不进入提交或 tarball。
 - 未执行 reset、clean、stash、force-push、branch deletion 或 worktree removal。
 
-## 批准的后续操作
+## 后续操作
 
-1. 提交任务范围文件并推送当前 HEAD 到 `origin/main`。
-2. 创建并推送 annotated `v0.1.5` tag。
-3. 执行 `npm publish --access public` 并校验 registry version/dist-tag/gitHead。
-4. 执行 `pi update npm:@rosetears/aili-pi`，校验 `pi list` 与安装目录版本。
-5. 重启当前 Pi 会话后人工观察 Matrix 和 footer；该观察不在本进程内伪造。
+1. 已完成：提交 release tree、推送 `origin/main`、创建并推送 annotated `v0.1.5`。
+2. 已完成：公开发布 npm `0.1.5` 并校验 version、dist-tag、gitHead、shasum。
+3. 已完成：通过 `pi install npm:@rosetears/aili-pi@latest` 更新本机 Package，并校验 package identity、version 和目标文件 hash。
+4. 用户需重启当前 Pi 会话后人工观察 Matrix 和 footer；该观察不在本进程内伪造。

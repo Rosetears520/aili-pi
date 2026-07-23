@@ -46,3 +46,9 @@ SHIP VERIFICATION 2026-07-23
 [PASS] Package dry-run reports `@rosetears/aili-pi@0.1.5`, 6,152 intended files, no task-local `.pi/`, `graphify-out/`, OpenSpec, tests, `.tmp/`, artifacts, or environment files.
 [WARN] `npm audit --omit=dev --audit-level=high` exits successfully but reports one moderate `protobufjs@7.6.4` advisory under the non-packaged Pi development/peer dependency. The production `@agwab/pi-subagent` path resolves fixed `protobufjs@7.6.5`; the tarball contains neither vulnerable path nor Pi itself. No unapproved dependency mutation was made.
 [UNVERIFIED] Interactive Matrix/footer/fixed-editor visual behavior requires a restarted Pi session after installation. No real provider call was authorized for an automated nested-TUI probe.
+
+RELEASE 0.1.5 — 2026-07-23
+[PASS] Release commit `407b17384787a7068e502a219d50e78f3b50feb8` was pushed to `origin/main`; annotated `v0.1.5` resolves to that commit.
+[PASS] npm published `@rosetears/aili-pi@0.1.5`; registry evidence reports `latest=0.1.5`, matching `gitHead`, shasum `87b613ac73d273411390a59c900abb3b73643b7d`.
+[PASS] `pi install npm:@rosetears/aili-pi@latest` updated the local Package. `pi list` reports the latest source, installed package version is `0.1.5`, production install audit found 0 vulnerabilities, and the installed Matrix/quota formatter hashes match the release worktree.
+[NEXT] Restart Pi to load the new package and manually inspect Matrix/footer/fixed-editor visuals; keep that terminal matrix `UNVERIFIED` until observed.

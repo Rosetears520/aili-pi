@@ -50,6 +50,7 @@ openspec validate add-rem-cyberdeck-theme --strict
 - Package/generated/skills/roles/capability/compatibility/provenance/stable-release validators: passed after refreshing the approved `package-lock.json` evidence hash for `0.1.5`.
 - Native Linux local Package E2E: passed.
 - `npm pack --dry-run --json` and `npm publish --dry-run --access public --json`: `@rosetears/aili-pi@0.1.5`, 6,152 intended files, no `.pi/`, `graphify-out/`, OpenSpec, tests, `.tmp/`, artifacts, or environment files.
+- Registry/local installation: npm `latest=0.1.5` with release `gitHead=407b17384787a7068e502a219d50e78f3b50feb8`; `pi list` and installed package metadata report `0.1.5`; installed target-file hashes match the release worktree.
 - Strict OpenSpec validation: this change and `create-aili-pi-distribution` passed.
 - Interactive Matrix/footer/fixed-editor visual matrix: unverified; it requires restarting Pi after the approved global package update and does not authorize a real provider call.
 
