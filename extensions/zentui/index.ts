@@ -248,6 +248,9 @@ export default function (pi: ExtensionAPI) {
 				() => ({
 					modelLabel: state.modelLabel,
 					providerLabel: state.providerLabel,
+					contextLabel: state.contextLabel,
+					contextUsedLabel: state.contextUsedLabel,
+					tokenLabel: state.tokenLabel,
 				}),
 				getThinkingLevel,
 			)) as ZentuiEditorFactory;
@@ -268,6 +271,9 @@ export default function (pi: ExtensionAPI) {
 				() => ({
 					modelLabel: state.modelLabel,
 					providerLabel: state.providerLabel,
+					contextLabel: state.contextLabel,
+					contextUsedLabel: state.contextUsedLabel,
+					tokenLabel: state.tokenLabel,
 				}),
 				getThinkingLevel,
 			)) as ZentuiEditorFactory;

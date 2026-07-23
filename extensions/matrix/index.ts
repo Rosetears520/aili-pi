@@ -7,8 +7,10 @@ const WIDGET_KEY = "sakura-matrix-engine";
 const CONFIG_PATH = join(homedir(), ".pi", "agent", "sakura-cyberdeck-matrix.json");
 const RESET = "\x1b[0m";
 const GLYPHS = [..."0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾗﾘﾙﾚﾛﾜﾝ"];
-const BG: RGB = [20, 17, 26];
-const TEXT: RGB = [247, 238, 248];
+// Matrix glyphs use foreground colors only. Blend trails into the user's
+// white terminal background to simulate transparency without terminal alpha.
+const BG: RGB = [255, 255, 255];
+const TEXT: RGB = [255, 255, 255];
 const CANDY: readonly RGB[] = [
   [136, 184, 255], // sakura
   [125, 228, 255], // sakura-iro

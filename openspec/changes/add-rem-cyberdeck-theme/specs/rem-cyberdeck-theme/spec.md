@@ -7,8 +7,8 @@ The Package SHALL expose one `rem-cyberdeck` Theme JSON with every required curr
 - **WHEN** the Package is loaded by Pi
 - **THEN** Pi discovers exactly the declared Rem theme resource and it validates against the current theme schema
 
-### Requirement: Header and working surfaces use public Pi UI APIs
-The runtime SHALL render the supplied Rem Unicode/Braille header and a bounded working indicator/widget using public header, working-indicator, and widget APIs.
+### Requirement: Copied visual Extensions preserve Sakura behavior with Rem visuals
+The copied header and Matrix Extensions SHALL render the supplied Rem Unicode/Braille header and bounded working animation using their upstream public Pi UI APIs. The AILI Extension SHALL not register competing header, footer, widget, or working-indicator surfaces.
 
 #### Scenario: Narrow terminal
 - **WHEN** terminal width cannot fit the header artwork

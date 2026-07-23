@@ -42,6 +42,12 @@ function hasVisibleStatusText(value: string): boolean {
 	return sanitizeExtensionStatusText(value).length > 0;
 }
 
+function formatQuotaWindowLabel(key: string, text: string): string {
+	// pi-quota-status uses the compact upstream label `Wk`. Rem Cyberdeck
+	// presents the same weekly Codex window as the more explicit `7d`.
+	return key === "pi-quota-status" ? text.replace(/\bWk\b/g, "7d") : text;
+}
+
 export function sanitizeExtensionStatusOriginalText(value: string): string {
 	const safeSequences: string[] = [];
 	const protectedValue = value.replace(safeSgrPattern, (sequence) => {
@@ -72,10 +78,12 @@ export function collectExtensionStatusSegments(
 		if (placement === "off") continue;
 
 		const colorMode = getExtensionStatusColorMode(config, key);
-		const text =
+		const text = formatQuotaWindowLabel(
+			key,
 			colorMode === "original"
 				? sanitizeExtensionStatusOriginalText(value)
-				: sanitizeExtensionStatusText(value);
+				: sanitizeExtensionStatusText(value),
+		);
 		if (!text) continue;
 
 		segments[placement].push({ key, text, placement, colorMode });

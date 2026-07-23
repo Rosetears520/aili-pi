@@ -218,7 +218,7 @@ export const configPath = join(getAgentDir(), "rem-cyberdeck-zentui.json");
 export const defaultConfig: PolishedTuiConfig = {
 	projectRefreshIntervalMs: 60_000,
 	footerFormat:
-		"$cwd(  $git_branch)( $git_status)$fill($context)(  $tokens)(  $cost)(  $time)",
+		"$cwd(  $git_branch)( $git_status)(  $session_duration)",
 	separator: "chevron",
 	contextStyle: "text+gauge",
 	contextThresholds: { warning: 70, error: 90 },
@@ -278,10 +278,10 @@ export const defaultConfig: PolishedTuiConfig = {
 		gitStatus: true,
 		gitCounts: false,
 		runtime: false,
-		context: true,
-		tokens: true,
-		cost: true,
-		sessionDuration: false,
+		context: false,
+		tokens: false,
+		cost: false,
+		sessionDuration: true,
 		username: false,
 		time: true,
 		os: false,
@@ -301,6 +301,7 @@ export const defaultConfig: PolishedTuiConfig = {
 	extensionStatuses: {
 		defaultPlacement: "right",
 		placements: {
+			"pi-quota-status": "right",
 			"dual-subscription-quota": "left",
 			"codex-goal": "middle",
 			"xai-usage": "right",

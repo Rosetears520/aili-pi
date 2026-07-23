@@ -9,6 +9,7 @@ import {
 	visibleWidth,
 } from "@earendil-works/pi-tui";
 import type { PolishedTuiConfig } from "./config.js";
+import { formatTimeLabel } from "./format.js";
 import { renderSakuraGradient, SAKURA_MACARON_GRADIENT } from "./gradient.js";
 import {
 	EDITOR_ACCENT_FALLBACK,
@@ -48,6 +49,9 @@ type WrappedEditor = EditorComponent &
 type EditorMeta = {
 	modelLabel: string;
 	providerLabel: string;
+	contextLabel: string;
+	contextUsedLabel: string;
+	tokenLabel: string;
 };
 
 type PolishedFrameOptions = {
@@ -318,6 +322,27 @@ function renderPolishedFrame({
 	const renderedModelMeta = [model, provider]
 		.filter(Boolean)
 		.join(safeThemeFg(uiTheme, "borderMuted", "  "));
+	const context = renderStyleForSourceOrFallback(
+		uiTheme,
+		colorSource,
+		config.colors.contextNormal,
+		"muted",
+		modelMeta.contextLabel,
+	);
+	const tokens = renderStyleForSourceOrFallback(
+		uiTheme,
+		colorSource,
+		config.colors.tokens,
+		"muted",
+		modelMeta.tokenLabel,
+	);
+	const time = renderStyleForSourceOrFallback(
+		uiTheme,
+		colorSource,
+		config.colors.editorProvider,
+		"muted",
+		formatTimeLabel(config.icons.time),
+	);
 	const metaParts = [renderedModelMeta];
 	if (thinkingLevel && thinkingLevel !== "off") {
 		metaParts.push(
@@ -331,12 +356,22 @@ function renderPolishedFrame({
 		);
 	}
 	const meta = metaParts.filter(Boolean).join(safeThemeFg(uiTheme, "border", "  "));
-	const copyFriendlyMeta = composeMetadataLine(meta, rightStatus, Math.max(0, width - 1));
-	const railedMeta = composeMetadataLine(meta, rightStatus, innerWidth);
+	const contextUsed = renderStyleForSourceOrFallback(
+		uiTheme,
+		colorSource,
+		config.colors.contextNormal,
+		"muted",
+		modelMeta.contextUsedLabel,
+	);
+	const topRightMeta = [context, contextUsed, tokens, time, rightStatus]
+		.filter(Boolean)
+		.join(safeThemeFg(uiTheme, "border", "  "));
+	const copyFriendlyMeta = composeMetadataLine(meta, topRightMeta, Math.max(0, width - 1));
+	const railedMeta = composeMetadataLine(meta, topRightMeta, innerWidth);
 
 	const top = renderEditorFrameBorder("─".repeat(width), config, uiTheme, colorSource);
 	const bottom = renderEditorFrameBorder("─".repeat(width), config, uiTheme, colorSource);
-	const lines = ["", ...editorLines, "", railedMeta];
+	const lines = [railedMeta, "", ...editorLines, ""];
 	const renderedLines = config.features.copyFriendly
 		? [
 				top,

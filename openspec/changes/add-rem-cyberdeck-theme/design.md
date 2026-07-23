@@ -3,8 +3,8 @@
 ## Architecture
 
 1. `themes/rem-cyberdeck.json` supplies the complete Pi palette.
-2. The owned Extension registers a Rem UI module. On TUI session start it installs a header, working indicator/widget, footer, editor chrome, and—when compatible—the fixed-editor compositor.
-3. Header, working indicator, widget and footer use public Pi APIs. Footer reads `footerData`, `ctx.getContextUsage()`, session usage and existing extension statuses. It never polls quota.
+2. Three copied visual Extensions own their upstream surfaces independently: header, Matrix working animation/widget, and Zentui footer/editor chrome/fixed-editor compositor. The AILI Extension registers none of these competing UI surfaces.
+3. Header, Matrix, widget and footer use their existing public Pi APIs. Footer reads `footerData`, `ctx.getContextUsage()`, session usage and existing extension statuses. It never polls quota.
 4. The fixed-editor enhancement is copied from the exact Sakura source revision, retaining its above-editor probe, strict writable-surface inspection, terminal compositor, and teardown behavior. Only Rem visual assets/palette may change without a further reuse revision.
 
 ## Compatibility and degradation
