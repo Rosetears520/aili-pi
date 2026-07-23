@@ -147,6 +147,7 @@ git diff --check
 
 **验收标准：**
 - [x] 获得精确的 `0.1.6` 版本、commit/push/tag/publish/install 批准。
+- [x] `0.1.6` release commit、origin/main、annotated tag、公开 npm publish 与本机安装完成并验证身份/hash。
 - [ ] 正常宽度和超宽宽度下 Matrix 轨道覆盖完整横向区域，仍保留自然稀疏感。
 - [ ] footer 只显示真实 `codex <weekly %> <reset>`；默认无 cache stats。
 - [ ] named subagent 调用上方可见 Agent 标签；headless provider probes 已获授权并通过，真实 TUI 外观仍待安装重启观察。

@@ -65,3 +65,11 @@ SHIP PREFLIGHT 2026-07-23
 [PASS] Package/publish dry-runs report `0.1.6`, 6,152 files, and no `.pi/`, graphify, OpenSpec, plan, tests, temp, artifacts, or env paths in the tarball. Dry-run shasum: `35de25e5461709a10744adb90b1fbded199ebc3f`.
 [WARN] `npm audit --omit=dev --audit-level=high` exits 0 with one moderate `protobufjs@7.6.4` advisory under the Pi development/peer path; no high/critical finding and the tarball does not bundle that path. No unapproved dependency repair was applied.
 [NEXT] Inspect the exact release diff, stage task-scoped files only, commit, and push/tag/publish/install under the user's authorization.
+
+RELEASE 0.1.6 — 2026-07-23
+[PASS] Release commit `62f7b2d7e2573d2dfcf481c671ef510dac9abc0c` was pushed to `origin/main`; annotated `v0.1.6` peels to that commit and was pushed.
+[PASS] npm published `@rosetears/aili-pi@0.1.6`; registry reports `latest=0.1.6`, matching `gitHead`, shasum `35de25e5461709a10744adb90b1fbded199ebc3f`, and matching integrity.
+[PASS] `pi install npm:@rosetears/aili-pi@latest` installed local version `0.1.6`; production install audit reports 0 vulnerabilities, and target Matrix/quota/gradient/subagent file hashes match the release worktree.
+[PASS] Local Pi settings still select `rem-cyberdeck`.
+[UNVERIFIED] Restarted interactive TUI Matrix/reasoning/footer/Agent-label appearance requires a new Pi session and remains manual.
+[NEXT] Commit and push this release closeout evidence; then ask the user to restart Pi and observe the four interactive surfaces.

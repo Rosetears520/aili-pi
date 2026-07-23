@@ -50,7 +50,7 @@ git diff --check
 - Adapter compatibility and provenance validators passed.
 - Package and publish dry-runs: `@rosetears/aili-pi@0.1.6`, 6,152 files, no forbidden local/OpenSpec/test/temp paths.
 - Strict OpenSpec validation and `git diff --check` passed.
-- After separate user authorization, the exact generic fixture, read-only package probe, and disposable credential-denial probe passed. `manifests/live-verification.json` now binds their evidence to the changed wrapper/test hashes, and stable release validation passed.
+- After separate user authorization, the exact generic fixture, read-only package probe, and disposable credential-denial probe passed. `manifests/live-verification.json` binds their evidence to the changed wrapper/test hashes, stable release validation passed, and `0.1.6` was published/installed with matching registry and installed-file identity.
 
 ## Manual Checks
 

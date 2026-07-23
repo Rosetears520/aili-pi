@@ -25,4 +25,4 @@
 
 - [x] 5.1 Update provenance/NOTICE for the bounded display and responsive-Matrix adaptations.
 - [x] 5.2 Run focused tests, typecheck, full affected suite, provenance/release validators, package dry-run, and strict OpenSpec validation. Fresh authorized live subagent probes now bind the changed wrapper/test hashes and stable release validation passes.
-- [ ] 5.3 After separately approved installation/restart, manually inspect dark-theme Matrix/reasoning, quota visibility, and named subagent header; do not perform a real provider run without exact approval.
+- [ ] 5.3 Installation is complete under separate approval; after restarting Pi, manually inspect dark-theme Matrix/reasoning, quota visibility, and named subagent header. Headless provider probes passed, but interactive TUI appearance remains unverified.

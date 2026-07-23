@@ -2,7 +2,7 @@
 
 ## 结论
 
-- **状态：** `RELEASE_AUTHORIZED_PREFLIGHT_PASS`
+- **状态：** `RELEASED_AND_INSTALLED_WITH_INTERACTIVE_TUI_UNVERIFIED`
 - **目标：** 发布 `@rosetears/aili-pi@0.1.6`，推送 release commit 到 `origin/main`，创建 annotated `v0.1.6`，并更新本机 Pi Package。
 - **用户授权：** 2026-07-23，用户在收到精确操作列表后回复“发版”，批准 package/lockfile 仅版本 bump、任务范围提交、push、tag、公开 npm publish 和本机安装。
 - **交互边界：** 自动化与 live headless probe 已通过；安装后重启 Pi 的真实 Matrix/footer/Agent-label 视觉仍需人工观察，不得在当前进程中伪报。
@@ -35,16 +35,21 @@
 
 ## Release execution evidence
 
-Pending authorized Git/tag/npm/install operations.
+- Release commit：`62f7b2d7e2573d2dfcf481c671ef510dac9abc0c`，已快进推送到 `origin/main`。
+- Annotated `v0.1.6` tag object：`f6804ced6c62ef572acbeeaeb4893c935f8f3aab`；peel 到 release commit `62f7b2d…`，已推送 origin。
+- npm registry：`@rosetears/aili-pi@0.1.6`，`latest=0.1.6`，`gitHead=62f7b2d…`，shasum `35de25e5461709a10744adb90b1fbded199ebc3f`，integrity 与 dry-run 一致。
+- 本机 `pi install npm:@rosetears/aili-pi@latest` 成功；安装版本 `0.1.6`，production audit 为 0 vulnerabilities。
+- `pi list` 仍绑定 `npm:@rosetears/aili-pi@latest`；本机 theme 保持 `rem-cyberdeck`。
+- 安装后的 Matrix、quota formatter、reasoning gradient 与 subagent wrapper SHA-256 均与 release worktree 完全一致。
 
 ## Release-blocker audit
 
-- **Blocking:** 无已发现的自动化、包内容、provenance 或 release-validator blocker。
+- **Blocking:** 无已发现的代码、测试、包内容、provenance、registry、安装或 release-validator blocker。
 - **Residual:** Interactive restarted-TUI visuals remain manual；audit 有一项不进入 tarball 的 moderate Pi development/peer advisory。
 - **Excluded:** No dependency upgrade, destructive Git action, branch cleanup, or unrelated local artifact mutation is authorized.
 
 ## Branch/worktree hygiene
 
-- Working branch: `fix/quota-animation-subagent-label`.
+- Release work branch: `fix/quota-animation-subagent-label`; release commit 已快进推送到 `origin/main`，closeout evidence 将作为独立 docs commit 推送。
 - `.pi/` and `graphify-out/` remain untracked, uncommitted, and undeleted.
 - Only task-scoped source/tests/docs/manifests/OpenSpec/plan and approved package version files may be staged.
