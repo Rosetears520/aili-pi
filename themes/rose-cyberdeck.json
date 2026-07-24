@@ -14,22 +14,18 @@
     "ice": "#D6F4FF",
     "rose": "#C75B7A",
     "roseSoft": "#E8A7B8",
-    "roseDeep": "#A8455F",
-    "successGreen": "#5A8A72",
-    "gold": "#F3CE83",
-    "coral": "#FF93B1",
     "border": "#4C5B86",
     "borderMuted": "#303A5B"
   },
   "colors": {
     "accent": "rose", "border": "border", "borderAccent": "cyan", "borderMuted": "borderMuted",
-    "success": "successGreen", "error": "coral", "warning": "gold", "muted": "muted", "dim": "dim", "text": "text", "thinkingText": "ice",
+    "success": "cyan", "error": "rose", "warning": "violet", "muted": "muted", "dim": "dim", "text": "text", "thinkingText": "ice",
     "selectedBg": "raised", "userMessageBg": "", "userMessageText": "text", "customMessageBg": "", "customMessageText": "text", "customMessageLabel": "violet",
     "toolPendingBg": "", "toolSuccessBg": "", "toolErrorBg": "", "toolTitle": "cyan", "toolOutput": "ice",
-    "mdHeading": "rose", "mdLink": "cyan", "mdLinkUrl": "muted", "mdCode": "gold", "mdCodeBlock": "text", "mdCodeBlockBorder": "borderMuted", "mdQuote": "ice", "mdQuoteBorder": "violet", "mdHr": "borderMuted", "mdListBullet": "rose",
-    "toolDiffAdded": "successGreen", "toolDiffRemoved": "coral", "toolDiffContext": "muted",
-    "syntaxComment": "muted", "syntaxKeyword": "violet", "syntaxFunction": "cyan", "syntaxVariable": "blue", "syntaxString": "successGreen", "syntaxNumber": "gold", "syntaxType": "ice", "syntaxOperator": "violet", "syntaxPunctuation": "text",
-    "thinkingOff": "dim", "thinkingMinimal": "muted", "thinkingLow": "cyan", "thinkingMedium": "violet", "thinkingHigh": "blue", "thinkingXhigh": "rose", "thinkingMax": "roseDeep", "bashMode": "successGreen"
+    "mdHeading": "rose", "mdLink": "cyan", "mdLinkUrl": "muted", "mdCode": "ice", "mdCodeBlock": "text", "mdCodeBlockBorder": "borderMuted", "mdQuote": "ice", "mdQuoteBorder": "violet", "mdHr": "borderMuted", "mdListBullet": "rose",
+    "toolDiffAdded": "cyan", "toolDiffRemoved": "rose", "toolDiffContext": "muted",
+    "syntaxComment": "muted", "syntaxKeyword": "violet", "syntaxFunction": "cyan", "syntaxVariable": "blue", "syntaxString": "roseSoft", "syntaxNumber": "violet", "syntaxType": "ice", "syntaxOperator": "violet", "syntaxPunctuation": "text",
+    "thinkingOff": "dim", "thinkingMinimal": "muted", "thinkingLow": "cyan", "thinkingMedium": "violet", "thinkingHigh": "blue", "thinkingXhigh": "rose", "thinkingMax": "rose", "bashMode": "violet"
   },
   "export": { "pageBg": "#10121D", "cardBg": "#191D2E", "infoBg": "#242A42" }
 }

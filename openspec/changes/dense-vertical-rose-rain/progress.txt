@@ -1,0 +1,20 @@
+# BUILD Progress — dense-vertical-rose-rain
+
+## Envelope
+- User accepted implementation on 2026-07-24.
+- Scope: full-width fixed-x vertical Code Rain and six-color package-owned visual remap.
+- Not authorized: user Home writes, Git, publish, install, real provider/TUI runs, dependencies/lockfile.
+
+## Queue
+1. Contract/tests — complete
+2. Matrix renderer/config — complete (user-directed restoration to 0.1.8 geometry, 12 FPS, 8–16 speed, weighted palette)
+3. Theme/Header/Zentui/remapped runtime defaults — complete
+4. Focused and project verification — complete
+
+## Verification
+- Focused Matrix/config/lifecycle/theme/Zentui suite: 34 passed.
+- Full suite: 134 passed, 3 skipped.
+- `npm run typecheck`, `npm run validate:provenance`, `npm run validate:package`, strict OpenSpec validation, `npm pack --dry-run --json`, and `git diff --check` passed.
+
+## Unverified
+- Real terminal visual smoothness and provider streaming usage; neither was authorized or run.

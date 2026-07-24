@@ -11,6 +11,10 @@ export const ROSE_GRADIENT_STOPS: readonly RGB[] = [
   [125, 228, 255], // cyan       #7DE4FF
   [214, 244, 255], // ice        #D6F4FF
 ];
+/** Completed tool frames use a cool, restrained completion gradient. */
+export const ROSE_TOOL_COMPLETE_STOPS: readonly RGB[] = [
+  [136, 184, 255], [125, 228, 255], [214, 244, 255],
+];
 
 const RESET = "\x1b[0m";
 const GRADIENT_CACHE_LIMIT = 128;
@@ -25,30 +29,35 @@ function mix(from: RGB, to: RGB, amount: number): RGB {
   ];
 }
 
-function sampleGradient(position: number): RGB {
-  const normalized = Math.max(0, Math.min(1, position));
-  const scaled = normalized * (ROSE_GRADIENT_STOPS.length - 1);
-  const index = Math.min(ROSE_GRADIENT_STOPS.length - 2, Math.floor(scaled));
-  const from = ROSE_GRADIENT_STOPS[index] ?? ROSE_GRADIENT_STOPS[0]!;
-  const to = ROSE_GRADIENT_STOPS[index + 1] ?? from;
-  return mix(from, to, scaled - index);
-}
-
 function foreground(color: RGB, text: string): string {
   return `\x1b[38;2;${color[0]};${color[1]};${color[2]}m${text}`;
 }
 
 /** Render the stable Rose-to-ice gradient for Zentui chrome and markers. */
-export function renderRoseGradient(text: string): string {
-  const cached = gradientCache.get(text);
+function renderGradient(text: string, stops: readonly RGB[]): string {
+  const cacheKey = `${stops.flat().join(",")}:${text}`;
+  const cached = gradientCache.get(cacheKey);
   if (cached !== undefined) return cached;
   const chars = [...text];
   if (chars.length === 0) return text;
   const span = Math.max(1, chars.length - 1);
-  const rendered = `${chars.map((char, index) => foreground(sampleGradient(index / span), char)).join("")}${RESET}`;
+  const rendered = `${chars.map((char, index) => {
+    const position = Math.max(0, Math.min(1, index / span));
+    const scaled = position * (stops.length - 1);
+    const stop = Math.min(stops.length - 2, Math.floor(scaled));
+    return foreground(mix(stops[stop] ?? stops[0]!, stops[stop + 1] ?? stops[stop] ?? stops[0]!, scaled - stop), char);
+  }).join("")}${RESET}`;
   if (gradientCache.size >= GRADIENT_CACHE_LIMIT) gradientCache.delete(gradientCache.keys().next().value ?? "");
-  gradientCache.set(text, rendered);
+  gradientCache.set(cacheKey, rendered);
   return rendered;
+}
+
+export function renderRoseGradient(text: string): string {
+  return renderGradient(text, ROSE_GRADIENT_STOPS);
+}
+
+export function renderRoseToolCompleteGradient(text: string): string {
+  return renderGradient(text, ROSE_TOOL_COMPLETE_STOPS);
 }
 
 /** Add symmetric colored side rails while preserving the terminal width contract. */

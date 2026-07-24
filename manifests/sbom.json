@@ -3,7 +3,7 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "@rosetears/aili-pi-0.0.0-development",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/4a5b950286a6867acf10e709f49f1448",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/01e1201c78bfb1b604ad872b36621ba1",
   "creationInfo": {
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"

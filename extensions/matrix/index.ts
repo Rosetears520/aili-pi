@@ -22,11 +22,12 @@ const SHIMMER_STEP_MS = 120;
 const TOOL_GRADIENT: readonly RGB[] = [[188, 167, 255], [125, 228, 255]];
 
 export const ROSE_MATRIX_GLYPHS = [..."0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾗﾘﾙﾚﾛﾜﾝ"];
+/** The six user-selected rain colors, assigned by the exact weights below. */
 export const ROSE_RAIN_PALETTE: readonly RGB[] = [
-  [136, 184, 255], [125, 228, 255], [214, 244, 255], [136, 184, 255],
-  [125, 228, 255], [214, 244, 255], [136, 184, 255], [125, 228, 255],
-  [214, 244, 255], [136, 184, 255], [199, 91, 122], [232, 167, 184],
+  [136, 184, 255], [214, 244, 255], [125, 228, 255],
+  [188, 167, 255], [199, 91, 122], [232, 167, 184],
 ];
+export const ROSE_RAIN_WEIGHTS = { blue: 50, ice: 20, cyan: 15, violet: 8, rose: 4, roseSoft: 3 } as const;
 export const ROSE_SHIMMER_INDICATOR = ["·", "✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳", "✢"] as const;
 
 type RGB = readonly [number, number, number];
@@ -45,6 +46,7 @@ export interface MatrixConfig {
 }
 
 export interface Drop {
+  /** Fixed terminal-cell column; vertical motion never changes this value. */
   x: number;
   offset: number;
   speed: number;
@@ -59,7 +61,7 @@ type ConfigLoadResult = { config: MatrixConfig; migrated: boolean; warning?: str
 const DEFAULT_CONFIG: MatrixConfig = {
   version: 2,
   enabled: true,
-  fps: 10,
+  fps: 12,
   density: 0.65,
   height: 4,
   appearance: "auto",
@@ -204,6 +206,19 @@ function selectBoundedColumns(columns: readonly number[]): number[] {
   return Array.from({ length: MAX_DROPS }, (_, index) => columns[Math.round((index * lastIndex) / (MAX_DROPS - 1))] ?? 0);
 }
 
+/** Exact 50/20/15/8/4/3 distribution over each deterministic 100-track cycle. */
+export function roseRainColor(index: number): RGB {
+  // A coprime stride distributes all weights through the 96-track ceiling,
+  // instead of leaving the final Rose/Soft Rose buckets unreachable.
+  const bucket = (((index * 37) % 100) + 100) % 100;
+  if (bucket < 50) return ROSE_RAIN_PALETTE[0]!;
+  if (bucket < 70) return ROSE_RAIN_PALETTE[1]!;
+  if (bucket < 85) return ROSE_RAIN_PALETTE[2]!;
+  if (bucket < 93) return ROSE_RAIN_PALETTE[3]!;
+  if (bucket < 97) return ROSE_RAIN_PALETTE[4]!;
+  return ROSE_RAIN_PALETTE[5]!;
+}
+
 export function createDrops(width: number, density: number, height = 4): Drop[] {
   const random = mulberry32((width * 2654435761) ^ 0x53414b55);
   const columns = Array.from({ length: Math.ceil(width / 2) }, (_, index) => index * 2);
@@ -216,11 +231,12 @@ export function createDrops(width: number, density: number, height = 4): Drop[] 
     return {
       x,
       offset: random() * cycle,
-      speed: 5.5 + random() * 7.5,
+      // Between the released waterfall (5.5–13) and dense preview (18).
+      speed: 8 + random() * 8,
       length,
       gap,
       seed: Math.floor(random() * 0x7fffffff) ^ (index * 7919),
-      color: ROSE_RAIN_PALETTE[index % ROSE_RAIN_PALETTE.length] ?? ROSE_RAIN_PALETTE[0]!,
+      color: roseRainColor(index),
     };
   });
 }
@@ -229,8 +245,8 @@ function appearanceColor(color: RGB, appearance: ResolvedAppearance): RGB {
   if (appearance === "dark") return color;
   if (color[0] === 199 && color[1] === 91) return LIGHT.indicator;
   if (color[0] === 232 && color[1] === 167) return [168, 69, 95];
-  if (color[0] === 214) return [78, 120, 129];
-  if (color[1] === 228) return [78, 120, 129];
+  if (color[0] === 188 && color[1] === 167) return [119, 106, 151];
+  if (color[0] === 214 || color[1] === 228) return [78, 120, 129];
   return LIGHT.base;
 }
 

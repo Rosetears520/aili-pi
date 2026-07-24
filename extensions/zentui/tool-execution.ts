@@ -1,6 +1,6 @@
 import { type Theme, ToolExecutionComponent } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { renderBoxedLine, renderRoseGradient } from "./gradient.js";
+import { renderBoxedLine, renderRoseGradient, renderRoseToolCompleteGradient } from "./gradient.js";
 import { installPrototypePatch } from "./prototype-patch-registry.js";
 
 const SETTLED_CACHE_MAX_LINES = 80;
@@ -141,7 +141,10 @@ export function installToolExecutionStyle(getTheme: () => Theme | undefined): Cl
 				if (blank !== undefined) prefix.push(blank);
 			}
 			const label = fitBorderLabel(statusLabel(runtime), width);
-			const top = renderRoseGradient(label);
+			const completeGradient = !pending && !runtime.result?.isError
+				? renderRoseToolCompleteGradient
+				: renderRoseGradient;
+			const top = completeGradient(label);
 			// Keep only the status rail slightly heavier. State is expressed in the
 			// Rose palette rather than traffic-light red/green: violet while running,
 			// ice blue when complete, and Rose when failed.
@@ -150,8 +153,8 @@ export function installToolExecutionStyle(getTheme: () => Theme | undefined): Cl
 				: runtime.result?.isError
 					? theme.fg("accent", "┃ ")
 					: theme.fg("syntaxFunction", "┃ ");
-			const rightRail = renderRoseGradient(" │");
-			const bottom = renderRoseGradient(bottomBorder(width));
+			const rightRail = completeGradient(" │");
+			const bottom = completeGradient(bottomBorder(width));
 
 			const boxed = [
 				...prefix,

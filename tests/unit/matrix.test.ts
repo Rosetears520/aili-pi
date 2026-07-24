@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { describe, expect, it } from "vitest";
 import {
@@ -6,41 +5,41 @@ import {
   renderRoseMatrix,
   renderRoseShimmer,
   resolveAppearance,
+  roseRainColor,
   ROSE_MATRIX_GLYPHS,
   ROSE_RAIN_PALETTE,
   ROSE_SHIMMER_INDICATOR,
 } from "../../extensions/matrix/index.js";
 
-function dropGeometry(width: number): unknown[] {
-  return createDrops(width, 0.65, 4).map(({ color: _color, ...geometry }) => geometry);
+function stripAnsi(line: string): string {
+  return line.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "");
 }
 
 function nonSpaceAnsiCells(line: string): boolean {
-  return line.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "").trim().length > 0;
+  return stripAnsi(line).trim().length > 0;
 }
 
-describe("Rose Matrix deterministic geometry", () => {
-  it("keeps the ordinary-width geometry sequence independently from palette", () => {
-    const digest = createHash("sha256")
-      .update(JSON.stringify(dropGeometry(240)))
-      .digest("hex");
-
-    expect(digest).toBe("0f72954fa7128286bf1aae3eba5155c574f8a33bc9982238bb918e2a9fdf55fa");
+describe("Rose Matrix released waterfall geometry", () => {
+  it.each([320, 384, 480, 640])("caps sparse even-cell tracks at 96 across ultra-wide %i-cell widgets", (width) => {
+    const drops = createDrops(width, 0.65, 4);
+    expect(drops.length).toBeLessThanOrEqual(96);
+    expect(drops.every((drop) => drop.x % 2 === 0)).toBe(true);
+    expect(Math.min(...drops.map((drop) => drop.x))).toBeLessThan(width * 0.1);
+    expect(Math.max(...drops.map((drop) => drop.x))).toBeGreaterThanOrEqual(width * 0.9);
+    expect(drops.every((drop) => drop.speed >= 8 && drop.speed < 16)).toBe(true);
   });
 
-  it.each([320, 384, 480, 640])("spreads bounded tracks across ultra-wide %i-cell widgets", (width) => {
-    const columns = createDrops(width, 0.65, 4).map((drop) => drop.x);
-    expect(columns.length).toBeLessThanOrEqual(96);
-    expect(Math.min(...columns)).toBeLessThan(width * 0.1);
-    expect(Math.max(...columns)).toBeGreaterThanOrEqual(width * 0.9);
-  });
-
-  it("uses only single-cell glyphs and the accepted Rose weighting", () => {
+  it("uses only single-cell glyphs and the agreed six-color weighted palette", () => {
     expect(ROSE_MATRIX_GLYPHS).toHaveLength(78);
     expect(ROSE_MATRIX_GLYPHS.every((glyph) => visibleWidth(glyph) === 1)).toBe(true);
-    expect(ROSE_RAIN_PALETTE).toHaveLength(12);
-    expect(ROSE_RAIN_PALETTE.filter(([r, g, b]) => (r === 136 && g === 184 && b === 255) || (r === 125 && g === 228 && b === 255) || (r === 214 && g === 244 && b === 255))).toHaveLength(10);
-    expect(ROSE_RAIN_PALETTE.some(([, g]) => g === 138)).toBe(false);
+    expect(ROSE_RAIN_PALETTE).toHaveLength(6);
+    const counts = Array.from({ length: 100 }, (_, index) => roseRainColor(index).join(","))
+      .reduce<Record<string, number>>((result, color) => ({ ...result, [color]: (result[color] ?? 0) + 1 }), {});
+    expect(counts).toEqual({
+      "136,184,255": 50, "214,244,255": 20, "125,228,255": 15,
+      "188,167,255": 8, "199,91,122": 4, "232,167,184": 3,
+    });
+    expect(new Set(Array.from({ length: 96 }, (_, index) => roseRainColor(index).join(","))).size).toBe(6);
   });
 
   it.each([1, 40, 80, 120, 240, 320, 640])("renders four visible rows at exactly %i cells in both appearances", (width) => {
@@ -54,7 +53,6 @@ describe("Rose Matrix deterministic geometry", () => {
 
   it("repairs an all-empty frame with a vertical, non-blank trail", () => {
     const lines = renderRoseMatrix(40, 4, 0, "requesting", [], "dark");
-    expect(lines).toHaveLength(4);
     expect(lines.every(nonSpaceAnsiCells)).toBe(true);
   });
 });

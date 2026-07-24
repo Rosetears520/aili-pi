@@ -13,6 +13,11 @@ function fixture() {
 afterEach(() => { while (roots.length) rmSync(roots.pop()!, { recursive: true, force: true }); });
 
 describe("Rose Matrix config migration", () => {
+  it("defaults to the intermediate 12 FPS waterfall cadence", () => {
+    const { canonical, legacy } = fixture();
+    expect(loadRoseMatrixConfig(canonical, legacy).config).toMatchObject({ fps: 12, density: 0.65, height: 4 });
+  });
+
   it("migrates a valid legacy file to explicit schema v2 without deleting it", () => {
     const { canonical, legacy } = fixture();
     writeFileSync(legacy, JSON.stringify({ enabled: false, fps: 12, density: 0.7, height: 6 }));

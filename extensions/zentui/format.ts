@@ -288,6 +288,20 @@ export function buildContextLabel(ctx: ExtensionContext): string {
 	return formatContextPercentLabel(usage?.percent, contextWindow);
 }
 
+/**
+ * Normalize inherited Starship runtime hints into Rose-owned semantic colors.
+ * The source strings remain detection metadata; package rendering never emits
+ * their traffic-light or indexed terminal colors.
+ */
+export function roseRuntimeStyle(style: string): ColorSpec {
+	const normalized = style.toLowerCase();
+	if (/(?:red|202|208|orange)/.test(normalized)) return "rose";
+	if (/(?:yellow|purple|105|147)/.test(normalized)) return "violet";
+	if (/(?:white|149)/.test(normalized)) return "ice";
+	if (/(?:green|cyan|blue|0093a7)/.test(normalized)) return "cyan";
+	return "blue";
+}
+
 export function formatRuntimeSegment(
 	theme: Pick<Theme, "fg">,
 	runtime: RuntimeInfo | undefined,
@@ -298,7 +312,7 @@ export function formatRuntimeSegment(
 	if (!runtime) return "";
 	const symbol = resolveRuntimeSymbol(runtime.name, runtime.symbol, mode);
 	const label = runtime.version ? `${symbol} ${runtime.version}` : symbol;
-	return `${renderStyleForSource(theme, colorSource, prefixStyle, "via")} ${renderStyleForSource(theme, colorSource, runtime.style, label)}`;
+	return `${renderStyleForSource(theme, colorSource, prefixStyle, "via")} ${renderStyleForSource(theme, colorSource, roseRuntimeStyle(runtime.style), label)}`;
 }
 
 /**
