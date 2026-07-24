@@ -3,7 +3,7 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "@rosetears/aili-pi-0.0.0-development",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/a9e5a3e4d1076b3179dd8cca5ef89f9f",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/4a5b950286a6867acf10e709f49f1448",
   "creationInfo": {
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
@@ -126,7 +126,7 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=165a1f8011a12a58a6409b56b8a6c0416cd9b589; files=extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**; symbols=header, matrix animation, Zentui footer, fixed editor compositor; local changes=registered as three additional Pi Package Extensions | header avatar loads the supplied Rem asset | Zentui shell palette uses Rem while Matrix and the reasoning trail retain the upstream Sakura palette | overflowing Matrix tracks are sampled deterministically across the complete terminal width while retaining the 96-track budget and ordinary-width behavior | relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract"
+      "comment": "revision=165a1f8011a12a58a6409b56b8a6c0416cd9b589; files=extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**; symbols=header, matrix animation, Zentui footer, fixed editor compositor; local changes=registered as three additional Pi Package Extensions | Rose header loads a package-owned renamed artwork asset without changing upstream identity | Rose Shimmer, Rose Code Rain, and Zentui use the Rose-owned palette and gradient | overflowing Matrix tracks remain deterministic across the complete terminal width with the 96-track budget, while each rain row receives a structural blank-row repair | relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract"
     },
     {
       "SPDXID": "SPDXRef-node-modules-agent-base-e28bede7a2",

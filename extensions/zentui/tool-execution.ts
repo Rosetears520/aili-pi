@@ -1,6 +1,6 @@
 import { type Theme, ToolExecutionComponent } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { renderBoxedLine, renderSakuraGradient } from "./gradient.js";
+import { renderBoxedLine, renderRoseGradient } from "./gradient.js";
 import { installPrototypePatch } from "./prototype-patch-registry.js";
 
 const SETTLED_CACHE_MAX_LINES = 80;
@@ -141,17 +141,17 @@ export function installToolExecutionStyle(getTheme: () => Theme | undefined): Cl
 				if (blank !== undefined) prefix.push(blank);
 			}
 			const label = fitBorderLabel(statusLabel(runtime), width);
-			const top = renderSakuraGradient(label);
+			const top = renderRoseGradient(label);
 			// Keep only the status rail slightly heavier. State is expressed in the
-			// native macaron palette rather than traffic-light red/green: lavender
-			// while running, sky blue when complete, and Sakura pink when failed.
+			// Rose palette rather than traffic-light red/green: violet while running,
+			// ice blue when complete, and Rose when failed.
 			const leftRail = pending
 				? theme.fg("thinkingXhigh", "┃ ")
 				: runtime.result?.isError
 					? theme.fg("accent", "┃ ")
 					: theme.fg("syntaxFunction", "┃ ");
-			const rightRail = renderSakuraGradient(" │");
-			const bottom = renderSakuraGradient(bottomBorder(width));
+			const rightRail = renderRoseGradient(" │");
+			const bottom = renderRoseGradient(bottomBorder(width));
 
 			const boxed = [
 				...prefix,

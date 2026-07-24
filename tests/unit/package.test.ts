@@ -16,7 +16,7 @@ async function readManifest(): Promise<PackageManifest> {
 }
 
 describe("Pi package baseline", () => {
-  it("declares one AILI extension, five prompts, one Rem theme, and no replacement CLI", async () => {
+  it("declares one AILI extension, five prompts, one Rose theme, and no replacement CLI", async () => {
     const manifest = await readManifest();
 
     expect(manifest.name).toBe("@rosetears/aili-pi");
@@ -29,7 +29,7 @@ describe("Pi package baseline", () => {
       "./extensions/zentui/index.ts",
     ]);
     expect(manifest.pi?.prompts).toHaveLength(5);
-    expect(manifest.pi?.themes).toEqual(["./themes/rem-cyberdeck.json"]);
+    expect(manifest.pi?.themes).toEqual(["./themes/rose-cyberdeck.json"]);
     expect(manifest.bundledDependencies).toEqual(expect.arrayContaining([
       "@narumitw/pi-lsp", "pi-cache-optimizer", "pi-markdown-preview",
     ]));
@@ -78,7 +78,8 @@ describe("Pi package baseline", () => {
     ]);
     expect(readme).toContain("universal OS sandbox");
     expect(readme).toContain("/aili-doctor");
-    expect(readme).toContain("Rem Cyberdeck");
+    expect(readme).toContain("Rose Cyberdeck");
+    expect(readme).toContain("/rose-matrix");
     expect(readme).toContain("fixed-bottom editor");
     expect(readme).toContain("omitted/`auto` calls to `headless`");
     expect(permissionLock.package).toMatchObject({ version: "2.2.0", revision: "23d65d10a53b67043cae42322acf9044d6edb196" });

@@ -1,6 +1,6 @@
 {
   "name": "@rosetears/aili-pi",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "AILI and ROSE distribution for official Pi",
   "type": "module",
   "license": "MIT",
@@ -50,7 +50,7 @@
       "./prompts/local-review.md"
     ],
     "themes": [
-      "./themes/rem-cyberdeck.json"
+      "./themes/rose-cyberdeck.json"
     ]
   },
   "engines": {

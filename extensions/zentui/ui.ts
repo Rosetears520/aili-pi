@@ -10,7 +10,7 @@ import {
 } from "@earendil-works/pi-tui";
 import type { PolishedTuiConfig } from "./config.js";
 import { formatTimeLabel } from "./format.js";
-import { renderSakuraGradient, SAKURA_MACARON_GRADIENT } from "./gradient.js";
+import { renderRoseGradient, ROSE_GRADIENT } from "./gradient.js";
 import {
 	EDITOR_ACCENT_FALLBACK,
 	EDITOR_BORDER_FALLBACK,
@@ -83,8 +83,8 @@ export function renderEditorFrameBorder(
 	uiTheme: Theme,
 	colorSource: PolishedTuiConfig["colorSources"]["editor"],
 ): string {
-	if (config.colors.editorBorder === SAKURA_MACARON_GRADIENT) {
-		return renderSakuraGradient(text);
+	if (config.colors.editorBorder === ROSE_GRADIENT) {
+		return renderRoseGradient(text);
 	}
 	return renderStyleForSourceOrFallback(
 		uiTheme,

@@ -1,42 +1,50 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
-const WIDGET_KEY = "sakura-matrix-engine";
-const CONFIG_PATH = join(homedir(), ".pi", "agent", "sakura-cyberdeck-matrix.json");
+const WIDGET_KEY = "rose-matrix-engine";
+const CONFIG_PATH = join(homedir(), ".pi", "agent", "rose-cyberdeck-matrix.json");
+const LEGACY_CONFIG_PATH = join(homedir(), ".pi", "agent", "sakura-cyberdeck-matrix.json");
 const RESET = "\x1b[0m";
-export const SAKURA_MATRIX_GLYPHS = [..."0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾗﾘﾙﾚﾛﾜﾝ"];
-const BG: RGB = [20, 17, 26];
-const TEXT: RGB = [247, 238, 248];
-const CANDY: readonly RGB[] = [
-  [242, 167, 198], // sakura
-  [252, 201, 185], // sakura-iro
-  [239, 195, 230], // petal
-  [199, 184, 245], // lavender
-  [159, 211, 242], // sky
-  [174, 229, 197], // mint
-];
-const WORKING_INDICATOR = "◆";
 const MAX_DROPS = 96;
-const PHASE_MESSAGES: Record<Phase, string> = {
-  thinking: "Weaving the next move…",
-  working: "Composing the response…",
-  tool: "Running tools…",
-};
+const SHIMMER_STEP_MS = 120;
+const TOOL_GRADIENT: readonly RGB[] = [[188, 167, 255], [125, 228, 255]];
+
+export const ROSE_MATRIX_GLYPHS = [..."0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾗﾘﾙﾚﾛﾜﾝ"];
+export const ROSE_RAIN_PALETTE: readonly RGB[] = [
+  [136, 184, 255], [125, 228, 255], [214, 244, 255], [136, 184, 255],
+  [125, 228, 255], [214, 244, 255], [136, 184, 255], [125, 228, 255],
+  [214, 244, 255], [136, 184, 255], [199, 91, 122], [232, 167, 184],
+];
+export const ROSE_SHIMMER_INDICATOR = ["·", "✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳", "✢"] as const;
 
 type RGB = readonly [number, number, number];
-type Phase = "thinking" | "working" | "tool";
+export type Appearance = "auto" | "dark" | "light";
+export type ResolvedAppearance = Exclude<Appearance, "auto">;
+export type Phase = "requesting" | "thinking" | "working" | "tool";
 type Timer = ReturnType<typeof setTimeout>;
 
-interface MatrixConfig {
+export interface MatrixConfig {
+  version: 2;
   enabled: boolean;
   fps: number;
   density: number;
-  height: number;
+  height: 4;
+  appearance: Appearance;
 }
 
-interface Drop {
+export interface Drop {
   x: number;
   offset: number;
   speed: number;
@@ -46,34 +54,113 @@ interface Drop {
   color: RGB;
 }
 
+type ConfigLoadResult = { config: MatrixConfig; migrated: boolean; warning?: string };
+
 const DEFAULT_CONFIG: MatrixConfig = {
+  version: 2,
   enabled: true,
   fps: 10,
   density: 0.65,
   height: 4,
+  appearance: "auto",
+};
+
+const PHASE_MESSAGES: Record<Phase, string> = {
+  requesting: "Connecting to the model…",
+  thinking: "Weaving the next move…",
+  working: "Composing the response…",
+  tool: "Running tools…",
+};
+
+const DARK = {
+  fade: [16, 18, 29] as RGB,
+  base: [136, 184, 255] as RGB,
+  highlight: [214, 244, 255] as RGB,
+  indicator: [199, 91, 122] as RGB,
+};
+const LIGHT = {
+  fade: [250, 247, 242] as RGB,
+  base: [92, 115, 151] as RGB,
+  highlight: [42, 38, 34] as RGB,
+  indicator: [168, 69, 95] as RGB,
 };
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function loadConfig(): MatrixConfig {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isSafeRegularFile(path: string): boolean {
   try {
-    if (!existsSync(CONFIG_PATH)) return { ...DEFAULT_CONFIG };
-    const parsed = JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as Partial<MatrixConfig>;
-    return {
-      enabled: typeof parsed.enabled === "boolean" ? parsed.enabled : DEFAULT_CONFIG.enabled,
-      fps: clamp(Number(parsed.fps) || DEFAULT_CONFIG.fps, 8, 18),
-      density: clamp(Number(parsed.density) || DEFAULT_CONFIG.density, 0.45, 0.95),
-      height: clamp(Math.round(Number(parsed.height) || DEFAULT_CONFIG.height), 3, 6),
-    };
+    const link = lstatSync(path);
+    return !link.isSymbolicLink() && statSync(path).isFile();
   } catch {
-    return { ...DEFAULT_CONFIG };
+    return false;
   }
 }
 
-function saveConfig(config: MatrixConfig): void {
-  writeFileSync(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+function parseConfig(value: unknown): MatrixConfig {
+  const parsed = isRecord(value) ? value : {};
+  return {
+    version: 2,
+    enabled: typeof parsed.enabled === "boolean" ? parsed.enabled : DEFAULT_CONFIG.enabled,
+    fps: clamp(Math.round(Number(parsed.fps) || DEFAULT_CONFIG.fps), 8, 18),
+    density: clamp(Number(parsed.density) || DEFAULT_CONFIG.density, 0.45, 0.95),
+    height: 4,
+    appearance: parsed.appearance === "dark" || parsed.appearance === "light" || parsed.appearance === "auto"
+      ? parsed.appearance
+      : "auto",
+  };
+}
+
+function writeConfigAtomically(path: string, config: MatrixConfig): void {
+  mkdirSync(dirname(path), { recursive: true });
+  if (existsSync(path) && !isSafeRegularFile(path)) {
+    throw new Error(`Refusing to overwrite unsafe Matrix config: ${path}`);
+  }
+  const temp = join(dirname(path), `.${basename(path)}.${process.pid}.tmp`);
+  try {
+    writeFileSync(temp, `${JSON.stringify(config, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+    renameSync(temp, path);
+  } catch (error) {
+    try { unlinkSync(temp); } catch {}
+    throw error;
+  }
+}
+
+export function loadRoseMatrixConfig(
+  path = CONFIG_PATH,
+  legacyPath = LEGACY_CONFIG_PATH,
+): ConfigLoadResult {
+  if (existsSync(path)) {
+    if (!isSafeRegularFile(path)) return { config: { ...DEFAULT_CONFIG }, migrated: false, warning: "Rose Matrix config is unsafe; using runtime defaults." };
+    try {
+      return { config: parseConfig(JSON.parse(readFileSync(path, "utf8"))), migrated: false };
+    } catch {
+      return { config: { ...DEFAULT_CONFIG }, migrated: false, warning: "Rose Matrix config is corrupt; using runtime defaults." };
+    }
+  }
+  if (!existsSync(legacyPath)) return { config: { ...DEFAULT_CONFIG }, migrated: false };
+  if (!isSafeRegularFile(legacyPath)) return { config: { ...DEFAULT_CONFIG }, migrated: false, warning: "Legacy Sakura Matrix config is unsafe; using runtime defaults." };
+  try {
+    const legacy = JSON.parse(readFileSync(legacyPath, "utf8"));
+    if (!isRecord(legacy)) throw new Error("not an object");
+    const config = parseConfig(legacy);
+    writeConfigAtomically(path, config);
+    return { config, migrated: true, warning: Number(legacy.height) !== 4 ? "Legacy Matrix height was normalized to four rows." : undefined };
+  } catch {
+    return { config: { ...DEFAULT_CONFIG }, migrated: false, warning: "Legacy Sakura Matrix config is corrupt; using runtime defaults." };
+  }
+}
+
+export function resolveAppearance(appearance: Appearance, themeName: string | undefined): ResolvedAppearance | undefined {
+  if (appearance === "dark" || appearance === "light") return appearance;
+  if (themeName === "light") return "light";
+  if (themeName === "dark" || themeName === "rose-cyberdeck" || themeName === "rem-cyberdeck") return "dark";
+  return undefined;
 }
 
 function mulberry32(seed: number): () => number {
@@ -99,27 +186,25 @@ function colorize(char: string, color: RGB, bold = false): string {
   return `\x1b[${bold ? "1;" : ""}38;2;${color[0]};${color[1]};${color[2]}m${char}${RESET}`;
 }
 
-function workingIndicatorFrame(): string {
-  return colorize(WORKING_INDICATOR, CANDY[0] ?? [242, 167, 198], true);
+function fillWidth(content: string, width: number): string {
+  const clipped = truncateToWidth(content, Math.max(1, width), "");
+  return `${clipped}${" ".repeat(Math.max(0, width - visibleWidth(clipped)))}`;
 }
 
 function stableGlyph(seed: number, row: number, timeSlice: number): string {
   let hash = Math.imul(seed ^ (row + 17), 0x45d9f3b);
   hash = Math.imul(hash ^ timeSlice, 0x45d9f3b);
   hash ^= hash >>> 16;
-  return SAKURA_MATRIX_GLYPHS[Math.abs(hash) % SAKURA_MATRIX_GLYPHS.length] ?? "0";
+  return ROSE_MATRIX_GLYPHS[Math.abs(hash) % ROSE_MATRIX_GLYPHS.length] ?? "0";
 }
 
 function selectBoundedColumns(columns: readonly number[]): number[] {
   if (columns.length <= MAX_DROPS) return [...columns];
   const lastIndex = columns.length - 1;
-  return Array.from({ length: MAX_DROPS }, (_, index) => {
-    const sourceIndex = Math.round((index * lastIndex) / (MAX_DROPS - 1));
-    return columns[sourceIndex] ?? 0;
-  });
+  return Array.from({ length: MAX_DROPS }, (_, index) => columns[Math.round((index * lastIndex) / (MAX_DROPS - 1))] ?? 0);
 }
 
-export function createDrops(width: number, density: number, height: number): Drop[] {
+export function createDrops(width: number, density: number, height = 4): Drop[] {
   const random = mulberry32((width * 2654435761) ^ 0x53414b55);
   const columns = Array.from({ length: Math.ceil(width / 2) }, (_, index) => index * 2);
   const active = columns.filter(() => random() < density);
@@ -135,48 +220,121 @@ export function createDrops(width: number, density: number, height: number): Dro
       length,
       gap,
       seed: Math.floor(random() * 0x7fffffff) ^ (index * 7919),
-      color: CANDY[index % CANDY.length] ?? [242, 167, 198],
+      color: ROSE_RAIN_PALETTE[index % ROSE_RAIN_PALETTE.length] ?? ROSE_RAIN_PALETTE[0]!,
     };
   });
 }
 
-export function renderSakuraMatrix(
+function appearanceColor(color: RGB, appearance: ResolvedAppearance): RGB {
+  if (appearance === "dark") return color;
+  if (color[0] === 199 && color[1] === 91) return LIGHT.indicator;
+  if (color[0] === 232 && color[1] === 167) return [168, 69, 95];
+  if (color[0] === 214) return [78, 120, 129];
+  if (color[1] === 228) return [78, 120, 129];
+  return LIGHT.base;
+}
+
+function repairBlankRows(grid: string[][], width: number, appearance: ResolvedAppearance, elapsedSeconds: number): void {
+  const blanks = grid.map((row) => row.every((cell) => cell === " "));
+  if (!blanks.some(Boolean)) return;
+  const seed = Math.floor(elapsedSeconds * 8) ^ (width * 7919) ^ 0x524f5345;
+  const column = Math.max(0, Math.min(width - 1, Math.abs(seed) % Math.max(1, width)));
+  const fallback = appearance === "dark" ? [125, 228, 255] as RGB : [78, 120, 129] as RGB;
+  const occupied = grid.findIndex((row) => row.some((cell) => cell !== " "));
+  for (let row = 0; row < grid.length; row += 1) {
+    if (!blanks[row]) continue;
+    const glyph = stableGlyph(seed + row * 97 + Math.max(0, occupied), row, Math.floor(elapsedSeconds * 8));
+    grid[row]![column] = colorize(glyph, fallback, row === 0 || row === grid.length - 1);
+  }
+}
+
+export function renderRoseMatrix(
   width: number,
   height: number,
   elapsedSeconds: number,
   phase: Phase,
   drops: readonly Drop[],
+  appearance: ResolvedAppearance = "dark",
 ): string[] {
   const safeWidth = Math.max(1, width);
-  const safeHeight = clamp(height, 3, 6);
+  const safeHeight = 4;
   const grid: string[][] = Array.from({ length: safeHeight }, () => Array(safeWidth).fill(" "));
   const timeSlice = Math.floor(elapsedSeconds * 8);
   const phaseSpeed = phase === "tool" ? 1.12 : phase === "thinking" ? 1.06 : 1;
+  const palette = appearance === "dark" ? DARK : LIGHT;
 
   for (const drop of drops) {
     const cycle = safeHeight + drop.length + drop.gap;
     const head = ((drop.offset + elapsedSeconds * drop.speed * phaseSpeed) % cycle) - drop.gap;
-    for (let trail = 0; trail < drop.length; trail++) {
+    for (let trail = 0; trail < drop.length; trail += 1) {
       const row = Math.floor(head - trail);
       if (row < 0 || row >= safeHeight || drop.x >= safeWidth) continue;
       const glyph = stableGlyph(drop.seed + trail * 97, row, timeSlice);
+      const trackColor = appearanceColor(drop.color, appearance);
       const color = trail === 0
-        ? mix(drop.color, TEXT, 0.58)
+        ? mix(trackColor, palette.highlight, 0.58)
         : trail === 1
-          ? drop.color
-          : mix(drop.color, BG, clamp((trail - 1) * 0.16, 0, 0.72));
-      const gridRow = grid[row];
-      if (gridRow) gridRow[drop.x] = colorize(glyph, color, trail <= 1);
+          ? trackColor
+          : mix(trackColor, palette.fade, clamp((trail - 1) * 0.16, 0, 0.72));
+      grid[row]![drop.x] = colorize(glyph, color, trail <= 1);
     }
   }
-
-  return grid.map((row) => `${row.join("")}${RESET}`);
+  repairBlankRows(grid, safeWidth, appearance, elapsedSeconds);
+  return grid.map((row) => fillWidth(`${row.join("")}${RESET}`, safeWidth));
 }
 
-export default function sakuraMatrixExtension(pi: ExtensionAPI): void {
-  const config = loadConfig();
+function shimmerIndex(elapsedMs: number): number {
+  return Math.floor(Math.max(0, elapsedMs) / SHIMMER_STEP_MS) % ROSE_SHIMMER_INDICATOR.length;
+}
+
+function formatElapsed(elapsedMs: number): string | undefined {
+  const seconds = Math.floor(Math.max(0, elapsedMs) / 1000);
+  if (seconds < 30) return undefined;
+  if (seconds < 60) return `${seconds}s`;
+  return `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`;
+}
+
+export function renderRoseShimmer(
+  width: number,
+  phase: Phase,
+  elapsedMs: number,
+  outputTokens: number | undefined,
+  appearance: ResolvedAppearance,
+): string {
+  const palette = appearance === "dark" ? DARK : LIGHT;
+  const indicator = colorize(ROSE_SHIMMER_INDICATOR[shimmerIndex(elapsedMs)]!, palette.indicator, true);
+  const message = PHASE_MESSAGES[phase];
+  const positions = Math.max(1, message.length - 3);
+  const raw = Math.floor(elapsedMs / SHIMMER_STEP_MS) % (positions * 2);
+  const start = raw < positions ? raw : positions * 2 - raw - 1;
+  const text = [...message].map((char, index) => {
+    const base = phase === "tool"
+      ? TOOL_GRADIENT[index % TOOL_GRADIENT.length]!
+      : palette.base;
+    return colorize(char, index >= start && index < start + 4 ? palette.highlight : appearanceColor(base, appearance));
+  }).join("");
+  const suffix = [formatElapsed(elapsedMs), outputTokens && outputTokens > 0 ? `${outputTokens} output tokens` : undefined]
+    .filter((value): value is string => Boolean(value))
+    .join(" · ");
+  const body = suffix ? `${indicator} ${text} ${suffix}` : `${indicator} ${text}`;
+  return fillWidth(body, Math.max(1, width));
+}
+
+function assistantUsage(message: unknown): number | undefined {
+  if (!isRecord(message) || !isRecord(message.usage)) return undefined;
+  const output = message.usage.output;
+  return typeof output === "number" && Number.isFinite(output) && output > 0 ? Math.floor(output) : undefined;
+}
+
+function isAssistantMessage(message: unknown): boolean {
+  return isRecord(message) && message.role === "assistant";
+}
+
+export default function roseMatrixExtension(pi: ExtensionAPI): void {
+  const loaded = loadRoseMatrixConfig();
+  const config = loaded.config;
   let activeContext: ExtensionContext | undefined;
-  let phase: Phase = "working";
+  let phase: Phase = "requesting";
   let active = false;
   let timer: Timer | undefined;
   let startedAt = 0;
@@ -187,49 +345,58 @@ export default function sakuraMatrixExtension(pi: ExtensionAPI): void {
   let requestRender: (() => void) | undefined;
   let cachedKey = "";
   let cachedLines: string[] = [];
+  let currentAppearance: ResolvedAppearance | undefined;
+  let pendingConfigWarning = loaded.warning;
+  let warningIssued = false;
+  let completedOutputTokens = 0;
+  let currentOutputTokens = 0;
+  let currentMessageFinalized = false;
+  const activeToolIds = new Set<string>();
   const dropsByWidth = new Map<number, Drop[]>();
 
-  const invalidate = () => {
-    cachedKey = "";
-    cachedLines = [];
-  };
+  const invalidate = () => { cachedKey = ""; cachedLines = []; };
+  const totalOutputTokens = () => completedOutputTokens + currentOutputTokens || undefined;
 
-  const component = {
-    render(width: number): string[] {
-      const safeWidth = Math.max(1, width);
-      const key = `${safeWidth}:${config.height}:${frame}:${phase}`;
-      if (key === cachedKey) return cachedLines;
-      let drops = dropsByWidth.get(safeWidth);
-      if (!drops) {
-        drops = createDrops(safeWidth, config.density, config.height);
-        if (dropsByWidth.size >= 4) {
-          dropsByWidth.delete(dropsByWidth.keys().next().value ?? safeWidth);
-        }
-        dropsByWidth.set(safeWidth, drops);
-      }
-      cachedLines = renderSakuraMatrix(
-        safeWidth,
-        config.height,
-        Math.max(0, performance.now() - startedAt) / 1000,
-        phase,
-        drops,
-      );
-      cachedKey = key;
-      return cachedLines;
-    },
-    invalidate(): void {
-      dropsByWidth.clear();
-      invalidate();
-    },
-  };
-
-  const clearTimer = () => {
+  const stop = () => {
+    generation += 1;
+    active = false;
     if (timer) clearTimeout(timer);
     timer = undefined;
+    const ctx = activeContext;
+    activeContext = undefined;
+    requestRender = undefined;
+    lastHostUpdateAt = 0;
+    activeToolIds.clear();
+    completedOutputTokens = 0;
+    currentOutputTokens = 0;
+    currentMessageFinalized = false;
+    dropsByWidth.clear();
+    invalidate();
+    if (!ctx) return;
+    try {
+      ctx.ui.setWidget(WIDGET_KEY, undefined);
+      ctx.ui.setWorkingMessage();
+      ctx.ui.setWorkingIndicator();
+      ctx.ui.setWorkingVisible(true);
+    } catch { /* disposal is idempotent */ }
   };
+
+  const resolveCurrentAppearance = (): ResolvedAppearance | undefined =>
+    resolveAppearance(config.appearance, activeContext?.ui.theme.name);
 
   const schedule = (token: number) => {
     if (!active || token !== generation) return;
+    const resolved = resolveCurrentAppearance();
+    if (!resolved) {
+      const ctx = activeContext;
+      stop();
+      if (!warningIssued) {
+        warningIssued = true;
+        ctx?.ui.notify("Rose Matrix needs a known theme; run /rose-matrix appearance dark|light.", "warning");
+      }
+      return;
+    }
+    if (resolved !== currentAppearance) { currentAppearance = resolved; invalidate(); }
     const frameMs = 1000 / config.fps;
     const now = performance.now();
     if (now - nextDeadline > frameMs * 3) nextDeadline = now;
@@ -238,52 +405,69 @@ export default function sakuraMatrixExtension(pi: ExtensionAPI): void {
       if (!active || token !== generation) return;
       frame += 1;
       invalidate();
-      // Streaming and tool updates already schedule a host render. Avoid adding
-      // a second full TUI pass when one occurred within this frame window.
+      // Agent/tool streaming already asks Pi to render. Avoid a redundant full
+      // TUI pass inside that same frame while still advancing one shared clock.
       if (performance.now() - lastHostUpdateAt >= frameMs) requestRender?.();
       schedule(token);
     }, Math.max(16, nextDeadline - performance.now()));
     timer.unref?.();
   };
 
-  const stop = () => {
-    generation += 1;
-    active = false;
-    clearTimer();
-    const ctx = activeContext;
-    activeContext = undefined;
-    requestRender = undefined;
-    lastHostUpdateAt = 0;
-    invalidate();
-    if (!ctx) return;
-    try {
-      ctx.ui.setWidget(WIDGET_KEY, undefined);
-      ctx.ui.setWorkingMessage();
-      ctx.ui.setWorkingIndicator();
-      ctx.ui.setWorkingVisible(true);
-    } catch {
-      // UI may already be disposed during shutdown; cleanup remains idempotent.
-    }
+  const component = {
+    render(width: number): string[] {
+      const safeWidth = Math.max(1, width);
+      const appearance = currentAppearance ?? "dark";
+      const key = `${safeWidth}:${frame}:${phase}:${appearance}:${totalOutputTokens() ?? 0}`;
+      if (key === cachedKey) return cachedLines;
+      let drops = dropsByWidth.get(safeWidth);
+      if (!drops) {
+        drops = createDrops(safeWidth, config.density, 4);
+        if (dropsByWidth.size >= 4) dropsByWidth.delete(dropsByWidth.keys().next().value ?? safeWidth);
+        dropsByWidth.set(safeWidth, drops);
+      }
+      const elapsedMs = Math.max(0, performance.now() - startedAt);
+      cachedLines = [
+        renderRoseShimmer(safeWidth, phase, elapsedMs, totalOutputTokens(), appearance),
+        ...renderRoseMatrix(safeWidth, 4, elapsedMs / 1000, phase, drops, appearance),
+      ];
+      cachedKey = key;
+      return cachedLines;
+    },
+    invalidate(): void { dropsByWidth.clear(); invalidate(); },
   };
 
-  const start = (ctx: ExtensionContext, initialPhase: Phase = "working") => {
+  const start = (ctx: ExtensionContext, initialPhase: Phase = "requesting") => {
     stop();
     if (!config.enabled || ctx.mode !== "tui") return;
     activeContext = ctx;
+    const resolved = resolveCurrentAppearance();
+    if (!resolved) {
+      activeContext = undefined;
+      if (!warningIssued) {
+        warningIssued = true;
+        ctx.ui.notify("Rose Matrix needs a known theme; run /rose-matrix appearance dark|light.", "warning");
+      }
+      return;
+    }
     active = true;
+    currentAppearance = resolved;
+    if (pendingConfigWarning) {
+      ctx.ui.notify(pendingConfigWarning, "warning");
+      pendingConfigWarning = undefined;
+    }
     phase = initialPhase;
     frame = 0;
     startedAt = performance.now();
     nextDeadline = startedAt;
     lastHostUpdateAt = 0;
+    activeToolIds.clear();
+    completedOutputTokens = 0;
+    currentOutputTokens = 0;
+    currentMessageFinalized = false;
     dropsByWidth.clear();
     invalidate();
     const token = generation;
-    ctx.ui.setWorkingVisible(true);
-    // The matrix owns the only animation clock; a static indicator prevents a
-    // second independent timer from forcing redundant full-screen renders.
-    ctx.ui.setWorkingIndicator({ frames: [workingIndicatorFrame()] });
-    ctx.ui.setWorkingMessage(PHASE_MESSAGES[phase]);
+    ctx.ui.setWorkingVisible(false);
     ctx.ui.setWidget(WIDGET_KEY, (tui) => {
       requestRender = () => tui.requestRender();
       return component;
@@ -291,16 +475,33 @@ export default function sakuraMatrixExtension(pi: ExtensionAPI): void {
     schedule(token);
   };
 
-  const noteHostUpdate = () => {
-    lastHostUpdateAt = performance.now();
-  };
+  const noteHostUpdate = () => { lastHostUpdateAt = performance.now(); };
 
   const setPhase = (next: Phase) => {
     noteHostUpdate();
-    if (!active || phase === next) return;
-    phase = next;
-    activeContext?.ui.setWorkingMessage(PHASE_MESSAGES[phase]);
-    frame += 1;
+    if (!active || (activeToolIds.size > 0 && next !== "tool")) return;
+    if (phase !== next) { phase = next; frame += 1; invalidate(); }
+  };
+
+  const updateUsage = (message: unknown) => {
+    const usage = assistantUsage(message);
+    if (usage !== undefined && usage >= currentOutputTokens) {
+      currentOutputTokens = usage;
+      invalidate();
+    }
+  };
+
+  const beginAssistant = () => {
+    currentOutputTokens = 0;
+    currentMessageFinalized = false;
+    invalidate();
+  };
+  const finalizeAssistant = (message: unknown) => {
+    if (currentMessageFinalized) return;
+    updateUsage(message);
+    completedOutputTokens += currentOutputTokens;
+    currentOutputTokens = 0;
+    currentMessageFinalized = true;
     invalidate();
   };
 
@@ -308,76 +509,72 @@ export default function sakuraMatrixExtension(pi: ExtensionAPI): void {
   pi.on("agent_end", () => stop());
   pi.on("session_before_switch", () => stop());
   pi.on("session_shutdown", () => stop());
-
+  pi.on("message_start", (event) => { if (isAssistantMessage(event.message)) beginAssistant(); });
+  pi.on("message_end", (event) => { if (isAssistantMessage(event.message)) finalizeAssistant(event.message); });
   pi.on("message_update", (event) => {
     noteHostUpdate();
-    const streamEvent = event.assistantMessageEvent as { type?: string } | undefined;
-    if (!streamEvent?.type) return;
-    if (streamEvent.type === "thinking_start" || streamEvent.type === "thinking_delta") {
-      setPhase("thinking");
-    } else if (streamEvent.type === "thinking_end" || streamEvent.type === "text_delta") {
-      setPhase("working");
+    const streamEvent = event.assistantMessageEvent;
+    updateUsage("partial" in streamEvent ? streamEvent.partial : "message" in streamEvent ? streamEvent.message : "error" in streamEvent ? streamEvent.error : undefined);
+    if (streamEvent.type === "thinking_start" || streamEvent.type === "thinking_delta") setPhase("thinking");
+    else if (streamEvent.type === "thinking_end") setPhase("requesting");
+    else if (streamEvent.type === "text_start" || streamEvent.type === "text_delta") setPhase("working");
+    else if (streamEvent.type === "done") finalizeAssistant(streamEvent.message);
+    else if (streamEvent.type === "error") finalizeAssistant(streamEvent.error);
+  });
+  pi.on("tool_execution_start", (event) => { activeToolIds.add(event.toolCallId); setPhase("tool"); });
+  pi.on("tool_execution_update", (event) => { noteHostUpdate(); if (activeToolIds.has(event.toolCallId)) setPhase("tool"); });
+  pi.on("tool_execution_end", (event) => {
+    if (!activeToolIds.delete(event.toolCallId)) return;
+    setPhase(activeToolIds.size > 0 ? "tool" : "requesting");
+  });
+
+  const handleCommand = async (args: string, ctx: ExtensionContext, deprecated = false) => {
+    const [command = "status", value] = args.trim().toLowerCase().split(/\s+/);
+    if (deprecated) ctx.ui.notify("/sakura-matrix is deprecated; use /rose-matrix.", "warning");
+    if (command === "on" || command === "off") {
+      config.enabled = command === "on";
+      writeConfigAtomically(CONFIG_PATH, config);
+      if (!config.enabled) stop();
+      ctx.ui.notify(`Rose Matrix ${config.enabled ? "enabled" : "disabled"}`, "info");
+      return;
     }
-  });
+    if (command === "preview") {
+      start(ctx, "thinking");
+      const token = generation;
+      const previewTimer = setTimeout(() => { if (generation === token) stop(); }, 5000);
+      previewTimer.unref?.();
+      ctx.ui.notify("Rose Matrix preview: 5 seconds", "info");
+      return;
+    }
+    if (command === "fps") {
+      const fps = Number(value);
+      if (!Number.isFinite(fps) || fps < 8 || fps > 18) { ctx.ui.notify("Usage: /rose-matrix fps <8-18>", "error"); return; }
+      config.fps = Math.round(fps);
+      writeConfigAtomically(CONFIG_PATH, config);
+      ctx.ui.notify(`Rose Matrix FPS: ${config.fps}`, "info");
+      return;
+    }
+    if (command === "density") {
+      const density = Number(value);
+      if (!Number.isFinite(density) || density < 0.45 || density > 0.95) { ctx.ui.notify("Usage: /rose-matrix density <0.45-0.95>", "error"); return; }
+      config.density = Math.round(density * 100) / 100;
+      dropsByWidth.clear();
+      writeConfigAtomically(CONFIG_PATH, config);
+      ctx.ui.notify(`Rose Matrix density: ${config.density}`, "info");
+      return;
+    }
+    if (command === "appearance") {
+      if (value !== "auto" && value !== "dark" && value !== "light") { ctx.ui.notify("Usage: /rose-matrix appearance <auto|dark|light>", "error"); return; }
+      config.appearance = value;
+      writeConfigAtomically(CONFIG_PATH, config);
+      currentAppearance = resolveAppearance(config.appearance, ctx.ui.theme.name);
+      invalidate();
+      ctx.ui.notify(`Rose Matrix appearance: ${value}`, "info");
+      return;
+    }
+    ctx.ui.notify(`Rose Matrix: ${config.enabled ? "on" : "off"} · ${config.fps} FPS · 4 lines · density ${config.density} · ${config.appearance}`, "info");
+  };
 
-  pi.on("tool_execution_start", () => setPhase("tool"));
-  pi.on("tool_execution_update", () => noteHostUpdate());
-  pi.on("tool_execution_end", () => setPhase("working"));
-
-  pi.registerCommand("sakura-matrix", {
-    description: "Sakura Matrix animation: status, on, off, preview, fps <8-18>, density <0.45-0.95>",
-    handler: async (args, ctx) => {
-      const [command = "status", value] = args.trim().toLowerCase().split(/\s+/);
-      if (command === "on") {
-        config.enabled = true;
-        saveConfig(config);
-        ctx.ui.notify("Sakura Matrix enabled", "info");
-        return;
-      }
-      if (command === "off") {
-        config.enabled = false;
-        saveConfig(config);
-        stop();
-        ctx.ui.notify("Sakura Matrix disabled", "info");
-        return;
-      }
-      if (command === "preview") {
-        start(ctx, "thinking");
-        const previewToken = generation;
-        const previewTimer = setTimeout(() => {
-          if (generation === previewToken) stop();
-        }, 5000);
-        previewTimer.unref?.();
-        ctx.ui.notify("Sakura Matrix preview: 5 seconds", "info");
-        return;
-      }
-      if (command === "fps") {
-        const fps = Number(value);
-        if (!Number.isFinite(fps) || fps < 8 || fps > 18) {
-          ctx.ui.notify("Usage: /sakura-matrix fps <8-18>", "error");
-          return;
-        }
-        config.fps = Math.round(fps);
-        saveConfig(config);
-        ctx.ui.notify(`Sakura Matrix FPS: ${config.fps}`, "info");
-        return;
-      }
-      if (command === "density") {
-        const density = Number(value);
-        if (!Number.isFinite(density) || density < 0.45 || density > 0.95) {
-          ctx.ui.notify("Usage: /sakura-matrix density <0.45-0.95>", "error");
-          return;
-        }
-        config.density = Math.round(density * 100) / 100;
-        dropsByWidth.clear();
-        saveConfig(config);
-        ctx.ui.notify(`Sakura Matrix density: ${config.density}`, "info");
-        return;
-      }
-      ctx.ui.notify(
-        `Sakura Matrix: ${config.enabled ? "on" : "off"} · ${config.fps} FPS · ${config.height} lines · density ${config.density}`,
-        "info",
-      );
-    },
-  });
+  pi.registerCommand("rose-matrix", { description: "Rose Matrix: status, on, off, preview, fps <8-18>, density <0.45-0.95>, appearance <auto|dark|light>", handler: (args, ctx) => handleCommand(args, ctx) });
+  pi.registerCommand("sakura-matrix", { description: "Deprecated alias for /rose-matrix", handler: (args, ctx) => handleCommand(args, ctx, true) });
 }

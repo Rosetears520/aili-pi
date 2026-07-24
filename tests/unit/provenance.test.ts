@@ -15,7 +15,11 @@ describe("provenance and SBOM", () => {
       version: "2.2.0",
       sourceFiles: expect.arrayContaining(["src/vendor/pi-permission-modes/index.ts", "src/vendor/pi-permission-modes/resolve.ts"]),
     }));
-    expect(provenance.sources.find((item: { name: string }) => item.name === "pi-sakura-cyberdeck")).toEqual(expect.objectContaining({ status: "adapted", revision: "165a1f8011a12a58a6409b56b8a6c0416cd9b589" }));
+    expect(provenance.sources.find((item: { name: string }) => item.name === "pi-sakura-cyberdeck")).toEqual(expect.objectContaining({
+      status: "adapted",
+      revision: "165a1f8011a12a58a6409b56b8a6c0416cd9b589",
+      localChanges: expect.arrayContaining([expect.stringContaining("Rose Shimmer")]),
+    }));
   });
 
   it("emits a deterministic SPDX 2.3 inventory with locked package integrity", async () => {

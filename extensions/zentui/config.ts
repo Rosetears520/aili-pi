@@ -213,7 +213,8 @@ export const FOOTER_FORMAT_ALIASES: Record<string, string> = {
 	separator: "sep",
 };
 
-export const configPath = join(getAgentDir(), "rem-cyberdeck-zentui.json");
+export const configPath = join(getAgentDir(), "rose-cyberdeck-zentui.json");
+export const legacyConfigPath = join(getAgentDir(), "rem-cyberdeck-zentui.json");
 
 export const defaultConfig: PolishedTuiConfig = {
 	projectRefreshIntervalMs: 60_000,
@@ -252,7 +253,7 @@ export const defaultConfig: PolishedTuiConfig = {
 		os: "#F7EEF8",
 		editorAccent: "bold #88B8FF",
 		editorPrompt: "bold #88B8FF",
-		editorBorder: "sakura-macaron-gradient",
+		editorBorder: "rose-cyberdeck-gradient",
 		editorModel: "bold #88B8FF",
 		editorProvider: "#B8BEDD",
 		editorThinking: "#BCA7FF",
@@ -405,7 +406,8 @@ function stringValue(record: Record<string, unknown>, key: string): string | und
 
 function colorValue(record: Record<string, unknown>, key: string): string | undefined {
 	const value = stringValue(record, key);
-	if (key === "editorBorder" && value === "sakura-macaron-gradient") return value;
+	if (key === "editorBorder" && value === "rose-cyberdeck-gradient") return value;
+	if (key === "editorBorder" && value === "sakura-macaron-gradient") return "rose-cyberdeck-gradient";
 	return value !== undefined && isSupportedColorSpec(value) ? value : undefined;
 }
 
@@ -821,10 +823,10 @@ export function getExtensionStatusColorMode(
 	return config.extensionStatuses.colorModes[key] ?? DEFAULT_EXTENSION_STATUS_COLOR_MODE;
 }
 
-export function loadConfig(): PolishedTuiConfig {
+export function loadConfig(path = configPath, legacyPath = legacyConfigPath): PolishedTuiConfig {
 	try {
-		if (!existsSync(configPath)) return mergeConfig({});
-		return mergeConfig(JSON.parse(readFileSync(configPath, "utf8")));
+		const selected = existsSync(path) ? path : existsSync(legacyPath) ? legacyPath : undefined;
+		return selected ? mergeConfig(JSON.parse(readFileSync(selected, "utf8"))) : mergeConfig({});
 	} catch {
 		return mergeConfig({});
 	}

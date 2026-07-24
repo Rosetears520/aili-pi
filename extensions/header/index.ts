@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
+import { getAgentDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fileURLToPath } from "node:url";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { join } from "node:path";
+import { legacyRoseThemeGuidanceFromSettings } from "../../src/runtime/rose-theme.js";
 
 const RESET = "\x1b[0m";
 const BOLD = "\x1b[1m";
@@ -26,7 +28,7 @@ function gradient(text: string, from: RGB, to: RGB, bold = false): string {
   }).join("");
 }
 
-const ANIME_ART = readFileSync(fileURLToPath(new URL("../../src/runtime/rem-head.txt", import.meta.url)), "utf8").trimEnd().split("\n") as readonly string[];
+const ROSE_ART = readFileSync(fileURLToPath(new URL("../../src/runtime/rose-head.txt", import.meta.url)), "utf8").trimEnd().split("\n") as readonly string[];
 
 function getAvailableRows(tui: unknown): number {
   try {
@@ -38,15 +40,15 @@ function getAvailableRows(tui: unknown): number {
   }
 }
 
-function renderHeader(width: number, availableRows = 0): string[] {
+export function renderRoseHeader(width: number, availableRows = 0): string[] {
   if (width <= 0) return [];
 
-  const sakura: RGB = [136, 184, 255];
-  const peach: RGB = [125, 228, 255];
-  const lavender: RGB = [188, 167, 255];
-  const sky: RGB = [214, 244, 255];
-  const telemetry = "◈  REM CYBERDECK  ◈";
-  const artWidth = Math.max(...ANIME_ART.map((line) => [...line].length));
+  const blue: RGB = [136, 184, 255];
+  const cyan: RGB = [125, 228, 255];
+  const violet: RGB = [188, 167, 255];
+  const ice: RGB = [214, 244, 255];
+  const telemetry = "◈  ROSE CYBERDECK  ◈";
+  const artWidth = Math.max(...ROSE_ART.map((line) => [...line].length));
   const visibleArtWidth = Math.min(width, artWidth);
   const artPad = " ".repeat(Math.max(0, Math.floor((width - visibleArtWidth) / 2) - 2));
   // Keep the divider visually subordinate: inset it symmetrically from the artwork.
@@ -58,12 +60,12 @@ function renderHeader(width: number, availableRows = 0): string[] {
   const telemetryWidth = [...visibleTelemetry].length;
   const telemetryPad = " ".repeat(Math.max(0, Math.min(width - telemetryWidth, Math.floor((width - telemetryWidth) / 2) + 1)));
 
-  const art = ANIME_ART.map((line) => {
+  const art = ROSE_ART.map((line) => {
     const clipped = [...line].slice(0, visibleArtWidth).join("");
-    return `${artPad}${gradient(clipped, sakura, sky)}`;
+    return `${artPad}${gradient(clipped, blue, ice)}`;
   });
 
-  const visualHeight = ANIME_ART.length + 3; // artwork + gap + divider + label
+  const visualHeight = ROSE_ART.length + 3; // artwork + gap + divider + label
   const extraTopPadding = Math.max(0, Math.floor((availableRows - visualHeight) / 2) - 1);
 
   return [
@@ -71,17 +73,25 @@ function renderHeader(width: number, availableRows = 0): string[] {
     "",
     ...art,
     "",
-    `${railPad}${gradient(rail, sakura, sky)}`,
-    `${telemetryPad}${gradient(visibleTelemetry, lavender, peach, true)}`,
+    `${railPad}${gradient(rail, blue, ice)}`,
+    `${telemetryPad}${gradient(visibleTelemetry, violet, cyan, true)}`,
     "",
   ];
 }
 
-export default function sakuraCyberdeckHeader(pi: ExtensionAPI): void {
+export default function roseCyberdeckHeader(pi: ExtensionAPI): void {
+  let legacyThemeNoticeSent = false;
   pi.on("session_start", (_event, ctx) => {
     if (!ctx.hasUI) return;
+    if (!legacyThemeNoticeSent) {
+      const guidance = legacyRoseThemeGuidanceFromSettings(join(getAgentDir(), "settings.json"));
+      if (guidance) {
+        legacyThemeNoticeSent = true;
+        ctx.ui.notify(guidance, "warning");
+      }
+    }
     ctx.ui.setHeader((tui) => ({
-      render: (width) => renderHeader(width, getAvailableRows(tui)),
+      render: (width) => renderRoseHeader(width, getAvailableRows(tui)),
       invalidate() {},
     }));
   });

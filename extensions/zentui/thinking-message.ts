@@ -1,6 +1,6 @@
 import { AssistantMessageComponent, type Theme } from "@earendil-works/pi-coding-agent";
 import { type Component, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { renderSakuraGradient } from "./gradient.js";
+import { renderRoseGradient } from "./gradient.js";
 import { installPrototypePatch } from "./prototype-patch-registry.js";
 
 type Cleanup = () => void;
@@ -121,14 +121,14 @@ class ThinkingTrailComponent implements Component {
 		const theme = this.getTheme();
 		if (!theme) return rawLines;
 		const count = theme.fg("muted", ` · ${stepCount} ${stepCount === 1 ? "STEP" : "STEPS"}`);
-		const title = `${renderSakuraGradient("✦ REASONING")}${count}`;
+		const title = `${renderRoseGradient("✦ REASONING")}${count}`;
 		let currentStep = 0;
 		const body = rows.map(({ line, step }) => {
 			if (step) currentStep += 1;
 			const isLastStep = currentStep === stepCount;
 			const branchText = step ? (isLastStep ? "╰─ " : "├─ ") : isLastStep ? "   " : "│  ";
 			const branch = theme.fg("thinkingXhigh", branchText);
-			const marker = step ? renderSakuraGradient("◇ ") : "  ";
+			const marker = step ? renderRoseGradient("◇ ") : "  ";
 			return truncateToWidth(`${branch}${marker}${line}`, width, "");
 		});
 

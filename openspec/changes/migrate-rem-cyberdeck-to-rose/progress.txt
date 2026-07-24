@@ -1,0 +1,40 @@
+# BUILD Progress — migrate-rem-cyberdeck-to-rose
+
+## Envelope
+- Change: `migrate-rem-cyberdeck-to-rose`
+- Lifecycle: BUILD
+- Test-plan acceptance: accepted by user on 2026-07-24 (`/build接受测试，直接开始build`)
+- Prohibited without separate approval: dependency/lockfile changes, user Home/runtime operations, external providers/TUI, Git, release, install, publish.
+
+## Queue
+1. Rose rendering primitives and Matrix unit tests — complete
+2. Unified Widget lifecycle/state and lifecycle tests — complete
+3. Commands, appearance, Matrix/Zentui configuration migration — complete
+4. Theme/Header/Zentui/README/provenance brand migration and tests — complete
+5. Focused verification and final diff inspection — complete (`Unverified` manual visual/provider items remain)
+
+## Savepoints
+- Package 1 — Rose rendering primitives and Matrix unit tests
+  - scope: Rose rain/shimmer pure renderers, appearance resolver, schema-v2 Matrix config reader, deterministic blank-row repair, and focused renderer tests.
+  - files_changed: `extensions/matrix/index.ts`, `tests/unit/matrix.test.ts`.
+  - unresolved_items: lifecycle coverage, Zentui config migration, full product-brand migration.
+  - evidence_state: `npx vitest run tests/unit/matrix.test.ts` (17 passed); `npm run typecheck` (passed).
+  - next_package: Unified Widget lifecycle/state and lifecycle tests.
+- Package 2 — Unified Widget lifecycle/state and tests
+  - scope: single five-line Widget, one timer lifecycle, four phases, parallel tool set, B transition, direct multi-turn usage accounting, cleanup and unknown-theme fail-closed behavior.
+  - files_changed: `extensions/matrix/index.ts`, `tests/unit/matrix-lifecycle.test.ts`, `tests/unit/matrix-config.test.ts`.
+  - unresolved_items: Zentui config fallback, complete product-brand migration, package/provenance tests.
+  - evidence_state: `npx vitest run tests/unit/matrix.test.ts tests/unit/matrix-lifecycle.test.ts tests/unit/matrix-config.test.ts` (23 passed); `npm run typecheck` (passed).
+  - next_package: Commands, appearance, Matrix/Zentui configuration migration.
+- Package 3 — Commands, appearance, and configuration migration
+  - scope: `/rose-matrix` plus deprecated alias; fail-closed appearance; schema-v2 Matrix migration; Zentui canonical-path fallback and first explicit save.
+  - files_changed: `extensions/matrix/index.ts`, `extensions/zentui/config.ts`, `tests/unit/matrix-config.test.ts`, `tests/unit/matrix-lifecycle.test.ts`, `tests/unit/zentui-config.test.ts`.
+  - unresolved_items: no implementation blocker; real terminal/provider behavior remains separately gated.
+  - evidence_state: focused Matrix/Zentui config and lifecycle tests passed; typecheck passed.
+  - next_package: Rose Cyberdeck brand migration.
+- Package 4 — Rose Cyberdeck brand migration
+  - scope: canonical theme/header/art asset/Zentui gradient/README/settings guidance/provenance, with retained legacy compatibility and attribution identity.
+  - files_changed: `themes/rose-cyberdeck.json`, `package.json`, `extensions/header/index.ts`, `src/runtime/rose-head.txt`, `src/runtime/rose-theme.ts`, `extensions/zentui/**`, `README.md`, notices/manifests, and focused tests.
+  - unresolved_items: manual Linux TUI and provider streaming-usage observations remain `Unverified` pending separate authorization.
+  - evidence_state: focused 9-file Vitest set (40 passed); `npm test` (132 passed, 3 skipped); `npm run typecheck`, `validate:provenance`, `validate:package`, and `validate:release` passed; `npm pack --dry-run --json` contains `themes/rose-cyberdeck.json` and no legacy-theme entries; strict OpenSpec and `git diff --check` passed.
+  - next_package: none; BUILD target implemented and targeted-verified.

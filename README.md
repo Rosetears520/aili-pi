@@ -49,11 +49,15 @@ The package does not write global AILI resources during extension load. After re
 
 That command creates or updates only the AILI marker block in `~/.pi/agent/APPEND_SYSTEM.md` and installs the 19 packaged profiles at `~/.pi/agent/agents/aili/`. The marker block is a Pi-native governance derivation of the pinned `aili-workflows` global AGENTS template: it retains instruction precedence, untrusted-content handling, approval/evidence/verification discipline, bounded delegation, project-rule precedence, and user-language output, while excluding OpenCode-only control planes. It preserves unrelated prompt content, rejects malformed markers or an unowned profile collision, and reports stale profiles without pruning them.
 
-## Rem Cyberdeck
+## Rose Cyberdeck
 
-The package supplies the dark `rem-cyberdeck` theme plus three additional Pi Extensions: a Rem header, Sakura Matrix animation, and Zentui footer/editor surface. Select it through Pi's `/settings` theme selector or set `"theme": "rem-cyberdeck"` in `~/.pi/agent/settings.json`. The visual extensions are derived from `pi-sakura-cyberdeck` at revision `165a1f8011a12a58a6409b56b8a6c0416cd9b589` under MIT; see `THIRD_PARTY_NOTICES.md` and `notices/pi-sakura-cyberdeck-NOTICE.txt`.
+The package supplies the dark `rose-cyberdeck` theme plus three additional Pi Extensions: a Rose header, Rose Shimmer + four-row Rose Code Rain working surface, and Zentui footer/editor surface. Select it through Pi's `/settings` theme selector or set `"theme": "rose-cyberdeck"` in `~/.pi/agent/settings.json`. The visual extensions are adapted from `pi-sakura-cyberdeck` at revision `165a1f8011a12a58a6409b56b8a6c0416cd9b589` under MIT; see `THIRD_PARTY_NOTICES.md` and `notices/pi-sakura-cyberdeck-NOTICE.txt`.
 
-Matrix keeps the pinned sparse waterfall rhythm and default `density=0.65`, while bounded ultra-wide tracks are spread across the complete terminal-cell width instead of truncating to a left prefix. `/sakura-matrix status` reports its settings; use `/sakura-matrix density <0.45-0.95>` for an explicit density preference. The `✦ REASONING` trail uses the same pinned Sakura pastel gradient.
+Rose Code Rain retains the pinned sparse waterfall geometry and default `density=0.65`, while bounded ultra-wide tracks are spread across the complete terminal-cell width instead of truncating to a left prefix. `/rose-matrix status` reports its settings; use `/rose-matrix density <0.45-0.95>` or `/rose-matrix appearance <auto|dark|light>` for explicit preferences. `/sakura-matrix` remains a deprecated compatibility alias. The `✦ REASONING` trail uses the Rose-to-ice gradient.
+
+### Migrating from Rem/Sakura names
+
+Replace an exact legacy `rem-cyberdeck` theme token with `rose-cyberdeck` through `/settings` or `~/.pi/agent/settings.json`; when using a `light/dark` pair, replace only the legacy side. Existing `sakura-cyberdeck-matrix.json` and `rem-cyberdeck-zentui.json` configuration files are read compatibly and retained. Legacy product names below appear only for migration or upstream attribution.
 
 Zentui enables its experimental fixed-bottom editor by default when the installed Pi TUI exposes the required private layout capabilities. If capability detection or installation fails, it keeps Pi's native editor and emits a warning. The feature uses the terminal alternate screen; its default mouse scrolling can interfere with terminal text selection and tmux scrollback. Use Zentui's `/zentui` settings to disable the fixed editor or mouse scrolling. Zentui hides `pi-cache-stats` by default so the one canonical Codex weekly quota remains visible; explicitly re-enabled cache stats follow quota in the bounded footer.
 

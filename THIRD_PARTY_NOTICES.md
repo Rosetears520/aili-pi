@@ -99,7 +99,7 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - License: MIT
 - Source files: extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**
 - Reused symbols/patterns: header, matrix animation, Zentui footer, fixed editor compositor
-- Local changes: registered as three additional Pi Package Extensions; header avatar loads the supplied Rem asset; Zentui shell palette uses Rem while Matrix and the reasoning trail retain the upstream Sakura palette; overflowing Matrix tracks are sampled deterministically across the complete terminal width while retaining the 96-track budget and ordinary-width behavior; relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract
+- Local changes: registered as three additional Pi Package Extensions; Rose header loads a package-owned renamed artwork asset without changing upstream identity; Rose Shimmer, Rose Code Rain, and Zentui use the Rose-owned palette and gradient; overflowing Matrix tracks remain deterministic across the complete terminal width with the 96-track budget, while each rain row receives a structural blank-row repair; relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract
 
 ## npm dependency inventory
 

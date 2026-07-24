@@ -2,6 +2,6 @@ This package includes a modified copy of pi-zentui by Luka.
 Original project: https://github.com/lmilojevicc/pi-zentui
 License: MIT. Full license text: licenses/pi-zentui-MIT.txt
 
-Modifications include the Rem shell palette, retained Sakura Matrix/reasoning
-palette, responsive bounded Matrix track selection, package-specific defaults,
-and package-specific configuration path.
+Modifications include Rose Cyberdeck branding, Rose Shimmer and Rose Code Rain,
+Rose Zentui gradients, responsive bounded Matrix track selection, package-specific
+defaults, and package-specific configuration paths.
