@@ -1,6 +1,6 @@
 # Latest Session Handoff
 
-snapshot_path: `handoffs/20260723T093458Z--delegation-gate-relaxation.md`
-snapshot_id: `20260723T093458Z--delegation-gate-relaxation`
-sha256: `7b1d123e8e0511808e53626a93ae973fc1448d874a80e48c982f87554e89e099`
-finalized_at: `2026-07-23T09:37:00.446798Z`
+snapshot_path: `handoffs/20260724T025429Z--compatibility-fixes.md`
+snapshot_id: `20260724T025429Z--compatibility-fixes`
+sha256: `9bbd51cdf6fa9b8032c72ca8ffb2b602278cc908025f795baf13c1d4479ac888`
+finalized_at: `2026-07-24T02:55:57.344919Z`

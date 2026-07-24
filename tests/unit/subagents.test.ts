@@ -2,6 +2,7 @@ import { stripVTControlCharacters } from "node:util";
 import { describe, expect, it } from "vitest";
 import registerCredentialGuard, { bashMentionsCredentialPath, isProtectedChildPath } from "../../src/runtime/credential-guard.js";
 import {
+  normalizeSubagentCompatibility,
   protectSubagentParams,
   registerSubagent,
   wrapSubagentTool,
@@ -88,6 +89,127 @@ describe("generic Pi-subagent wrapper", () => {
   it("leaves lifecycle actions untouched so upstream status/logs/wait/interrupt/background/reconcile retain their schema", () => {
     const action = { action: "reconcile", runId: "run-123", cwd: "/tmp/external", runsDir: ".runs" };
     expect(protectSubagentParams(action)).toBe(action);
+    expect(normalizeSubagentCompatibility(action)).toEqual({ kind: "forward", params: action });
+  });
+
+  it("routes ordinary omitted and auto runs to headless while preserving compatible selectors", () => {
+    expect(normalizeSubagentCompatibility({ task: "omitted" })).toEqual({
+      kind: "forward",
+      params: { task: "omitted", backend: "headless" },
+    });
+    expect(normalizeSubagentCompatibility({ backend: "auto", task: "auto" })).toEqual({
+      kind: "forward",
+      params: { backend: "headless", task: "auto" },
+    });
+
+    for (const params of [
+      { backend: "headless", task: "explicit" },
+      { backend: "tmux", task: "explicit" },
+      { backend: "auto", visible: true, task: "visible" },
+      { sandbox: true, task: "sandboxed" },
+      { sandbox: { allowedDomains: ["api.example.com"] }, task: "sandboxed" },
+    ]) {
+      expect(normalizeSubagentCompatibility(params)).toEqual({ kind: "forward", params });
+    }
+  });
+
+  it("normalizes parallel auto routing without overriding task-level visible intent", () => {
+    expect(normalizeSubagentCompatibility({
+      mode: "parallel",
+      tasks: [{ task: "plain" }, { task: "sandboxed", sandbox: true }],
+    })).toEqual({
+      kind: "forward",
+      params: {
+        mode: "parallel",
+        backend: "headless",
+        tasks: [{ task: "plain" }, { task: "sandboxed", sandbox: true }],
+      },
+    });
+
+    const compatibleMixed = {
+      backend: "auto",
+      mode: "parallel",
+      tasks: [{ task: "visible", visible: true }, { task: "sandboxed", sandbox: true }],
+    };
+    expect(normalizeSubagentCompatibility(compatibleMixed)).toEqual({ kind: "forward", params: compatibleMixed });
+
+    expect(normalizeSubagentCompatibility({
+      mode: "parallel",
+      tasks: [{ task: "visible", visible: true }, { task: "plain" }],
+    })).toEqual(expect.objectContaining({
+      kind: "reject",
+      error: expect.stringMatching(/split the fan-out|explicit compatible backend/),
+    }));
+  });
+
+  it("rejects explicit inline before upstream startup and marks the tool result as an error", async () => {
+    let calls = 0;
+    const wrapped = wrapSubagentTool({
+      name: "subagent",
+      async execute() { calls += 1; return "unexpected"; },
+    });
+    if (!wrapped.execute) throw new Error("wrapped tool has no execute");
+    const result = await wrapped.execute("call-id", { backend: "inline", task: "must not start" }) as {
+      content: Array<{ text: string }>;
+      isError: boolean;
+    };
+    expect(calls).toBe(0);
+    expect(result.isError).toBe(true);
+    expect(JSON.parse(result.content[0]!.text)).toMatchObject({
+      backend: "inline",
+      requestedBackend: "inline",
+      status: "failed",
+      failureKind: "validation",
+      error: expect.stringMatching(/Pi 0\.81\.1.*headless/),
+    });
+
+    const mixed = await wrapped.execute("mixed", {
+      mode: "parallel",
+      tasks: [{ task: "visible", visible: true }, { task: "plain" }],
+    }) as { content: Array<{ text: string }>; isError: boolean };
+    expect(calls).toBe(0);
+    expect(mixed.isError).toBe(true);
+    expect(JSON.parse(mixed.content[0]!.text)).toEqual(expect.objectContaining({
+      requestedBackend: "auto",
+      status: "failed",
+      failureKind: "validation",
+    }));
+    expect(JSON.parse(mixed.content[0]!.text)).not.toHaveProperty("backend");
+  });
+
+  it("protects and normalizes both current id-plus-params and direct params execute shapes", async () => {
+    const calls: unknown[] = [];
+    const wrapped = wrapSubagentTool({
+      name: "subagent",
+      async execute(...args: unknown[]) { calls.push(args); return "ok"; },
+    });
+    if (!wrapped.execute) throw new Error("wrapped tool has no execute");
+    await wrapped.execute("call-id", { task: "current" });
+    await wrapped.execute({ task: "direct" });
+
+    const current = (calls[0] as unknown[])[1] as { backend: string; extensions: string[] };
+    const direct = (calls[1] as unknown[])[0] as { backend: string; extensions: string[] };
+    expect(current.backend).toBe("headless");
+    expect(direct.backend).toBe("headless");
+    expect(current.extensions).toEqual(expect.arrayContaining([expect.stringContaining("credential-guard.ts")]));
+    expect(direct.extensions).toEqual(expect.arrayContaining([expect.stringContaining("credential-guard.ts")]));
+  });
+
+  it("uses the same effective backend for renderer and executor", async () => {
+    let rendered: unknown;
+    let executed: unknown;
+    const wrapped = wrapSubagentTool({
+      name: "subagent",
+      renderCall(args: unknown) {
+        rendered = args;
+        return { invalidate() {}, render: () => ["upstream"] } as never;
+      },
+      async execute(_id: unknown, params: unknown) { executed = params; return "ok"; },
+    });
+    wrapped.renderCall?.({ task: "parity" }, plainTheme);
+    await wrapped.execute?.("call-id", { task: "parity" });
+    expect(rendered).toMatchObject({ task: "parity", backend: "headless" });
+    expect(executed).toMatchObject({ task: "parity", backend: "headless" });
   });
 
   it("does not synthesize a renderer when the upstream tool has none", () => {

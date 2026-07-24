@@ -27,11 +27,21 @@
     },
     {
       "name": "@agwab/pi-subagent",
+      "version": "0.4.8",
       "revision": "daa7b83819116a62008ad17aa65fcd50fefbafd0",
       "license": "MIT",
-      "status": "reference-only",
-      "reusedPatterns": [],
-      "reason": "No community source code is copied or depended on in P5; accepted design evidence is retained for the P8 notice/SBOM audit."
+      "status": "dependency",
+      "reusedPatterns": [
+        "generic subagent tool schema and rendering",
+        "headless/tmux/inline backend and lifecycle envelopes",
+        "bounded parallel fan-out, worktree, sandbox, async, interrupt, and reconcile behavior"
+      ],
+      "localAdaptation": [
+        "ordinary omitted/auto runs use headless for the Pi 0.81.1 compatibility window",
+        "explicit incompatible inline requests fail before model startup",
+        "AILI injects the immutable credential guard and a bounded requested-Agent heading"
+      ],
+      "reason": "AILI depends on the exact package and applies a wrapper-only compatibility adaptation; no upstream source is copied."
     }
   ]
 }

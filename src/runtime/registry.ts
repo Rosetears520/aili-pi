@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { access, readFile, readdir } from "node:fs/promises";
 import { loadRoleProfiles, validateRoleProfiles } from "./roles.ts";
+import { resolvePermissionModesPackageRoot } from "./package-resolution.ts";
 
 const ROOT = new URL("../../", import.meta.url);
 
@@ -143,30 +144,158 @@ export async function validateLiveVerification(): Promise<string[]> {
   const errors: string[] = [];
   try {
     const evidence = await json<{
-      schemaVersion?: number; platform?: string; piVersion?: string; status?: string;
-      probes?: Array<{ id?: string; status?: string; changedFiles?: number }>;
+      schemaVersion?: number; platform?: string; piVersion?: string; subagentVersion?: string; status?: string;
+      probes?: Array<{
+        id?: string;
+        status?: string;
+        changedFiles?: number | null;
+        backendRequest?: string;
+        resolvedBackend?: string | null;
+      }>;
       implementation?: Record<string, string>;
     }>("manifests/live-verification.json");
-    if (evidence.schemaVersion !== 1 || evidence.platform !== "linux" || evidence.piVersion !== "0.81.1" || evidence.status !== "passed") errors.push("live verification: identity is incomplete or non-pass");
-    const genericProbe = evidence.probes?.find((probe) => probe.id === "generic-agentless-read-package");
-    const credentialProbe = evidence.probes?.find((probe) => probe.id === "generic-credential-guard");
-    if (evidence.probes?.length !== 3 || evidence.probes.some((probe) => probe.status !== "passed") || genericProbe?.changedFiles !== 0 || credentialProbe?.changedFiles !== 0) {
-      errors.push("live verification: required probes are missing, non-pass, or mutated files");
+    if (
+      evidence.schemaVersion !== 2 ||
+      evidence.platform !== "linux" ||
+      evidence.piVersion !== "0.81.1" ||
+      evidence.subagentVersion !== "0.4.8" ||
+      evidence.status !== "passed"
+    ) {
+      errors.push("live verification: compatibility identity is incomplete or non-pass");
     }
+    const fixtureProbe = evidence.probes?.find((probe) => probe.id === "generic-subagent-fixtures");
+    const defaultProbe = evidence.probes?.find((probe) => probe.id === "generic-agentless-default-path");
+    const credentialProbe = evidence.probes?.find((probe) => probe.id === "generic-credential-guard-explicit-headless");
+    if (
+      evidence.probes?.length !== 3 ||
+      fixtureProbe?.status !== "passed" ||
+      defaultProbe?.status !== "passed" ||
+      defaultProbe.backendRequest !== "omitted" ||
+      defaultProbe.resolvedBackend !== "headless" ||
+      defaultProbe.changedFiles !== 0 ||
+      credentialProbe?.status !== "passed" ||
+      credentialProbe.backendRequest !== "explicit-headless" ||
+      credentialProbe.resolvedBackend !== "headless" ||
+      credentialProbe.changedFiles !== 0
+    ) {
+      errors.push("live verification: default-path/headless probes are missing, ambiguous, non-pass, or mutated files");
+    }
+    const requiredImplementation = [
+      "src/runtime/subagents.ts",
+      "tests/unit/subagents.test.ts",
+      "tests/integration/live-subagent.test.ts",
+    ];
     for (const [filePath, expected] of Object.entries(evidence.implementation ?? {})) {
       const content = await readFile(new URL(filePath, ROOT), "utf8");
       const actual = createHash("sha256").update(content).digest("hex");
       if (actual !== expected) errors.push(`live verification: implementation drift ${filePath}`);
     }
-    if (Object.keys(evidence.implementation ?? {}).length !== 3) errors.push("live verification: implementation binding must contain exactly three files");
+    if (JSON.stringify(Object.keys(evidence.implementation ?? {}).sort()) !== JSON.stringify(requiredImplementation.sort())) {
+      errors.push("live verification: implementation binding must contain the exact default-path files");
+    }
   } catch (error) {
     errors.push(`live verification: ${error instanceof Error ? error.message : String(error)}`);
   }
   return errors;
 }
 
-export async function validateProvenance(): Promise<string[]> {
+export async function validatePermissionModeAdaptation(): Promise<string[]> {
   const errors: string[] = [];
+  try {
+    const lock = await json<{
+      schemaVersion?: number;
+      package?: { name?: string; version?: string; revision?: string; license?: string };
+      upstreamFiles?: Array<{ path?: string; sha256?: string }>;
+      adaptedFiles?: Array<{ path?: string; sha256?: string }>;
+      localChanges?: string[];
+      generatedBy?: string;
+      verification?: string[];
+    }>("upstream/pi-permission-modes.lock.json");
+    const expectedLocalChanges = [
+      "Package-owned adapted entry redirects all unchanged sibling modules to the exact pi-permission-modes dependency while owning resolve.ts locally.",
+      "matchPattern compiles its anchored glob RegExp with dotAll so * and ? include ECMAScript line terminators.",
+    ];
+    const expectedVerification = [
+      "npm run verify:permission-modes",
+      "tests/unit/permission-patterns.test.ts",
+      "tests/integration/permission-modes.test.ts",
+    ];
+    if (
+      lock.schemaVersion !== 1 ||
+      lock.package?.name !== "pi-permission-modes" ||
+      lock.package.version !== "2.2.0" ||
+      lock.package.revision !== "23d65d10a53b67043cae42322acf9044d6edb196" ||
+      lock.package.license !== "MIT" ||
+      lock.upstreamFiles?.length !== 3 ||
+      lock.adaptedFiles?.length !== 3 ||
+      JSON.stringify(lock.localChanges) !== JSON.stringify(expectedLocalChanges) ||
+      lock.generatedBy !== "scripts/sync-permission-modes.ts" ||
+      JSON.stringify(lock.verification) !== JSON.stringify(expectedVerification)
+    ) {
+      errors.push("permission adaptation: lock identity or inventory is incomplete");
+      return errors;
+    }
+    const expectedUpstream = {
+      "src/index.ts": "fd4462a3b7ba986af734c2e17ba8ea7178df56c933e87ed444ba90ba24c2fd5b",
+      "src/resolve.ts": "13f52a4a9c08d7a55f5f9d03f97302d864768838fb3e9fca2051cb7d94a0ae82",
+      LICENSE: "d87cb99b43f6bf8771e57be83485db11b977b9dfa21b6bd201b8d3d370bdce43",
+    };
+    const upstreamIdentity = Object.fromEntries((lock.upstreamFiles ?? []).map((record) => [record.path, record.sha256]));
+    if (JSON.stringify(upstreamIdentity) !== JSON.stringify(expectedUpstream)) {
+      errors.push("permission adaptation: upstream baseline hashes do not match the accepted 2.2.0 revision");
+    }
+    const expectedAdapted = {
+      "src/vendor/pi-permission-modes/index.ts": "8bfa0364967a2b76e9900cc72b8f434ea1cfa6520899c7827488220f2e288ee8",
+      "src/vendor/pi-permission-modes/resolve.ts": "f71688f847495da5122724f75c5ebe3b41066b3d3cac74cbe99f66b9906404f6",
+      "licenses/pi-permission-modes-MIT.txt": "d87cb99b43f6bf8771e57be83485db11b977b9dfa21b6bd201b8d3d370bdce43",
+    };
+    const adaptedIdentity = Object.fromEntries((lock.adaptedFiles ?? []).map((record) => [record.path, record.sha256]));
+    if (JSON.stringify(adaptedIdentity) !== JSON.stringify(expectedAdapted)) {
+      errors.push("permission adaptation: adapted hashes or file inventory do not match the accepted generated output");
+    }
+    const permissionPackageRoot = resolvePermissionModesPackageRoot();
+    const installedPackage = JSON.parse(await readFile(new URL("package.json", permissionPackageRoot), "utf8")) as {
+      name?: string;
+      version?: string;
+      license?: string;
+    };
+    if (installedPackage.name !== "pi-permission-modes" || installedPackage.version !== "2.2.0" || installedPackage.license !== "MIT") {
+      errors.push("permission adaptation: resolved dependency identity is not exact pi-permission-modes@2.2.0 MIT");
+    }
+    for (const [kind, records, sourceRoot] of [
+      ["upstream", lock.upstreamFiles, permissionPackageRoot],
+      ["adapted", lock.adaptedFiles, ROOT],
+    ] as const) {
+      for (const record of records ?? []) {
+        const path = record.path ?? "";
+        if (!path || path.startsWith("/") || path.split("/").includes("..") || !/^[0-9a-f]{64}$/.test(record.sha256 ?? "")) {
+          errors.push(`permission adaptation: unsafe or incomplete ${kind} record ${path || "(missing)"}`);
+          continue;
+        }
+        const content = await readFile(new URL(path, sourceRoot), "utf8");
+        const actual = createHash("sha256").update(content).digest("hex");
+        if (actual !== record.sha256) errors.push(`permission adaptation: ${kind} drift ${path}`);
+      }
+    }
+    const [nativeIntegration, adaptedResolve] = await Promise.all([
+      readFile(new URL("src/runtime/native-integrations.ts", ROOT), "utf8"),
+      readFile(new URL("src/vendor/pi-permission-modes/resolve.ts", ROOT), "utf8"),
+    ]);
+    const adaptedEntryCount = nativeIntegration.match(/"\.\.\/vendor\/pi-permission-modes\/index\.ts"/g)?.length ?? 0;
+    if (adaptedEntryCount !== 1 || nativeIntegration.includes('"pi-permission-modes/src/index.ts"')) {
+      errors.push("permission adaptation: native integration is not bound exactly once and exclusively to the adapted entry");
+    }
+    if (!adaptedResolve.includes('return new RegExp(re, "s").test(t);') || adaptedResolve.includes("return new RegExp(re).test(t);")) {
+      errors.push("permission adaptation: line-terminator-safe matcher semantic is missing");
+    }
+  } catch (error) {
+    errors.push(`permission adaptation: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  return errors;
+}
+
+export async function validateProvenance(): Promise<string[]> {
+  const errors: string[] = [...await validatePermissionModeAdaptation()];
   try {
     const provenance = await json<{ schemaVersion: number; sources: Array<{ name: string; revision: string; license: string; status: string; repository: string; sourceFiles: string[]; symbols: string[]; localChanges: string[]; verification: string[] }> }>("manifests/provenance.json");
     const sbom = await json<{ spdxVersion?: string; packages?: Array<{ SPDXID?: string; name?: string; licenseDeclared?: string }> }>("manifests/sbom.json");

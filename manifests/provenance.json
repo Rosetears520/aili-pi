@@ -30,8 +30,8 @@
       "status": "dependency",
       "sourceFiles": ["src/index.ts", "src/api.ts", "src/runners/headless-model.ts", "src/artifacts/result.ts"],
       "symbols": ["subagent tool renderCall", "runSubagent API", "headless lifecycle", "artifact envelope"],
-      "localChanges": ["AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading to upstream run-call rendering, injects a non-removable credential guard, and relies on the ambient AILI pi-permission-modes registration exactly once in each child; no upstream source is copied"],
-      "verification": ["tests/unit/subagents.test.ts", "tests/integration/package-runtime.test.ts"]
+      "localChanges": ["AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading, injects a non-removable credential guard, normalizes ordinary omitted/auto runs to headless for the Pi 0.81.1 compatibility window, and rejects explicit inline before model startup; no upstream source is copied"],
+      "verification": ["tests/unit/subagents.test.ts", "tests/integration/generic-subagent.test.ts", "tests/integration/live-subagent.test.ts", "tests/integration/package-runtime.test.ts"]
     },
     {
       "name": "pi-permission-modes",
@@ -39,11 +39,11 @@
       "revision": "23d65d10a53b67043cae42322acf9044d6edb196",
       "version": "2.2.0",
       "license": "MIT",
-      "status": "dependency",
-      "sourceFiles": ["src/index.ts", "permission-mode.defaults.json"],
-      "symbols": ["Default/Plan/Build/YOLO", "/perm", "Alt+M", "sandbox degradation"],
-      "localChanges": ["AILI initializes the pinned upstream extension and does not retain a competing AILI mode command or shortcut"],
-      "verification": ["tests/unit/runtime.test.ts", "tests/integration/extension-load.test.ts"]
+      "status": "adapted",
+      "sourceFiles": ["src/vendor/pi-permission-modes/index.ts", "src/vendor/pi-permission-modes/resolve.ts", "upstream/pi-permission-modes.lock.json", "licenses/pi-permission-modes-MIT.txt"],
+      "symbols": ["Default/Plan/Build/YOLO", "/perm", "Alt+M", "shared permission pattern matcher", "sandbox degradation"],
+      "localChanges": ["AILI's generated adapted entry redirects unchanged sibling modules to the exact 2.2.0 dependency", "the owned resolve.ts compiles permission globs with RegExp dotAll so * and ? include ECMAScript line terminators", "the exact upstream and adapted files are hash-locked and drift-checked"],
+      "verification": ["npm run verify:permission-modes", "tests/unit/permission-patterns.test.ts", "tests/integration/permission-modes.test.ts", "tests/integration/extension-load.test.ts"]
     },
     {
       "name": "pi-quota-status",

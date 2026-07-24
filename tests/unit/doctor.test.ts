@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { formatDoctorReport, runBoundedProbe, runDoctor } from "../../src/runtime/doctor.js";
-import { assessCapability, loadRegistry, validateRegistry, validateRegistryData, validateStableRelease } from "../../src/runtime/registry.js";
+import {
+  assessCapability,
+  loadRegistry,
+  validatePermissionModeAdaptation,
+  validateRegistry,
+  validateRegistryData,
+  validateStableRelease,
+} from "../../src/runtime/registry.js";
 import { LIFECYCLE_PROMPTS } from "../../src/runtime/lifecycle.js";
 
 const commands: Array<{
@@ -27,12 +34,14 @@ describe("capability registry", () => {
       "repo.read", "repo.write", "subagent.dispatch", "web.fetch",
     ]);
     expect(compatibility.records).toHaveLength(64);
-    expect(new Set(compatibility.records.map((record) => record.status))).toEqual(new Set(["native", "adapted", "optional"]));
+    expect(new Set(compatibility.records.map((record) => record.status))).toEqual(new Set(["native", "optional", "adapted"]));
     expect(compatibility.records.filter((record) => record.requiredCapabilities.includes("subagent.dispatch")).every((record) => record.status === "adapted" && record.unverified.length === 0)).toBe(true);
   });
 
-  it("does not retain the superseded native-integration blocker after current evidence lands", async () => {
+  it("binds release evidence to the exact adapted permission entry and hashes", async () => {
+    expect(await validatePermissionModeAdaptation()).toEqual([]);
     const errors = await validateStableRelease();
+    expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("permission adaptation:")]));
     expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("native integration evidence")]));
   });
 

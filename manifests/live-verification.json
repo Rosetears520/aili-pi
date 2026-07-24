@@ -1,32 +1,40 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "platform": "linux",
   "piVersion": "0.81.1",
+  "subagentVersion": "0.4.8",
   "status": "passed",
-  "approvedScope": "generic agentless headless children; one read-only repository package.json probe and one disposable external .env denial probe; no business-file mutation, bash, worktree, sandbox, or global-home access; only approved temporary run artifacts were created and removed",
+  "approvedScope": "On 2026-07-24, the user authorized two bounded live probes after repository-local compatibility verification: an omitted-backend, agentless child restricted to reading package.json, and an explicit-headless credential guard child restricted to a disposable .env sentinel. Both probes used only their declared temporary artifact roots and completed without business-file changes.",
   "probes": [
     {
       "id": "generic-subagent-fixtures",
       "command": "npx vitest run tests/unit/subagents.test.ts tests/integration/generic-subagent.test.ts",
-      "status": "passed"
+      "status": "passed",
+      "changedFiles": 0,
+      "backendRequest": "matrix",
+      "resolvedBackend": "headless"
     },
     {
-      "id": "generic-agentless-read-package",
+      "id": "generic-agentless-default-path",
       "command": "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
       "status": "passed",
-      "changedFiles": 0
+      "changedFiles": 0,
+      "backendRequest": "omitted",
+      "resolvedBackend": "headless"
     },
     {
-      "id": "generic-credential-guard",
+      "id": "generic-credential-guard-explicit-headless",
       "command": "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
       "status": "passed",
-      "changedFiles": 0
+      "changedFiles": 0,
+      "backendRequest": "explicit-headless",
+      "resolvedBackend": "headless"
     }
   ],
   "implementation": {
-    "src/runtime/subagents.ts": "4fa3ca548e2d2038410f0c9a3a2e41c5137ebf2dff7987d3e0be6e62bb9f6412",
-    "tests/unit/subagents.test.ts": "93602a401e058d1870922b213f8f0a00dc35e869a704b0c551442d3d8454054a",
-    "tests/integration/live-subagent.test.ts": "46a907526890c4cd4a4e1d768fca51173c9a0c3db37ac83ba57db23d54d7f339"
+    "src/runtime/subagents.ts": "9f09e0e8a380d026d82b0842f2c687da2f3529b43a7ef6d1a6aad47d71190d48",
+    "tests/unit/subagents.test.ts": "16fc1fbd1759befeed03a2428294c28d662022622c61a6444e23b365dc7447aa",
+    "tests/integration/live-subagent.test.ts": "b88750f74b203cdbdb9d0e453e16f720ff4d8e4591ca140e0a3c7e1d8428868c"
   },
-  "credentialHandling": "Existing Pi authentication was used by Pi; AILI did not copy, print, or modify authentication files."
+  "credentialHandling": "The explicit-headless credential guard probe used only a disposable .env sentinel. It completed with changedFiles=0; the sentinel was absent from the model-visible result and every temporary artifact before cleanup."
 }

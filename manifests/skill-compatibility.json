@@ -801,9 +801,9 @@
         "snapshot-hash:verified",
         "npm run verify:roles",
         "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_SUBAGENT_PROBE=static npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
+        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
+        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -4311,9 +4311,9 @@
         "snapshot-hash:verified",
         "npm run verify:roles",
         "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_SUBAGENT_PROBE=static npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
+        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
+        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -5596,9 +5596,9 @@
         "snapshot-hash:verified",
         "npm run verify:roles",
         "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_SUBAGENT_PROBE=static npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
+        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
+        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -6416,9 +6416,9 @@
         "snapshot-hash:verified",
         "npm run verify:roles",
         "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_SUBAGENT_PROBE=static npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
+        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
+        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",

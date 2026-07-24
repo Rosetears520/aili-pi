@@ -22,6 +22,10 @@ type GenericTool = {
   [key: string]: unknown;
 };
 
+type SubagentCompatibilityPlan =
+  | { kind: "forward"; params: unknown }
+  | { kind: "reject"; requestedBackend: "inline" | "auto"; error: string };
+
 type AgentHeading = {
   label: "Agent" | "Agents";
   summary: string;
@@ -29,6 +33,10 @@ type AgentHeading = {
 
 const MAX_AGENT_NAME_LENGTH = 48;
 const MAX_AGENT_SUMMARY_LENGTH = 120;
+const INLINE_COMPATIBILITY_ERROR =
+  "inline backend is incompatible with Pi 0.81.1 and @agwab/pi-subagent 0.4.8; use backend \"headless\"";
+const MIXED_PARALLEL_COMPATIBILITY_ERROR =
+  "auto backend cannot safely combine visible tasks with ordinary non-visible, non-sandboxed tasks on Pi 0.81.1 and @agwab/pi-subagent 0.4.8; split the fan-out or choose one explicit compatible backend";
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -88,6 +96,69 @@ function withRequiredExtensions(value: unknown): unknown {
   };
 }
 
+function sandboxRequested(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== false;
+}
+
+function taskSelector(
+  task: UnknownRecord,
+  parent: UnknownRecord,
+): { visible: boolean; sandboxed: boolean; plain: boolean } {
+  const visible = task.visible === undefined ? parent.visible === true : task.visible === true;
+  const sandbox = Object.hasOwn(task, "sandbox") ? task.sandbox : parent.sandbox;
+  const sandboxed = sandboxRequested(sandbox);
+  return { visible, sandboxed, plain: !visible && !sandboxed };
+}
+
+/**
+ * Select a Pi-0.81.1-compatible backend without changing compatible explicit,
+ * visible, sandboxed, or lifecycle requests. Parallel auto calls are evaluated
+ * per task because task-level visible/sandbox values override their parent.
+ */
+export function normalizeSubagentCompatibility(params: unknown): SubagentCompatibilityPlan {
+  if (!isRecord(params) || (params.action !== undefined && params.action !== "run")) {
+    return { kind: "forward", params };
+  }
+
+  if (params.backend === "inline") {
+    return { kind: "reject", requestedBackend: "inline", error: INLINE_COMPATIBILITY_ERROR };
+  }
+  if (params.backend !== undefined && params.backend !== "auto") return { kind: "forward", params };
+
+  if (Array.isArray(params.tasks)) {
+    if (params.tasks.length === 0 || params.tasks.some((task) => !isRecord(task))) {
+      return { kind: "forward", params };
+    }
+    const selectors = params.tasks.map((task) => taskSelector(task as UnknownRecord, params));
+    const hasPlain = selectors.some((selector) => selector.plain);
+    const hasVisible = selectors.some((selector) => selector.visible);
+    if (hasPlain && hasVisible) {
+      return { kind: "reject", requestedBackend: "auto", error: MIXED_PARALLEL_COMPATIBILITY_ERROR };
+    }
+    if (hasPlain) return { kind: "forward", params: { ...params, backend: "headless" } };
+    return { kind: "forward", params };
+  }
+
+  if (params.visible === true || sandboxRequested(params.sandbox)) return { kind: "forward", params };
+  return { kind: "forward", params: { ...params, backend: "headless" } };
+}
+
+function compatibilityFailure(plan: Extract<SubagentCompatibilityPlan, { kind: "reject" }>): UnknownRecord {
+  const payload = {
+    tool: "subagent",
+    ...(plan.requestedBackend === "inline" ? { backend: "inline" } : {}),
+    requestedBackend: plan.requestedBackend,
+    status: "failed",
+    failureKind: "validation",
+    error: plan.error,
+  };
+  return {
+    content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+    details: { compatibility: payload },
+    isError: true,
+  };
+}
+
 /**
  * Adds the immutable child credential guard to every run path while preserving
  * the ambient AILI permission-mode extension and all caller options.
@@ -113,7 +184,9 @@ export function wrapSubagentTool(tool: GenericTool): GenericTool {
     ...(typeof renderCall === "function"
       ? {
           renderCall(args: unknown, theme: RenderTheme): Component {
-            const upstream = renderCall(args, theme);
+            const plan = normalizeSubagentCompatibility(args);
+            const effectiveArgs = plan.kind === "forward" ? plan.params : args;
+            const upstream = renderCall(effectiveArgs, theme);
             const heading = requestedAgentHeading(args);
             if (!heading) return upstream;
             const container = new Container();
@@ -128,22 +201,24 @@ export function wrapSubagentTool(tool: GenericTool): GenericTool {
         }
       : {}),
     async execute(...args: unknown[]) {
-      // Pi has supported execute(params, ...) and execute(id, params, ...).
-      // Delegate both shapes back to the upstream implementation unchanged
-      // except for mandatory child extensions on `action: run`.
-      const paramsIndex = args.length > 1 && args[1] !== undefined ? 1 : 0;
+      // Current Pi uses execute(id, params, ...); older direct fixtures may call
+      // execute(params). Detect the object position rather than mistaking a
+      // signal/callback for params.
+      const paramsIndex = isRecord(args[0]) || args.length === 1 ? 0 : 1;
+      const plan = normalizeSubagentCompatibility(args[paramsIndex]);
+      if (plan.kind === "reject") return compatibilityFailure(plan);
       const protectedArgs = [...args];
-      protectedArgs[paramsIndex] = protectSubagentParams(protectedArgs[paramsIndex]);
+      protectedArgs[paramsIndex] = protectSubagentParams(plan.params);
       return await execute(...protectedArgs);
     },
   };
 }
 
 /**
- * Registers the upstream `subagent` tool unchanged in name, schema, execution,
- * and lifecycle behavior. AILI adds a bounded requested-Agent heading and
- * injects non-removable credential protection while each child loads the
- * ambient AILI permission-mode extension exactly once.
+ * Registers the upstream `subagent` name, schema, lifecycle, and worker engine.
+ * AILI wraps backend selection for the pinned SDK compatibility window, adds a
+ * bounded requested-Agent heading, and injects non-removable credential
+ * protection while each child loads permission modes exactly once.
  */
 export async function registerSubagent(pi: ExtensionAPI): Promise<void> {
   let genericToolRegistered = false;

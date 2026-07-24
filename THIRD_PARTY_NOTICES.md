@@ -22,18 +22,18 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - License: MIT
 - Source files: src/index.ts, src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts
 - Reused symbols/patterns: subagent tool renderCall, runSubagent API, headless lifecycle, artifact envelope
-- Local changes: AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading to upstream run-call rendering, injects a non-removable credential guard, and relies on the ambient AILI pi-permission-modes registration exactly once in each child; no upstream source is copied
+- Local changes: AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading, injects a non-removable credential guard, normalizes ordinary omitted/auto runs to headless for the Pi 0.81.1 compatibility window, and rejects explicit inline before model startup; no upstream source is copied
 
 ## pi-permission-modes
 
-- Status: dependency
+- Status: adapted
 - Source: https://github.com/wynainfo/pi-permission-modes.git
 - Revision: 23d65d10a53b67043cae42322acf9044d6edb196
 - Version: 2.2.0
 - License: MIT
-- Source files: src/index.ts, permission-mode.defaults.json
-- Reused symbols/patterns: Default/Plan/Build/YOLO, /perm, Alt+M, sandbox degradation
-- Local changes: AILI initializes the pinned upstream extension and does not retain a competing AILI mode command or shortcut
+- Source files: src/vendor/pi-permission-modes/index.ts, src/vendor/pi-permission-modes/resolve.ts, upstream/pi-permission-modes.lock.json, licenses/pi-permission-modes-MIT.txt
+- Reused symbols/patterns: Default/Plan/Build/YOLO, /perm, Alt+M, shared permission pattern matcher, sandbox degradation
+- Local changes: AILI's generated adapted entry redirects unchanged sibling modules to the exact 2.2.0 dependency; the owned resolve.ts compiles permission globs with RegExp dotAll so * and ? include ECMAScript line terminators; the exact upstream and adapted files are hash-locked and drift-checked
 
 ## pi-quota-status
 
@@ -105,4 +105,4 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 
 The exact 424-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
 
-Runtime dependencies are initialized through the single AILI Extension entry; no third-party source tree is copied into this package.
+Runtime dependencies are initialized through the single AILI Extension entry. Package-owned third-party adaptations are copied only where their provenance sourceFiles explicitly name repository paths.

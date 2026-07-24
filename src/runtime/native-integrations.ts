@@ -3,7 +3,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 type NativeExtension = (pi: ExtensionAPI) => void | Promise<void>;
 
 export const NATIVE_INTEGRATIONS = [
-  "pi-permission-modes@2.2.0",
+  "pi-permission-modes@2.2.0 (AILI multiline-glob adaptation)",
   "pi-quota-status@0.3.0",
   "pi-web-access@0.13.0",
   "pi-cache-optimizer@2.6.18",
@@ -12,7 +12,7 @@ export const NATIVE_INTEGRATIONS = [
 ] as const;
 
 const INTEGRATION_MODULES = [
-  "pi-permission-modes/src/index.ts",
+  "../vendor/pi-permission-modes/index.ts",
   "pi-quota-status",
   "pi-web-access",
   "pi-cache-optimizer/index.ts",
@@ -21,9 +21,9 @@ const INTEGRATION_MODULES = [
 ] as const;
 
 /**
- * Initialise the pinned upstream extensions through AILI's single package entry.
- * They remain upstream-owned implementations; this module adds no substitute
- * command, tool, permission, or provider behavior.
+ * Initialise pinned native integrations through AILI's single package entry.
+ * Permission modes uses the revision-bound adapted entry that changes only
+ * shared multiline glob matching; the remaining integrations stay upstream-owned.
  */
 export async function registerNativeIntegrations(pi: ExtensionAPI): Promise<void> {
   for (const moduleName of INTEGRATION_MODULES) {

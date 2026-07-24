@@ -57,7 +57,7 @@ async function genericTool(): Promise<{ execute: (...args: unknown[]) => Promise
 }
 
 describe("approved live generic subagent probe", () => {
-  it.skipIf(!liveMode)("runs one headless agentless child with read-only package access", async () => {
+  it.skipIf(!liveMode)("runs one omitted-backend agentless child through the compatible default path", async () => {
     const root = process.cwd();
     const artifactRoot = join(root, RUNS_DIR);
     const controller = new AbortController();
@@ -67,7 +67,6 @@ describe("approved live generic subagent probe", () => {
     try {
       const tool = await genericTool();
       const result = await tool.execute("live-generic-probe", {
-        backend: "headless",
         task: "Read only package.json. Report the package name concisely. Do not write files, invoke bash, access external paths, or use subagents.",
         roleContext: "You are a read-only verification worker.",
         cwd: root,
@@ -98,6 +97,7 @@ describe("approved live generic subagent probe", () => {
         : { ...structural, sanitizedStderr: await readSanitizedStderr(root, artifactRoot, payload.artifacts) }));
       expect(result.isError).toBe(false);
       expect(payload.status).toBe("completed");
+      expect(payload.backend).toBe("headless");
       expect(payload.runId).toEqual(expect.any(String));
     } finally {
       clearTimeout(timer);

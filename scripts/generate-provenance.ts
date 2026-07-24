@@ -115,7 +115,7 @@ async function generate(): Promise<{ notices: string; sbom: object }> {
     "",
     `The exact ${packages.length}-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in \`manifests/sbom.json\`.`,
     "",
-    "Runtime dependencies are initialized through the single AILI Extension entry; no third-party source tree is copied into this package.",
+    "Runtime dependencies are initialized through the single AILI Extension entry. Package-owned third-party adaptations are copied only where their provenance sourceFiles explicitly name repository paths.",
     "",
   ].join("\n");
   return { notices, sbom };

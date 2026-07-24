@@ -69,11 +69,18 @@ describe("Pi package baseline", () => {
 
   it("includes user documentation and generated provenance gates", async () => {
     const manifest = await readManifest();
-    expect(manifest.files).toEqual(expect.arrayContaining(["README.md", "THIRD_PARTY_NOTICES.md", "manifests/"]));
-    const readme = await readFile(new URL("../../README.md", import.meta.url), "utf8");
+    expect(manifest.files).toEqual(expect.arrayContaining(["README.md", "THIRD_PARTY_NOTICES.md", "manifests/", "upstream/", "licenses/"]));
+    const [readme, permissionLock] = await Promise.all([
+      readFile(new URL("../../README.md", import.meta.url), "utf8"),
+      readFile(new URL("../../upstream/pi-permission-modes.lock.json", import.meta.url), "utf8").then(JSON.parse),
+      access(new URL("../../src/vendor/pi-permission-modes/index.ts", import.meta.url)),
+      access(new URL("../../licenses/pi-permission-modes-MIT.txt", import.meta.url)),
+    ]);
     expect(readme).toContain("universal OS sandbox");
     expect(readme).toContain("/aili-doctor");
     expect(readme).toContain("Rem Cyberdeck");
     expect(readme).toContain("fixed-bottom editor");
+    expect(readme).toContain("omitted/`auto` calls to `headless`");
+    expect(permissionLock.package).toMatchObject({ version: "2.2.0", revision: "23d65d10a53b67043cae42322acf9044d6edb196" });
   });
 });

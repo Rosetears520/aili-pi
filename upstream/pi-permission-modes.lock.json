@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "package": {
+    "name": "pi-permission-modes",
+    "version": "2.2.0",
+    "revision": "23d65d10a53b67043cae42322acf9044d6edb196",
+    "license": "MIT"
+  },
+  "upstreamFiles": [
+    {
+      "path": "src/index.ts",
+      "sha256": "fd4462a3b7ba986af734c2e17ba8ea7178df56c933e87ed444ba90ba24c2fd5b"
+    },
+    {
+      "path": "src/resolve.ts",
+      "sha256": "13f52a4a9c08d7a55f5f9d03f97302d864768838fb3e9fca2051cb7d94a0ae82"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "d87cb99b43f6bf8771e57be83485db11b977b9dfa21b6bd201b8d3d370bdce43"
+    }
+  ],
+  "adaptedFiles": [
+    {
+      "path": "src/vendor/pi-permission-modes/index.ts",
+      "sha256": "8bfa0364967a2b76e9900cc72b8f434ea1cfa6520899c7827488220f2e288ee8"
+    },
+    {
+      "path": "src/vendor/pi-permission-modes/resolve.ts",
+      "sha256": "f71688f847495da5122724f75c5ebe3b41066b3d3cac74cbe99f66b9906404f6"
+    },
+    {
+      "path": "licenses/pi-permission-modes-MIT.txt",
+      "sha256": "d87cb99b43f6bf8771e57be83485db11b977b9dfa21b6bd201b8d3d370bdce43"
+    }
+  ],
+  "localChanges": [
+    "Package-owned adapted entry redirects all unchanged sibling modules to the exact pi-permission-modes dependency while owning resolve.ts locally.",
+    "matchPattern compiles its anchored glob RegExp with dotAll so * and ? include ECMAScript line terminators."
+  ],
+  "generatedBy": "scripts/sync-permission-modes.ts",
+  "verification": [
+    "npm run verify:permission-modes",
+    "tests/unit/permission-patterns.test.ts",
+    "tests/integration/permission-modes.test.ts"
+  ]
+}

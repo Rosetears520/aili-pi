@@ -7,7 +7,7 @@ interface ModeDefaults {
 describe("generic external-write permission boundary", () => {
   it("uses the vendor Plan policy to ask for an external write and denies the ask without UI", async () => {
     const [resolveModule, approvalsModule, defaultsModule] = await Promise.all([
-      import("pi-permission-modes/src/resolve.ts") as Promise<{ decide: (mode: unknown, surface: string, target: string, options: { isOutside: boolean }) => string }>,
+      import("../../src/vendor/pi-permission-modes/resolve.js") as Promise<{ decide: (mode: unknown, surface: string, target: string, options: { isOutside: boolean }) => string }>,
       import("pi-permission-modes/src/approvals.ts") as Promise<{ SessionApprovals: new () => unknown; askWithSession: (ui: { hasUI: boolean; select: () => Promise<undefined> }, approvals: unknown, mode: string, surface: string, target: string, title: string) => Promise<boolean> }>,
       import("pi-permission-modes/permission-mode.defaults.json", { with: { type: "json" } }) as unknown as Promise<{ default: ModeDefaults }>,
     ]);

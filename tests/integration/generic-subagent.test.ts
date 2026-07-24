@@ -32,7 +32,7 @@ beforeEach(async () => {
   const bin = join(scratch, "bin");
   await mkdir(bin);
   const fakePi = join(bin, "pi");
-  await writeFile(fakePi, "#!/bin/sh\ncase \"$*\" in\n  *force-worker-failure*) exit 7 ;;\n  *slow-worker*) sleep 2 ;;\nesac\nif [ -n \"${AILI_FAKE_PI_ARGS:-}\" ]; then printf '%s\\n' \"$@\" > \"$AILI_FAKE_PI_ARGS\"; fi\nprintf '%s\\n' '{\"type\":\"agent_end\",\"messages\":[{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"generic fixture complete\"}]}]}'\n");
+  await writeFile(fakePi, "#!/bin/sh\ncase \"$*\" in\n  *force-worker-failure*) exit 7 ;;\n  *slow-worker*) sleep 2 ;;\nesac\nif [ -n \"${AILI_FAKE_PI_ARGS:-}\" ]; then printf '%s\\n' \"$@\" > \"$AILI_FAKE_PI_ARGS\"; fi\nif [ -n \"${AILI_FAKE_PI_MODE:-}\" ]; then printf '%s\\n' \"${PI_PERMISSION_MODE:-}\" > \"$AILI_FAKE_PI_MODE\"; fi\nprintf '%s\\n' '{\"type\":\"agent_end\",\"messages\":[{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"generic fixture complete\"}]}]}'\n");
   await chmod(fakePi, 0o700);
   previousPath = process.env.PATH;
   process.env.PATH = `${bin}:${previousPath ?? ""}`;
@@ -61,6 +61,62 @@ function payload(result: ToolResult): Record<string, unknown> {
 }
 
 describe("generic subagent lifecycle with a disposable Pi fixture", () => {
+  it("uses the compatible omitted-backend path and forwards the explicit parent permission mode", async () => {
+    const modeLog = join(scratch, "child-mode.txt");
+    const previousMode = process.env.PI_PERMISSION_MODE;
+    const previousLog = process.env.AILI_FAKE_PI_MODE;
+    process.env.PI_PERMISSION_MODE = "yolo";
+    process.env.AILI_FAKE_PI_MODE = modeLog;
+    try {
+      const tool = await genericTool();
+      const single = payload(await tool.execute("default-single", {
+        task: "Complete the default fixture.",
+        roleContext: "fixture",
+        cwd: scratch,
+        tools: [],
+      }, undefined, undefined, { cwd: scratch }));
+      expect(single).toMatchObject({ status: "completed", backend: "headless" });
+      expect((await readFile(modeLog, "utf8")).trim()).toBe("yolo");
+
+      const parallel = payload(await tool.execute("default-parallel", {
+        mode: "parallel",
+        cwd: scratch,
+        concurrency: 2,
+        tasks: [{ task: "one", tools: [] }, { task: "two", tools: [] }],
+      }, undefined, undefined, { cwd: scratch }));
+      expect(parallel).toMatchObject({ status: "completed", startedCount: 2 });
+      expect((parallel.runs as Array<{ backend: string }>).map((run) => run.backend)).toEqual(["headless", "headless"]);
+    } finally {
+      if (previousMode === undefined) delete process.env.PI_PERMISSION_MODE;
+      else process.env.PI_PERMISSION_MODE = previousMode;
+      if (previousLog === undefined) delete process.env.AILI_FAKE_PI_MODE;
+      else process.env.AILI_FAKE_PI_MODE = previousLog;
+    }
+  });
+
+  it("returns an actionable validation failure for explicit inline without starting Pi", async () => {
+    const argsLog = join(scratch, "must-not-exist.txt");
+    const previousLog = process.env.AILI_FAKE_PI_ARGS;
+    process.env.AILI_FAKE_PI_ARGS = argsLog;
+    try {
+      const tool = await genericTool();
+      const result = await tool.execute("inline", {
+        backend: "inline",
+        task: "This must not start.",
+      }, undefined, undefined, { cwd: scratch });
+      expect(result.isError).toBe(true);
+      expect(payload(result)).toMatchObject({
+        status: "failed",
+        failureKind: "validation",
+        error: expect.stringMatching(/Pi 0\.81\.1.*headless/),
+      });
+      await expect(readFile(argsLog, "utf8")).rejects.toThrow();
+    } finally {
+      if (previousLog === undefined) delete process.env.AILI_FAKE_PI_ARGS;
+      else process.env.AILI_FAKE_PI_ARGS = previousLog;
+    }
+  });
+
   it("keeps credential denial active for an async custom-extension run even when YOLO is selected", async () => {
     const previousMode = process.env.PI_PERMISSION_MODE;
     process.env.PI_PERMISSION_MODE = "yolo";

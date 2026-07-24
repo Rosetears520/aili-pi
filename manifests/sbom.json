@@ -3,7 +3,7 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "@rosetears/aili-pi-0.0.0-development",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/b1356fd5c37f5e69387fb7d4acaeb377",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/a9e5a3e4d1076b3179dd8cca5ef89f9f",
   "creationInfo": {
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
@@ -43,7 +43,7 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=daa7b83819116a62008ad17aa65fcd50fefbafd0; files=src/index.ts, src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts; symbols=subagent tool renderCall, runSubagent API, headless lifecycle, artifact envelope; local changes=AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading to upstream run-call rendering, injects a non-removable credential guard, and relies on the ambient AILI pi-permission-modes registration exactly once in each child; no upstream source is copied"
+      "comment": "revision=daa7b83819116a62008ad17aa65fcd50fefbafd0; files=src/index.ts, src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts; symbols=subagent tool renderCall, runSubagent API, headless lifecycle, artifact envelope; local changes=AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading, injects a non-removable credential guard, normalizes ordinary omitted/auto runs to headless for the Pi 0.81.1 compatibility window, and rejects explicit inline before model startup; no upstream source is copied"
     },
     {
       "SPDXID": "SPDXRef-source-pi-permission-modes-9b38b384cd",
@@ -55,7 +55,7 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=23d65d10a53b67043cae42322acf9044d6edb196; files=src/index.ts, permission-mode.defaults.json; symbols=Default/Plan/Build/YOLO, /perm, Alt+M, sandbox degradation; local changes=AILI initializes the pinned upstream extension and does not retain a competing AILI mode command or shortcut"
+      "comment": "revision=23d65d10a53b67043cae42322acf9044d6edb196; files=src/vendor/pi-permission-modes/index.ts, src/vendor/pi-permission-modes/resolve.ts, upstream/pi-permission-modes.lock.json, licenses/pi-permission-modes-MIT.txt; symbols=Default/Plan/Build/YOLO, /perm, Alt+M, shared permission pattern matcher, sandbox degradation; local changes=AILI's generated adapted entry redirects unchanged sibling modules to the exact 2.2.0 dependency | the owned resolve.ts compiles permission globs with RegExp dotAll so * and ? include ECMAScript line terminators | the exact upstream and adapted files are hash-locked and drift-checked"
     },
     {
       "SPDXID": "SPDXRef-source-pi-quota-status-63ccce8956",
