@@ -1,40 +1,39 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "platform": "linux",
   "piVersion": "0.81.1",
-  "subagentVersion": "0.4.8",
+  "runtime": "aili-persistent-agents-v1",
   "status": "passed",
-  "approvedScope": "On 2026-07-24, the user authorized two bounded live probes after repository-local compatibility verification: an omitted-backend, agentless child restricted to reading package.json, and an explicit-headless credential guard child restricted to a disposable .env sentinel. Both probes used only their declared temporary artifact roots and completed without business-file changes.",
+  "approvedScope": "On 2026-07-25 the user authorized the local workspace provider probes, disposable external Git lifecycle test, release-only Persistent Agent worktree, positive child sandbox implementation/verification, version 0.1.10, commit, push to origin/main, and npm publication. Earlier @agwab/pi-subagent evidence is not reused.",
   "probes": [
     {
-      "id": "generic-subagent-fixtures",
-      "command": "npx vitest run tests/unit/subagents.test.ts tests/integration/generic-subagent.test.ts",
+      "id": "provider-turn",
       "status": "passed",
       "changedFiles": 0,
-      "backendRequest": "matrix",
-      "resolvedBackend": "headless"
+      "evidence": "artifacts/test-results/persistent-agent-framework/live-smoke-2026-07-25.json",
+      "reason": "Refreshed local-package runtime completed synchronous, persistent follow-up, and asynchronous official Pi AgentSession turns through openai-codex/gpt-5.6-sol."
     },
     {
-      "id": "generic-agentless-default-path",
-      "command": "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
+      "id": "child-sandbox",
       "status": "passed",
       "changedFiles": 0,
-      "backendRequest": "omitted",
-      "resolvedBackend": "headless"
+      "reason": "The child Bash definition reused the parent-initialized pi-permission-modes SandboxManager with a child-cwd-specific profile. A Bubblewrap live fixture allowed an in-scope write and denied both an out-of-scope write and a configured denyRead path; unavailable/worktree-incompatible executors remain fail closed.",
+      "verification": "AILI_RUN_CHILD_SANDBOX_LIVE=1 npx vitest run tests/integration/persistent-agent-live-gated.test.ts"
     },
     {
-      "id": "generic-credential-guard-explicit-headless",
-      "command": "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
+      "id": "external-workspace-lifecycle",
       "status": "passed",
       "changedFiles": 0,
-      "backendRequest": "explicit-headless",
-      "resolvedBackend": "headless"
+      "evidence": "artifacts/test-results/persistent-agent-framework/live-smoke-2026-07-25.json",
+      "reason": "An authorized disposable OS-temp Git repository passed dirty-baseline projection, isolated branch/worktree, child-only patch, unchanged main HEAD/status, cleanup, and no-revive assertions."
     }
   ],
   "implementation": {
-    "src/runtime/subagents.ts": "9f09e0e8a380d026d82b0842f2c687da2f3529b43a7ef6d1a6aad47d71190d48",
-    "tests/unit/subagents.test.ts": "16fc1fbd1759befeed03a2428294c28d662022622c61a6444e23b365dc7447aa",
-    "tests/integration/live-subagent.test.ts": "b88750f74b203cdbdb9d0e453e16f720ff4d8e4591ca140e0a3c7e1d8428868c"
+    "src/runtime/persistent-agents/production.ts": "312ac2a3cd32b298550caedc09d74d97d279ef9380a7e03ca32a424b70121ee1",
+    "src/runtime/persistent-agents/runtime.ts": "fbf90c6c4ba573b64bca98e775aeb036ba8f28788e3919d0beebe52c36ef58de",
+    "src/runtime/persistent-agents/sandbox.ts": "8385b3f0ee85e29f52d294fc8c458157041fe93ac367a0b7af0cf44a845063ed",
+    "src/runtime/persistent-agents/permission.ts": "48b30508491bca7fcd04d82b30d9dde1423499c2f02c014074c3f030c7ebd8ba",
+    "src/runtime/persistent-agents/workspace.ts": "a39438c52708f0104ee9cb11d7fa4dcf8fe72db548decb2cc3f96995f94fa475"
   },
-  "credentialHandling": "The explicit-headless credential guard probe used only a disposable .env sentinel. It completed with changedFiles=0; the sentinel was absent from the model-visible result and every temporary artifact before cleanup."
+  "credentialHandling": "Deterministic permission/output/history tests enforce fail-closed credential denial and redaction. The live provider probe consumed existing Pi authentication through the official child AgentSession; no credential values were read, exported, or copied into the sanitized evidence artifact."
 }

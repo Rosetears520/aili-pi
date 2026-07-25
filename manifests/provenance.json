@@ -22,18 +22,6 @@
       "verification": ["npm run verify:skills", "npm run verify:roles", "tests/unit/global-resources.test.ts"]
     },
     {
-      "name": "@agwab/pi-subagent",
-      "repository": "https://github.com/AgwaB/pi-subagent.git",
-      "revision": "daa7b83819116a62008ad17aa65fcd50fefbafd0",
-      "version": "0.4.8",
-      "license": "MIT",
-      "status": "dependency",
-      "sourceFiles": ["src/index.ts", "src/api.ts", "src/runners/headless-model.ts", "src/artifacts/result.ts"],
-      "symbols": ["subagent tool renderCall", "runSubagent API", "headless lifecycle", "artifact envelope"],
-      "localChanges": ["AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading, injects a non-removable credential guard, normalizes ordinary omitted/auto runs to headless for the Pi 0.81.1 compatibility window, and rejects explicit inline before model startup; no upstream source is copied"],
-      "verification": ["tests/unit/subagents.test.ts", "tests/integration/generic-subagent.test.ts", "tests/integration/live-subagent.test.ts", "tests/integration/package-runtime.test.ts"]
-    },
-    {
       "name": "pi-permission-modes",
       "repository": "https://github.com/wynainfo/pi-permission-modes.git",
       "revision": "23d65d10a53b67043cae42322acf9044d6edb196",
@@ -115,6 +103,18 @@
       "symbols": ["header", "matrix animation", "Zentui footer", "fixed editor compositor"],
       "localChanges": ["registered as three additional Pi Package Extensions", "Rose header loads a package-owned renamed artwork asset without changing upstream identity", "Rose Shimmer, Rose Code Rain, and Zentui use the Rose-owned palette and gradient", "overflowing Matrix tracks remain deterministic across the complete terminal width with the 96-track budget, while each rain row receives a structural blank-row repair", "relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract"],
       "verification": ["tests/unit/matrix.test.ts", "tests/unit/zentui-gradient.test.ts", "npm run typecheck", "npm test", "npm pack --dry-run --json"]
+    },
+    {
+      "name": "Oh My Pi reference",
+      "repository": "https://github.com/can1357/oh-my-pi.git",
+      "revision": "59619623e1eeb7c290649eeaf3a269284ce8adef",
+      "version": "17.1.3",
+      "license": "MIT",
+      "status": "reference-only",
+      "sourceFiles": [],
+      "symbols": [],
+      "localChanges": [],
+      "verification": ["tests/integration/persistent-agent-runtime.test.ts", "tests/unit/persistent-agent-output-delivery.test.ts", "manual no-copy provenance inspection"]
     }
   ]
 }

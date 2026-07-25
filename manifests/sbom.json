@@ -3,7 +3,7 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "@rosetears/aili-pi-0.0.0-development",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/01e1201c78bfb1b604ad872b36621ba1",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/006a165d0b94cd75a0a8cfbcd54f588b",
   "creationInfo": {
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
@@ -32,18 +32,6 @@
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
       "comment": "revision=7eb35f357ad489f5841ee10dac1e44549c1bdb76; files=upstream/aili-workflows.lock.json#files (471 exact skill files), manifests/roles.json#records[].sourcePath (19 exact role source files), upstream/opencode-global-agents.lock.json (pinned source template revision/hash); symbols=64 canonical skill bodies and owned assets, 19 child-role prompt bodies; local changes=skills/** is an exact byte-for-byte snapshot with no semantic overlay | role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output | templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded"
-    },
-    {
-      "SPDXID": "SPDXRef-source-agwab-pi-subagent-7cd9ea345a",
-      "name": "@agwab/pi-subagent",
-      "versionInfo": "0.4.8",
-      "downloadLocation": "https://github.com/AgwaB/pi-subagent/commit/daa7b83819116a62008ad17aa65fcd50fefbafd0",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "checksums": [],
-      "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=daa7b83819116a62008ad17aa65fcd50fefbafd0; files=src/index.ts, src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts; symbols=subagent tool renderCall, runSubagent API, headless lifecycle, artifact envelope; local changes=AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading, injects a non-removable credential guard, normalizes ordinary omitted/auto runs to headless for the Pi 0.81.1 compatibility window, and rejects explicit inline before model startup; no upstream source is copied"
     },
     {
       "SPDXID": "SPDXRef-source-pi-permission-modes-9b38b384cd",
@@ -146,40 +134,6 @@
       "comment": "npm lock path=node_modules/agent-base; development=false; optional=false"
     },
     {
-      "SPDXID": "SPDXRef-node-modules-agwab-pi-subagent-ebd1e557d5",
-      "name": "@agwab/pi-subagent",
-      "versionInfo": "0.4.8",
-      "downloadLocation": "https://registry.npmjs.org/@agwab/pi-subagent/-/pi-subagent-0.4.8.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "HPAzAye6maCpBHXpjsTRMGuwvXoD4FpUu5oKe0g1hdu6eGrao10/dzfx3XiIDsR7hD/aR3Gmob6+nAFY2vB+iw=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/@agwab/pi-subagent; development=false; optional=false"
-    },
-    {
-      "SPDXID": "SPDXRef-node-modules-agwab-pi-subagent-node-modules-typebox-434ae00f66",
-      "name": "typebox",
-      "versionInfo": "1.3.6",
-      "downloadLocation": "https://registry.npmjs.org/typebox/-/typebox-1.3.6.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "Sc8RA0NCMEFmApHNU9ZMzqcpQj46She44J8ffpLM/bdhLNUZKq7DJumcLcsFx1gRmDfQPgCgOmFFJ7rcnfWNyA=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/@agwab/pi-subagent/node_modules/typebox; development=false; optional=false"
-    },
-    {
       "SPDXID": "SPDXRef-node-modules-ansi-regex-a9b9a5c359",
       "name": "ansi-regex",
       "versionInfo": "5.0.1",
@@ -212,23 +166,6 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/ansi-styles; development=false; optional=false"
-    },
-    {
-      "SPDXID": "SPDXRef-node-modules-anthropic-ai-sandbox-runtime-185c2c90f3",
-      "name": "@anthropic-ai/sandbox-runtime",
-      "versionInfo": "0.0.54",
-      "downloadLocation": "https://registry.npmjs.org/@anthropic-ai/sandbox-runtime/-/sandbox-runtime-0.0.54.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "Apache-2.0",
-      "licenseDeclared": "Apache-2.0",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "zszEoq/z02SgJLlPFcoegqz2UonYbn3Gi//Hwza6KdUolg9HeGw/mPuO7Ybp4EzgLxG6ifA4KOrozErYKJuFag=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/@anthropic-ai/sandbox-runtime; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-anthropic-ai-sdk-682d4010c6",
@@ -4381,23 +4318,6 @@
       "comment": "npm lock path=node_modules/is-fullwidth-code-point; development=false; optional=false"
     },
     {
-      "SPDXID": "SPDXRef-node-modules-jiti-3fa9a03526",
-      "name": "jiti",
-      "versionInfo": "2.7.0",
-      "downloadLocation": "https://registry.npmjs.org/jiti/-/jiti-2.7.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/jiti; development=false; optional=false"
-    },
-    {
       "SPDXID": "SPDXRef-node-modules-jridgewell-sourcemap-codec-11d785d1ad",
       "name": "@jridgewell/sourcemap-codec",
       "versionInfo": "1.5.5",
@@ -5008,23 +4928,6 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/node-fetch; development=false; optional=false"
-    },
-    {
-      "SPDXID": "SPDXRef-node-modules-node-forge-c6d6d8b1dc",
-      "name": "node-forge",
-      "versionInfo": "1.4.0",
-      "downloadLocation": "https://registry.npmjs.org/node-forge/-/node-forge-1.4.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "(BSD-3-Clause OR GPL-2.0)",
-      "licenseDeclared": "(BSD-3-Clause OR GPL-2.0)",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/node-forge; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-node-gyp-build-528f0b6305",
@@ -7331,11 +7234,6 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-source-agwab-pi-subagent-7cd9ea345a"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-source-pi-permission-modes-9b38b384cd"
     },
     {
@@ -7376,27 +7274,12 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-agwab-pi-subagent-ebd1e557d5"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-agwab-pi-subagent-node-modules-typebox-434ae00f66"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-ansi-regex-a9b9a5c359"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-ansi-styles-9d675b59a5"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-anthropic-ai-sandbox-runtime-185c2c90f3"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -8626,11 +8509,6 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-jiti-3fa9a03526"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-jridgewell-sourcemap-codec-11d785d1ad"
     },
     {
@@ -8807,11 +8685,6 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-node-fetch-abf9db5376"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-node-forge-c6d6d8b1dc"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",

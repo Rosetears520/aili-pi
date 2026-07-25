@@ -1,10 +1,10 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { readFile } from "node:fs/promises";
 import { detectLifecycleConflicts } from "./conflicts.js";
-import { loadRegistry, validateProvenance, validateRegistry } from "./registry.js";
+import { loadRegistry, validateLiveVerification, validateProvenance, validateRegistry } from "./registry.js";
 import { inspectGlobalResources } from "./global-resources.js";
 import { nativeIntegrationDiagnostics } from "./native-integrations.js";
-import { subagentDiagnostics } from "./subagents.js";
+import { validateRoleProfiles } from "./roles.js";
 
 export type DoctorStatus = "PASS" | "WARN" | "SKIP" | "ERROR" | "UNVERIFIED";
 
@@ -24,23 +24,23 @@ const ROOT = new URL("../../", import.meta.url);
 
 export async function runDoctor(
   pi: Pick<ExtensionAPI, "getCommands">,
-  options: { platform?: NodeJS.Platform } = {},
+  options: { platform?: NodeJS.Platform; home?: string } = {},
 ): Promise<DoctorReport> {
   const results: DoctorResult[] = [];
   try {
     const packageJson = JSON.parse(await readFile(new URL("package.json", ROOT), "utf8")) as {
       version?: string;
       engines?: { node?: string };
-      pi?: { extensions?: string[]; prompts?: string[]; skills?: string[] };
+      pi?: { extensions?: string[]; prompts?: string[]; skills?: string[]; themes?: string[] };
     };
     const dependencies = (packageJson as { dependencies?: Record<string, string> }).dependencies ?? {};
-    const expectedDependencies = ["@agwab/pi-subagent@0.4.8", "pi-permission-modes@2.2.0", "pi-quota-status@0.3.0", "pi-web-access@0.13.0"];
+    const expectedDependencies = ["pi-permission-modes@2.2.0", "pi-quota-status@0.3.0", "pi-web-access@0.13.0"];
     const dependencyState = expectedDependencies.every((entry) => {
       const separator = entry.lastIndexOf("@");
       return dependencies[entry.slice(0, separator)] === entry.slice(separator + 1);
     });
     results.push({ id: "package", status: dependencyState ? "PASS" : "ERROR", evidence: `version=${packageJson.version ?? "unverified"}; node=${packageJson.engines?.node ?? "unverified"}; native_dependencies=${dependencyState ? "exact" : "drift"}` });
-    const resources = [...(packageJson.pi?.extensions ?? []), ...(packageJson.pi?.prompts ?? []), ...(packageJson.pi?.skills ?? [])];
+    const resources = [...(packageJson.pi?.extensions ?? []), ...(packageJson.pi?.prompts ?? []), ...(packageJson.pi?.skills ?? []), ...(packageJson.pi?.themes ?? [])];
     results.push({ id: "package.resources", status: resources.length === 11 ? "PASS" : "ERROR", evidence: `declared=${resources.length}` });
   } catch (error) {
     results.push({ id: "package", status: "ERROR", evidence: boundedError(error) });
@@ -55,7 +55,8 @@ export async function runDoctor(
     results.push({ id: "skill.snapshot", status: "ERROR", evidence: boundedError(error) });
   }
 
-  const conflicts = detectLifecycleConflicts(pi.getCommands());
+  const commands = pi.getCommands();
+  const conflicts = detectLifecycleConflicts(commands);
   results.push({ id: "rose.prompts", status: conflicts.length === 0 ? "PASS" : "ERROR", evidence: conflicts.length === 0 ? "five lifecycle/review prompts have unique ownership" : `conflicts=${conflicts.map((item) => item.name).join(",")}` });
 
   try {
@@ -68,11 +69,38 @@ export async function runDoctor(
     results.push({ id: "capability.registry", status: "ERROR", evidence: boundedError(error) });
   }
 
-  const staticSubagents = await subagentDiagnostics();
-  results.push({ id: "roles.subagents", ...staticSubagents });
+  try {
+    const [profileErrors, liveErrors] = await Promise.all([
+      validateRoleProfiles(),
+      validateLiveVerification(),
+      ...[
+        "src/runtime/persistent-agents/runtime.ts",
+        "src/runtime/persistent-agents/storage.ts",
+        "src/runtime/persistent-agents/task-coordinator.ts",
+        "src/runtime/persistent-agents/hub.ts",
+        "src/runtime/persistent-agents/output-delivery.ts",
+      ].map((path) => readFile(new URL(path, ROOT), "utf8")),
+    ]);
+    results.push({
+      id: "roles.agents",
+      status: profileErrors.length === 0 ? "PASS" : "ERROR",
+      evidence: profileErrors.length === 0 ? "profiles=20; selectors=19 specialized + general" : profileErrors.slice(0, 3).join("; "),
+    });
+    results.push({
+      id: "agent.framework",
+      status: profileErrors.length === 0 && liveErrors.length === 0 ? "PASS" : profileErrors.length > 0 ? "ERROR" : "UNVERIFIED",
+      evidence: profileErrors.length > 0
+        ? `public runtime registered but profile validation failed: ${profileErrors.slice(0, 3).join("; ")}`
+        : liveErrors.length > 0
+          ? `public tools=task,hub; legacy subagent absent; ${liveErrors.slice(0, 2).join("; ")}`
+          : "public tools=task,hub; legacy subagent absent; deterministic and authorized provider/sandbox/external-workspace gates pass",
+    });
+  } catch (error) {
+    results.push({ id: "agent.framework", status: "ERROR", evidence: boundedError(error) });
+  }
   results.push({ id: "permission.native", ...nativeIntegrationDiagnostics(pi.getCommands()) });
   try {
-    const global = await inspectGlobalResources();
+    const global = await inspectGlobalResources(options.home);
     const ready = global.appendSystem === "installed" && global.roles.missing.length === 0;
     results.push({ id: "global.resources", status: ready ? "PASS" : "UNVERIFIED", evidence: `append=${global.appendSystem}; roles=${global.roles.installed}/${global.roles.expected}; stale=${global.roles.stale.length}; path=${global.roleDirectory}` });
   } catch (error) {

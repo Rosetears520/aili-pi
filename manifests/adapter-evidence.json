@@ -8,38 +8,71 @@
       "sourceRevision": "7eb35f357ad489f5841ee10dac1e44549c1bdb76",
       "verification": [
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "artifacts": [
-        { "path": "package-lock.json", "sha256": "a9e5a3e4d1076b3179dd8cca5ef89f9fddc838e0acf9abcc1f42daf2a90ddafb" },
-        { "path": "tests/integration/extension-load.test.ts", "sha256": "f2fdceb965f55bc481acc6457eee5cac9499dac08e8c3d17ca60efd07f13e96c" },
-        { "path": "tests/unit/runtime.test.ts", "sha256": "9e99920e7e16529f109771d659f611c9fa580941a5dbf924b2d9d117dd3adeee" }
+        {
+          "path": "package-lock.json",
+          "sha256": "006a165d0b94cd75a0a8cfbcd54f588b5d87441699316fb128512748b5bfd857"
+        },
+        {
+          "path": "tests/integration/extension-load.test.ts",
+          "sha256": "f2fdceb965f55bc481acc6457eee5cac9499dac08e8c3d17ca60efd07f13e96c"
+        },
+        {
+          "path": "tests/integration/persistent-agent-host-seams.test.ts",
+          "sha256": "562ca1ce07e9d57861b48c210a8d10b1d8cbe3ffad7db6ac20ecb178f3beda36"
+        }
       ]
     },
     {
       "capability": "subagent.dispatch",
       "status": "adapted",
-      "owner": "src/runtime/subagents.ts",
+      "owner": "src/runtime/persistent-agents/production.ts",
       "sourceRevision": "7eb35f357ad489f5841ee10dac1e44549c1bdb76",
       "verification": [
         "npm run verify:roles",
-        "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/package-runtime.test.ts",
+        "npm run test:doctor"
       ],
       "artifacts": [
-        { "path": "src/runtime/subagents.ts", "sha256": "9f09e0e8a380d026d82b0842f2c687da2f3529b43a7ef6d1a6aad47d71190d48" },
-        { "path": "src/runtime/child-guard.ts", "sha256": "9da3c1d80805fd76bbf7a7fd253dff44f0756439fdee039bd7d7fd30766329e1" },
-        { "path": "src/runtime/credential-guard.ts", "sha256": "01d76ff0a9a2a0a08a2d2e52b6ed050d925df5e5bea1e6194130e00bfe22cde3" },
-        { "path": "tests/unit/subagents.test.ts", "sha256": "16fc1fbd1759befeed03a2428294c28d662022622c61a6444e23b365dc7447aa" },
-        { "path": "tests/unit/child-guard.test.ts", "sha256": "b187d6d84cd0829ae5474e133b4df911a80b75b9e89622b8543a1c5894be4974" },
-        { "path": "tests/integration/generic-permission.test.ts", "sha256": "90cc4ee67098f671dddac495d5e2cd5dc2c50131297fd04f0d72a1ca44217f24" },
-        { "path": "tests/integration/generic-subagent.test.ts", "sha256": "a13f8564bdd1bd735f9313d2ad71511a47c939dd6351f2f460771cb48a7fc80b" },
-        { "path": "tests/unit/roles.test.ts", "sha256": "72b61af16ff66506aaaceac28c92d8b3756741e3c4df0544686b3d4940215b57" },
-        { "path": "scripts/sync-roles.ts", "sha256": "a4fd66c95d91ebd92f0b1c6164a84809c4b5a1bf1e185dbdd61af23688dd2d9c" },
-        { "path": "tests/integration/live-subagent.test.ts", "sha256": "b88750f74b203cdbdb9d0e453e16f720ff4d8e4591ca140e0a3c7e1d8428868c" },
-        { "path": "manifests/live-verification.json", "sha256": "f5c80dfb2fb989b43af3b7460510b0a546cc05f8ff9e671c3e9284384c33d95b" }
+        {
+          "path": "src/runtime/persistent-agents/production.ts",
+          "sha256": "312ac2a3cd32b298550caedc09d74d97d279ef9380a7e03ca32a424b70121ee1"
+        },
+        {
+          "path": "src/runtime/persistent-agents/runtime.ts",
+          "sha256": "fbf90c6c4ba573b64bca98e775aeb036ba8f28788e3919d0beebe52c36ef58de"
+        },
+        {
+          "path": "src/runtime/persistent-agents/storage.ts",
+          "sha256": "cb33384792ca375fab62bf8529407c4e16e0e952fe7a28d0f1022f26ab7589d7"
+        },
+        {
+          "path": "src/runtime/persistent-agents/permission.ts",
+          "sha256": "48b30508491bca7fcd04d82b30d9dde1423499c2f02c014074c3f030c7ebd8ba"
+        },
+        {
+          "path": "tests/unit/persistent-agent-task.test.ts",
+          "sha256": "2562ff539e9f1cf756c2097beb9de09b0c28f33088c0f18fdbb91c978a898c3f"
+        },
+        {
+          "path": "tests/unit/persistent-agent-hub.test.ts",
+          "sha256": "8d90b71b4db40822b566d1807212ea20ed30d0a85706ee058d869736ccd0d306"
+        },
+        {
+          "path": "tests/unit/persistent-agent-policy.test.ts",
+          "sha256": "1a397beeef79d4553461314020fc91655ff1bbc88d1f23b76c1391ab1e78b8f8"
+        },
+        {
+          "path": "tests/integration/persistent-agent-runtime.test.ts",
+          "sha256": "50c930a4b72e5697f0931f0fcd9ff1a17a22b8dcd8f7e3ad51c255b6e454a2f9"
+        },
+        {
+          "path": "tests/integration/package-runtime.test.ts",
+          "sha256": "bc3659d12c416343b1c3bafffd3365a77fb342e6b5ac5e4d3abd8aaf9d608eea"
+        }
       ]
     }
   ]

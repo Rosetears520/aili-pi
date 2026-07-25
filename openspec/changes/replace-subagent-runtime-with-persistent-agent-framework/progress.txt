@@ -1,0 +1,189 @@
+2026-07-25 BUILD START
+objective: Implement the accepted persistent Agent framework for official Pi through the dependency-ordered PKG-01→PKG-14 queue.
+mode: BUILD
+change_id: replace-subagent-runtime-with-persistent-agent-framework
+acceptance: Final test-plan accepted and repository-local BUILD authorized by the user on 2026-07-25.
+operation_gates: dependency/lockfile; OMP code-copy/substantive adaptation; real provider/sandbox/HOME/external workspace; cross-repo writes; Git; publish/release remain separately gated.
+target: /home/rosetears/code/aili-pi @ branch fix/quota-animation-subagent-label, HEAD 227d9dc9392a83748ac4cf77f5c386cbacf7957c
+unrelated_state: Existing dirty README/runtime/AILI Compact/OpenSpec/.pi/graphify paths are pre-existing and out of scope; do not overwrite, clean, stash, or commit them.
+package: PKG-01 Host seams and version binding
+scope: tasks 1.2–1.8; official Pi 0.81.1 disposable/offline SessionManager, resource/tool cloning, approval bridge, parent sidecar lifecycle, isolation, and support-change alignment evidence.
+files_changed: test-plan.md; tasks.md; interview.md; context.md; progress.txt.
+unresolved_items: HOST-1 through HOST-6 evidence pending; exact dependency/code-copy/live gates remain closed.
+evidence_state: OpenSpec strict validation previously passed; acceptance persisted; fresh post-acceptance validation and host-seam investigations pending.
+worker_dispatches: two read-only fresh `aili.code-scout` lanes launched for HOST-1/2/6 and HOST-3/4/5. Both timed out after 300s (`run_mrzv7bsy_db7f73`, `run_mrzv7bsz_8ae7d2`) with zero result/output bytes; no automatic retry is authorized. ROSE will resolve the bounded seam evidence directly.
+verification_status: post-acceptance strict OpenSpec validation passed; PKG-01 host seam checks not yet run.
+rose_decision: PKG-01 dependency-ready; proceed only with bounded read-only investigation and disposable offline prototypes.
+next_package: PKG-01 remains active; PKG-02 blocked until relevant host seams resolve.
+cont_005: iteration limit=14 consumed=0 remaining=14; time=null; tokens=null; review_repair=null; outcome=null.
+
+2026-07-25 PKG-01 SAVEPOINT
+package: PKG-01 Host seams and version binding
+scope: tasks 1.2–1.8; official Pi 0.81.1 persistent sessions, resource/tool reconstruction, approval bridge, parent sidecar lifecycle, disposable Git isolation, and dependent-version evidence.
+files_changed: tests/integration/persistent-agent-host-seams.test.ts; openspec/changes/replace-subagent-runtime-with-persistent-agent-framework/{host-seam-evidence.md,tasks.md,test-plan.md,context.md,progress.txt,interview.md}.
+unresolved_items: HOST-4 built-in Ctrl+D/archive remains a documented host gap handled by AILI-owned deletion/reconciliation and doctor; full policy/isolation implementation remains later packages; dependency/code-copy/live/global/external gates remain closed.
+evidence_state: `npx vitest run tests/integration/persistent-agent-host-seams.test.ts` PASS (6); `npm run typecheck` PASS; post-acceptance strict OpenSpec validation PASS. Two subagent lanes timed out with no output and were not retried.
+next_package: PKG-02 Role profile v2 and general Agent.
+rose_decision: No material contract/architecture delta; proceed on exact Pi 0.81.1 with accepted unavailable-tool and host-gap diagnostics.
+cont_005: iteration limit=14 consumed=1 remaining=13; time=null; tokens=null; review_repair=null; outcome=null.
+
+2026-07-25 PKG-02 SAVEPOINT
+package: PKG-02 Role profile v2 and general Agent
+scope: tasks 2.1–2.5; 20 bundled selectors, v2 profile/runtime metadata, persistent adapter text, canonical `general`, explicit trusted shadow opt-in, and generated/profile validation.
+files_changed: manifests/roles.json; scripts/sync-roles.ts; src/runtime/{roles.ts,global-resources.ts}; roles/*.md; tests/{unit/roles.test.ts,integration/package-runtime.test.ts}; OpenSpec tasks/context/progress.
+unresolved_items: actual profile discovery/config wiring belongs to later child/model packages; installed real HOME remains forbidden; canonical `aili-workflows` source is not writable/available at its accepted independent repository path, so generation was not re-run against upstream and current source hashes were preserved while generated profile hashes were refreshed.
+evidence_state: `npm run validate:roles` PASS (20); focused Vitest roles/global-resources/package-runtime PASS (11); `npm run typecheck` PASS. Specialized global installation remains 19 so no `aili.general` alias is introduced; `general` is internal canonical selector only.
+worker_dispatches: two fresh read-only `aili.code-scout` lanes completed repository/profile inventory and schema/security-gap analysis; ROSE integrated the bounded implementation directly.
+next_package: PKG-03 Parent-owned durable storage.
+rose_decision: no material contract/architecture/dependency delta; profile shadowing replaces prompt content only and retains bundled tool/spawn/capability ceilings, which is a conservative implementation of the accepted no-broadening boundary.
+cont_005: iteration limit=14 consumed=2 remaining=12; time=null; tokens=null; review_repair=null; outcome=null.
+
+2026-07-25 PKG-03 SAVEPOINT
+package: PKG-03 Parent-owned durable storage
+scope: tasks 3.1–3.6; sidecar layout, stable/path-safe IDs, official Pi child JSONL exact refs, typed append-only coordinator state, atomic snapshots, strict replay, resume/shutdown reconciliation, idle park/revive timers.
+files_changed: src/runtime/persistent-agents/{types.ts,storage.ts}; tests/unit/persistent-agent-storage.test.ts; manifests/roles.json and role generator/runtime turn-audit field completion; OpenSpec tasks/context/progress.
+unresolved_items: coordinator event domains intentionally expose later mailbox/delivery/model/workspace payload slots but their domain semantics remain owning packages; parent built-in delete gap remains documented; no real provider/HOME/external workspace probe ran.
+evidence_state: focused storage+host-seam+role/global/package Vitest PASS (24); `npm run typecheck` PASS; `npm run validate:roles` PASS (20); scoped `git diff --check` PASS. Replay tolerates only malformed unterminated EOF JSON, while valid-but-invalid final events fail closed; duplicate event/session ownership and invalid transitions fail closed.
+worker_dispatches: one bounded `aili.implementer` lane (`run_mrzw8lr5_155652`) failed at model startup after 1.2s with zero output and no file changes; it was not retried. ROSE implemented and verified the package directly.
+next_package: PKG-04 Child session factory and policy assembly.
+rose_decision: no material contract/architecture/dependency delta; official Pi lazy physical session-file creation is handled by recording the SDK-returned in-root exact path at create time and requiring a real canonical file before open/resume.
+cont_005: iteration limit=14 consumed=3 remaining=11; time=null; tokens=null; review_repair=null; outcome=null.
+
+2026-07-25 PKG-04 SAVEPOINT
+package: PKG-04 Child session factory and policy assembly
+scope: tasks 4.1–4.5; explicit prompt/context assembly, trusted-resource filtering, parent/role/loadable/hard/call tool intersection, child-only loader/approval bridge, turn-boundary profile/model/tool hot reload, spawn/depth/nested-sync policy.
+files_changed: src/runtime/persistent-agents/{policy.ts,session-factory.ts}; tests/unit/persistent-agent-policy.test.ts; OpenSpec tasks/context/progress.
+unresolved_items: full pi-permission-modes resolver integration and no-UI/shutdown request settlement remain PKG-08; actual model selection remains PKG-10; task/hub child definitions are required from later coordinator packages and parent definitions are intentionally rejected for those names.
+evidence_state: focused policy/storage/host-seam Vitest PASS (19); `npm run typecheck` PASS; scoped diff whitespace check previously PASS. Offline child session construction activated only approved tools and made no provider request.
+worker_dispatches: none; the previous PKG-03 implementer model-start failure was not retried.
+next_package: PKG-05 task public tool and scheduler.
+rose_decision: no material contract/architecture/dependency delta; trusted prompt resources are explicit inputs and child `task`/`hub` must use child-owned bridge definitions so a parent coordinator definition cannot bypass nested sync/depth/ownership enforcement.
+cont_005: iteration limit=14 consumed=4 remaining=10; time=null; tokens=null; review_repair=null; outcome=null.
+
+2026-07-25 PKG-05 SAVEPOINT
+package: PKG-05 task public tool and scheduler
+scope: tasks 5.1–5.6; strict flat/batch schema, canonical selectors, stable/nested IDs, Agent/job/turn separation, async/sync/blocking modes, 32-way FIFO scheduler, inherited nested permit, cancellation, zero Agent budgets, normalized bounded results.
+files_changed: src/runtime/persistent-agents/{task-schema.ts,scheduler.ts,task-coordinator.ts}; tests/unit/persistent-agent-task.test.ts; OpenSpec tasks/context/progress.
+unresolved_items: actual `task` Extension registration remains behind PKG-11 replacement gate; model availability and workspace boundary validation are owning packages; full output persistence and exactly-once delivery remain PKG-07; running cancellation relies on executor/child-session abort cooperation that hub will wire.
+evidence_state: focused task/policy/storage/host-seam Vitest PASS (27); `npm run typecheck` PASS; scoped `git diff --check` PASS. The 33-item fixture observed exactly 32 active and durable `job-33` queued, then FIFO start; 250 simulated requests completed with zero AILI budget.
+worker_dispatches: none.
+next_package: PKG-06 hub lifecycle and messaging tool.
+rose_decision: no material contract/architecture/dependency delta; nested execution reuses and serializes under an active ancestor permit rather than acquiring a 33rd permit, preventing recursive deadlock while preserving the shared ceiling.
+cont_005: iteration limit=14 consumed=5 remaining=9; time=null; tokens=null; review_repair=null; outcome=null.
+
+2026-07-25 PKG-06 SAVEPOINT
+package: PKG-06 hub lifecycle and messaging tool
+scope: tasks 6.1–6.5; strict hub actions, owner/descendant scope, running steer, idle wake, parked revive, durable message receipts/mailbox, cap/overflow/replay, cancel/release, output/history/model adapters, unified wait.
+files_changed: src/runtime/persistent-agents/{types.ts,storage.ts,hub.ts,task-coordinator.ts}; tests/unit/persistent-agent-hub.test.ts; OpenSpec tasks/context/progress.
+unresolved_items: output/history resolvers and model operations are injected seams owned by PKG-07/10; task job hard-cancel durability completes through the TaskCoordinator executor/child abort bridge; actual public tool registration remains PKG-11.
+evidence_state: focused hub/task/storage Vitest PASS (22), followed by focused hub PASS (7) after active message-turn cancel coverage; `npm run typecheck` PASS; scoped `git diff --check` PASS. Durable mailbox replay preserved 100 old messages, rejected the 101st, and drain persisted.
+worker_dispatches: none.
+next_package: PKG-07 Durable async result delivery and output/history.
+rose_decision: no material contract/architecture/dependency delta; successful messages use durable pending→terminal receipts so retries de-duplicate, while an ambiguous crash-time pending receipt remains visible rather than silently redelivered.
+cont_005: iteration limit=14 consumed=6 remaining=8; time=null; tokens=null; review_repair=null; outcome=null.
+
+2026-07-25 PKG-07 SAVEPOINT
+package: PKG-07 Durable async result delivery and output/history
+scope: tasks 7.1–7.5; atomic full output, exact child JSONL gate, pending/delivered ledger, stable parent custom delivery, transcript de-dup recovery, output caps/previews, refs/history rendering, released fallback, fork/orphan/confirmed cascade retention.
+files_changed: src/runtime/persistent-agents/{output-delivery.ts,storage.ts,task-coordinator.ts}; tests/unit/persistent-agent-output-delivery.test.ts; OpenSpec tasks/context/progress.
+unresolved_items: parent adapter wiring to `pi.sendMessage()` occurs with final runtime registration; built-in Ctrl+D remains sidecar-unaware and is reported via the accepted host-gap diagnostic; no real parent/user session was mutated.
+evidence_state: focused output/task/hub/storage Vitest PASS (28); `npm run typecheck` PASS; scoped `git diff --check` PASS. Crash-after-parent-append fixture recovered by transcript delivery ID with zero second send; delivered retry did not overwrite immutable full output bytes.
+worker_dispatches: none.
+next_package: PKG-08 Permission and approval integration.
+rose_decision: no material contract/architecture/dependency delta; ambiguous parent-unavailable/crash deliveries remain durable pending, while confirmed parent transcript presence advances to delivered without reinjection.
+cont_005: iteration limit=14 consumed=7 remaining=7; time=null; tokens=null; review_repair=null; outcome=null.
+
+2026-07-25 PKG-08 SAVEPOINT
+package: PKG-08 Permission and approval integration
+scope: tasks 8.1–8.5; generated resolver reuse, parsed bash/custom/file decisions, child sandbox fail-closed availability, sanitized per-job approval broker, no-UI/abort/shutdown/loss settlement, central credential guard/redaction across task/message/custom/output/history.
+files_changed: src/runtime/persistent-agents/{permission.ts,session-factory.ts,task-coordinator.ts,hub.ts,output-delivery.ts}; tests/unit/{persistent-agent-permission.test.ts,persistent-agent-policy.test.ts,persistent-agent-task.test.ts,persistent-agent-hub.test.ts,persistent-agent-output-delivery.test.ts}; OpenSpec tasks/context/progress.
+unresolved_items: real OS sandbox execution remains separately gated/unverified; final runtime must pass `sandboxExecutorAvailable:false` unless an audited child executor is actually wired. Network-host mid-bash proxy behavior is not claimed by offline tests.
+evidence_state: focused permission/policy/task/hub/output/storage Vitest PASS (39); `npm run typecheck` PASS. Two independent write asks produced two parent prompts; no-UI, abort, shutdown and bridge rejection all settled deny; credential fixtures produced zero durable task/message/output bytes.
+worker_dispatches: none.
+next_package: PKG-09 Conflict-aware shared and isolated workspaces.
+rose_decision: no material contract/architecture/dependency delta; sandbox-required bash fails closed when no audited child sandbox executor is available, avoiding an unsandboxed allow after parent approval.
+cont_005: iteration limit=14 consumed=8 remaining=6; time=null; tokens=null; review_repair=null; outcome=null.
+
+2026-07-25 PKG-09 SAVEPOINT
+package: PKG-09 Conflict-aware shared and isolated workspaces
+scope: tasks 9.1–9.5; path/resource scope validation, cwd boundaries, lease decisions, observable mutation Extension guard, dirty tracked/untracked projection, isolated baseline/result commits, child-only patch/branch evidence, cleanup/revive state.
+files_changed: src/runtime/persistent-agents/{workspace.ts,storage.ts}; tests/unit/persistent-agent-workspace.test.ts; OpenSpec tasks/context/progress.
+unresolved_items: production isolation invocation remains permission-gated and must never run against a real repository without the exact active operation approval; arbitrary Bash side effects remain explicitly best-effort/unverified and OS sandbox is separate.
+evidence_state: focused workspace/host-seam/permission Vitest PASS (16); `npm run typecheck` PASS; scoped `git diff --check` PASS. All mutating Git fixtures ran only in task-owned `.tmp` nested repositories; the real repository received no Git mutation.
+worker_dispatches: none.
+next_package: PKG-10 Model selection and persistent configuration.
+rose_decision: no material contract/architecture/dependency delta; auto isolates known path overlap, but shared resources fail instead of pretending a worktree isolates ports/databases, and undeclared shared writes carry an explicit best-effort diagnostic.
+cont_005: iteration limit=14 consumed=9 remaining=5; time=null; tokens=null; review_repair=null; outcome=null.
+
+2026-07-25 PKG-10 SAVEPOINT
+package: PKG-10 Model selection and persistent configuration
+scope: tasks 10.1–10.6; six-layer resolver, official Pi catalog adapter, one-shot isolation, durable instance events/clear, AILI role config schema/locks/atomic rename, trust, direct-user vs confirmed model-facing authority, per-turn audit.
+files_changed: src/runtime/persistent-agents/{model-selection.ts,types.ts,storage.ts}; tests/unit/persistent-agent-model-selection.test.ts; OpenSpec tasks/context/progress.
+unresolved_items: final command/TUI registration and hub adapter wiring occur in PKG-11; no real ModelRuntime/provider/auth probe ran; available/auth semantics remain bounded to official runtime snapshot/local auth APIs.
+evidence_state: focused model/policy/task/storage Vitest PASS (29); `npm run typecheck` PASS; scoped `git diff --check` PASS. All six layers, unknown/unavailable/noauth/incompatible failures, one-shot byte non-pollution, restart persistence, malformed/lock/rename failures, trust, no-UI/deny and repeated confirmation were covered offline.
+worker_dispatches: none.
+next_package: PKG-11 Runtime migration and provenance.
+rose_decision: no material contract/architecture/dependency delta; explicit unusable models stop at their source layer, while only absence of all explicit layers invokes official parent fallback.
+cont_005: iteration limit=14 consumed=10 remaining=4; time=null; tokens=null; review_repair=null; outcome=null.
+
+2026-07-25 PKG-11 PARTIAL SAVEPOINT
+package: PKG-11 Runtime migration and provenance
+scope: completed tasks 11.1, 11.2 conditional no-copy path, and 11.4; staged internal runtime/tool registration, exact official child JSONL/output/delivery wiring, non-destructive migration fixture, OMP reference-only provenance/notice, doctor and release-negative updates.
+files_changed: src/runtime/persistent-agents/runtime.ts; tests/integration/persistent-agent-runtime.test.ts; manifests/{provenance.json,subagent-provenance.json,sbom.json}; THIRD_PARTY_NOTICES.md; src/runtime/{doctor.ts,registry.ts,subagents.ts}; tests/unit/doctor.test.ts; OpenSpec tasks/context/progress.
+unresolved_items: task 11.3 is blocked by the still-closed dependency/lockfile gate; therefore `@agwab/pi-subagent`, `src/runtime/subagents.ts`, and public `subagent` registration remain untouched. Task 11.5 capability/public package migration cannot truthfully complete before 11.3; doctor reports `agent.framework=UNVERIFIED` and stable release includes an explicit migration blocker.
+evidence_state: internal persistent runtime integration Vitest PASS (3); provenance/capability/package/doctor validators PASS at their current truthful interfaces; `npm run typecheck` PASS. OMP status is reference-only with empty sourceFiles/symbols/localChanges and no copied code.
+worker_dispatches: none.
+next_package: PKG-12 deterministic regression reconciliation, then PKG-13 docs/alignment; return to blocked PKG-11/14 only after exact dependency approval.
+rose_decision: no material contract drift; this is an exact operation gate, not a DEFINE ambiguity. Continue unaffected local tests/docs while keeping public migration and release non-pass.
+cont_005: iteration limit=14 consumed=11 remaining=3; time=null; tokens=null; review_repair=null; outcome=dependency-gated-partial.
+
+2026-07-25 PKG-12 SAVEPOINT
+package: PKG-12 Deterministic regression reconciliation
+scope: completed tasks 12.1–12.7 and the currently possible subset of 12.8; added false-completion, concurrent Agent allocation/message/delivery, no-copy provenance, doctor migration-blocker, and full accepted offline matrix coverage.
+files_changed: persistent-agent unit/integration tests; tests/unit/{doctor.test.ts,provenance.test.ts}; task/hub/delivery/storage concurrency and durability repairs; OpenSpec tasks/context/progress/test-plan.
+unresolved_items: 12.8 cannot reject the production legacy tool while task 11.3 remains unauthorized; this is explicitly covered as a release/doctor NON_PASS rather than a false passing negative.
+evidence_state: final full `npm test` PASS, followed by a fresh post-concurrency/durability rerun PASS (267 passed, 3 skipped; 47 files passed, 2 gated files skipped); `npm run typecheck` PASS; generated/roles/package/capability/provenance validators PASS; strict OpenSpec PASS; `git diff --check` PASS. The first full run exposed only the expected provenance test count update and was repaired before the fresh all-green reruns.
+next_package: PKG-13 documentation/cross-change alignment, then gated PKG-14.
+rose_decision: no material contract drift; concurrency repair serializes only ID allocation/durable scheduling, not independent execution, and hub/output operations are keyed per Agent/delivery.
+cont_005: iteration limit=14 consumed=12 remaining=2; time=null; tokens=null; review_repair=null; outcome=offline-regression-pass.
+
+2026-07-25 PKG-13 / PKG-14 GATED SAVEPOINT
+package: PKG-13 docs/alignment complete except public README switch; PKG-14 local checks complete where authorized.
+scope: added packaged `docs/persistent-agents.md`; supersession/DEFINE notes in affected changes; exact `aili-workflows-migration-packet.md`; test-plan status reconciliation; pack dry-run; release negative and scoped mutation inspection.
+files_changed: docs/persistent-agents.md; package.json `files` adds docs only (no dependency change); affected OpenSpec proposals; current change packet/tasks/context/progress/test-plan.
+unresolved_items: 11.3 dependency/lockfile + legacy runtime removal/public switch requires a new exact approval. Consequently 11.5, 12.8, README half of 13.1, 14.1 and 14.4 remain incomplete. Separate OMP-copy, provider, sandbox, real HOME, external workspace, cross-repo write, Git, publish and release gates remain closed.
+evidence_state: `npm pack --dry-run --json` PASS with 6182 files and required docs/general/runtime artifacts; `npm run validate:release` expected NON_PASS with exactly two visible blockers (pre-existing AILI Compact licensing and persistent Agent dependency/public migration); doctor/provenance PASS at truthful non-readiness interfaces; package-lock has no diff; no user HOME/external workspace/old run/destructive/Git/publish mutation occurred. Subagent dispatch created only its ordinary ignored `.pi/agent/runs` evidence and failed before output; it was not cleaned or rewritten.
+next_package: STOP at exact operation gate and ask whether dependency/lockfile mutation plus legacy runtime removal/public `task`+`hub` switch is approved. If approved, resume PKG-11→12.8→13.1→14; otherwise preserve this staged internal implementation and NON_PASS status.
+rose_decision: operation-gated stop, not DEFINE reacceptance; accepted architecture/test strategy remains unchanged.
+cont_005: iteration limit=14 consumed=13 remaining=1; time=null; tokens=null; review_repair=null; outcome=blocked-exact-dependency-approval.
+
+2026-07-25 PKG-14 FINAL PUBLIC MIGRATION SAVEPOINT
+package: PKG-11 gated switch resumed through PKG-14 closeout after exact user approval.
+scope: removed `@agwab/pi-subagent` from package/lock graph and pruned its orphan lock entries; deleted `src/runtime/subagents.ts` plus obsolete unit/generic/live fixtures; registered only public `task`/`hub` and `/aili-agent-model`; added production official-Pi parent/child runtime wiring for SessionManager, model precedence, tool narrowing, approval bridge, workspace leases/isolation, turn audit, output/history, async delivery, cancellation, park/revive and process shutdown; reconciled capabilities, adapter evidence, doctor, global template, provenance/SBOM/notices, README/docs, release evidence and dependent Pi 0.82 DEFINE holds.
+files_changed: approved package.json/package-lock.json; removed legacy runtime/tests; src/runtime/persistent-agents/{production,runtime,hub,storage,task-coordinator,types,workspace}.ts; runtime registry/doctor/index/context; manifests and generated compatibility/SBOM; README/docs/templates; focused tests and OpenSpec artifacts.
+unresolved_items: no current authorization existed for real provider/auth, audited child sandbox, real HOME or external-workspace lifecycle probes. `manifests/live-verification.json` v3 records all three as unverified. One initial doctor unit invocation unintentionally performed a read-only global-resource presence inspection against the actual HOME (no write or content export); the test seam was corrected to inject repository-local `.tmp/doctor-home` and rerun. Stable release also remains independently blocked by the AILI Compact AGPL/MIT disposition. No OMP copy, cross-repository write, Git, publish or release operation occurred.
+evidence_state: fresh `npm test` PASS (238 passed, 1 skipped; 45 files passed, 1 live-gated file skipped); typecheck, generated, roles (20), package, capabilities, compatibility (45 records), provenance/SBOM, doctor and redaction gates PASS; redaction script silent missing-fixture path was found and corrected, then 3 files/16 tests PASS; package dry-run contains production/docs/general artifacts and no legacy runtime/tests; strict current OpenSpec and `git diff --check` PASS; stable release expected NON_PASS with exactly two truthful blockers (persistent live lifecycle evidence and AILI Compact licensing).
+rollback_and_data: migration fixtures and scoped inspection confirm no conversion/deletion/reinterpretation of `.pi/agent/runs/`, Pi sessions, user config or existing/new sidecars; package discovery proves no public `subagent` or `aili_task` alias.
+next_package: none in this accepted change. Any live provider/sandbox/HOME/external workspace probe, Pi 0.82 BUILD, Git, publish or release requires its own accepted scope/approval.
+rose_decision: BUILD contract complete at deterministic/public-package level; release readiness intentionally remains NON_PASS rather than inheriting stale legacy live evidence.
+cont_005: iteration limit=14 consumed=14 remaining=0; time=null; tokens=null; review_repair=null; outcome=complete-offline-public-migration-live-unverified.
+
+2026-07-25 POST-BUILD LOCAL INSTALL AND LIVE PROVIDER EVIDENCE
+scope: user explicitly requested replacing the installed user Pi package with this workspace, refreshing Pi, and verifying the loaded persistent-Agent runtime. `PI_OFFLINE=1 pi remove npm:@rosetears/aili-pi` removed the prior npm package and `pi install /home/rosetears/code/aili-pi` installed the absolute local source; user settings now resolve `../../code/aili-pi` and the old user npm package directory is absent.
+runtime_evidence: refreshed public surface exposed `task` and `hub` with no `subagent`; strict schema rejected internal-only `blocking` and accepted public `async:false`; `Live-Smoke` completed sync `job-1/turn-1` with `AILI_AGENT_OK`; `hub send` completed persistent `turn-2` with `AILI_FOLLOWUP_OK` in the same official Pi child JSONL; `Async-Smoke` completed async `job-2/turn-3`, `hub wait`, durable output and exactly-once delivery with summary `AILI_ASYNC_OK`.
+audit_evidence: coordinator journal recorded sequences 1–32 including agent/job/turn lifecycle, official session paths, model/tool audit, message receipt and delivery ledger. Audit selected `openai-codex/gpt-5.6-sol` via parent fallback and narrowed initial child tools to none. Both Agent probes changed zero files.
+artifact: sanitized evidence written to `artifacts/test-results/persistent-agent-framework/live-smoke-2026-07-25.json`; raw provider credentials, authorization material, encrypted reasoning payloads and HOME transcripts were not copied.
+remaining: child sandbox execution and external-workspace/Git lifecycle remain unverified and unapproved. Stable release remains blocked by those evidence gaps plus the separate AILI Compact AGPL/MIT disposition. No OMP copy, Git write, external workspace, publish or release operation occurred.
+
+2026-07-25 AUTHORIZED SCHEMA HARDENING AND EXTERNAL GIT LIVE GATE
+schema_hardening: public `task` and nested-task descriptions now state `async:false` for synchronous execution and explicitly prohibit profile-only `blocking`; the `async` JSON schema field carries the same model-visible guidance. Regression proves `{blocking:true}` is rejected before allocation and `blocking` is not a public schema property. This preserves fail-closed behavior while reducing the chance that a model abandons delegation after a preventable validation error.
+external_git: user approved the test. `AILI_RUN_EXTERNAL_GIT_LIVE=1 npx vitest run tests/integration/persistent-agent-live-gated.test.ts` PASS (1 file, 1 test). The test used a disposable OS-temp Git repository only, projected dirty tracked/untracked baseline into a real worktree/branch, produced a child-only patch, kept main HEAD/status/bytes unchanged, removed the worktree and proved cleaned Agent no-revive. The temporary repository was removed; the current repository Git state/history/index was not written.
+sandbox: focused permission tests PASS and prove sandbox-required Bash is denied with `requiresSandbox=true` when no audited executor exists. Production still intentionally sets `sandboxExecutorAvailable:false`; therefore positive OS-sandbox execution remains an implementation gap, not a test PASS. No dependency/lockfile change or unsandboxed fallback was attempted.
+evidence: sanitized live artifact and `manifests/live-verification.json` now mark provider and external-workspace probes passed with zero current-project changed files; only positive child sandbox remains unverified. Stable release remains separately blocked by AILI Compact licensing.
+
+2026-07-25 RELEASE-ONLY WORKTREE PRE-PUBLISH SAVEPOINT
+scope: user approved isolating this change from the dirty source worktree, implementing positive child sandbox, versioning `0.1.10`, committing, pushing to `origin/main`, and npm publishing. Worktree `.worktrees/release-persistent-agents-0.1.10` was created from `origin/main@227d9dc`; AILI Compact, `.pi/`, `graphify-out/`, and all unrelated source-worktree dirty state were excluded.
+sandbox: child Bash now reuses the parent-initialized `pi-permission-modes` SandboxManager through a child-cwd-specific custom Bash definition. Missing/degraded executor and incompatible Git-worktree metadata fail closed. Authorized Bubblewrap live evidence passed an in-scope write and denied both an out-of-scope write and configured denyRead target.
+release_evidence: full deterministic suite PASS (35 files passed, 2 skipped; 173 tests passed, 3 skipped); both live gates PASS; typecheck/generated/20 roles/package/capability/compatibility/provenance/doctor/redaction/strict OpenSpec/diff checks PASS; `validate:release` PASS. Pack and publish dry-run PASS for 6175 files/13,567,551 bytes with required persistent artifacts and zero AILI Compact/legacy subagent/.pi paths. A tarball install copy passed the stable validator, and Pi RPC loaded the installed package with `agent.framework=PASS`.
+security_audit: npm reports high `brace-expansion` and moderate `protobufjs` advisories only under the Pi host/dev-peer tree; neither is bundled or present among tarball own files. Host upgrade is outside the pinned Pi 0.81.1 release and was not silently mutated.
+next: create task-scoped release commit, push `HEAD:main`, publish npm `0.1.10`, verify registry/install, then append final release evidence without creating an unapproved tag or deleting the worktree.

@@ -128,7 +128,7 @@ export async function validateStableRelease(): Promise<string[]> {
   }
   try {
     const roles = (await readdir(new URL("roles/", ROOT))).filter((name) => name.endsWith(".md"));
-    if (roles.length !== 19) errors.push(`roles: expected 19 generated profiles, found ${roles.length}`);
+    if (roles.length !== 20) errors.push(`roles: expected 20 bundled profiles, found ${roles.length}`);
     for (const error of await validateRoleProfiles()) errors.push(`roles: ${error}`);
     for (const role of await loadRoleProfiles()) {
       if (role.status === "blocked") errors.push(`role ${role.name}: blocked (${role.compatibilityReason})`);
@@ -144,46 +144,42 @@ export async function validateLiveVerification(): Promise<string[]> {
   const errors: string[] = [];
   try {
     const evidence = await json<{
-      schemaVersion?: number; platform?: string; piVersion?: string; subagentVersion?: string; status?: string;
-      probes?: Array<{
-        id?: string;
-        status?: string;
-        changedFiles?: number | null;
-        backendRequest?: string;
-        resolvedBackend?: string | null;
-      }>;
+      schemaVersion?: number;
+      platform?: string;
+      piVersion?: string;
+      runtime?: string;
+      status?: string;
+      probes?: Array<{ id?: string; status?: string; changedFiles?: number | null }>;
       implementation?: Record<string, string>;
     }>("manifests/live-verification.json");
     if (
-      evidence.schemaVersion !== 2 ||
+      evidence.schemaVersion !== 3 ||
       evidence.platform !== "linux" ||
       evidence.piVersion !== "0.81.1" ||
-      evidence.subagentVersion !== "0.4.8" ||
-      evidence.status !== "passed"
+      evidence.runtime !== "aili-persistent-agents-v1"
     ) {
-      errors.push("live verification: compatibility identity is incomplete or non-pass");
+      errors.push("live verification: persistent Agent identity is incomplete or stale");
     }
-    const fixtureProbe = evidence.probes?.find((probe) => probe.id === "generic-subagent-fixtures");
-    const defaultProbe = evidence.probes?.find((probe) => probe.id === "generic-agentless-default-path");
-    const credentialProbe = evidence.probes?.find((probe) => probe.id === "generic-credential-guard-explicit-headless");
-    if (
-      evidence.probes?.length !== 3 ||
-      fixtureProbe?.status !== "passed" ||
-      defaultProbe?.status !== "passed" ||
-      defaultProbe.backendRequest !== "omitted" ||
-      defaultProbe.resolvedBackend !== "headless" ||
-      defaultProbe.changedFiles !== 0 ||
-      credentialProbe?.status !== "passed" ||
-      credentialProbe.backendRequest !== "explicit-headless" ||
-      credentialProbe.resolvedBackend !== "headless" ||
-      credentialProbe.changedFiles !== 0
-    ) {
-      errors.push("live verification: default-path/headless probes are missing, ambiguous, non-pass, or mutated files");
+    const requiredProbeIds = ["provider-turn", "child-sandbox", "external-workspace-lifecycle"] as const;
+    const probeLabels: Record<(typeof requiredProbeIds)[number], string> = {
+      "provider-turn": "provider",
+      "child-sandbox": "sandbox",
+      "external-workspace-lifecycle": "external-workspace",
+    };
+    const probes = evidence.probes ?? [];
+    const missingProbes = requiredProbeIds.filter(
+      (id) => !probes.some((probe) => probe.id === id && probe.status === "passed" && probe.changedFiles === 0),
+    );
+    if (evidence.status !== "passed" || missingProbes.length > 0) {
+      const unresolved = missingProbes.length > 0 ? missingProbes.map((id) => probeLabels[id]).join("/") : "overall-status";
+      errors.push(`live verification: persistent Agent ${unresolved} lifecycle evidence remains unverified`);
     }
     const requiredImplementation = [
-      "src/runtime/subagents.ts",
-      "tests/unit/subagents.test.ts",
-      "tests/integration/live-subagent.test.ts",
+      "src/runtime/persistent-agents/production.ts",
+      "src/runtime/persistent-agents/runtime.ts",
+      "src/runtime/persistent-agents/sandbox.ts",
+      "src/runtime/persistent-agents/permission.ts",
+      "src/runtime/persistent-agents/workspace.ts",
     ];
     for (const [filePath, expected] of Object.entries(evidence.implementation ?? {})) {
       const content = await readFile(new URL(filePath, ROOT), "utf8");

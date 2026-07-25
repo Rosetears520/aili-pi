@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "source": {
     "repository": "https://github.com/Rosetears520/aili-workflows.git",
     "commit": "7eb35f357ad489f5841ee10dac1e44549c1bdb76"
@@ -19,7 +19,7 @@
       "name": "agent-evaluator",
       "description": "Read-only agent evaluator subagent. Evaluates agent/subagent outputs for task fit, evidence quality, claim hygiene, missed constraints, overclaiming, and handoff usability without redoing the task.",
       "profilePath": "roles/agent-evaluator.md",
-      "profileHash": "375bf6745558ea91962ae57a34116dc4c576696794528c6692c873d6f9e17758",
+      "profileHash": "2d0d7c65f0f2e3e9267a1ee177e1c2270abf8248f6713fc9938a0598dda73993",
       "sourcePath": "agents/agent-evaluator.md",
       "sourceHash": "f0d40875475a00f6578e9a07a36a60c02607be1e48c5056bad572a86f83baf66",
       "tools": [
@@ -34,16 +34,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.agent-evaluator",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "ai-regression-scout",
       "description": "Read-only AI regression scout. Use for prompt, agent, skill, model-routing, workflow, or generated-output changes that need regression risk discovery and focused test scenarios.",
       "profilePath": "roles/ai-regression-scout.md",
-      "profileHash": "32b00fd33fe599e5c59f848d570ea4ef1271d0d4f6131f0d9b6f62ce794f2fea",
+      "profileHash": "b38e7dbb3b70f448e1e161ce3297d10879d3450d10a99ca63b490081bdf2e9e1",
       "sourcePath": "agents/ai-regression-scout.md",
       "sourceHash": "2a7e68db0b12abab95e7db91db2f91c85583ba02f39b7f45c6e223b48f4ac976",
       "tools": [
@@ -58,16 +65,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.ai-regression-scout",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "browser-qa-runner",
       "description": "Browser QA test runner for local UI verification. Use for browser-rendered flows, DOM/accessibility/console/network checks, screenshots, and manual Playwright evidence when production mutation is forbidden.",
       "profilePath": "roles/browser-qa-runner.md",
-      "profileHash": "5e67c7f6a540760138e97a8509c1eef2fb373de43d9d2fee846b6258b21fea35",
+      "profileHash": "c1ea7f7c94c2a75b915d3597fc3a04058e3f4cbcac3fac1d6358a299d7de23d8",
       "sourcePath": "agents/browser-qa-runner.md",
       "sourceHash": "b7d4e97bf61de4258f65ef18d5ad39a115700f41c64e9978b9d9459e63fa2356",
       "tools": [
@@ -83,16 +97,23 @@
       "status": "optional",
       "compatibilityReason": "Optional capabilities are required: browser.qa.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.browser-qa-runner",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "code-reviewer",
       "description": "Senior code reviewer that evaluates changes across five dimensions — correctness, readability, architecture, security, and performance. Use for thorough code review before merge.",
       "profilePath": "roles/code-reviewer.md",
-      "profileHash": "0132530a69819ef35e18315b122f7e1f8098267e04758de2734963372f93fbe3",
+      "profileHash": "832f3d6f1b473f282de498c38892d3fde3ce20aa855294c4d4c71790eb9e6bd0",
       "sourcePath": "agents/code-reviewer.md",
       "sourceHash": "64c278b5df9947289baacfe9587982c0000b330df145bdb372eb614bf8ac8395",
       "tools": [
@@ -107,16 +128,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.code-reviewer",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "code-scout",
       "description": "Read-only code scouting subagent. Locates files, symbols, tests, call paths, patterns, docs, schemas, config, and constraints for another agent. Returns concise evidence anchors only; never edits, plans, reviews, or implements.",
       "profilePath": "roles/code-scout.md",
-      "profileHash": "77a46e70c511e7c7757cc688671a58ef67e9afc81058089e9b41a9320d0a8808",
+      "profileHash": "4c01daf22981336035f59d1464d058de1280a678f7044fb5cc4dd2d0841da9fa",
       "sourcePath": "agents/code-scout.md",
       "sourceHash": "228ccfbfed0979ffbebcad2d5895b0c8a28f9eb5340259e575e810ac858ac880",
       "tools": [
@@ -131,16 +159,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.code-scout",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "convergence-reviewer",
       "description": "Read-only convergence reviewer. Compares accepted source artifacts, tasks, progress, drift records, final diff, review findings, and verification evidence for formal or multi-phase work to detect missing, partial, contradictory, unrequested, pseudo-complete, unchecked-task, stale-progress, or evidence-gap issues.",
       "profilePath": "roles/convergence-reviewer.md",
-      "profileHash": "459b8461cd1d4555ad8fdafe9a27c68120313184f7149708802fb5de5f0cffcd",
+      "profileHash": "fe205547225258255baf9638a2a1b775c053d70672224b1cdd17014c07da068a",
       "sourcePath": "agents/convergence-reviewer.md",
       "sourceHash": "2616bef95ddc8d7d2977e55f963a4bfbee332dca20849e188e6b89016282ae39",
       "tools": [
@@ -155,16 +190,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.convergence-reviewer",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "doc-researcher",
       "description": "Read-only local documentation research subagent. Searches AGENTS.md, rose.md, skills, OpenSpec changes, README, docs, design notes, and project-local guidance; never edits, implements, reviews, or uses web access.",
       "profilePath": "roles/doc-researcher.md",
-      "profileHash": "10e8a9f7b8d0dda5c8bca2892e91662bb6bceaac8d70b193649764812d3c1810",
+      "profileHash": "c0939a54b34252ecea0cbb5f946b4aff8af527ab043900bdd6fc2c06a32619c7",
       "sourcePath": "agents/doc-researcher.md",
       "sourceHash": "ac0946cab7b4c0583c6aae23933a4b41e157fbb5063d1c9f32190e4ca445bcf8",
       "tools": [
@@ -179,16 +221,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.doc-researcher",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "e2e-artifact-runner",
       "description": "E2E artifact runner for traces, videos, screenshots, reports, and failure bundles. Use when an end-to-end run needs controlled artifact placement and evidence packaging without production mutation.",
       "profilePath": "roles/e2e-artifact-runner.md",
-      "profileHash": "af3767543a380030a307c85b0f36d4db9f5634ae22de2853638c0832da884408",
+      "profileHash": "32ac4946c64c186656679238fe4d74e4a24d4404b4f57931d7bc8d251c60fdef",
       "sourcePath": "agents/e2e-artifact-runner.md",
       "sourceHash": "3562dafdda2e57fd9ee34d2608a7a86249e33587ad61b5e14325b7cf2a1f11f2",
       "tools": [
@@ -205,16 +254,23 @@
       "status": "optional",
       "compatibilityReason": "Optional capabilities are required: browser.qa, artifact.store.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.e2e-artifact-runner",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "implementer",
       "description": "Adaptive implementation subagent for one scoped code-change task. Handles task-scoped local edits through deeper cross-module implementation, writes production code/tests/verification evidence, and stays inside assigned acceptance boundaries.",
       "profilePath": "roles/implementer.md",
-      "profileHash": "6e86dd1651c65487f65ce08e817012d342d9eea8bf901e635d594a5f91f3d220",
+      "profileHash": "38373bf87a9df7d401118d5cd5a979cf10222207c71b77939673c6826d8b9de2",
       "sourcePath": "agents/implementer.md",
       "sourceHash": "be0dc430774292a42452bd26fe107579396db48f127ed57d20611d36d9492917",
       "tools": [
@@ -229,16 +285,23 @@
       "status": "adapted",
       "compatibilityReason": "Source edit semantics are mapped to Pi write/edit under parent, role, mode, canonical-root, explicit task-boundary, credential, and headless fail-closed guards; source bash semantics are not granted.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.implementer",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "opensource-sanitizer",
       "description": "Read-only open-source release sanitizer subagent. Checks public, npm, and package exposure risks with redacted evidence; never publishes, rewrites history, or prints full secrets.",
       "profilePath": "roles/opensource-sanitizer.md",
-      "profileHash": "ff5c16591f638028bb2da6d99f2cebd7d214f85cabfc7fa13646d3763102eae4",
+      "profileHash": "b5ca4a6ae7ab85e8f838aa1edceee25ede1cb441ab023353530366549eb6ff8e",
       "sourcePath": "agents/opensource-sanitizer.md",
       "sourceHash": "9fe5effb77d7cff827fee76066e8375e4e255600fb03352b6411999bfa680d85",
       "tools": [
@@ -253,16 +316,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.opensource-sanitizer",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "plan-auditor",
       "description": "Read-only plan auditor subagent. Checks specs, plans, task breakdowns, acceptance criteria, test plans, and change packages for gaps, conflicts, overengineering, and verification weaknesses before implementation.",
       "profilePath": "roles/plan-auditor.md",
-      "profileHash": "f8f7ecb359737122c41a95530cc066173171b2f1a8b7e7a5b5c9f6e60405b579",
+      "profileHash": "8081eab6bd0937878c9014b23b0634c5f137fb41d0395a15334d473b480f0398",
       "sourcePath": "agents/plan-auditor.md",
       "sourceHash": "2a0f2fef9fed8e1c97908b94586378337d232b1c2eaec8ddf3666b2639a2e66e",
       "tools": [
@@ -277,16 +347,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.plan-auditor",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "pr-test-analyzer",
       "description": "Read-only PR testing analyst. Use for pull request or diff-level test impact analysis, changed-test review, CI failure interpretation, and deciding which focused tests should run.",
       "profilePath": "roles/pr-test-analyzer.md",
-      "profileHash": "236ecd9060d4b8dac601a318e2a0a8f2960412af5516b24faca3649a4c4769af",
+      "profileHash": "45d7228dbf941a58639dcdda555676f37ec1da6105400d1120d903b71e7195f0",
       "sourcePath": "agents/pr-test-analyzer.md",
       "sourceHash": "1c69d1e49b9abd910e69a43ce99af500f73ec799b34b241f293b3175c08d9d82",
       "tools": [
@@ -301,16 +378,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.pr-test-analyzer",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "security-auditor",
       "description": "Security engineer focused on vulnerability detection, threat modeling, and secure coding practices. Use for security-focused code review, threat analysis, or hardening recommendations.",
       "profilePath": "roles/security-auditor.md",
-      "profileHash": "3f4400005149bed9a87c79f799487697e5c333a3e27520b26288fefa69f83cdf",
+      "profileHash": "a10f1ec15b8daad119d20a591f1fee56e08612cfe826dcd02f3ca675704bf5c5",
       "sourcePath": "agents/security-auditor.md",
       "sourceHash": "8282a185f4c770b83831bcae509b24da700dbe517e4f3b78512f55c2174aefe4",
       "tools": [
@@ -325,16 +409,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.security-auditor",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "silent-failure-reviewer",
       "description": "Read-only reviewer for silent failures. Use when a change could pass commands while dropping evidence, skipping work, swallowing errors, weakening gates, or reporting false success.",
       "profilePath": "roles/silent-failure-reviewer.md",
-      "profileHash": "3e915351c5a31425c1a6172059312502cdcec0940b336db16ed76a790d3cf723",
+      "profileHash": "62be378632a8e9a13aa8e4d1da3016888ab7b65f7da4958fb2497b0d20a0c133",
       "sourcePath": "agents/silent-failure-reviewer.md",
       "sourceHash": "040c3029e9a61666ab83e7cd7bf8c39feda0b171cb7ede42ef40871f74773c10",
       "tools": [
@@ -349,16 +440,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.silent-failure-reviewer",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "spec-miner",
       "description": "Read-only spec miner subagent. Mines existing code, tests, docs, and OpenSpec artifacts into candidate requirements and scenarios with evidence anchors; never edits or approves specs.",
       "profilePath": "roles/spec-miner.md",
-      "profileHash": "53d9ad9177dc53403579ba89fd80e507360aed4c2a56b74b75f2ec8826d62949",
+      "profileHash": "e6394103bd7044e39d01a9a0040095fbc7739bc412c78e59500575c7c4cfebbd",
       "sourcePath": "agents/spec-miner.md",
       "sourceHash": "7acfe25db084149b3d98fa2e0a89eb61f32b5592ea2f7eea400bd1b937c90f63",
       "tools": [
@@ -373,16 +471,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.spec-miner",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "test-coverage-reviewer",
       "description": "Read-only QA reviewer for test coverage adequacy. Use when a diff, package, or release needs coverage-gap review, untested-path identification, or verification sufficiency analysis without writing tests.",
       "profilePath": "roles/test-coverage-reviewer.md",
-      "profileHash": "2dac9890d8fe697135d48a69123803273ecc7d3e942cfb13688f309ebfce392c",
+      "profileHash": "cf7d1629a4d57bdaafdbdaf48863bbd88699c97fb485431a71b32efbc6eab954",
       "sourcePath": "agents/test-coverage-reviewer.md",
       "sourceHash": "103e744b65538cdc561befe5263a23819e8d2d97bf616a5713c7e80eaba2462e",
       "tools": [
@@ -397,16 +502,23 @@
       "status": "adapted",
       "compatibilityReason": "Source role is safely narrowed to Pi read-only tools with application-level credential/path guards.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.test-coverage-reviewer",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "test-engineer",
       "description": "QA engineer specialized in test strategy, test writing, test execution, CLI/browser verification, verification logs, and coverage analysis. Use for designing test suites, writing tests for existing code, executing test plans, or evaluating test quality.",
       "profilePath": "roles/test-engineer.md",
-      "profileHash": "765114a9b0e5f77869776b7d0aaf904704f1b06ffa5090d1aad049d8e48ffd81",
+      "profileHash": "cc6928539d0297fb7c605e4f5b722ca88018cf6b857280e21bff74c6705f3533",
       "sourcePath": "agents/test-engineer.md",
       "sourceHash": "b5eb82442d3d529d67b5d8563c859161839aba4a90e42ca19ec38e90e97b5f11",
       "tools": [
@@ -421,16 +533,23 @@
       "status": "adapted",
       "compatibilityReason": "Source edit semantics are mapped to Pi write/edit under parent, role, mode, canonical-root, explicit task-boundary, credential, and headless fail-closed guards; source bash semantics are not granted.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.test-engineer",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "web-performance-auditor",
       "description": "Web performance engineer focused on Core Web Vitals, loading, rendering, and network optimization. Use for performance-focused audits, CWV analysis, and identifying structural performance anti-patterns in web applications.",
       "profilePath": "roles/web-performance-auditor.md",
-      "profileHash": "6e073f6e12caa18a4ec440b41e08066035a5c1238dfb3728b0f163e664eabef5",
+      "profileHash": "eb9e6421995b4507688b5ee8289c5b631ce2a4036b0fa73285748b2e3347d96a",
       "sourcePath": "agents/web-performance-auditor.md",
       "sourceHash": "26f0a91cbabcf859b04b1654f87f8a0a32c28706957489b075d545f2459293f3",
       "tools": [
@@ -446,16 +565,23 @@
       "status": "optional",
       "compatibilityReason": "Optional capabilities are required: browser.qa.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
-      }
+      },
+      "selector": "aili.web-performance-auditor",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
     },
     {
       "name": "web-researcher",
       "description": "Read-only public web research subagent. Uses web search/fetch for current official documentation, public repositories, releases, package metadata, compatibility, and deprecation evidence; never reads local files, edits, runs commands, or delegates.",
       "profilePath": "roles/web-researcher.md",
-      "profileHash": "344ac00df65a47c05b371de0e8002038570d57fcb218c74f619805038ee622df",
+      "profileHash": "c94364fd19895a17feead26ab34c2335055ee398a57c0d9c18551c44e63de1b5",
       "sourcePath": "agents/web-researcher.md",
       "sourceHash": "857262d3e00f8088d41ae71c29a90beb912603cc5a7ad73af5da4c6119b7bc66",
       "tools": [],
@@ -465,10 +591,97 @@
       "status": "optional",
       "compatibilityReason": "Optional capabilities are required: web.fetch.",
       "sourceFrontmatterDisposition": {
-        "mode": "replaced by fresh Pi child-process execution",
+        "mode": "translated into a parent-scoped persistent official Pi Agent session",
         "hidden": "not interpreted by Pi",
         "permission": "translated into the explicit Pi tool/capability ceiling; source YAML is never executed"
+      },
+      "selector": "aili.web-researcher",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "canonical-adapter",
+      "toolPolicy": "static",
+      "spawns": [],
+      "blocking": false
+    },
+    {
+      "name": "general",
+      "selector": "general",
+      "description": "General persistent Agent for focused delegated work using the parent's current active tool ceiling and explicit spawn policy.",
+      "profilePath": "roles/general.md",
+      "profileHash": "788605fe0a8631744925dfb3e5e766c735727fb583e50213f5c62a2aa6548d41",
+      "profileVersion": 2,
+      "runtimeAdapterVersion": 2,
+      "sourceKind": "aili-owned",
+      "sourcePath": null,
+      "sourceHash": "788605fe0a8631744925dfb3e5e766c735727fb583e50213f5c62a2aa6548d41",
+      "tools": [],
+      "toolPolicy": "inherit-parent",
+      "capabilities": [
+        "parent.active"
+      ],
+      "spawns": [
+        "aili.agent-evaluator",
+        "aili.ai-regression-scout",
+        "aili.browser-qa-runner",
+        "aili.code-reviewer",
+        "aili.code-scout",
+        "aili.convergence-reviewer",
+        "aili.doc-researcher",
+        "aili.e2e-artifact-runner",
+        "aili.implementer",
+        "aili.opensource-sanitizer",
+        "aili.plan-auditor",
+        "aili.pr-test-analyzer",
+        "aili.security-auditor",
+        "aili.silent-failure-reviewer",
+        "aili.spec-miner",
+        "aili.test-coverage-reviewer",
+        "aili.test-engineer",
+        "aili.web-performance-auditor",
+        "aili.web-researcher"
+      ],
+      "blocking": false,
+      "status": "adapted",
+      "compatibilityReason": "AILI-owned OMP-inspired general worker; effective tools inherit and can only narrow the parent active ceiling.",
+      "sourceFrontmatterDisposition": {
+        "mode": "AILI-owned persistent Agent profile",
+        "hidden": "not applicable",
+        "permission": "runtime parent-active/capability/policy intersection"
       }
     }
+  ],
+  "runtimeAdapterVersion": 2,
+  "bundledSelectors": [
+    "aili.agent-evaluator",
+    "aili.ai-regression-scout",
+    "aili.browser-qa-runner",
+    "aili.code-reviewer",
+    "aili.code-scout",
+    "aili.convergence-reviewer",
+    "aili.doc-researcher",
+    "aili.e2e-artifact-runner",
+    "aili.implementer",
+    "aili.opensource-sanitizer",
+    "aili.plan-auditor",
+    "aili.pr-test-analyzer",
+    "aili.security-auditor",
+    "aili.silent-failure-reviewer",
+    "aili.spec-miner",
+    "aili.test-coverage-reviewer",
+    "aili.test-engineer",
+    "aili.web-performance-auditor",
+    "aili.web-researcher",
+    "general"
+  ],
+  "turnAuditFields": [
+    "selector",
+    "profileHash",
+    "sourceHash",
+    "profileVersion",
+    "runtimeAdapterVersion",
+    "effectiveTools",
+    "provider",
+    "model",
+    "thinking"
   ]
 }

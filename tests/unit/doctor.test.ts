@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { formatDoctorReport, runBoundedProbe, runDoctor } from "../../src/runtime/doctor.js";
 import {
@@ -9,6 +10,8 @@ import {
   validateStableRelease,
 } from "../../src/runtime/registry.js";
 import { LIFECYCLE_PROMPTS } from "../../src/runtime/lifecycle.js";
+
+const DOCTOR_HOME = resolve(".tmp/doctor-home");
 
 const commands: Array<{
   name: string;
@@ -43,6 +46,8 @@ describe("capability registry", () => {
     const errors = await validateStableRelease();
     expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("permission adaptation:")]));
     expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("native integration evidence")]));
+    expect(errors).toEqual([]);
+    expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("dependency/lockfile approval")]));
   });
 
   it("rejects duplicate IDs, unknown providers, missing probes, invalid states, and dangling references", async () => {
@@ -69,13 +74,14 @@ describe("capability registry", () => {
 
 describe("doctor", () => {
   it("reports both JSON evidence and a human non-pass without swallowing missing work", async () => {
-    const report = await runDoctor({ getCommands: () => commands });
+    const report = await runDoctor({ getCommands: () => commands }, { home: DOCTOR_HOME });
     expect(report.status).toBe("NON_PASS");
     expect(report.results).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "skill.snapshot", status: "PASS" }),
       expect.objectContaining({ id: "capability.registry", status: "PASS" }),
       expect.objectContaining({ id: "optional.packs", status: "SKIP" }),
-      expect.objectContaining({ id: "roles.subagents", status: "UNVERIFIED" }),
+      expect.objectContaining({ id: "roles.agents", status: "PASS", evidence: expect.stringContaining("profiles=20") }),
+      expect.objectContaining({ id: "agent.framework", status: "PASS", evidence: expect.stringContaining("provider/sandbox/external-workspace gates pass") }),
       expect.objectContaining({ id: "permission.native", status: "PASS" }),
       expect.objectContaining({ id: "global.resources", status: expect.stringMatching(/^(PASS|UNVERIFIED)$/) }),
       expect.objectContaining({ id: "provenance", status: "PASS" }),
@@ -85,12 +91,12 @@ describe("doctor", () => {
   });
 
   it("keeps malformed command ownership as an exact failed component", async () => {
-    const report = await runDoctor({ getCommands: () => commands.filter((item) => item.name !== "ship") });
+    const report = await runDoctor({ getCommands: () => commands.filter((item) => item.name !== "ship") }, { home: DOCTOR_HOME });
     expect(report.results).toContainEqual(expect.objectContaining({ id: "rose.prompts", status: "ERROR" }));
   });
 
   it("keeps a legacy AILI mode command non-pass", async () => {
-    const report = await runDoctor({ getCommands: () => [...commands, { ...commands.at(-1)!, name: "aili-mode" }] });
+    const report = await runDoctor({ getCommands: () => [...commands, { ...commands.at(-1)!, name: "aili-mode" }] }, { home: DOCTOR_HOME });
     expect(report.results).toContainEqual(expect.objectContaining({ id: "permission.native", status: "ERROR", evidence: expect.stringContaining("legacy=aili-mode") }));
   });
 
@@ -98,10 +104,10 @@ describe("doctor", () => {
     expect(await runBoundedProbe("timeout", 1, () => new Promise(() => undefined))).toEqual(expect.objectContaining({ status: "ERROR", evidence: expect.stringContaining("timeout") }));
     expect(await runBoundedProbe("malformed", 10, async () => "")).toEqual(expect.objectContaining({ status: "UNVERIFIED" }));
     expect(await runBoundedProbe("throws", 10, async () => { throw new Error("probe failed"); })).toEqual(expect.objectContaining({ status: "ERROR", evidence: "probe failed" }));
-    const unsupported = await runDoctor({ getCommands: () => commands }, { platform: "win32" });
+    const unsupported = await runDoctor({ getCommands: () => commands }, { platform: "win32", home: DOCTOR_HOME });
     expect(unsupported.results).toContainEqual(expect.objectContaining({ id: "platform", status: "ERROR" }));
     expect(unsupported.status).toBe("NON_PASS");
-    const macos = await runDoctor({ getCommands: () => commands }, { platform: "darwin" });
+    const macos = await runDoctor({ getCommands: () => commands }, { platform: "darwin", home: DOCTOR_HOME });
     expect(macos.results).toContainEqual(expect.objectContaining({ id: "platform", status: "ERROR", evidence: expect.stringContaining("supported=linux") }));
   });
 });

@@ -55,7 +55,11 @@ async function requireRealDirectory(path: string): Promise<void> {
 }
 
 async function expectedRoles(): Promise<RoleProfile[]> {
-  return await loadRoleProfiles();
+  // The 19 specialized profiles retain their existing global `aili.<role>`
+  // installation surface. `general` is owned by the new internal task runtime;
+  // installing it under agents/aili would create the forbidden `aili.general`
+  // alias.
+  return (await loadRoleProfiles()).filter((role) => role.selector !== "general");
 }
 
 export async function inspectGlobalResources(home = homedir()): Promise<GlobalResourceReport> {

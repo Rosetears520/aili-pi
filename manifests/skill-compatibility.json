@@ -168,7 +168,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -202,7 +202,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -796,14 +796,13 @@
         "repo.read"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "src/runtime/subagents.ts",
+      "adapterOwner": "src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
         "npm run verify:roles",
-        "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/package-runtime.test.ts",
+        "npm run test:doctor"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -1028,7 +1027,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1261,7 +1260,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1308,7 +1307,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1383,7 +1382,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1452,7 +1451,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1517,7 +1516,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1574,7 +1573,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1622,7 +1621,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1669,7 +1668,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1764,7 +1763,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1798,7 +1797,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1847,7 +1846,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1896,7 +1895,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1980,7 +1979,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -2014,7 +2013,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -2111,7 +2110,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -2147,7 +2146,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3046,7 +3045,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3195,7 +3194,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3326,7 +3325,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3543,7 +3542,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3651,7 +3650,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3715,7 +3714,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3816,7 +3815,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3883,7 +3882,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -4306,14 +4305,13 @@
         "repo.read"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "src/runtime/subagents.ts",
+      "adapterOwner": "src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
         "npm run verify:roles",
-        "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/package-runtime.test.ts",
+        "npm run test:doctor"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -5540,7 +5538,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -5591,14 +5589,13 @@
         "repo.read"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "src/runtime/subagents.ts",
+      "adapterOwner": "src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
         "npm run verify:roles",
-        "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/package-runtime.test.ts",
+        "npm run test:doctor"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -5682,7 +5679,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -5791,7 +5788,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -5923,7 +5920,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -6365,7 +6362,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -6411,14 +6408,13 @@
         "repo.read"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "src/runtime/subagents.ts",
+      "adapterOwner": "src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
         "npm run verify:roles",
-        "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/package-runtime.test.ts",
+        "npm run test:doctor"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -6761,7 +6757,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -6938,7 +6934,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -7466,7 +7462,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -7503,7 +7499,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -7697,7 +7693,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -7746,7 +7742,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -7886,7 +7882,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -7978,7 +7974,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -8090,7 +8086,7 @@
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",

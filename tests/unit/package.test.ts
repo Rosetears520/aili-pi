@@ -9,6 +9,7 @@ interface PackageManifest {
   files?: string[];
   pi?: { extensions?: string[]; prompts?: string[]; skills?: string[]; themes?: string[] };
   bundledDependencies?: string[];
+  dependencies?: Record<string, string>;
 }
 
 async function readManifest(): Promise<PackageManifest> {
@@ -33,6 +34,7 @@ describe("Pi package baseline", () => {
     expect(manifest.bundledDependencies).toEqual(expect.arrayContaining([
       "@narumitw/pi-lsp", "pi-cache-optimizer", "pi-markdown-preview",
     ]));
+    expect(manifest.dependencies).not.toHaveProperty("@agwab/pi-subagent");
   });
 
   it("references package resources that exist", async () => {
@@ -70,9 +72,10 @@ describe("Pi package baseline", () => {
   it("includes user documentation and generated provenance gates", async () => {
     const manifest = await readManifest();
     expect(manifest.files).toEqual(expect.arrayContaining(["README.md", "THIRD_PARTY_NOTICES.md", "manifests/", "upstream/", "licenses/"]));
-    const [readme, permissionLock] = await Promise.all([
+    const [readme, permissionLock, packageLock] = await Promise.all([
       readFile(new URL("../../README.md", import.meta.url), "utf8"),
       readFile(new URL("../../upstream/pi-permission-modes.lock.json", import.meta.url), "utf8").then(JSON.parse),
+      readFile(new URL("../../package-lock.json", import.meta.url), "utf8"),
       access(new URL("../../src/vendor/pi-permission-modes/index.ts", import.meta.url)),
       access(new URL("../../licenses/pi-permission-modes-MIT.txt", import.meta.url)),
     ]);
@@ -81,7 +84,9 @@ describe("Pi package baseline", () => {
     expect(readme).toContain("Rose Cyberdeck");
     expect(readme).toContain("/rose-matrix");
     expect(readme).toContain("fixed-bottom editor");
-    expect(readme).toContain("omitted/`auto` calls to `headless`");
+    expect(readme).toContain("public `task`/`hub` persistent Agent framework");
+    expect(readme).not.toContain("@agwab/pi-subagent");
+    expect(packageLock).not.toContain("@agwab/pi-subagent");
     expect(permissionLock.package).toMatchObject({ version: "2.2.0", revision: "23d65d10a53b67043cae42322acf9044d6edb196" });
   });
 });

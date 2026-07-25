@@ -56,8 +56,9 @@ describe("AILI runtime composition", () => {
     expect(harness.registeredShortcuts).toContain("alt+m");
     expect(harness.registeredShortcuts).not.toContain("ctrl+shift+alt+a");
     expect(harness.registeredTools).toEqual(expect.arrayContaining([
-      "subagent", "web_search", "fetch_content", "get_search_content", "preview_export", "lsp_diagnostics", "lsp_fix",
+      "task", "hub", "web_search", "fetch_content", "get_search_content", "preview_export", "lsp_diagnostics", "lsp_fix",
     ]));
+    expect(harness.registeredTools).not.toContain("subagent");
     expect(harness.registeredTools).not.toContain("aili_task");
   });
 

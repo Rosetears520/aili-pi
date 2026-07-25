@@ -26,22 +26,15 @@
       ]
     },
     {
-      "name": "@agwab/pi-subagent",
-      "version": "0.4.8",
-      "revision": "daa7b83819116a62008ad17aa65fcd50fefbafd0",
+      "name": "Oh My Pi reference",
+      "repository": "https://github.com/can1357/oh-my-pi.git",
+      "version": "17.1.3",
+      "revision": "59619623e1eeb7c290649eeaf3a269284ce8adef",
       "license": "MIT",
-      "status": "dependency",
-      "reusedPatterns": [
-        "generic subagent tool schema and rendering",
-        "headless/tmux/inline backend and lifecycle envelopes",
-        "bounded parallel fan-out, worktree, sandbox, async, interrupt, and reconcile behavior"
-      ],
-      "localAdaptation": [
-        "ordinary omitted/auto runs use headless for the Pi 0.81.1 compatibility window",
-        "explicit incompatible inline requests fail before model startup",
-        "AILI injects the immutable credential guard and a bounded requested-Agent heading"
-      ],
-      "reason": "AILI depends on the exact package and applies a wrapper-only compatibility adaptation; no upstream source is copied."
+      "status": "reference-only",
+      "reusedPatterns": [],
+      "localAdaptation": [],
+      "reason": "Behavioral comparison only. The AILI persistent Agent implementation is independent; no OMP symbol/source was copied or substantively adapted, so the separate copy-approval gate was not exercised."
     }
   ]
 }

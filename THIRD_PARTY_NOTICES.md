@@ -13,17 +13,6 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - Reused symbols/patterns: 64 canonical skill bodies and owned assets, 19 child-role prompt bodies
 - Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output; templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded
 
-## @agwab/pi-subagent
-
-- Status: dependency
-- Source: https://github.com/AgwaB/pi-subagent.git
-- Revision: daa7b83819116a62008ad17aa65fcd50fefbafd0
-- Version: 0.4.8
-- License: MIT
-- Source files: src/index.ts, src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts
-- Reused symbols/patterns: subagent tool renderCall, runSubagent API, headless lifecycle, artifact envelope
-- Local changes: AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading, injects a non-removable credential guard, normalizes ordinary omitted/auto runs to headless for the Pi 0.81.1 compatibility window, and rejects explicit inline before model startup; no upstream source is copied
-
 ## pi-permission-modes
 
 - Status: adapted
@@ -101,8 +90,19 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - Reused symbols/patterns: header, matrix animation, Zentui footer, fixed editor compositor
 - Local changes: registered as three additional Pi Package Extensions; Rose header loads a package-owned renamed artwork asset without changing upstream identity; Rose Shimmer, Rose Code Rain, and Zentui use the Rose-owned palette and gradient; overflowing Matrix tracks remain deterministic across the complete terminal width with the 96-track budget, while each rain row receives a structural blank-row repair; relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract
 
+## Oh My Pi reference
+
+- Status: reference-only
+- Source: https://github.com/can1357/oh-my-pi.git
+- Revision: 59619623e1eeb7c290649eeaf3a269284ce8adef
+- Version: 17.1.3
+- License: MIT
+- Source files: none copied
+- Reused symbols/patterns: none
+- Local changes: none
+
 ## npm dependency inventory
 
-The exact 424-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
+The exact 419-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
 
 Runtime dependencies are initialized through the single AILI Extension entry. Package-owned third-party adaptations are copied only where their provenance sourceFiles explicitly name repository paths.

@@ -3,13 +3,21 @@ import { describe, expect, it } from "vitest";
 import { validateProvenance } from "../../src/runtime/registry.js";
 
 describe("provenance and SBOM", () => {
-  it("records all adapted sources and pinned runtime dependency provenance", async () => {
+  it("records adapted/dependency provenance and the no-copy OMP reference boundary", async () => {
     expect(await validateProvenance()).toEqual([]);
     const provenance = JSON.parse(await readFile(new URL("../../manifests/provenance.json", import.meta.url), "utf8"));
     expect(provenance.sources).toHaveLength(9);
     expect(provenance.sources.filter((item: { status: string }) => item.status === "adapted")).toHaveLength(3);
-    expect(provenance.sources.filter((item: { status: string }) => item.status === "dependency")).toHaveLength(6);
-    expect(provenance.sources.find((item: { name: string }) => item.name === "@agwab/pi-subagent")).toEqual(expect.objectContaining({ status: "dependency", version: "0.4.8" }));
+    expect(provenance.sources.filter((item: { status: string }) => item.status === "dependency")).toHaveLength(5);
+    expect(provenance.sources.filter((item: { status: string }) => item.status === "reference-only")).toHaveLength(1);
+    expect(provenance.sources.find((item: { name: string }) => item.name === "Oh My Pi reference")).toMatchObject({
+      status: "reference-only",
+      revision: "59619623e1eeb7c290649eeaf3a269284ce8adef",
+      sourceFiles: [],
+      symbols: [],
+      localChanges: [],
+    });
+    expect(provenance.sources.find((item: { name: string }) => item.name === "@agwab/pi-subagent")).toBeUndefined();
     expect(provenance.sources.find((item: { name: string }) => item.name === "pi-permission-modes")).toEqual(expect.objectContaining({
       status: "adapted",
       version: "2.2.0",
