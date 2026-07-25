@@ -3,13 +3,13 @@
 ## 1. 元信息
 
 - Trace ID: `SHIP-persistent-agents-0.1.10-20260725`
-- Outcome: `pass`（release-ready，等待已授权的 commit/push/publish）
+- Outcome: `pass`（已推送并发布）
 - Mode / backend: AILI SHIP / OpenSpec
 - Closeout document path: `openspec/changes/replace-subagent-runtime-with-persistent-agent-framework/ship-closeout.md`
 - Completed scope: 仅 Persistent Agent `task`/`hub` 公共迁移、positive child sandbox、release packaging 与 `0.1.10`
 - BUILD gate status: `IMPLEMENTED_TARGETED_VERIFIED`
 - Branch/worktree hygiene status: `release/persistent-agents-0.1.10` 基于 `origin/main@227d9dc`；所有可见 dirty path 均为本 change；原工作区保持未提交且未清理
-- Approval/archive status: 用户已批准 release worktree、`0.1.10`、commit、push `origin/main` 与 npm publish；未批准 archive、tag、force-push 或 worktree removal
+- Approval/archive status: release commit `fbedb2c3c6accabfe9a91733b3f63b6769f15866` 已推送 `origin/main`；`@rosetears/aili-pi@0.1.10` 已发布且 `latest=0.1.10`；未批准 archive、tag、force-push 或 worktree removal
 
 ## 2. 变更摘要
 
@@ -65,7 +65,7 @@
 - Important findings: 无
 - Accepted-risk findings: `npm audit --omit=dev`报告 Pi host/dev-peer tree中的 `brace-expansion` high 与 `protobufjs` moderate；两者位于 `node_modules/@earendil-works/pi-coding-agent`，不在本 tarball的 bundled或own files中，本 Package将Pi作为peer且固定host验证基线，未通过本 release偷偷升级host依赖
 - Out-of-scope findings: AILI Compact许可证与实现、Pi 0.82 migration、当前原工作区 unrelated dirty state
-- `Unverified` items: npm publish后的registry propagation只能在实际publish后确认
+- `Unverified` items: 无；registry metadata、dist integrity和fresh registry install/Pi RPC均已确认
 
 ## 7. 分支 / 工作区清理门
 
@@ -87,13 +87,14 @@
 
 ## 9. 剩余风险与未验证项
 
-- `Unverified`: registry propagation和用户安装仅能在publish后确认。
+- Registry propagation已确认：`latest=0.1.10`，MIT，dist integrity=`sha512-fWFLLOCGYHYwH78qeu02WaS/MGpv/KL+nC/qhtgRG7zo8CRExG4usT//8AvT1P7OmIxbutQGApADCX5ESWNu+Q==`。
+- Fresh registry install和Pi RPC doctor通过：persistent artifacts存在、legacy subagent与AILI Compact不存在、`agent.framework=PASS`。
 - 当前原工作区继续包含未提交AILI Compact及其他工作；本release不会清理、stash或覆盖。
 - 没有创建Git tag或GitHub Release，因为当前授权只覆盖commit、push main与npm publish。
 
 ## 10. 建议与下一步
 
-- Recommendation: 按已授权顺序执行 task-scoped commit → push `origin/main` → npm publish `0.1.10` → registry/install smoke → 追加最终release evidence commit并push。
+- Recommendation: release complete；保留可复验commit、registry和closeout证据。
 - Follow-up package: AILI Compact许可证路线和Pi 0.82 host-seam realignment分别处理。
 - Memory writeback receipt: N/A。
-- Next steps: 发布后保持release worktree，除非用户另行批准删除。
+- Next steps: 推送本closeout evidence commit；保持release worktree，除非用户另行批准删除。
