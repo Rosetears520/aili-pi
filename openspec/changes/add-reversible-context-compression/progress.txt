@@ -1,9 +1,9 @@
 2026-07-25 private BUILD closeout — add-reversible-context-compression
 
-status: CORRECTIVE_RELEASE_CANDIDATE_0.1.12_WITH_ONE_PUBLIC_HOST_EVIDENCE_GAP
+status: RELEASED_0.1.12_WITH_ONE_PUBLIC_HOST_EVIDENCE_GAP
 acceptance: revised final test-plan.md explicitly accepted by the user on 2026-07-25; MIT/reference-only public-release route and corrective 0.1.12 hotfix explicitly approved
 package_version: 0.1.12
-task_ledger: 54 completed, 2 open
+task_ledger: 55 completed, 1 open
 
 completed_runtime:
 - append-only v2 transaction/replay state with safe v1 upgrade/query-only fallback, atomic batches, branch/epoch references and exact commit boundaries
@@ -72,6 +72,13 @@ fresh_0.1.12_corrective_verification:
 - clean install from the generated tarball: PASS; version 0.1.12, Compact runtime and all three nested bundled Pi packages present
 - strict OpenSpec validation and `git diff --check`: PASS
 
+0.1.12_release_evidence:
+- corrective commit `482ff91` pushed to `origin/main`
+- npm publish PASS: `@rosetears/aili-pi@0.1.12`; publish notice reports 6,190 total files and 82 bundled dependencies
+- npm registry PASS: `dist-tags.latest=0.1.12`; npm 0.1.11 deprecated with `Incomplete tarball: use 0.1.12 or newer.`
+- Pi user install PASS: `npm:@rosetears/aili-pi@0.1.12` resolves to `~/.pi/agent/npm/node_modules/@rosetears/aili-pi`; prior local-path source removed after settings backup
+- installed-package smoke PASS through official `discoverAndLoadExtensions`: version 0.1.12, one owned extension, no load errors, Compact hooks present and all three declared bundle roots accessible
+
 open_task:
 - 6.6 live resize evidence: public setWidget integration, width visibility helpers, numeric render keys and non-numeric rerender suppression are implemented. Pi 0.81.1 exposes no public terminal-resize event, so real hide/reappear-on-resize evidence remains Unverified rather than using private TUI/prototype patches.
 
@@ -84,4 +91,4 @@ unverified:
 release_boundary:
 - public release is approved as MIT with ACP v1.12.6 recorded as an AGPL-3.0-or-later behavior reference only; no ACP source, prompt, schema, fixture or asset is distributed
 - release integration remains isolated from the dirty development workspace; corrective 0.1.12 adds only the bundle-presence release guard, incident evidence and required version changes on top of Compact commit `f0fb5c6`
-- corrective commit/push/publish, 0.1.11 deprecation and local installation are explicitly authorized; fresh release verification is required before performing them
+- corrective commit/push/publish, 0.1.11 deprecation and local installation completed with the evidence above; only the separately unverified live host/provider items remain
