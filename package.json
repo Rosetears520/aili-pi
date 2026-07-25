@@ -1,6 +1,6 @@
 {
   "name": "@rosetears/aili-pi",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "AILI and ROSE distribution for official Pi",
   "type": "module",
   "license": "MIT",
@@ -59,6 +59,7 @@
   },
   "scripts": {
     "postinstall": "node scripts/sync-global-skills.mjs --if-pi-managed",
+    "prepublishOnly": "npm run validate:release && npm run validate:package && npm run validate:bundles",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "sync:skills": "node --experimental-strip-types scripts/sync-skills.ts",
@@ -81,7 +82,8 @@
     "test:audit-redaction": "vitest run tests/unit/permission-patterns.test.ts tests/unit/persistent-agent-permission.test.ts tests/unit/persistent-agent-output-delivery.test.ts",
     "test:e2e:linux-clean": "vitest run tests/bootstrap/bootstrap.test.ts && node --experimental-strip-types scripts/local-package-e2e.ts linux",
     "validate:generated": "vitest run tests/unit/generated.test.ts",
-    "validate:package": "vitest run tests/unit/package.test.ts"
+    "validate:package": "vitest run tests/unit/package.test.ts",
+    "validate:bundles": "node --experimental-strip-types scripts/validate-package-bundles.ts"
   },
   "bundledDependencies": [
     "@narumitw/pi-lsp",

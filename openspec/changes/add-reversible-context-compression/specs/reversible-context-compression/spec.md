@@ -197,7 +197,7 @@ Unknown keys, invalid JSONC, invalid type/range or invalid cross-field threshold
 - **THEN** component health is ERROR with bounded evidence rather than PASS-by-registration
 
 ### Requirement: Public release preserves the MIT/reference-only boundary
-The Package SHALL remain MIT and MAY release AILI Compact only through the approved reference-only route: exact ACP revision and AGPL-3.0-or-later license attribution SHALL be recorded, and no ACP source, prompt, schema, fixture or asset SHALL be copied or distributed. Release validation SHALL fail if that provenance/no-copy boundary is absent or contradicted. The approved 0.1.11 version, Git push, npm publish and local installation SHALL remain conditional on fresh release checks; future dependency changes are not implicitly authorized.
+The Package SHALL remain MIT and MAY release AILI Compact only through the approved reference-only route: exact ACP revision and AGPL-3.0-or-later license attribution SHALL be recorded, and no ACP source, prompt, schema, fixture or asset SHALL be copied or distributed. Release validation SHALL fail if that provenance/no-copy boundary is absent or contradicted. The approved corrective 0.1.12 version, Git push, npm publish and local installation SHALL remain conditional on fresh release checks; future dependency changes are not implicitly authorized.
 
 #### Scenario: A direct AGPL source copy is proposed
 - **WHEN** implementation needs to copy a source file, prompt, schema, fixture or asset from `ranxianglei/opencode-acp@v1.12.6`

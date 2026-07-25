@@ -1,9 +1,9 @@
 2026-07-25 private BUILD closeout — add-reversible-context-compression
 
-status: RELEASE_CANDIDATE_0.1.11_WITH_ONE_PUBLIC_HOST_EVIDENCE_GAP
-acceptance: revised final test-plan.md explicitly accepted by the user on 2026-07-25; MIT/reference-only public-release route and 0.1.11 release explicitly approved
-package_version: 0.1.11
-task_ledger: 54 completed, 1 open
+status: CORRECTIVE_RELEASE_CANDIDATE_0.1.12_WITH_ONE_PUBLIC_HOST_EVIDENCE_GAP
+acceptance: revised final test-plan.md explicitly accepted by the user on 2026-07-25; MIT/reference-only public-release route and corrective 0.1.12 hotfix explicitly approved
+package_version: 0.1.12
+task_ledger: 54 completed, 2 open
 
 completed_runtime:
 - append-only v2 transaction/replay state with safe v1 upgrade/query-only fallback, atomic batches, branch/epoch references and exact commit boundaries
@@ -57,6 +57,21 @@ fresh_0.1.11_release_candidate_verification:
 - `npm pack --dry-run --json`: PASS (`@rosetears/aili-pi@0.1.11`, 6,196 files; required Compact/provenance files present; forbidden `.pi/`, `graphify-out/`, `.worktrees/` absent)
 - `git diff --check`: PASS
 
+0.1.11_publish_incident:
+- Git `f0fb5c6` and npm 0.1.11 were published, but the release worktree's temporary dependency link was removed before `npm publish`; npm therefore emitted only 611 files and omitted all three declared bundled Pi packages.
+- A clean consumer install proved `@narumitw/pi-lsp`, `pi-cache-optimizer` and `pi-markdown-preview` absent from the package root. 0.1.11 is not accepted as a working release and will be deprecated after the corrective version is live.
+- Root cause is release packaging state plus a missing fail-closed prepublish bundle-presence gate, not AILI Compact runtime behavior.
+
+fresh_0.1.12_corrective_verification:
+- red/green bundle gate: `npm run validate:bundles` failed with all three bundles absent before `npm ci --ignore-scripts`, then passed after real package-root installation
+- `npm run typecheck`: PASS
+- `npm test`: PASS (54 passed + 2 skipped files; 350 passed + 3 skipped tests)
+- `npm run prepublishOnly`: PASS, including stable release, package-resource and physical bundle checks
+- `npm run validate:generated` and `npm run validate:capabilities`: PASS
+- real `npm pack --json`: PASS (`@rosetears/aili-pi@0.1.12`, 6,190 files); Compact, validator and all three bundle package manifests present; forbidden local paths absent
+- clean install from the generated tarball: PASS; version 0.1.12, Compact runtime and all three nested bundled Pi packages present
+- strict OpenSpec validation and `git diff --check`: PASS
+
 open_task:
 - 6.6 live resize evidence: public setWidget integration, width visibility helpers, numeric render keys and non-numeric rerender suppression are implemented. Pi 0.81.1 exposes no public terminal-resize event, so real hide/reappear-on-resize evidence remains Unverified rather than using private TUI/prototype patches.
 
@@ -68,5 +83,5 @@ unverified:
 
 release_boundary:
 - public release is approved as MIT with ACP v1.12.6 recorded as an AGPL-3.0-or-later behavior reference only; no ACP source, prompt, schema, fixture or asset is distributed
-- release integration is isolated from the dirty development workspace on latest `origin/main@12af234`; only Compact runtime, tests, documentation, provenance and required version/registration changes belong in 0.1.11
-- commit/push/publish and local installation are explicitly authorized; fresh release verification is required before performing them
+- release integration remains isolated from the dirty development workspace; corrective 0.1.12 adds only the bundle-presence release guard, incident evidence and required version changes on top of Compact commit `f0fb5c6`
+- corrective commit/push/publish, 0.1.11 deprecation and local installation are explicitly authorized; fresh release verification is required before performing them

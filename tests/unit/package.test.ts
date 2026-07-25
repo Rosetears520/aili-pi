@@ -10,6 +10,7 @@ interface PackageManifest {
   pi?: { extensions?: string[]; prompts?: string[]; skills?: string[]; themes?: string[] };
   bundledDependencies?: string[];
   dependencies?: Record<string, string>;
+  scripts?: Record<string, string>;
 }
 
 async function readManifest(): Promise<PackageManifest> {
@@ -34,6 +35,8 @@ describe("Pi package baseline", () => {
     expect(manifest.bundledDependencies).toEqual(expect.arrayContaining([
       "@narumitw/pi-lsp", "pi-cache-optimizer", "pi-markdown-preview",
     ]));
+    expect(manifest.scripts?.prepublishOnly).toContain("validate:bundles");
+    expect(manifest.scripts?.["validate:bundles"]).toContain("validate-package-bundles.ts");
     expect(manifest.dependencies).not.toHaveProperty("@agwab/pi-subagent");
   });
 

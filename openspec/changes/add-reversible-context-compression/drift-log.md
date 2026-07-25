@@ -38,3 +38,10 @@
 - **Decision:** the user approved retaining MIT, describing ACP only as the functional reference, and releasing the independently implemented Pi runtime as 0.1.11. Exact commit/license attribution is recorded in provenance/notices; no ACP source, prompt, schema, fixture or asset is distributed.
 - **Release integration:** build from clean `origin/main@12af234`, preserve the already released persistent-Agent framework/live evidence, include only Compact runtime/tests/docs/provenance and required registration/version changes, then run fresh release gates before commit/push/publish/install.
 - **Remaining evidence:** live provider quality/cache performance, unknown later context-handler ordering and Pi internal/resize delivery stay Unverified and are not converted to PASS by the license decision.
+
+## 2026-07-26 — 0.1.11 tarball omitted declared bundles
+
+- **Observed publish evidence:** npm 0.1.11 contained 611 files instead of the expected bundled-package surface. A clean consumer install proved `@narumitw/pi-lsp`, `pi-cache-optimizer` and `pi-markdown-preview` absent from the package root.
+- **Root cause:** release checks used temporary dependency access, then removed it before publish; `npm publish` had no fail-closed physical bundle check and silently emitted an incomplete tarball.
+- **Decision:** publish corrective 0.1.12, deprecate 0.1.11, and require `prepublishOnly` to run stable release validation, package-resource validation and a physical check of every declared bundled dependency.
+- **Acceptance evidence:** 0.1.12 must show the three nested bundle package manifests in real `npm pack --json` output and pass a clean install from that exact generated tarball before registry mutation.

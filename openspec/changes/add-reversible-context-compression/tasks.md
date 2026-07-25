@@ -179,4 +179,4 @@ All tasks belong to the single `add-reversible-context-compression` change. Chec
 - [x] 8.4 Confirm the previously named license/live blockers are resolved by exact reference-only provenance and inherited `origin/main` live evidence; never relabel unresolved host/provider gaps as PASS.
 - [x] 8.5 Keep `UV-LIVE-1` unverified unless a separately approved named provider/model probe is run.
 - [x] 8.6 Record broader real-host event-order/internal-request evidence or leave `UV-EXT-ORDER-1` / `UV-PI-INTERNAL-1` explicitly Unverified.
-- [ ] 8.7 Run fresh 0.1.11 release checks from the isolated `origin/main` worktree, then commit, push, publish, verify npm latest, install locally and smoke-load the installed package.
+- [ ] 8.7 Correct the incomplete 0.1.11 tarball with a fail-closed bundled-dependency prepublish gate; run fresh 0.1.12 release/tar-install checks, then commit, push, publish, deprecate 0.1.11, verify npm latest, install locally and smoke-load the installed package.

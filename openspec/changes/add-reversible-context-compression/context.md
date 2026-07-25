@@ -88,9 +88,9 @@ The above is not evidence for the reopened functional work listed in `tasks.md`.
 ## Boundaries
 
 - No Pi fork, `node_modules` mutation, alternate agent CLI, replacement built-in tools, raw-content sidecar, prior Session entry rewrite or hidden nested provider call.
-- Current Package license remains MIT. The user subsequently approved public release as 0.1.11 using the reference-only route: ACP v1.12.6 is attributed as an AGPL-3.0-or-later behavior reference, while no ACP source, prompt, schema, fixture or asset is copied or distributed.
+- Current Package license remains MIT. The user subsequently approved public release and the corrective 0.1.12 hotfix using the reference-only route: ACP v1.12.6 is attributed as an AGPL-3.0-or-later behavior reference, while no ACP source, prompt, schema, fixture or asset is copied or distributed.
 - Direct copying or adaptation of a specific AGPL source file/prompt/schema/fixture/asset still requires a new exact copy/provenance/license approval. Reading pinned behavior does not grant copy permission.
-- The revised `test-plan.md` was explicitly accepted on 2026-07-25; dependency changes remain separately gated, while the exact version, Git push, npm publish and local-install operations for 0.1.11 are now approved subject to fresh release verification.
+- The revised `test-plan.md` was explicitly accepted on 2026-07-25; dependency changes remain separately gated, while the exact version, Git push, npm publish and local-install operations for the corrective 0.1.12 are now approved subject to fresh release verification.
 
 ## Remaining Unverified
 

@@ -4,8 +4,8 @@
 
 - Change：`add-reversible-context-compression`
 - 依据：修订后的 `proposal.md`、`context.md`、`design.md`、capability spec、`tasks.md`、当前 runtime/tests、Pi 0.81.1 installed host evidence，以及 pinned ACP `v1.12.6` commit `f1a33d9f4ce55af808eb4e050717c914ed16084b` 的只读源码审计。
-- Scope：Pi-adapted AILI Compact 的 private/local BUILD 与 0.1.11 MIT/reference-only release readiness。
-- 状态：**accepted for resumed private BUILD on 2026-07-25; 0.1.11 release route subsequently approved**。用户明确接受模型引用、recap protocol、range/message schema、functional command、six-slot prompt、subagent/GC 和 cache-identity 验收，并批准在 fresh release checks 通过后 commit/push/publish/install 0.1.11。
+- Scope：Pi-adapted AILI Compact 的 private/local BUILD 与 corrective 0.1.12 MIT/reference-only release readiness。
+- 状态：**accepted for resumed private BUILD on 2026-07-25; public release and corrective 0.1.12 hotfix subsequently approved**。用户明确接受模型引用、recap protocol、range/message schema、functional command、six-slot prompt、subagent/GC 和 cache-identity 验收，并批准在 fresh release checks 通过后 commit/push/publish/install 0.1.12。
 - 本计划不授权 AGPL source/prompt/schema/fixture/asset copy、新 dependency 或真实 provider request；ACP 只作为精确 revision/license attribution 的行为参考。
 
 ## 1. 追踪矩阵
@@ -44,7 +44,7 @@
 | policy/subagent/GC | focused policy, lineage and compaction tests | grouped cooling, protection, dedupe/purge, nudge, subagent fail-open, nested/generational GC | unknown external subagent providers |
 | cache identity/accounting/UI | Session replay/incremental/tree/reload + cache identity + telemetry + presentation tests | current-branch totals recover without hot-path replay; full identity transitions, missing-field unavailable, numeric-only UI | provider-side cache hit target |
 | whole repo contracts | `npm run typecheck && npm test` | TypeScript and existing/new regression coverage | live provider quality |
-| packaging/contracts | `npm run validate:capabilities && npm run validate:release && npm run validate:package && npm pack --dry-run --json && git diff --check` | capability/package integrity, resolved reference-only provenance and publishable 0.1.11 tarball | live registry mutation until checks pass |
+| packaging/contracts | `npm run validate:capabilities && npm run validate:release && npm run validate:package && npm pack --dry-run --json && git diff --check` | capability/package integrity, resolved reference-only provenance and publishable 0.1.12 tarball with all declared bundled dependencies physically present | live registry mutation until checks pass |
 | OpenSpec integrity | `CI=true OPENSPEC_TELEMETRY=0 OPEN_SPEC_INTERACTIVE=0 openspec validate add-reversible-context-compression --strict` | coherent contract structure | implementation behavior |
 
 Exact new test filenames may be merged into existing focused suites when one owner is clearer; tests SHALL remain under the project-defined `tests/unit/`, `tests/integration/` and `tests/fixtures/` paths.
