@@ -1,0 +1,115 @@
+import { describe, expect, it } from "vitest";
+import {
+  decideNativeCompaction,
+  planGenerationalGc,
+  planMajorGc,
+  reconstructCompletedCompactionEpoch,
+} from "../../src/runtime/aili-compact/compaction.js";
+import { sourceDigest, type CompactBlock, type SessionLikeEntry } from "../../src/runtime/aili-compact/contracts.js";
+
+describe("AILI Compact native compaction decision", () => {
+  it("cancels threshold compaction only when healthy projection is strictly below the safe budget", () => {
+    expect(decideNativeCompaction({ reason: "threshold", healthy: true, contextTokens: 20_000, estimatedSavingTokens: 4_000, safeBudgetTokens: 16_384 }))
+      .toEqual({ cancel: true, reason: "threshold-projection-safe" });
+    expect(decideNativeCompaction({ reason: "threshold", healthy: true, contextTokens: 20_000, estimatedSavingTokens: 3_616, safeBudgetTokens: 16_384 }))
+      .toEqual({ cancel: false, reason: "threshold-projection-unsafe" });
+  });
+
+  it("fails open to Pi when health or a threshold budget cannot be proven", () => {
+    expect(decideNativeCompaction({ reason: "threshold", healthy: false }))
+      .toEqual({ cancel: false, reason: "threshold-unhealthy-fallback" });
+    expect(decideNativeCompaction({ reason: "threshold", healthy: true, contextTokens: 20_000, safeBudgetTokens: 16_384 }))
+      .toEqual({ cancel: false, reason: "threshold-budget-unproven" });
+  });
+
+  it("never cancels overflow and health-gates manual cancellation", () => {
+    expect(decideNativeCompaction({ reason: "overflow", healthy: true }))
+      .toEqual({ cancel: false, reason: "overflow-native-recovery" });
+    expect(decideNativeCompaction({ reason: "manual", healthy: true }))
+      .toEqual({ cancel: true, reason: "manual-aili-guidance" });
+    expect(decideNativeCompaction({ reason: "manual", healthy: false }))
+      .toEqual({ cancel: false, reason: "manual-unhealthy-fallback" });
+  });
+
+  it("creates provider-free major GC only for ordered old semantic coverage", () => {
+    const entries: SessionLikeEntry[] = [
+      { id: "old-user", type: "message", message: { role: "user", content: "raw old question" } },
+      { id: "old-assistant", type: "message", message: { role: "assistant", content: "raw old answer" } },
+      { id: "kept", type: "message", message: { role: "user", content: "current question" } },
+    ];
+    const block: CompactBlock = {
+      id: "semantic:old", kind: "semantic", epochId: "root", sourceEntryIds: ["old-user", "old-assistant"],
+      sourceDigest: sourceDigest(entries, ["old-user", "old-assistant"]), summary: "The old work reached its conclusion.", active: true, generation: "old",
+    };
+    const plan = planMajorGc({ entries, firstKeptEntryId: "kept", tokensBefore: 32_000, previousSummary: "Earlier context.", activeBlocks: [block], epochId: "root" });
+    expect(plan).toEqual(expect.objectContaining({
+      firstKeptEntryId: "kept", tokensBefore: 32_000,
+      details: { ailiCompact: { kind: "major-gc", blockIds: ["semantic:old"] } },
+    }));
+    expect(plan?.summary).toContain("The old work reached its conclusion.");
+    expect(plan?.summary).not.toContain("raw old answer");
+  });
+
+  it("rejects protocol splits, young, duplicate and oversized major-GC coverage", () => {
+    const entries: SessionLikeEntry[] = [
+      { id: "call", type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "tc", name: "read" }] } },
+      { id: "result", type: "message", message: { role: "toolResult", toolCallId: "tc", content: "output" } },
+      { id: "kept", type: "message", message: { role: "user", content: "current" } },
+    ];
+    const block = (id: string, sourceEntryIds: string[], overrides: Partial<CompactBlock> = {}): CompactBlock => ({
+      id, kind: "semantic", epochId: "root", sourceEntryIds,
+      sourceDigest: sourceDigest(entries, sourceEntryIds), summary: "bounded", active: true, generation: "old", ...overrides,
+    });
+    const base = { entries, firstKeptEntryId: "kept", tokensBefore: 10_000 };
+    expect(planMajorGc({ ...base, activeBlocks: [block("split-call", ["call"]), block("split-result", ["result"])] })).toBeUndefined();
+    expect(planMajorGc({ ...base, activeBlocks: [block("young", ["call", "result"], { generation: "young" })] })).toBeUndefined();
+    expect(planMajorGc({ ...base, activeBlocks: [block("oversized", ["call", "result"], { summary: "x".repeat(3_001) })] })).toBeUndefined();
+    expect(planMajorGc({ ...base, activeBlocks: [block("whole", ["call", "result"]), block("duplicate", ["call"])] })).toBeUndefined();
+    expect(planMajorGc({ ...base, activeBlocks: [block("whole", ["call", "result"])], previousSummary: "x".repeat(12_001) })).toBeUndefined();
+  });
+
+  it("fails closed when discarded messages lack semantic coverage", () => {
+    const entries: SessionLikeEntry[] = [
+      { id: "old-user", type: "message", message: { role: "user", content: "old" } },
+      { id: "kept", type: "message", message: { role: "user", content: "current" } },
+    ];
+    expect(planMajorGc({ entries, firstKeptEntryId: "kept", tokensBefore: 32_000, activeBlocks: [{
+      id: "prune:old", kind: "prune", epochId: "root", sourceEntryIds: ["old-user"],
+      sourceDigest: sourceDigest(entries, ["old-user"]), summary: "not semantic", active: true,
+    }] })).toBeUndefined();
+  });
+
+  it("plans deterministic promotion, bounded summaries, nesting and stale deactivation", () => {
+    const blocks: CompactBlock[] = [
+      { id: "parent", kind: "semantic", epochId: "root", sourceEntryIds: ["a", "b"], sourceDigest: "d", summary: "x".repeat(300), active: true, generation: "young", survivedCount: 1, age: 1, childBlockIds: ["child"] },
+      { id: "child", kind: "semantic", epochId: "root", sourceEntryIds: ["a"], sourceDigest: "d", summary: "child", active: true, generation: "young", survivedCount: 0, age: 0, childBlockIds: [] },
+      { id: "stale", kind: "semantic", epochId: "root", sourceEntryIds: ["c"], sourceDigest: "d", summary: "stale", active: true, generation: "old", survivedCount: 4, age: 2, childBlockIds: [] },
+    ];
+    const input = { epochId: "root", blocks, promotionSurvivals: 2, maxBlockAge: 3, maxOldSummaryChars: 256 };
+    const plan = planGenerationalGc(input);
+    expect(plan?.transaction.lifecycleUpdates).toEqual([
+      { blockId: "parent", age: 2, survivedCount: 2, generation: "old" },
+      { blockId: "child", age: 1, survivedCount: 1, generation: "young", active: false, deactivationReason: "nested" },
+      { blockId: "stale", age: 3, survivedCount: 5, generation: "old", active: false, deactivationReason: "gc" },
+    ]);
+    expect(plan?.boundedSummaries.get("parent")).toHaveLength(256);
+    expect(plan?.boundedSummaries.get("parent")).toMatch(/…$/);
+    expect(planGenerationalGc(input)?.transaction.id).toBe(plan?.transaction.id);
+  });
+
+  it("rejects invalid nested lineage", () => {
+    const child: CompactBlock = { id: "child", kind: "semantic", epochId: "root", sourceEntryIds: ["a"], sourceDigest: "d", summary: "s", active: true };
+    const parent: CompactBlock = { ...child, id: "parent", sourceEntryIds: ["b"], childBlockIds: ["child"] };
+    expect(planGenerationalGc({ epochId: "root", blocks: [child, parent], promotionSurvivals: 2, maxBlockAge: 3, maxOldSummaryChars: 256 })).toBeUndefined();
+  });
+
+  it("reconstructs epochs only from completed persisted compaction plus kept tail", () => {
+    const compaction: SessionLikeEntry = { id: "epoch-2", type: "compaction", data: { summary: "persisted" } };
+    const tail: SessionLikeEntry = { id: "tail", type: "message", message: { role: "user", content: "kept" } };
+    expect(reconstructCompletedCompactionEpoch({ cancelled: false, compactionEntry: compaction, keptTailEntries: [tail] })).toEqual({
+      epochId: "epoch-2", entries: [compaction, tail], sourceEntryIds: ["epoch-2", "tail"],
+    });
+    expect(reconstructCompletedCompactionEpoch({ cancelled: true, compactionEntry: compaction, keptTailEntries: [tail] })).toBeUndefined();
+    expect(reconstructCompletedCompactionEpoch({ cancelled: false })).toBeUndefined();
+  });
+});

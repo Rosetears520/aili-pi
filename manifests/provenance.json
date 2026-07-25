@@ -115,6 +115,18 @@
       "symbols": [],
       "localChanges": [],
       "verification": ["tests/integration/persistent-agent-runtime.test.ts", "tests/unit/persistent-agent-output-delivery.test.ts", "manual no-copy provenance inspection"]
+    },
+    {
+      "name": "opencode-acp reference",
+      "repository": "https://github.com/ranxianglei/opencode-acp.git",
+      "revision": "f1a33d9f4ce55af808eb4e050717c914ed16084b",
+      "version": "1.12.6",
+      "license": "AGPL-3.0-or-later",
+      "status": "reference-only",
+      "sourceFiles": [],
+      "symbols": [],
+      "localChanges": [],
+      "verification": ["tests/unit/aili-compact-provider-serializers.test.ts", "tests/integration/aili-compact.test.ts", "manual no-copy provenance inspection"]
     }
   ]
 }

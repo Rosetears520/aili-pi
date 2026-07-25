@@ -1,6 +1,13 @@
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { formatDoctorReport, runBoundedProbe, runDoctor } from "../../src/runtime/doctor.js";
+import {
+  assessAiliCompactHealth,
+  collectLocalAiliCompactHealthEvidence,
+  formatDoctorReport,
+  runBoundedProbe,
+  runDoctor,
+  type AiliCompactHealthEvidence,
+} from "../../src/runtime/doctor.js";
 import {
   assessCapability,
   loadRegistry,
@@ -22,6 +29,11 @@ const commands: Array<{
   source: "prompt" as const,
   sourceInfo: { path: `/prompts/${name}.md`, source: "@rosetears/aili-pi", scope: "user" as const, origin: "package" as const },
 }));
+commands.push({
+  name: "aili-compact",
+  source: "extension" as const,
+  sourceInfo: { path: "/extensions/index.ts", source: "@rosetears/aili-pi", scope: "user" as const, origin: "package" as const },
+});
 commands.push({
   name: "perm",
   source: "extension" as const,
@@ -79,6 +91,7 @@ describe("doctor", () => {
     expect(report.results).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "skill.snapshot", status: "PASS" }),
       expect.objectContaining({ id: "capability.registry", status: "PASS" }),
+      expect.objectContaining({ id: "aili.compact", status: "UNVERIFIED", evidence: expect.stringContaining("reducer=pass") }),
       expect.objectContaining({ id: "optional.packs", status: "SKIP" }),
       expect.objectContaining({ id: "roles.agents", status: "PASS", evidence: expect.stringContaining("profiles=20") }),
       expect.objectContaining({ id: "agent.framework", status: "PASS", evidence: expect.stringContaining("provider/sandbox/external-workspace gates pass") }),
@@ -88,6 +101,37 @@ describe("doctor", () => {
     ]));
     expect(formatDoctorReport(report)).toContain("AILI doctor: NON_PASS");
     expect(JSON.parse(JSON.stringify(report))).toEqual(report);
+  });
+
+  it("uses bounded injectable invariant evidence and makes known failures errors", () => {
+    const healthy = collectLocalAiliCompactHealthEvidence();
+    const fullyVerified: AiliCompactHealthEvidence = {
+      ...healthy,
+      live: { status: "pass", count: 1 },
+      hostOrdering: { status: "pass", count: 2 },
+    };
+    expect(assessAiliCompactHealth(true, fullyVerified)).toEqual(expect.objectContaining({ status: "PASS" }));
+
+    const failed = structuredClone(fullyVerified);
+    failed.projection = { status: "fail", error: "projection-invariant" };
+    expect(assessAiliCompactHealth(true, failed)).toEqual(expect.objectContaining({
+      status: "ERROR",
+      evidence: expect.stringContaining("projection=fail:error=projection-invariant"),
+    }));
+    expect(assessAiliCompactHealth(false, fullyVerified).status).toBe("ERROR");
+  });
+
+  it("redacts unbounded health evidence and keeps optional evidence non-pass", async () => {
+    const injected = collectLocalAiliCompactHealthEvidence();
+    injected.cache = { status: "fail", count: Number.MAX_SAFE_INTEGER, hash: "not-a-hash", error: "raw prompt SECRET_TOKEN and tool body" };
+    const report = await runDoctor(
+      { getCommands: () => commands },
+      { home: DOCTOR_HOME, ailiCompactEvidence: injected },
+    );
+    const compact = report.results.find((item) => item.id === "aili.compact")!;
+    expect(compact.status).toBe("WARN");
+    expect(compact.evidence).toContain("cache=fail:error=invalid-evidence-error");
+    expect(compact.evidence).not.toMatch(/SECRET_TOKEN|raw prompt|tool body|not-a-hash|9007199254740991/);
   });
 
   it("keeps malformed command ownership as an exact failed component", async () => {

@@ -6,13 +6,21 @@ describe("provenance and SBOM", () => {
   it("records adapted/dependency provenance and the no-copy OMP reference boundary", async () => {
     expect(await validateProvenance()).toEqual([]);
     const provenance = JSON.parse(await readFile(new URL("../../manifests/provenance.json", import.meta.url), "utf8"));
-    expect(provenance.sources).toHaveLength(9);
+    expect(provenance.sources).toHaveLength(10);
     expect(provenance.sources.filter((item: { status: string }) => item.status === "adapted")).toHaveLength(3);
     expect(provenance.sources.filter((item: { status: string }) => item.status === "dependency")).toHaveLength(5);
-    expect(provenance.sources.filter((item: { status: string }) => item.status === "reference-only")).toHaveLength(1);
+    expect(provenance.sources.filter((item: { status: string }) => item.status === "reference-only")).toHaveLength(2);
     expect(provenance.sources.find((item: { name: string }) => item.name === "Oh My Pi reference")).toMatchObject({
       status: "reference-only",
       revision: "59619623e1eeb7c290649eeaf3a269284ce8adef",
+      sourceFiles: [],
+      symbols: [],
+      localChanges: [],
+    });
+    expect(provenance.sources.find((item: { name: string }) => item.name === "opencode-acp reference")).toMatchObject({
+      status: "reference-only",
+      revision: "f1a33d9f4ce55af808eb4e050717c914ed16084b",
+      license: "AGPL-3.0-or-later",
       sourceFiles: [],
       symbols: [],
       localChanges: [],

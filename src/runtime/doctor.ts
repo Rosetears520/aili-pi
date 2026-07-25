@@ -5,6 +5,13 @@ import { loadRegistry, validateLiveVerification, validateProvenance, validateReg
 import { inspectGlobalResources } from "./global-resources.js";
 import { nativeIntegrationDiagnostics } from "./native-integrations.js";
 import { validateRoleProfiles } from "./roles.js";
+import { emptyCacheTelemetry, recordCacheTelemetry } from "./aili-compact/cache.js";
+import { COMPACT_PROMPT_SLOTS } from "./aili-compact/config.js";
+import { decideNativeCompaction } from "./aili-compact/compaction.js";
+import { AILI_COMPACT_ENTRY, AILI_COMPACT_SCHEMA, digest, sourceDigest, type CompactState, type SessionLikeEntry } from "./aili-compact/contracts.js";
+import { projectMessages, type ProjectionMessage } from "./aili-compact/projector.js";
+import { buildReferenceCatalog } from "./aili-compact/references.js";
+import { reduceCompactState } from "./aili-compact/reducer.js";
 
 export type DoctorStatus = "PASS" | "WARN" | "SKIP" | "ERROR" | "UNVERIFIED";
 
@@ -22,9 +29,33 @@ export interface DoctorReport {
 
 const ROOT = new URL("../../", import.meta.url);
 
+export type AiliHealthEvidenceStatus = "pass" | "fail" | "unverified";
+export interface AiliHealthInvariantEvidence {
+  status: AiliHealthEvidenceStatus;
+  count?: number;
+  hash?: string;
+  /** A bounded error name/code, never a source, prompt, or tool body. */
+  error?: string;
+}
+export interface AiliCompactHealthEvidence {
+  reducer: AiliHealthInvariantEvidence;
+  reference: AiliHealthInvariantEvidence;
+  projection: AiliHealthInvariantEvidence;
+  recap: AiliHealthInvariantEvidence;
+  prompt: AiliHealthInvariantEvidence;
+  nativeHook: AiliHealthInvariantEvidence;
+  cache?: AiliHealthInvariantEvidence;
+  live?: AiliHealthInvariantEvidence;
+  hostOrdering?: AiliHealthInvariantEvidence;
+}
+
 export async function runDoctor(
   pi: Pick<ExtensionAPI, "getCommands">,
-  options: { platform?: NodeJS.Platform; home?: string } = {},
+  options: {
+    platform?: NodeJS.Platform;
+    home?: string;
+    ailiCompactEvidence?: AiliCompactHealthEvidence | (() => AiliCompactHealthEvidence | Promise<AiliCompactHealthEvidence>);
+  } = {},
 ): Promise<DoctorReport> {
   const results: DoctorResult[] = [];
   try {
@@ -58,6 +89,14 @@ export async function runDoctor(
   const commands = pi.getCommands();
   const conflicts = detectLifecycleConflicts(commands);
   results.push({ id: "rose.prompts", status: conflicts.length === 0 ? "PASS" : "ERROR", evidence: conflicts.length === 0 ? "five lifecycle/review prompts have unique ownership" : `conflicts=${conflicts.map((item) => item.name).join(",")}` });
+  const compactRegistered = commands.some((command) => command.name === "aili-compact");
+  try {
+    const source = options.ailiCompactEvidence ?? collectLocalAiliCompactHealthEvidence;
+    const evidence = typeof source === "function" ? await source() : source;
+    results.push(assessAiliCompactHealth(compactRegistered, evidence));
+  } catch (error) {
+    results.push({ id: "aili.compact", status: "ERROR", evidence: `health-probe=${boundedErrorName(error)}` });
+  }
 
   try {
     const errors = await validateRegistry();
@@ -116,6 +155,100 @@ export async function runDoctor(
     status: results.every((item) => item.status === "PASS" || item.status === "SKIP") ? "PASS" : "NON_PASS",
     results,
   };
+}
+
+const REQUIRED_COMPACT_INVARIANTS = ["reducer", "reference", "projection", "recap", "prompt", "nativeHook"] as const;
+const OPTIONAL_COMPACT_INVARIANTS = ["cache", "live", "hostOrdering"] as const;
+const SAFE_EVIDENCE_ERROR = /^[a-z0-9][a-z0-9._:-]{0,79}$/i;
+const SHA256 = /^[a-f0-9]{64}$/i;
+
+/** Pure, injectable AILI Compact health projection. */
+export function assessAiliCompactHealth(commandRegistered: boolean, evidence: AiliCompactHealthEvidence): DoctorResult {
+  const required = REQUIRED_COMPACT_INVARIANTS.map((name) => [name, evidence[name]] as const);
+  const optional = OPTIONAL_COMPACT_INVARIANTS.map((name) => [name, evidence[name]] as const);
+  const requiredFailure = required.some(([, item]) => item.status === "fail");
+  const requiredUnknown = required.some(([, item]) => item.status === "unverified");
+  const optionalFailure = optional.some(([, item]) => item?.status === "fail");
+  const optionalUnknown = optional.some(([, item]) => !item || item.status === "unverified");
+  const status: DoctorStatus = !commandRegistered || requiredFailure
+    ? "ERROR"
+    : requiredUnknown
+      ? "UNVERIFIED"
+      : optionalFailure
+        ? "WARN"
+        : optionalUnknown
+          ? "UNVERIFIED"
+          : "PASS";
+  const fields = [
+    `command=${commandRegistered ? "registered" : "missing"}`,
+    ...required.map(([name, item]) => renderCompactInvariant(name, item)),
+    ...optional.map(([name, item]) => renderCompactInvariant(name, item ?? { status: "unverified" })),
+  ];
+  return { id: "aili.compact", status, evidence: fields.join(";").slice(0, 480) };
+}
+
+/** Deterministic, provider-free local invariant evidence. */
+export function collectLocalAiliCompactHealthEvidence(): AiliCompactHealthEvidence {
+  const controlEntry: SessionLikeEntry = {
+    id: "health-control", type: "custom", customType: AILI_COMPACT_ENTRY,
+    data: { schema: AILI_COMPACT_SCHEMA, id: "health-control", kind: "control", epochId: "root", control: "off" },
+  };
+  const reduced = reduceCompactState([controlEntry]);
+  const messages: ProjectionMessage[] = [
+    { role: "user", content: "health-user" },
+    { role: "assistant", content: "health-source" },
+  ];
+  const entries: SessionLikeEntry[] = messages.map((message, index) => ({ id: `health-${index + 1}`, type: "message", message }));
+  const baseState: CompactState = {
+    epochId: "root", enabled: true, autoCooling: true, manualMode: false, cachePanel: false,
+    hasSessionControl: false, hasAutoCoolingControl: false, hasManualControl: false, hasPanelControl: false,
+    blocks: new Map(), policyDecisions: [], diagnostics: [],
+  };
+  const catalog = buildReferenceCatalog(entries, baseState);
+  const identity = new Map(entries.map((entry, index) => [entry.id, index]));
+  const unchanged = projectMessages(messages, baseState, identity);
+  const malformed: ProjectionMessage[] = [{ role: "assistant", content: "health-malformed" }];
+  const failOpen = projectMessages(malformed, baseState, new Map());
+  const block = {
+    id: "health-block", kind: "semantic" as const, epochId: "root", sourceEntryIds: [entries[1]!.id],
+    sourceDigest: sourceDigest(entries, [entries[1]!.id]), summary: "health-summary", active: true,
+    mode: "message" as const, topic: "health", batchTopic: "health", anchorEntryId: entries[1]!.id,
+    runId: "health-run", childBlockIds: [], generation: "young" as const, survivedCount: 0, age: 0,
+  };
+  const recap = projectMessages(messages, { ...baseState, blocks: new Map([[block.id, block]]) }, identity);
+  let telemetry = emptyCacheTelemetry();
+  for (let index = 0; index < 5; index += 1) telemetry = recordCacheTelemetry(telemetry, { input: 10, cacheRead: 90, cacheWrite: 0 }, true, undefined);
+  const nativeOk = decideNativeCompaction({ reason: "manual", healthy: true }).cancel
+    && !decideNativeCompaction({ reason: "manual", healthy: false }).cancel
+    && !decideNativeCompaction({ reason: "overflow", healthy: true }).cancel;
+  return {
+    reducer: localCompactEvidence(!reduced.enabled && reduced.diagnostics.length === 0, 1, digest({ enabled: reduced.enabled, diagnostics: reduced.diagnostics })),
+    reference: localCompactEvidence(catalog.messages.map((item) => item.ref).join(",") === "m000001,m000002" && SHA256.test(catalog.catalogId), catalog.messages.length, catalog.catalogId),
+    projection: localCompactEvidence(unchanged.diagnostic === undefined && unchanged.messages[0] === messages[0] && failOpen.messages === malformed && failOpen.diagnostic === "missing-user-message", unchanged.messages.length, unchanged.hash),
+    recap: localCompactEvidence(recap.diagnostic === undefined && recap.messages.length === 3 && recap.messages[1]?.role === "assistant" && recap.messages[2]?.role === "toolResult" && recap.messages[2]?.toolName === "aili_context_recap", recap.messages.length, recap.hash),
+    prompt: localCompactEvidence(COMPACT_PROMPT_SLOTS.length === 6 && new Set(COMPACT_PROMPT_SLOTS).size === 6, COMPACT_PROMPT_SLOTS.length, digest(COMPACT_PROMPT_SLOTS)),
+    nativeHook: localCompactEvidence(nativeOk, 2, digest(["session_before_compact", "session_compact"])),
+    cache: localCompactEvidence(telemetry.window.length === 5 && telemetry.hitRate === 90, telemetry.window.length, digest({ samples: telemetry.window.length, hitRate: telemetry.hitRate })),
+    live: { status: "unverified", error: "uv-live-1" },
+    hostOrdering: { status: "unverified", error: "uv-ext-order-1" },
+  };
+}
+
+function localCompactEvidence(ok: boolean, count: number, hash: string): AiliHealthInvariantEvidence {
+  return ok ? { status: "pass", count, hash } : { status: "fail", error: "local-invariant-failed" };
+}
+
+function renderCompactInvariant(name: string, evidence: AiliHealthInvariantEvidence): string {
+  const parts = [`${name}=${evidence.status}`];
+  if (Number.isSafeInteger(evidence.count) && evidence.count! >= 0 && evidence.count! <= 1_000_000) parts.push(`n=${evidence.count}`);
+  if (evidence.hash && SHA256.test(evidence.hash)) parts.push(`sha256=${evidence.hash.slice(0, 12)}`);
+  if (evidence.error) parts.push(`error=${SAFE_EVIDENCE_ERROR.test(evidence.error) ? evidence.error.toLowerCase() : "invalid-evidence-error"}`);
+  return parts.join(":");
+}
+
+function boundedErrorName(error: unknown): string {
+  const name = error instanceof Error ? error.name : "unknown";
+  return SAFE_EVIDENCE_ERROR.test(name) ? name.toLowerCase() : "invalid-evidence-error";
 }
 
 export async function runBoundedProbe(

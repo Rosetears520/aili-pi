@@ -41,7 +41,7 @@ function event(contextFiles?: Array<{ path: string; content: string }>): BeforeA
 describe("AILI runtime composition", () => {
   it("exports one extension entry and keeps native integrations behind it", () => {
     expect(runtimeComponents.map((component) => component.id)).toEqual([
-      "rose-context", "lifecycle-routing", "task-runtime", "native-integrations",
+      "rose-context", "lifecycle-routing", "task-runtime", "native-integrations", "aili-compact",
       "global-resources", "capability-registry", "doctor", "shortcuts", "status",
     ]);
   });
@@ -49,7 +49,7 @@ describe("AILI runtime composition", () => {
   it("registers delegated and selected community surfaces without legacy AILI mode controls", async () => {
     const harness = await runtimeHarness();
     expect(harness.registeredCommands).toEqual(expect.arrayContaining([
-      "aili-doctor", "aili-install-global-resources", "perm",
+      "aili-doctor", "aili-install-global-resources", "aili-compact", "perm",
       "cache-optimizer", "preview", "preview-browser", "preview-pdf", "preview-clear-cache", "lsp",
     ]));
     expect(harness.registeredCommands).not.toContain("aili-mode");
@@ -57,6 +57,7 @@ describe("AILI runtime composition", () => {
     expect(harness.registeredShortcuts).not.toContain("ctrl+shift+alt+a");
     expect(harness.registeredTools).toEqual(expect.arrayContaining([
       "task", "hub", "web_search", "fetch_content", "get_search_content", "preview_export", "lsp_diagnostics", "lsp_fix",
+      "aili_compact", "aili_decompress", "aili_prune", "aili_search_context", "aili_compact_status", "aili_context_recap",
     ]));
     expect(harness.registeredTools).not.toContain("subagent");
     expect(harness.registeredTools).not.toContain("aili_task");

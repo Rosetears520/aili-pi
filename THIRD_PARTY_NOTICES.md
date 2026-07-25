@@ -101,6 +101,17 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - Reused symbols/patterns: none
 - Local changes: none
 
+## opencode-acp reference
+
+- Status: reference-only
+- Source: https://github.com/ranxianglei/opencode-acp.git
+- Revision: f1a33d9f4ce55af808eb4e050717c914ed16084b
+- Version: 1.12.6
+- License: AGPL-3.0-or-later
+- Source files: none copied
+- Reused symbols/patterns: none
+- Local changes: none
+
 ## npm dependency inventory
 
 The exact 419-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.

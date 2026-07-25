@@ -1,0 +1,13 @@
+{
+  "root": [
+    { "id": "root-user", "type": "message", "message": { "role": "user", "content": "root request" } }
+  ],
+  "transactionBranch": [
+    { "id": "root-user", "type": "message", "message": { "role": "user", "content": "root request" } },
+    { "id": "branch-assistant", "type": "message", "message": { "role": "assistant", "content": "branch response" } }
+  ],
+  "alternateBranch": [
+    { "id": "root-user", "type": "message", "message": { "role": "user", "content": "root request" } },
+    { "id": "alternate-user", "type": "message", "message": { "role": "user", "content": "alternate request" } }
+  ]
+}

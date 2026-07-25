@@ -85,6 +85,8 @@ describe("Pi package baseline", () => {
     expect(readme).toContain("/rose-matrix");
     expect(readme).toContain("fixed-bottom editor");
     expect(readme).toContain("public `task`/`hub` persistent Agent framework");
+    expect(readme).toContain("### AILI Compact");
+    expect(readme).toContain("opencode-acp@1.12.6");
     expect(readme).not.toContain("@agwab/pi-subagent");
     expect(packageLock).not.toContain("@agwab/pi-subagent");
     expect(permissionLock.package).toMatchObject({ version: "2.2.0", revision: "23d65d10a53b67043cae42322acf9044d6edb196" });

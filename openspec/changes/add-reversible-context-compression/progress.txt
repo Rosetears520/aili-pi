@@ -1,0 +1,72 @@
+2026-07-25 private BUILD closeout — add-reversible-context-compression
+
+status: RELEASE_CANDIDATE_0.1.11_WITH_ONE_PUBLIC_HOST_EVIDENCE_GAP
+acceptance: revised final test-plan.md explicitly accepted by the user on 2026-07-25; MIT/reference-only public-release route and 0.1.11 release explicitly approved
+package_version: 0.1.11
+task_ledger: 54 completed, 1 open
+
+completed_runtime:
+- append-only v2 transaction/replay state with safe v1 upgrade/query-only fallback, atomic batches, branch/epoch references and exact commit boundaries
+- deterministic mNNNNNN/bNNNNNN catalogs with catalogId paging, stale/fork/epoch rejection and protocol-atom membership
+- range/message compact mutation schema, sole-call guard, bounds, reversed ranges, overlap/split-atom/protection/lineage/material-benefit validation
+- deterministic recap call/result projection, stale compact protocol cleanup, whole-output validation and exact-input fail-open
+- all-or-nothing nested decompression/recompression, 2,000-byte UTF-8 preview, consumed-atom prune and bounded current-branch search
+- distinct context/stats/sweep/manual/compress/decompress/recompress/cache/prompt/control/doctor commands
+- exact one-turn manual trigger binding, deterministic consumption/clear and send-failure compensation; manual mode remains independent of autoCooling
+- normative config merge/validation and six fixed opt-in prompt slots
+- hard/configurable protection, grouped cooling, journaled dedupe/purge-error, adaptive nudges and default-off public-evidence subagent gating
+- young/old lifecycle, nested block transitions, bounded generational GC and safe provider-free major GC with Pi fallback
+- health-gated native interception, fresh projection revalidation and completed-compaction epoch reconstruction
+- two-part numeric cache surface: current-branch Pi Session assistant usage replays once at session start/reload/tree navigation and updates incrementally after each assistant response; AILI cold/state-change/warm repeated-request diagnostics remain separate
+- cache widget now defaults on and preserves the detailed current Session statistics in a left-aligned column beside right-aligned AILI stability rows; it reserves Pi's observed two-column widget inset so trailing full-width characters do not wrap; `/aili-compact cache` retains the sequential two-section view
+- full canonical cache identity, cold/state-change/warm classification, last-20 window and minimum-5 gate; cache footer/panel labels default to concise Simplified Chinese
+- provider serializer leakage fixtures for OpenAI completions/responses, Anthropic and Gemini
+- invariant-based global/local doctor health and reconciled README
+
+independent_agent_work:
+- eight fresh implementation Agents produced isolated projection, mutation, command, protection, automatic-policy, subagent, GC/native and cache packages; main line integrated and verified them
+- one runtime integration Agent was cancelled after its task-scoped edits stalled; the main line completed and tested integration
+- one test-engineer Agent reconciled runtime/ref/manual/nested/native integration tests
+- four fresh acceptance Agents audited convergence, silent failures, coverage and security/privacy
+- audit repairs included invalid-ID poisoning, fresh native health proof, pending-vs-applied GC wording, exact manual-turn binding, send-failure trigger clearing, subagent protection on every mutation path, model-output ID redaction, truthful stats and local doctor severity
+
+fresh_verification:
+- `npm run typecheck`: PASS (`@rosetears/aili-pi@0.1.10`); rerun PASS after cache-label localization
+- localized cache presentation/runtime integration focus: PASS (2 files, 44 tests)
+- two-part Session cache replay/incremental/tree/reload plus full AILI Compact focused pattern: PASS (19 files, 175 tests)
+- default-on aligned-column cache widget focus: PASS (3 files, 55 tests); TypeScript rerun PASS
+- focused AILI Compact/doctor suites: PASS (20 files, 179 tests before final audit repairs; all included in final full suite)
+- `npm test`: PASS (54 passed + 2 skipped files; 344 passed + 2 skipped tests)
+- `npm run validate:capabilities`: PASS
+- `npm run validate:package`: PASS (6 tests)
+- `npm run validate:generated`: PASS (6 tests)
+- `npm pack --dry-run --json`: PASS (`@rosetears/aili-pi@0.1.10`, 6195 files); task-owned scratch removed
+- strict OpenSpec validation: PASS (`Change 'add-reversible-context-compression' is valid`)
+- strict OpenSpec and `git diff --check`: rerun PASS after the two-part cache-surface change
+- private-build `npm run validate:release`: EXPECTED NON-PASS at that time for named evidence; the current release candidate inherits passed persistent-Agent live evidence from `origin/main@12af234` and records ACP v1.12.6 as reference-only under the approved MIT route
+
+fresh_0.1.11_release_candidate_verification:
+- `npm run typecheck`: PASS
+- Compact + doctor/runtime/provenance/package focus: PASS (23 files, 198 tests after package-resource fixture setup)
+- `npm test`: PASS (54 passed + 2 skipped files; 350 passed + 3 skipped tests)
+- `npm run validate:capabilities`: PASS
+- `npm run validate:release`: PASS (`stable release validation passed`)
+- `npm run validate:package`: PASS (6 tests)
+- `npm run validate:generated`: PASS (6 tests)
+- strict OpenSpec validation: PASS (`Change 'add-reversible-context-compression' is valid`)
+- `npm pack --dry-run --json`: PASS (`@rosetears/aili-pi@0.1.11`, 6,196 files; required Compact/provenance files present; forbidden `.pi/`, `graphify-out/`, `.worktrees/` absent)
+- `git diff --check`: PASS
+
+open_task:
+- 6.6 live resize evidence: public setWidget integration, width visibility helpers, numeric render keys and non-numeric rerender suppression are implemented. Pi 0.81.1 exposes no public terminal-resize event, so real hide/reappear-on-resize evidence remains Unverified rather than using private TUI/prototype patches.
+
+unverified:
+- UV-LIVE-1 real provider tool use, summary quality and warmed-cache rate
+- UV-EXT-ORDER-1 unknown later third-party context-handler ordering
+- UV-PI-INTERNAL-1 real-host title/summary/native-compaction internal request ordering and public resize delivery
+- UV-ACP-RUNTIME-1 upstream ACP suite was not run because AILI does not install or distribute ACP; the pinned source was inspected only
+
+release_boundary:
+- public release is approved as MIT with ACP v1.12.6 recorded as an AGPL-3.0-or-later behavior reference only; no ACP source, prompt, schema, fixture or asset is distributed
+- release integration is isolated from the dirty development workspace on latest `origin/main@12af234`; only Compact runtime, tests, documentation, provenance and required version/registration changes belong in 0.1.11
+- commit/push/publish and local installation are explicitly authorized; fresh release verification is required before performing them
