@@ -5,6 +5,7 @@ import type {
   ExtensionCommandContext,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import { validateLicenseDisposition } from "../registry.js";
 import {
   AILI_COMPACT_ENTRY,
   AILI_COMPACT_SCHEMA,
@@ -289,7 +290,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
         ctx.ui.notify(renderPromptStatus(runtime.prompt), "info"); return;
       }
       if (plan.kind === "doctor") {
-        const report = compactRuntimeDoctor(state, runtime);
+        const report = compactRuntimeDoctor(state, runtime, await validateLicenseDisposition());
         ctx.ui.notify(JSON.stringify(report, null, 2), report.status === "PASS" ? "info" : "warning");
         return;
       }
@@ -513,14 +514,15 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
   });
 }
 
-function compactRuntimeDoctor(state: CompactState, runtime: SessionRuntime) {
+function compactRuntimeDoctor(state: CompactState, runtime: SessionRuntime, licenseErrors: readonly string[] = []) {
   const reducer = state.diagnostics.length === 0 ? "PASS" : "ERROR";
   const projection = runtime.projectionHealthy === true ? "PASS" : runtime.projectionHealthy === false ? "ERROR" : "UNVERIFIED";
   const config = runtime.configDiagnostics.length === 0 ? "PASS" : "WARN";
   const prompt = runtime.prompt.diagnostics.length === 0 ? "PASS" : "WARN";
   const cache = runtime.telemetry.window.length >= 5 ? "PASS" : "UNVERIFIED";
+  const publicRelease = licenseErrors.length === 0 ? "PASS" : "NON_PASS";
   const status = reducer === "ERROR" || projection === "ERROR" ? "ERROR"
-    : config === "WARN" || prompt === "WARN" || projection === "UNVERIFIED" || cache === "UNVERIFIED" ? "NON_PASS" : "PASS";
+    : config === "WARN" || prompt === "WARN" || projection === "UNVERIFIED" || cache === "UNVERIFIED" || publicRelease === "NON_PASS" ? "NON_PASS" : "PASS";
   return {
     schemaVersion: 1,
     status,
@@ -535,7 +537,9 @@ function compactRuntimeDoctor(state: CompactState, runtime: SessionRuntime) {
       nativeHook: { status: projection === "PASS" ? "PASS" : projection },
       liveProvider: { status: "UNVERIFIED", code: "UV-LIVE-1" },
       hostOrdering: { status: "UNVERIFIED", codes: ["UV-EXT-ORDER-1", "UV-PI-INTERNAL-1"] },
-      publicRelease: { status: "PASS", code: "MIT-REFERENCE-ONLY" },
+      publicRelease: licenseErrors.length === 0
+        ? { status: publicRelease, code: "AGPL-3.0-OR-LATER" }
+        : { status: publicRelease, code: "LICENSE-EVIDENCE-DRIFT", diagnosticCount: licenseErrors.length, diagnosticHash: digest(licenseErrors).slice(0, 16) },
     },
   };
 }

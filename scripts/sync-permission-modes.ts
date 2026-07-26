@@ -51,7 +51,83 @@ function adaptIndex(source: string): string {
     "The adapted matcher lives locally; unchanged logic stays in pinned dependency\n * modules:",
     "entry module ownership comment",
   );
-  return ADAPTATION_HEADER + documented;
+  const withBashDefinition = replaceExactlyOnce(
+    documented,
+    'import { createBashTool, getAgentDir } from "@earendil-works/pi-coding-agent";',
+    'import { createBashToolDefinition, getAgentDir } from "@earendil-works/pi-coding-agent";',
+    "context-aware bash tool definition import",
+  );
+  const withBashConstructor = withBashDefinition.replace(/\bcreateBashTool\(/g, "createBashToolDefinition(");
+  if ((withBashDefinition.match(/\bcreateBashTool\(/g) ?? []).length !== 2) {
+    throw new Error(`expected 2 createBashTool calls in pi-permission-modes@${VERSION}`);
+  }
+  const withBashContext = replaceExactlyOnce(
+    withBashConstructor,
+    `    async execute(id, params, signal, onUpdate, _ctx) {
+      const approved = approvedUnsandboxed.delete(id); // user granted an escape
+      const m = currentMode();
+      const plan = bashExecPlan(m.sandbox.enabled, m.sandbox.writable, sandbox.ready, approved);
+      const ops = plan.sandboxed ? sandbox.bashOps({ readOnly: plan.readOnly }) : null;
+      if (!ops) return localBash.execute(id, params, signal, onUpdate);
+      const sandboxed = createBashToolDefinition(root, { operations: ops });
+      return sandboxed.execute(id, params, signal, onUpdate);
+    },`,
+    `    async execute(id, params, signal, onUpdate, ctx) {
+      const approved = approvedUnsandboxed.delete(id); // user granted an escape
+      const m = currentMode();
+      const plan = bashExecPlan(m.sandbox.enabled, m.sandbox.writable, sandbox.ready, approved);
+      const ops = plan.sandboxed ? sandbox.bashOps({ readOnly: plan.readOnly }) : null;
+      if (!ops) return localBash.execute(id, params, signal, onUpdate, ctx);
+      const sandboxed = createBashToolDefinition(root, {
+        operations: {
+          exec: (command, cwd, options) => ops.exec(
+            \`\${piSessionEnvironmentPrelude(options.env ?? {})}\\n\${command}\`,
+            cwd,
+            options,
+          ),
+        },
+      });
+      return sandboxed.execute(id, params, signal, onUpdate, ctx);
+    },`,
+    "wrapped bash ExtensionContext forwarding",
+  );
+  const withEnvironmentPrelude = replaceExactlyOnce(
+    withBashContext,
+    'const NEVER_HIDE = new Set(["show_plan"]);',
+    `const NEVER_HIDE = new Set(["show_plan"]);
+
+const PI_SESSION_ENV_KEYS = ["PI_SESSION_ID", "PI_SESSION_FILE", "PI_PROVIDER", "PI_MODEL", "PI_REASONING_LEVEL"] as const;
+
+function shellQuote(value: string): string {
+  return \`'\${value.replaceAll("'", "'\\\"'\\\"'")}'\`;
+}
+
+function piSessionEnvironmentPrelude(env: NodeJS.ProcessEnv): string {
+  return PI_SESSION_ENV_KEYS.map((key) => env[key] === undefined
+    ? \`unset \${key}\`
+    : \`export \${key}=\${shellQuote(env[key])}\`).join("; ");
+}`,
+    "sandbox PI session environment prelude",
+  );
+  const withChildSandboxImport = replaceExactlyOnce(
+    withEnvironmentPrelude,
+    'import { SandboxController } from "pi-permission-modes/src/sandbox.ts";',
+    `import { SandboxController } from "pi-permission-modes/src/sandbox.ts";
+import { installPersistentAgentSandboxProvider } from "../../runtime/persistent-agents/child-sandbox.js";`,
+    "persistent Agent child sandbox bridge import",
+  );
+  const withChildSandboxProvider = replaceExactlyOnce(
+    withChildSandboxImport,
+    "  const sandbox = new SandboxController();",
+    `  const sandbox = new SandboxController();
+  installPersistentAgentSandboxProvider({
+    currentProfile: () => currentMode().sandbox,
+    operations: ({ readOnly }) => sandbox.ready && !sandbox.disabled ? sandbox.bashOps({ readOnly }) : null,
+    diagnostic: () => sandbox.disabled ? "sandbox disabled by host flag" : sandbox.warn,
+  });`,
+    "process-owned persistent Agent child sandbox provider",
+  );
+  return ADAPTATION_HEADER + withChildSandboxProvider;
 }
 
 function adaptResolve(source: string): string {
@@ -106,9 +182,12 @@ async function expectedOutputs(): Promise<Record<string, string>> {
     localChanges: [
       "Package-owned adapted entry redirects all unchanged sibling modules to the exact pi-permission-modes dependency while owning resolve.ts locally.",
       "matchPattern compiles its anchored glob RegExp with dotAll so * and ? include ECMAScript line terminators.",
+      "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.82.1 can derive current PI_* session environment values.",
+      "The adapted sandbox BashOperations wrapper injects Pi's resolved five-variable session environment as a shell-safe prelude because pi-permission-modes@2.2.0 ignores BashOperations.options.env.",
+      "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime.",
     ],
     generatedBy: "scripts/sync-permission-modes.ts",
-    verification: ["npm run verify:permission-modes", "tests/unit/permission-patterns.test.ts", "tests/integration/permission-modes.test.ts"],
+    verification: ["npm run verify:permission-modes", "tests/unit/permission-patterns.test.ts", "tests/integration/permission-modes.test.ts", "tests/unit/persistent-agent-child-sandbox.test.ts"],
   };
 
   return {

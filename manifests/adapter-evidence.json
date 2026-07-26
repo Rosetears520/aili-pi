@@ -4,7 +4,7 @@
     {
       "capability": "repo.read",
       "status": "native",
-      "owner": "@earendil-works/pi-coding-agent@0.81.1",
+      "owner": "@earendil-works/pi-coding-agent@0.82.1",
       "sourceRevision": "7eb35f357ad489f5841ee10dac1e44549c1bdb76",
       "verification": [
         "vitest run tests/integration/extension-load.test.ts",
@@ -13,7 +13,7 @@
       "artifacts": [
         {
           "path": "package-lock.json",
-          "sha256": "006a165d0b94cd75a0a8cfbcd54f588b5d87441699316fb128512748b5bfd857"
+          "sha256": "53ae98fb9b3ad96a6d3860155f767710b72bed0ea0efc73e1e2ae5cf0aae866e"
         },
         {
           "path": "tests/integration/extension-load.test.ts",
@@ -21,7 +21,7 @@
         },
         {
           "path": "tests/integration/persistent-agent-host-seams.test.ts",
-          "sha256": "562ca1ce07e9d57861b48c210a8d10b1d8cbe3ffad7db6ac20ecb178f3beda36"
+          "sha256": "21d4c989542f9c9697e8cce169bdb72f4300ba4130a2e4a819020d24cbbee5df"
         }
       ]
     },
@@ -39,7 +39,7 @@
       "artifacts": [
         {
           "path": "src/runtime/persistent-agents/production.ts",
-          "sha256": "312ac2a3cd32b298550caedc09d74d97d279ef9380a7e03ca32a424b70121ee1"
+          "sha256": "976640bcb58ca8d883638a5ed048d909c0dd1cdab51b11fa45ca9bdc575dcaae"
         },
         {
           "path": "src/runtime/persistent-agents/runtime.ts",

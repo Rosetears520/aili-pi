@@ -89,6 +89,17 @@ unverified:
 - UV-ACP-RUNTIME-1 upstream ACP suite was not run because AILI does not install or distribute ACP; the pinned source was inspected only
 
 release_boundary:
-- public release is approved as MIT with ACP v1.12.6 recorded as an AGPL-3.0-or-later behavior reference only; no ACP source, prompt, schema, fixture or asset is distributed
-- release integration remains isolated from the dirty development workspace; corrective 0.1.12 adds only the bundle-presence release guard, incident evidence and required version changes on top of Compact commit `f0fb5c6`
-- corrective commit/push/publish, 0.1.11 deprecation and local installation completed with the evidence above; only the separately unverified live host/provider items remain
+- 0.1.12 and earlier release evidence above remains historical; prior granted licenses are not described as revoked
+- superseding user decision: target0.1.13 is package-wide `AGPL-3.0-or-later`, retains AILI Compact, and records ACP v1.12.6 as a no-copy AGPL behavioral reference
+- root package/lock/LICENSE/README/notice/SBOM consistency and third-party-license preservation are fail-closed release gates
+- fresh Pi 0.82.1 provider, positive process-owned child sandbox, disposable-HOME and external-workspace evidence passed; `npm run validate:release` passes
+- `release/0.1.13` preserves the origin/main prepublish bundle guard; current-repository push/publish/release/install remain separately gated until explicitly authorized
+
+0.1.13_agpl_candidate_evidence:
+- root identity: `@rosetears/aili-pi@0.1.13`, `AGPL-3.0-or-later`
+- official GNU AGPLv3 LICENSE SHA-256: `0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0`
+- packaged provenance/notices include exact `ranxianglei/opencode-acp@v1.12.6`, commit `f1a33d9f4ce55af808eb4e050717c914ed16084b`, attribution and no-copy boundary
+- source release is isolated from `.pi/`, `graphify-out/`, `.tmp/`, raw sessions and private artifacts
+- clean release-worktree typecheck/full test/prepublish/generated/capability/compatibility/provenance/strict OpenSpec gates pass; full suite: 56 passed + 2 skipped files, 359 passed + 3 skipped tests; separately authorized live gate: 2/2 PASS
+- exact npm tarball: 6,189 files, 13,644,257 bytes, SHA-256 `103788430c4709c8042dd21a1fbd7927948fae84fe158d22ae2b23ff91f2d837`
+- extracted-tarball required-file/license/provenance/bundle/deny-path/credential-marker/local-path scans pass; clean tarball-only consumer install confirms Compact, child sandbox and all three declared bundled dependencies

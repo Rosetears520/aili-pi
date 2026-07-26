@@ -1,39 +1,43 @@
 {
   "schemaVersion": 3,
   "platform": "linux",
-  "piVersion": "0.81.1",
+  "piVersion": "0.82.1",
   "runtime": "aili-persistent-agents-v1",
   "status": "passed",
-  "approvedScope": "On 2026-07-25 the user authorized the local workspace provider probes, disposable external Git lifecycle test, release-only Persistent Agent worktree, positive child sandbox implementation/verification, version 0.1.10, commit, push to origin/main, and npm publication. Earlier @agwab/pi-subagent evidence is not reused.",
+  "approvedScope": "On 2026-07-26 the user explicitly authorized the positive child sandbox executor plus fresh Pi 0.82.1 provider, disposable-HOME sandbox, and disposable external-workspace lifecycle probes. No current-repository Git write, publish, release, or package-install mutation was performed.",
   "probes": [
     {
       "id": "provider-turn",
       "status": "passed",
       "changedFiles": 0,
-      "evidence": "artifacts/test-results/persistent-agent-framework/live-smoke-2026-07-25.json",
-      "reason": "Refreshed local-package runtime completed synchronous, persistent follow-up, and asynchronous official Pi AgentSession turns through openai-codex/gpt-5.6-sol."
+      "evidence": "artifacts/test-results/persistent-agent-framework/live-smoke-2026-07-26-pi-0.82.1.json",
+      "reason": "OpenAI Codex GPT-5.6 Sol completed a headless parent turn and synchronous persistent child turn on Pi 0.82.1 using existing configured authentication without copying credential material."
     },
     {
       "id": "child-sandbox",
       "status": "passed",
       "changedFiles": 0,
-      "reason": "The child Bash definition reused the parent-initialized pi-permission-modes SandboxManager with a child-cwd-specific profile. A Bubblewrap live fixture allowed an in-scope write and denied both an out-of-scope write and a configured denyRead path; unavailable/worktree-incompatible executors remain fail closed.",
-      "verification": "AILI_RUN_CHILD_SANDBOX_LIVE=1 npx vitest run tests/integration/persistent-agent-live-gated.test.ts"
+      "evidence": "artifacts/test-results/persistent-agent-framework/live-smoke-2026-07-26-pi-0.82.1.json",
+      "reason": "A Build-mode shared-workspace persistent child executed its custom Bash definition through the ready process-owned pi-permission-modes sandbox and created only the disposable repository-local marker."
     },
     {
       "id": "external-workspace-lifecycle",
       "status": "passed",
       "changedFiles": 0,
-      "evidence": "artifacts/test-results/persistent-agent-framework/live-smoke-2026-07-25.json",
-      "reason": "An authorized disposable OS-temp Git repository passed dirty-baseline projection, isolated branch/worktree, child-only patch, unchanged main HEAD/status, cleanup, and no-revive assertions."
+      "evidence": "artifacts/test-results/persistent-agent-framework/live-smoke-2026-07-26-pi-0.82.1.json",
+      "reason": "The authorized gated integration test passed against an OS-temporary external Git repository, preserving parent HEAD/status and proving patch, cleanup, and no-revive behavior."
     }
   ],
   "implementation": {
-    "src/runtime/persistent-agents/production.ts": "312ac2a3cd32b298550caedc09d74d97d279ef9380a7e03ca32a424b70121ee1",
+    "src/runtime/persistent-agents/production.ts": "976640bcb58ca8d883638a5ed048d909c0dd1cdab51b11fa45ca9bdc575dcaae",
     "src/runtime/persistent-agents/runtime.ts": "fbf90c6c4ba573b64bca98e775aeb036ba8f28788e3919d0beebe52c36ef58de",
-    "src/runtime/persistent-agents/sandbox.ts": "8385b3f0ee85e29f52d294fc8c458157041fe93ac367a0b7af0cf44a845063ed",
-    "src/runtime/persistent-agents/permission.ts": "48b30508491bca7fcd04d82b30d9dde1423499c2f02c014074c3f030c7ebd8ba",
-    "src/runtime/persistent-agents/workspace.ts": "a39438c52708f0104ee9cb11d7fa4dcf8fe72db548decb2cc3f96995f94fa475"
+    "src/runtime/persistent-agents/child-sandbox.ts": "d6a654b4f52911fee650d5d499abe7f755349bbea8bcd2b04d95f38670687100",
+    "src/runtime/persistent-agents/policy.ts": "c76df50611bf707ff4d61da692635b6452b2b066c250f1ab53bf42957de215af",
+    "src/vendor/pi-permission-modes/index.ts": "5ca8743e55776e3d0bd1f8c2daef40f55a7ac6009306bc66398a9753105ed848",
+    "tests/integration/package-runtime.test.ts": "bc3659d12c416343b1c3bafffd3365a77fb342e6b5ac5e4d3abd8aaf9d608eea",
+    "tests/integration/persistent-agent-runtime.test.ts": "50c930a4b72e5697f0931f0fcd9ff1a17a22b8dcd8f7e3ad51c255b6e454a2f9",
+    "tests/integration/persistent-agent-live-gated.test.ts": "5c89f0d68b7085abb00bebc448bbc4dda50af2477f10bcce29011c9fb676a05d",
+    "tests/unit/persistent-agent-child-sandbox.test.ts": "67708cfb547b8ce7fd3acae48e9bd87dada314440276b3b81de2b8159a93f41c"
   },
-  "credentialHandling": "Deterministic permission/output/history tests enforce fail-closed credential denial and redaction. The live provider probe consumed existing Pi authentication through the official child AgentSession; no credential values were read, exported, or copied into the sanitized evidence artifact."
+  "credentialHandling": "Existing Pi authentication was referenced for the authorized provider call; no credential value, auth file, encrypted reasoning payload, or raw provider transcript is included in the durable artifact. A bounded scan of task-owned temporary output found zero credential markers before cleanup."
 }

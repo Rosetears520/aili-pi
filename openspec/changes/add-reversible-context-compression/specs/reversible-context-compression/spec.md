@@ -196,9 +196,31 @@ Unknown keys, invalid JSONC, invalid type/range or invalid cross-field threshold
 - **WHEN** doctor observes a current reducer/reference/projection invariant error
 - **THEN** component health is ERROR with bounded evidence rather than PASS-by-registration
 
-### Requirement: Public release preserves the MIT/reference-only boundary
-The Package SHALL remain MIT and MAY release AILI Compact only through the approved reference-only route: exact ACP revision and AGPL-3.0-or-later license attribution SHALL be recorded, and no ACP source, prompt, schema, fixture or asset SHALL be copied or distributed. Release validation SHALL fail if that provenance/no-copy boundary is absent or contradicted. The approved corrective 0.1.12 version, Git push, npm publish and local installation SHALL remain conditional on fresh release checks; future dependency changes are not implicitly authorized.
+### Requirement: Package-wide AGPL-3.0-or-later disposition is exact and prospective
+Beginning with target `@rosetears/aili-pi@0.1.13`, the root Package SHALL declare `AGPL-3.0-or-later` consistently in `package.json`, root lock metadata, complete root `LICENSE` text, README, generated root SBOM record and generated distribution notice. Existing third-party dependencies/adaptations SHALL retain their own license declarations and notices. Previously published versions SHALL NOT be described as retroactively relicensed or revoked.
+
+#### Scenario: Root license metadata drifts
+- **WHEN** any release candidate root package, lock, LICENSE, README, generated notice or root SBOM record does not identify the accepted AGPL route
+- **THEN** package/release validation MUST fail before publish
+
+#### Scenario: Prior release is documented
+- **WHEN** documentation refers to version 0.1.12 or earlier
+- **THEN** it MUST preserve the previously granted license history rather than claim retroactive revocation
+
+### Requirement: Packaged provenance records the AGPL reference boundary
+Packaged provenance and notices SHALL identify `ranxianglei/opencode-acp@v1.12.6`, commit `f1a33d9f4ce55af808eb4e050717c914ed16084b`, repository and `AGPL-3.0-or-later` license. They SHALL state whether files/symbols were directly copied or only used as a behavioral reference; the current accepted boundary is no direct source/prompt/schema/fixture/asset copy.
+
+#### Scenario: Reference attribution is absent
+- **WHEN** the target tarball lacks the exact opencode-acp provenance/notice identity
+- **THEN** provenance and release validation MUST fail
 
 #### Scenario: A direct AGPL source copy is proposed
-- **WHEN** implementation needs to copy a source file, prompt, schema, fixture or asset from `ranxianglei/opencode-acp@v1.12.6`
-- **THEN** affected work stops until an exact copy/provenance/license approval is recorded
+- **WHEN** implementation needs to copy a source file, prompt, schema, fixture or asset from the pinned source
+- **THEN** affected work MUST stop until an exact copy/provenance approval records the affected files and local destinations
+
+### Requirement: License resolution does not grant release operations
+Resolving the package license SHALL remove only the named AGPL/MIT disposition blocker after deterministic evidence passes. It SHALL NOT convert stale provider/sandbox/external-workspace/TUI evidence to PASS and SHALL NOT itself authorize dependency, Git, version, publish or release operations.
+
+#### Scenario: License checks pass while live evidence is stale
+- **WHEN** AGPL package consistency passes but required Pi 0.82.1 live evidence remains stale or unverified
+- **THEN** release validation MUST remain non-pass with only the still-applicable named evidence blockers

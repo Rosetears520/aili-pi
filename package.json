@@ -1,9 +1,9 @@
 {
   "name": "@rosetears/aili-pi",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "AILI and ROSE distribution for official Pi",
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Rosetears520/aili-pi.git"
@@ -95,7 +95,10 @@
     "typebox": "*"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "0.81.1",
+    "@earendil-works/pi-agent-core": "0.82.1",
+    "@earendil-works/pi-ai": "0.82.1",
+    "@earendil-works/pi-coding-agent": "0.82.1",
+    "@earendil-works/pi-tui": "0.82.1",
     "@types/node": "24.12.4",
     "typebox": "1.1.38",
     "typescript": "5.9.3",

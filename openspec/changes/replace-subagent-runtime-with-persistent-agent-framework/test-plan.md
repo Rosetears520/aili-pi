@@ -5,8 +5,8 @@
 - 来源：`proposal.md`、`interview.md` D-001–D-014、`design.md`、`specs/persistent-agent-orchestration/spec.md`、`specs/subagent-model-selection/spec.md`、official Pi SDK/Extension/Session 文档与 pinned OMP `17.1.3` revision `59619623e1eeb7c290649eeaf3a269284ce8adef`。
 - 生成时间：2026-07-25。
 - 适用范围：当前未实现的 OpenSpec change `replace-subagent-runtime-with-persistent-agent-framework`。
-- 状态：`release worktree / provider, positive child sandbox, and disposable external-workspace probes passed / 0.1.10 release authorized`。
-- 当前授权：用户于 2026-07-25 接受最终测试计划及 repository-local BUILD，随后精确批准 dependency/lockfile public migration，并批准将用户级 Pi 包替换为当前工作区、刷新后执行运行时验证。真实 provider 的无工具 sync/follow-up/async probes、Bubblewrap child Bash及一次性OS临时目录中的external workspace/Git lifecycle已完成；用户已授权release-only worktree、`0.1.10`、commit、push `origin/main`与npm publish。OMP 源码复制或实质改写、`aili-workflows` 写入、force-push/history rewrite及AILI Compact发布仍未授权。
+- 状态：`release/0.1.13 worktree / fresh Pi 0.82.1 provider, process-owned positive child sandbox, and disposable external-workspace probes passed / release commit authorized`。
+- 当前授权：用户于2026-07-26批准process-owned positive child sandbox及fresh provider/disposable-HOME/external-workspace probes，并授权从`origin/main`创建`release/0.1.13`干净worktree、叠加已验证候选和创建release commit。OMP/ACP源码复制或实质改写、`aili-workflows`写入、push、npm publish、GitHub release、force-push/history rewrite仍需各自门禁。
 
 ## 1. 被测对象、目标与边界
 
@@ -255,7 +255,7 @@
 | Passed | dependency/lockfile removal | legacy runtime已移除，public surface仅`task`/`hub` | exact approval后完成 |
 | Passed | real provider/auth no-tool turns | sync、same-Agent follow-up、async/wait/delivery均通过 | 脱敏证据位于`artifacts/test-results/persistent-agent-framework/` |
 | Passed | external workspace/Git lifecycle | disposable repo的dirty projection、worktree/branch、patch、main不变、cleanup/no-revive通过 | `AILI_RUN_EXTERNAL_GIT_LIVE=1` |
-| Passed | positive child sandbox execution | child复用parent-initialized SandboxManager；in-scope写成功，越界写与denyRead失败；不可用仍fail closed | `AILI_RUN_CHILD_SANDBOX_LIVE=1` |
+| Passed | positive child sandbox execution | child使用process-owned ready/exact-profile SandboxController的same-name custom Bash definition；不得initialize/reconfigure/reset；degraded/disabled/mismatch fail closed | focused bridge tests + provider-backed Pi 0.82.1 child turn + `AILI_RUN_CHILD_SANDBOX_LIVE=1` |
 | Cross-repo | `aili-workflows` fresh/single-use规则冲突 | 阻塞canonical workflow一致性 | 先packet，写入另行批准 |
 
 ## 9. Final acceptance gate
@@ -265,6 +265,7 @@
 - [x] 用户已批准用户级本地工作区安装与刷新后的真实provider无工具运行时验证；sync/follow-up/async evidence已持久化。
 - [ ] 用户单独批准具体 OMP code-copy/adaptation symbols 后，才可复制或实质改写对应源码。
 - [x] 用户已批准并完成仅限disposable OS临时仓库的external workspace/Git lifecycle验证；当前仓库HEAD/index/history未被写入。
-- [x] 用户已批准release-only worktree中的positive child sandbox接入、版本`0.1.10`、任务专属commit、push `origin/main`与npm publish。
+- [x] 用户已批准`release/0.1.13`worktree中的process-owned positive child sandbox接入及任务专属release commit。
+- [ ] Push、npm publish、GitHub release和安装替换仍分别待授权。
 
-Repository-local BUILD、public migration、provider runtime、positive child sandbox和external Git lifecycle probes已完成。AILI Compact未进入此release worktree或MIT tarball；其单独许可证门禁不被本次release重解释。
+Repository-local BUILD、public migration和fresh Pi 0.82.1 provider/positive child sandbox/external Git lifecycle probes已完成。0.1.13整包采用`AGPL-3.0-or-later`并包含AILI Compact；push/publish/release尚未执行。

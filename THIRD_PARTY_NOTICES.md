@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-This distribution is MIT-licensed. The following adapted sources and locked development/runtime dependencies retain their own license terms.
+This distribution is licensed under AGPL-3.0-or-later. The following adapted sources, behavioral references, and locked development/runtime dependencies retain their own license terms.
 
 ## aili-workflows
 
@@ -108,12 +108,13 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - Revision: f1a33d9f4ce55af808eb4e050717c914ed16084b
 - Version: 1.12.6
 - License: AGPL-3.0-or-later
+- Upstream notice: Based on opencode-dynamic-context-pruning by Tarquinen (https://github.com/Tarquinen/opencode-dynamic-context-pruning); modified by ranxianglei, 2026 — 34 bug fixes, performance optimizations, enhanced stability.
 - Source files: none copied
 - Reused symbols/patterns: none
 - Local changes: none
 
 ## npm dependency inventory
 
-The exact 419-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
+The exact 423-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
 
 Runtime dependencies are initialized through the single AILI Extension entry. Package-owned third-party adaptations are copied only where their provenance sourceFiles explicitly name repository paths.

@@ -38,7 +38,8 @@
 ## Boundaries and approval state
 
 - 当前方案修订将 change 返回 DEFINE；原 private BUILD acceptance 不自动覆盖本次新增/纠正的行为和测试计划。修订后的 `test-plan.md` 需要用户重新接受后才能恢复 BUILD。
-- 当前 Package 仍为 MIT。用户已批准 public release 及 0.1.12 hotfix 采用 ACP v1.12.6 reference-only 路线：记录精确 revision/license，但不复制或分发 ACP source、prompt、schema、fixture 或 asset。
-- corrective 0.1.12 的 version、commit、push、publish 和本机安装已获明确批准，但仍须通过 fresh release checks；任何未来 AGPL-derived source copy 或新增 dependency/lockfile mutation 仍需单独精确批准。
+- [已知|用户决定] 从目标版本 `0.1.13` 起，整个 `@rosetears/aili-pi` Package 采用 `AGPL-3.0-or-later`；既有第三方MIT/OFL/Apache等许可与notice保持原样，既往0.1.12及更早版本的既有许可不被追溯撤回。
+- `ranxianglei/opencode-acp@v1.12.6` / commit `f1a33d9f4ce55af808eb4e050717c914ed16084b` 必须进入packaged provenance与notice，明确AGPL来源及当前no-direct-copy/reference boundary。解除硬编码AGPL/MIT blocker必须以package/lock/LICENSE/README/provenance/SBOM/tarball一致性测试为前提。
+- 任何直接AGPL source/prompt/schema/fixture/asset copy仍需单独精确批准与文件级provenance。版本、commit、push、publish、release与真实provider/TUI仍保留各自操作门禁；本决定本身不执行这些操作。
 - 不 fork Pi、不改 `node_modules`、不覆盖 Pi built-in 工具、不建 raw-content sidecar、不写 Session JSONL 的既有条目、不在 `context` hook 做网络、持久化或非确定性摘要。
 - 真实 provider/cache performance probe 是独立授权项；无证据时 `UV-LIVE-1` 保持 Unverified。

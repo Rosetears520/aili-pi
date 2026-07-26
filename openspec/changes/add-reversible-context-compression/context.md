@@ -87,18 +87,18 @@ The above is not evidence for the reopened functional work listed in `tasks.md`.
 
 ## Boundaries
 
-- No Pi fork, `node_modules` mutation, alternate agent CLI, replacement built-in tools, raw-content sidecar, prior Session entry rewrite or hidden nested provider call.
-- Current Package license remains MIT. The user subsequently approved public release and the corrective 0.1.12 hotfix using the reference-only route: ACP v1.12.6 is attributed as an AGPL-3.0-or-later behavior reference, while no ACP source, prompt, schema, fixture or asset is copied or distributed.
-- Direct copying or adaptation of a specific AGPL source file/prompt/schema/fixture/asset still requires a new exact copy/provenance/license approval. Reading pinned behavior does not grant copy permission.
-- The revised `test-plan.md` was explicitly accepted on 2026-07-25; dependency changes remain separately gated, while the exact version, Git push, npm publish and local-install operations for the corrective 0.1.12 are now approved subject to fresh release verification.
+- No Pi fork, `node_modules` mutation, alternate agent CLI, replacement built-in tools, raw-content sidecar, prior Session entry rewrite, hidden nested provider call, dependency/lockfile change, user-home write, Git action, version, publish or release.
+- Superseding user decision: target `0.1.13` relicenses the entire Package to `AGPL-3.0-or-later`; third-party license declarations/notices remain unchanged and prior releases retain their previously granted licenses.
+- Direct copying or adaptation of a specific AGPL source file/prompt/schema/fixture/asset still requires a new exact copy/provenance/license approval. Reading pinned behavior and package relicensing do not by themselves authorize copying.
+- The 2026-07-25 test-plan acceptance covered private/local BUILD only and is stale for this new public-license/release scope. Production license/version/release edits require acceptance of the revised final `test-plan.md`; Git/provider/TUI/publish operations remain separately gated.
 
 ## Remaining Unverified
 
 - `UV-LIVE-1`: real provider tool use, summary quality and eligible warm-session cache rate require separately approved named provider/model evidence.
 - `UV-EXT-ORDER-1`: unknown later context extensions are not universally compatible; AILI guarantees unmatched preservation, fail-open projection and bounded diagnostics.
 - `UV-PI-INTERNAL-1`: real-host title/summary/native-compaction internal-request event ordering and any required explicit gate remain unverified.
-- `UV-ACP-RUNTIME-1`: pinned source and tests were inspected, but the ACP suite was not executed because ACP is neither a runtime dependency nor a distributed component; no upstream runtime PASS is claimed.
-- `RESOLVED-LICENSE-1`: public distribution uses the user-approved MIT/reference-only route with exact ACP revision/license attribution and no copied ACP material.
+- `UV-ACP-RUNTIME-1`: pinned source and tests were inspected but the ACP test suite was not executed because dependency installation was not approved.
+- `UV-LICENSE-1` is superseded by the user's AGPL-3.0-or-later decision, but implementation remains incomplete until package metadata, complete LICENSE text, packaged upstream attribution, generated SBOM/notices and release validation agree.
 
 ## Evidence and placement
 

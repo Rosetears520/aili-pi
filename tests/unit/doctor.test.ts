@@ -11,7 +11,9 @@ import {
 import {
   assessCapability,
   loadRegistry,
+  validateLicenseDispositionData,
   validatePermissionModeAdaptation,
+  validatePiHostInstallation,
   validateRegistry,
   validateRegistryData,
   validateStableRelease,
@@ -55,11 +57,41 @@ describe("capability registry", () => {
 
   it("binds release evidence to the exact adapted permission entry and hashes", async () => {
     expect(await validatePermissionModeAdaptation()).toEqual([]);
+    expect(await validatePiHostInstallation()).toEqual([]);
     const errors = await validateStableRelease();
     expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("permission adaptation:")]));
     expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("native integration evidence")]));
     expect(errors).toEqual([]);
+    expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("separate AGPL/MIT license disposition")]));
     expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("dependency/lockfile approval")]));
+  });
+
+  it("validates the package-wide AGPL disposition and rejects stale generated metadata", () => {
+    const valid = {
+      packageManifest: { name: "@rosetears/aili-pi", version: "0.1.13", license: "AGPL-3.0-or-later" },
+      packageLockRoot: { name: "@rosetears/aili-pi", version: "0.1.13", license: "AGPL-3.0-or-later" },
+      licenseSha256: "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+      readme: "version 0.1.13 and later is licensed under `AGPL-3.0-or-later`. Corresponding source is available from the repository declared in `package.json`.",
+      notices: "This distribution is AGPL-3.0-or-later licensed. Adapted sources retain their own license terms.",
+      sbomRoot: { name: "@rosetears/aili-pi", versionInfo: "0.1.13", licenseConcluded: "AGPL-3.0-or-later", licenseDeclared: "AGPL-3.0-or-later" },
+    };
+    expect(validateLicenseDispositionData(valid)).toEqual([]);
+    expect(validateLicenseDispositionData({
+      ...valid,
+      packageManifest: { ...valid.packageManifest, license: "MIT" },
+      packageLockRoot: { ...valid.packageLockRoot, version: "0.1.12" },
+      licenseSha256: "0".repeat(64),
+      readme: "",
+      notices: "This distribution is MIT-licensed. Third-party terms are omitted.",
+      sbomRoot: { ...valid.sbomRoot, licenseDeclared: "MIT" },
+    })).toEqual(expect.arrayContaining([
+      expect.stringContaining("package manifest"),
+      expect.stringContaining("package-lock"),
+      expect.stringContaining("license text"),
+      expect.stringContaining("README"),
+      expect.stringContaining("third-party notice"),
+      expect.stringContaining("SPDX root"),
+    ]));
   });
 
   it("rejects duplicate IDs, unknown providers, missing probes, invalid states, and dangling references", async () => {
@@ -94,7 +126,7 @@ describe("doctor", () => {
       expect.objectContaining({ id: "aili.compact", status: "UNVERIFIED", evidence: expect.stringContaining("reducer=pass") }),
       expect.objectContaining({ id: "optional.packs", status: "SKIP" }),
       expect.objectContaining({ id: "roles.agents", status: "PASS", evidence: expect.stringContaining("profiles=20") }),
-      expect.objectContaining({ id: "agent.framework", status: "PASS", evidence: expect.stringContaining("provider/sandbox/external-workspace gates pass") }),
+      expect.objectContaining({ id: "agent.framework", status: "PASS", evidence: expect.stringContaining("public tools=task,hub") }),
       expect.objectContaining({ id: "permission.native", status: "PASS" }),
       expect.objectContaining({ id: "global.resources", status: expect.stringMatching(/^(PASS|UNVERIFIED)$/) }),
       expect.objectContaining({ id: "provenance", status: "PASS" }),

@@ -1,4 +1,4 @@
-import { getAgentDir, type AgentSession, type CreateAgentSessionOptions, type ExtensionAPI, type ExtensionContext, type SessionManager, type ToolDefinition } from "@earendil-works/pi-coding-agent";
+import { createBashToolDefinition, getAgentDir, type AgentSession, type CreateAgentSessionOptions, type ExtensionAPI, type ExtensionContext, type SessionManager, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { loadModeConfig } from "pi-permission-modes/src/config-load.ts";
 import type { ModeDef, PermissionModeConfig } from "pi-permission-modes/src/schema.ts";
 import { TASK_TOOL_SCHEMA } from "./task-schema.js";
@@ -28,7 +28,7 @@ import {
 } from "./workspace.js";
 import { PersistentAgentRuntime, registerPersistentAgentTools, type PersistentRuntimeExecutorInput } from "./runtime.js";
 import { persistFullAgentOutput } from "./output-delivery.js";
-import { createChildSandboxBash } from "./sandbox.js";
+import { resolvePersistentAgentSandbox } from "./child-sandbox.js";
 import { loadRoleProfiles, type RoleProfile } from "../roles.js";
 
 const BUILTIN_CHILD_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls"] as const;
@@ -246,11 +246,14 @@ export class PersistentAgentProduction {
     });
     const modeConfig = loadModeConfig(workspace.root, getAgentDir(), (message) => context.ui.notify(message, "warning"));
     const mode = currentMode(modeConfig, context);
-    const sandboxBash = policy.effectiveTools.includes("bash")
-      ? await createChildSandboxBash(mode.sandbox, childCwd)
-      : { reason: "bash-not-enabled" };
-    const effectivePolicy = sandboxBash.definition
-      ? { ...policy, customTools: [...policy.customTools.filter((tool) => tool.name !== "bash"), sandboxBash.definition] }
+    const sandboxResolution = policy.effectiveTools.includes("bash")
+      ? resolvePersistentAgentSandbox(mode.sandbox)
+      : { available: false, reason: "bash-not-enabled" };
+    const sandboxDefinition = sandboxResolution.operations
+      ? createBashToolDefinition(childCwd, { operations: sandboxResolution.operations }) as unknown as ToolDefinition
+      : undefined;
+    const effectivePolicy = sandboxDefinition
+      ? { ...policy, customTools: [...policy.customTools.filter((tool) => tool.name !== "bash"), sandboxDefinition] }
       : policy;
 
     const configs = await new ModelConfigStore({
@@ -287,8 +290,8 @@ export class PersistentAgentProduction {
           runtimeAdapterVersion: role.runtimeAdapterVersion,
           effectiveTools: effectivePolicy.effectiveTools,
           unavailableTools: effectivePolicy.unavailable,
-          sandbox: mode.sandbox.enabled ? (sandboxBash.definition ? "enabled" : "unavailable") : "disabled",
-          sandboxReason: sandboxBash.reason,
+          sandbox: mode.sandbox.enabled ? (sandboxDefinition ? "enabled" : "unavailable") : "disabled",
+          sandboxReason: sandboxResolution.reason,
           provider: choice.provider,
           model: choice.model,
           modelLayer: choice.layer,
@@ -299,7 +302,7 @@ export class PersistentAgentProduction {
       });
     }
 
-    const resolver = new ChildPermissionResolver({ mode, cwd: childCwd, sandboxExecutorAvailable: Boolean(sandboxBash.definition) });
+    const resolver = new ChildPermissionResolver({ mode, cwd: childCwd, sandboxExecutorAvailable: Boolean(sandboxDefinition) });
     const permission = brokeredChildPermission(resolver, state.approval, {
       agentId: controller.agentId,
       jobId: input?.jobId ?? `hub-${controller.agentId}`,
@@ -318,6 +321,7 @@ export class PersistentAgentProduction {
         `Agent ID: ${controller.agentId}`,
         `Model: ${choice.canonical} (${choice.layer}, thinking=${choice.thinking})`,
         `Unavailable requested tools: ${policy.unavailable.map((item) => `${item.name}:${item.reason}`).join(", ") || "none"}`,
+        `Child sandbox: ${mode.sandbox.enabled ? (sandboxDefinition ? "active" : `unavailable (${sandboxResolution.reason ?? "unknown"})`) : "not required by active mode"}`,
       ].join("\n"),
       role,
       task: input?.item.task ?? "Continue this persistent Agent from the explicit hub message.",

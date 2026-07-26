@@ -164,7 +164,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -198,7 +198,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1023,7 +1023,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1256,7 +1256,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1303,7 +1303,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1378,7 +1378,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1447,7 +1447,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1512,7 +1512,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1569,7 +1569,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1617,7 +1617,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1664,7 +1664,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1759,7 +1759,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1793,7 +1793,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1842,7 +1842,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1891,7 +1891,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1975,7 +1975,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -2009,7 +2009,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -2106,7 +2106,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -2142,7 +2142,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3041,7 +3041,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3190,7 +3190,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3321,7 +3321,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3538,7 +3538,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3646,7 +3646,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3710,7 +3710,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3811,7 +3811,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3878,7 +3878,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -5534,7 +5534,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -5675,7 +5675,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -5784,7 +5784,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -5916,7 +5916,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -6358,7 +6358,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -6753,7 +6753,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -6930,7 +6930,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7458,7 +7458,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7495,7 +7495,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7689,7 +7689,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7738,7 +7738,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7878,7 +7878,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7970,7 +7970,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -8082,7 +8082,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",

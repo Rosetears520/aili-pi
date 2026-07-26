@@ -49,7 +49,7 @@
 
 import { Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { createBashTool, getAgentDir } from "@earendil-works/pi-coding-agent";
+import { createBashToolDefinition, getAgentDir } from "@earendil-works/pi-coding-agent";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { askWithSession, SessionApprovals } from "pi-permission-modes/src/approvals.ts";
@@ -70,6 +70,7 @@ import { type NetAskResult, NetworkSession, isHostAllowed, normalizeDomain } fro
 import { isOutside, isProtectedWrite } from "pi-permission-modes/src/paths.ts";
 import { decide, decideBashCommand, mostRestrictive } from "./resolve.ts";
 import { SandboxController } from "pi-permission-modes/src/sandbox.ts";
+import { installPersistentAgentSandboxProvider } from "../../runtime/persistent-agents/child-sandbox.js";
 import {
   type Action,
   type ModeDef,
@@ -108,6 +109,18 @@ const BUILTIN_HANDLED = new Set([
 /** Our own tools that must never be hidden (show_plan is needed in Plan mode). */
 const NEVER_HIDE = new Set(["show_plan"]);
 
+const PI_SESSION_ENV_KEYS = ["PI_SESSION_ID", "PI_SESSION_FILE", "PI_PROVIDER", "PI_MODEL", "PI_REASONING_LEVEL"] as const;
+
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", "'\"'\"'")}'`;
+}
+
+function piSessionEnvironmentPrelude(env: NodeJS.ProcessEnv): string {
+  return PI_SESSION_ENV_KEYS.map((key) => env[key] === undefined
+    ? `unset ${key}`
+    : `export ${key}=${shellQuote(env[key])}`).join("; ");
+}
+
 export default async function (pi: ExtensionAPI) {
   // The engine starts on the shipped stock defaults (permission-mode.defaults.json);
   // session_start reloads the merged config (stock + global full-authority +
@@ -126,6 +139,11 @@ export default async function (pi: ExtensionAPI) {
   const currentMode = (): ModeDef => config.modes[modeName] ?? config.modes[config.defaultMode];
 
   const sandbox = new SandboxController();
+  installPersistentAgentSandboxProvider({
+    currentProfile: () => currentMode().sandbox,
+    operations: ({ readOnly }) => sandbox.ready && !sandbox.disabled ? sandbox.bashOps({ readOnly }) : null,
+    diagnostic: () => sandbox.disabled ? "sandbox disabled by host flag" : sandbox.warn,
+  });
   // toolCallIds the user explicitly approved to run OUTSIDE the sandbox.
   const approvedUnsandboxed = new Set<string>();
   // "Allow for session" memory, keyed per-mode.
@@ -195,7 +213,7 @@ export default async function (pi: ExtensionAPI) {
     }
   };
 
-  const localBash = createBashTool(root);
+  const localBash = createBashToolDefinition(root);
 
   pi.registerFlag("perm", {
     description: `Start in permission mode: ${config.cycleOrder.join(" | ")}`,
@@ -409,14 +427,22 @@ export default async function (pi: ExtensionAPI) {
   // and the degraded fallback run unsandboxed; non-writable modes run read-only.
   pi.registerTool({
     ...localBash,
-    async execute(id, params, signal, onUpdate, _ctx) {
+    async execute(id, params, signal, onUpdate, ctx) {
       const approved = approvedUnsandboxed.delete(id); // user granted an escape
       const m = currentMode();
       const plan = bashExecPlan(m.sandbox.enabled, m.sandbox.writable, sandbox.ready, approved);
       const ops = plan.sandboxed ? sandbox.bashOps({ readOnly: plan.readOnly }) : null;
-      if (!ops) return localBash.execute(id, params, signal, onUpdate);
-      const sandboxed = createBashTool(root, { operations: ops });
-      return sandboxed.execute(id, params, signal, onUpdate);
+      if (!ops) return localBash.execute(id, params, signal, onUpdate, ctx);
+      const sandboxed = createBashToolDefinition(root, {
+        operations: {
+          exec: (command, cwd, options) => ops.exec(
+            `${piSessionEnvironmentPrelude(options.env ?? {})}\n${command}`,
+            cwd,
+            options,
+          ),
+        },
+      });
+      return sandboxed.execute(id, params, signal, onUpdate, ctx);
     },
   });
 

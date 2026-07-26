@@ -1,16 +1,20 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { access } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 interface PackageManifest {
   name: string;
+  version: string;
+  license: string;
   bin?: unknown;
   engines?: { node?: string };
   files?: string[];
   pi?: { extensions?: string[]; prompts?: string[]; skills?: string[]; themes?: string[] };
   bundledDependencies?: string[];
   dependencies?: Record<string, string>;
-  scripts?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  overrides?: unknown;
 }
 
 async function readManifest(): Promise<PackageManifest> {
@@ -22,6 +26,8 @@ describe("Pi package baseline", () => {
     const manifest = await readManifest();
 
     expect(manifest.name).toBe("@rosetears/aili-pi");
+    expect(manifest.version).toBe("0.1.13");
+    expect(manifest.license).toBe("AGPL-3.0-or-later");
     expect(manifest.bin).toBeUndefined();
     expect(manifest.engines?.node).toBe(">=22.19.0");
     expect(manifest.pi?.extensions).toEqual([
@@ -35,9 +41,9 @@ describe("Pi package baseline", () => {
     expect(manifest.bundledDependencies).toEqual(expect.arrayContaining([
       "@narumitw/pi-lsp", "pi-cache-optimizer", "pi-markdown-preview",
     ]));
-    expect(manifest.scripts?.prepublishOnly).toContain("validate:bundles");
-    expect(manifest.scripts?.["validate:bundles"]).toContain("validate-package-bundles.ts");
     expect(manifest.dependencies).not.toHaveProperty("@agwab/pi-subagent");
+    expect(manifest.devDependencies?.["@earendil-works/pi-coding-agent"]).toBe("0.82.1");
+    expect(JSON.stringify(manifest.overrides ?? {})).not.toContain("372000");
   });
 
   it("references package resources that exist", async () => {
@@ -75,10 +81,11 @@ describe("Pi package baseline", () => {
   it("includes user documentation and generated provenance gates", async () => {
     const manifest = await readManifest();
     expect(manifest.files).toEqual(expect.arrayContaining(["README.md", "THIRD_PARTY_NOTICES.md", "manifests/", "upstream/", "licenses/"]));
-    const [readme, permissionLock, packageLock] = await Promise.all([
+    const [readme, permissionLock, packageLock, licenseText] = await Promise.all([
       readFile(new URL("../../README.md", import.meta.url), "utf8"),
       readFile(new URL("../../upstream/pi-permission-modes.lock.json", import.meta.url), "utf8").then(JSON.parse),
-      readFile(new URL("../../package-lock.json", import.meta.url), "utf8"),
+      readFile(new URL("../../package-lock.json", import.meta.url), "utf8").then(JSON.parse),
+      readFile(new URL("../../LICENSE", import.meta.url), "utf8"),
       access(new URL("../../src/vendor/pi-permission-modes/index.ts", import.meta.url)),
       access(new URL("../../licenses/pi-permission-modes-MIT.txt", import.meta.url)),
     ]);
@@ -88,10 +95,18 @@ describe("Pi package baseline", () => {
     expect(readme).toContain("/rose-matrix");
     expect(readme).toContain("fixed-bottom editor");
     expect(readme).toContain("public `task`/`hub` persistent Agent framework");
-    expect(readme).toContain("### AILI Compact");
-    expect(readme).toContain("opencode-acp@1.12.6");
     expect(readme).not.toContain("@agwab/pi-subagent");
-    expect(packageLock).not.toContain("@agwab/pi-subagent");
+    expect(readme).toContain("version 0.1.13 and later is licensed under `AGPL-3.0-or-later`");
+    expect(packageLock).toMatchObject({
+      name: "@rosetears/aili-pi",
+      version: "0.1.13",
+      packages: { "": { name: "@rosetears/aili-pi", version: "0.1.13", license: "AGPL-3.0-or-later" } },
+    });
+    expect(JSON.stringify(packageLock)).not.toContain("@agwab/pi-subagent");
+    expect(createHash("sha256").update(licenseText).digest("hex")).toBe("0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0");
+    expect(licenseText).toContain("GNU AFFERO GENERAL PUBLIC LICENSE\n                       Version 3, 19 November 2007");
+    expect(licenseText).toContain("How to Apply These Terms to Your New Programs");
+    expect(licenseText).toContain("either version 3 of the License, or\n    (at your option) any later version");
     expect(permissionLock.package).toMatchObject({ version: "2.2.0", revision: "23d65d10a53b67043cae42322acf9044d6edb196" });
   });
 });

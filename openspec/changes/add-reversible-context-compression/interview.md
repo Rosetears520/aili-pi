@@ -478,3 +478,21 @@ root -> A -> B   (当前branch)
 ## Next Action
 
 Requirements grilling结束。下一步是material writeback和重写private-BUILD test plan；在用户明确接受新test plan之前，BUILD readiness仍为blocked。
+
+## Superseding Public-License Decision — target 0.1.13
+
+### User decision
+
+在 0.1.12 已存在、目标改为 0.1.13 后，用户明确选择许可路线 **B**：整个 `@rosetears/aili-pi` Package 从 0.1.13 起采用 `AGPL-3.0-or-later`，保留AILI Compact进入公开包。
+
+### Classification
+
+- `confirmed` + `material-delta`：改变package-wide public license、provenance、SBOM、notice、release validator和candidate acceptance。
+- Prospective only：不宣称撤销 0.1.12 及更早版本已授予的许可。
+- Third-party licenses preserved：现有MIT/OFL/Apache等依赖与adaptation声明不得被批量改写。
+- Pinned reference identity：`ranxianglei/opencode-acp@v1.12.6`、commit `f1a33d9f4ce55af808eb4e050717c914ed16084b`、`AGPL-3.0-or-later`进入packaged provenance/notice；当前事实仍为no direct source/prompt/schema/fixture/asset copy。
+- This decision resolves the route only. Production license/version edits, live probes, commit/push/tag/publish/GitHub release/install remain separately gated.
+
+### Write-back and readiness
+
+Owning artifacts and direct dependents were revised. The prior private-BUILD test-plan acceptance is stale for public relicensing. Readiness is `BLOCKED_PENDING_REVISED_TEST_PLAN_ACCEPTANCE` until the user accepts the new package-wide AGPL/0.1.13 test plan.

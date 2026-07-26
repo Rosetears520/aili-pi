@@ -10,8 +10,8 @@ All tasks belong to the single `add-reversible-context-compression` change. Chec
 - [x] 1.2 Add redacted synthetic fixtures for linear, branched, malformed, protocol-heavy, compacted and cache-telemetry histories under `tests/fixtures/aili-compact/`.
   - Acceptance: fixtures contain no credentials/provider payloads and cover existing base replay/projection paths.
   - Verify: `tests/unit/aili-compact-fixtures.test.ts`.
-- [x] 1.3 Record exact ACP source provenance and the approved MIT/reference-only release route without copying external source.
-  - Acceptance: exact revision/license attribution is present, no ACP source/prompt/schema/fixture/asset is copied, and release validation enforces the no-copy boundary.
+- [x] 1.3 Record private-BUILD source provenance and the public license blocker without copying external source or mutating package metadata.
+  - Acceptance: release remains non-pass and no AGPL file/prompt/schema/fixture is copied.
   - Verify: provenance/release validator inspection.
 - [x] 1.4 Audit pinned ACP `v1.12.6` at commit `f1a33d9f4ce55af808eb4e050717c914ed16084b` and record portable behavior, intentional Pi adaptations and upstream conflicts.
   - Acceptance: proposal/design do not claim parity with disabled in-place pruning, stale defaults, unused deep search or OpenCode sidecar behavior.
@@ -164,19 +164,37 @@ All tasks belong to the single `add-reversible-context-compression` change. Chec
 - [x] 7.2 Replace PASS-by-command-registration doctor health with reducer/reference/projection/recap/cache/prompt/native-hook evidence.
   - Acceptance: current invariant failure is ERROR; missing optional/live evidence is WARN/Unverified; no raw content is emitted.
   - Verify: doctor status/redaction tests.
-- [x] 7.3 Reconcile README/troubleshooting with the final implemented command, reference, compression, prompt, policy, cache, recovery and release behavior.
-  - Acceptance: docs distinguish implemented behavior, unavailable/live-unverified evidence and the resolved MIT/reference-only boundary.
+- [x] 7.3 Reconcile README/troubleshooting with the final implemented command, reference, compression, prompt, policy, cache and recovery behavior.
+  - Acceptance: docs distinguish implemented behavior, unavailable/live-unverified evidence and public-release blocker.
   - Verify: docs-to-runtime command/config surface inspection.
-- [x] 7.4 Make capability/release validation pass only for exact MIT/reference-only provenance/no-copy evidence plus inherited persistent-Agent live evidence.
-  - Acceptance: registration alone cannot convert release readiness to PASS.
-  - Verify: `npm run validate:release` and focused doctor/provenance tests.
+- [x] 7.4 Keep capability/release validation explicitly non-pass for unresolved AGPL/MIT/public evidence under the prior private-BUILD decision.
+  - Acceptance: no local feature test converts release readiness to PASS before a superseding license route is accepted and implemented.
+  - Verify: historical `npm run validate:release` named non-pass.
 
 ## 8. Verification and acceptance closeout
 
 - [x] 8.1 Run focused reducer/reference, range/message/recap projection, command/tool, policy/subagent/GC, compaction, cache and JSONL byte-prefix tests.
 - [x] 8.2 Run `npm run typecheck` and `npm test` after implementation reconciliation.
 - [x] 8.3 Run `npm run validate:capabilities`, `npm run validate:release`, `npm run validate:package`, `npm pack --dry-run --json`, strict OpenSpec validation and `git diff --check`.
-- [x] 8.4 Confirm the previously named license/live blockers are resolved by exact reference-only provenance and inherited `origin/main` live evidence; never relabel unresolved host/provider gaps as PASS.
+- [x] 8.4 Confirm release validation remains non-pass only for named license/live evidence where applicable; never relabel it PASS.
 - [x] 8.5 Keep `UV-LIVE-1` unverified unless a separately approved named provider/model probe is run.
 - [x] 8.6 Record broader real-host event-order/internal-request evidence or leave `UV-EXT-ORDER-1` / `UV-PI-INTERNAL-1` explicitly Unverified.
-- [x] 8.7 Correct the incomplete 0.1.11 tarball with a fail-closed bundled-dependency prepublish gate; run fresh 0.1.12 release/tar-install checks, then commit, push, publish, deprecate 0.1.11, verify npm latest, install locally and smoke-load the installed package.
+
+## 9. Package-wide AGPL disposition and 0.1.13 release preparation
+
+- [x] 9.1 After revised final-test-plan acceptance, set the target root Package license to exact `AGPL-3.0-or-later` and target version to `0.1.13`; synchronize package-lock root metadata without changing third-party license declarations.
+  - Verify: package/package-lock exact root identity tests and scoped diff.
+- [x] 9.2 Replace root `LICENSE` with the complete standard GNU Affero General Public License v3 text and document that the `or-later` election comes from the SPDX package declaration.
+  - Verify: exact license sentinel/text-integrity test and tarball inclusion.
+- [x] 9.3 Add packaged provenance/notice identity for `ranxianglei/opencode-acp@v1.12.6` commit `f1a33d9f4ce55af808eb4e050717c914ed16084b`, license `AGPL-3.0-or-later`, and the no-direct-copy behavioral-reference boundary.
+  - Verify: provenance source-count/identity/notice tests; no false copied-file claim.
+- [x] 9.4 Make provenance generation derive root name/version/license from `package.json`; regenerate `THIRD_PARTY_NOTICES.md` and `manifests/sbom.json` while preserving all third-party licenses/notices.
+  - Verify: `npm run generate:provenance` then `npm run validate:provenance`.
+- [x] 9.5 Replace the unconditional AGPL/MIT release/doctor blocker with fail-closed AGPL consistency checks; do not weaken remaining live/provider/sandbox/external-workspace/TUI gates.
+  - Verify: doctor/AILI Compact/release-validator negative and positive license fixtures.
+- [x] 9.6 Update README and release documentation for prospective AGPL licensing from 0.1.13; do not claim prior-license revocation.
+  - Verify: docs/package/provenance assertions.
+- [x] 9.7 Build and inspect the exact 0.1.13 tarball candidate for required license/provenance files and excluded `.pi/`, graphify, OpenSpec, tests, artifacts, caches, logs, secrets and local absolute paths.
+  - Verify: `npm pack --dry-run --json`, extracted-tarball allow/deny scan and bounded secret/path scan.
+- [x] 9.8 Keep version commit, push, tag, npm publish, GitHub release and installed-package replacement as separate exact SHIP operations after all deterministic and required live gates pass.
+  - Verify: no release-state mutation occurs during DEFINE/BUILD.

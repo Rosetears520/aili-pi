@@ -3,7 +3,7 @@ set -eu
 
 PACKAGE_SOURCE='npm:@rosetears/aili-pi@latest'
 PACKAGE_ID='npm:@rosetears/aili-pi'
-MINIMUM_PI_VERSION='0.81.1'
+MINIMUM_PI_VERSION='0.82.1'
 OFFICIAL_INSTALLER_URL='https://pi.dev/install.sh'
 UPDATE_PI=0
 PI_STATE='existing'

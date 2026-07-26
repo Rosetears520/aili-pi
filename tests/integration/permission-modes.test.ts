@@ -17,10 +17,19 @@ type Harness = {
 async function permissionHarness(options: {
   overlay?: Record<string, unknown>;
   select?: () => Promise<string | undefined>;
+  mode?: "yolo" | "build";
+  sessionId?: string;
+  sessionFile?: string;
+  model?: { provider: string; id: string };
+  thinkingLevel?: string;
 } = {}): Promise<Harness> {
   const cwd = await mkdtemp(join(tmpdir(), "aili-permission-mode-"));
   const agentDir = join(cwd, "agent");
-  await mkdir(agentDir, { recursive: true });
+  const home = join(cwd, "home");
+  await Promise.all([
+    mkdir(agentDir, { recursive: true }),
+    ...[".ssh", ".aws", ".gnupg"].map((name) => mkdir(join(home, name), { recursive: true })),
+  ]);
   if (options.overlay) {
     await mkdir(join(cwd, ".pi"), { recursive: true });
     await writeFile(join(cwd, ".pi", "permission-mode.json"), `${JSON.stringify(options.overlay, null, 2)}\n`);
@@ -31,8 +40,12 @@ async function permissionHarness(options: {
   const selections: string[] = [];
   const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
   const previousMode = process.env.PI_PERMISSION_MODE;
+  const previousHome = process.env.HOME;
+  const previousCwd = process.cwd();
+  process.chdir(cwd);
   process.env.PI_CODING_AGENT_DIR = agentDir;
-  process.env.PI_PERMISSION_MODE = "yolo";
+  process.env.PI_PERMISSION_MODE = options.mode ?? "yolo";
+  process.env.HOME = home;
 
   const pi = new Proxy({
     registerFlag() {},
@@ -59,7 +72,13 @@ async function permissionHarness(options: {
   const context = (hasUI: boolean) => ({
     cwd,
     hasUI,
-    sessionManager: { getEntries: () => [] },
+    model: options.model,
+    thinkingLevel: options.thinkingLevel,
+    sessionManager: {
+      getEntries: () => [],
+      getSessionId: () => options.sessionId ?? "permission-session",
+      getSessionFile: () => options.sessionFile,
+    },
     ui: {
       theme: { fg: (_style: string, text: string) => text },
       notify() {},
@@ -99,6 +118,9 @@ async function permissionHarness(options: {
       else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
       if (previousMode === undefined) delete process.env.PI_PERMISSION_MODE;
       else process.env.PI_PERMISSION_MODE = previousMode;
+      if (previousHome === undefined) delete process.env.HOME;
+      else process.env.HOME = previousHome;
+      process.chdir(previousCwd);
       await rm(cwd, { recursive: true, force: true });
     },
   };
@@ -117,6 +139,46 @@ const tighteningOverlay = (action: "ask" | "deny") => ({
 });
 
 describe("adapted permission-mode dispatcher", () => {
+  it("forwards current Pi session environment through local and sandboxed bash while removing stale values", async () => {
+    const keys = ["PI_SESSION_ID", "PI_SESSION_FILE", "PI_PROVIDER", "PI_MODEL", "PI_REASONING_LEVEL"] as const;
+    const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]])) as Record<(typeof keys)[number], string | undefined>;
+    try {
+      for (const mode of ["yolo", "build"] as const) {
+        for (const key of keys) process.env[key] = `stale-${key}`;
+        const sessionFile = mode === "build" ? "/tmp/build ' $(printf injected).jsonl" : "/tmp/yolo-session.jsonl";
+        const harness = await permissionHarness({
+          mode,
+          sessionId: `${mode}-session`,
+          sessionFile,
+          model: { provider: "openai-codex", id: "gpt-5.6-sol" },
+          thinkingLevel: "high",
+        });
+        try {
+          const result = await harness.executeBash("printf '%s' \"$PI_SESSION_ID|$PI_SESSION_FILE|$PI_PROVIDER|$PI_MODEL|$PI_REASONING_LEVEL\"") as { content?: Array<{ text?: string }> };
+          expect(result.content?.map((part) => part.text).join("")).toContain(
+            `${mode}-session|${sessionFile}|openai-codex|gpt-5.6-sol|high`,
+          );
+        } finally {
+          await harness.shutdown();
+        }
+      }
+
+      for (const key of keys) process.env[key] = `stale-${key}`;
+      const ephemeral = await permissionHarness({ mode: "yolo", sessionId: "ephemeral-session" });
+      try {
+        const result = await ephemeral.executeBash("printf '%s' \"$PI_SESSION_ID|${PI_SESSION_FILE-unset}|${PI_PROVIDER-unset}|${PI_MODEL-unset}|${PI_REASONING_LEVEL-unset}\"") as { content?: Array<{ text?: string }> };
+        expect(result.content?.map((part) => part.text).join("")).toContain("ephemeral-session|unset|unset|unset|unset");
+      } finally {
+        await ephemeral.shutdown();
+      }
+    } finally {
+      for (const key of keys) {
+        if (previous[key] === undefined) delete process.env[key];
+        else process.env[key] = previous[key];
+      }
+    }
+  }, 30_000);
+
   it("keeps stock YOLO silent for distinct multiline, heredoc, and external-path commands", async () => {
     const harness = await permissionHarness();
     try {

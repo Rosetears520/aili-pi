@@ -128,6 +128,8 @@ Child 不加载会在 headless 中自动 deny 或切换 unattended-yolo 的完�
 
 Approval packet 包含 Agent/job/tool ID、surface、sanitized target、cwd、permission mode 与 reason，不含 credential content。parent `ctx.hasUI` 时显示一次选择；allow/deny 结果回送对应 child promise。parent session 关闭、无 UI、桥接丢失或用户拒绝时 fail closed。Credential/auth/private-key path guard先于 ask，永不提供批准选项。
 
+Sandbox-required child Bash只可通过同一process-owned、已经ready且profile exact-match的`pi-permission-modes` SandboxController执行。Child以same-name custom Bash definition替换official built-in execution backend，但不得扩展effective tool ceiling；child不得initialize、reconfigure、reset或在degraded/disabled/profile-mismatch时降级为unsandboxed。Plan使用read-only operations，Build使用writable operations；不兼容的Git worktree `.git` file继续fail closed。该共享生命周期避免多个child controller竞态修改process-global SandboxManager。
+
 “Allow forever”或 Agent 发起的永久 model/profile/config请求均是配置写入：每次必须有用户交互确认；拒绝、headless 或写锁错误时文件 bytes 不变。Top-level `task` approval不是 child 后续所有工具的 blanket authorization。
 
 ### 8. Model resolution 与配置 ownership 分离

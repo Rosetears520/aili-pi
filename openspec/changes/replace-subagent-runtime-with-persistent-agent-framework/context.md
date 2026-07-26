@@ -37,11 +37,11 @@ Forbidden without a new exact gate: modifying `package.json` or `package-lock.js
 
 - Completed local scope: exact approved dependency/lockfile removal, deletion of the old wrapper and obsolete fixtures, public single-entry `task`/`hub` registration with direct-user model command, production official-Pi session/tool/model/permission/workspace/delivery wiring, capability/adapter/provenance/SBOM/doctor/docs/OpenSpec reconciliation, deterministic regression, package dry-run, and diff hygiene.
 - Public contract: `@agwab/pi-subagent` is absent from package and lock inventory; `src/runtime/subagents.ts` and old generic/live tests are removed; public discovery contains `task` and `hub` and rejects any `subagent` alias. Historical `.pi/agent/runs/`, Pi sessions, user configuration, and sidecars remain untouched.
-- Release evidence: real provider sync/follow-up/async, positive Bubblewrap child Bash, and disposable external-workspace lifecycle probes passed. `manifests/live-verification.json` schema v3 binds those rows to the exact implementation hashes.
-- Release isolation: this worktree contains only the Persistent Agent change. AILI Compact code, tests, docs, and its AGPL/MIT blocker remain in the original dirty worktree and are excluded from this MIT package/release.
+- Superseding 2026-07-26 evidence: the user authorized the process-owned positive child sandbox bridge and fresh Pi 0.82.1 provider, disposable-HOME sandbox, and disposable external-workspace probes. All three schema-v3 rows pass with sanitized durable evidence and exact implementation hashes.
+- Release integration: target0.1.13 combines this runtime with the existing AILI Compact baseline under the package-wide `AGPL-3.0-or-later` disposition. No direct ACP/OMP source, prompt, schema, fixture, or asset copy is introduced.
 - Verification: focused role generator/validation tests plus `npm run validate:roles` only after expected generated outputs are updated.
 - Pause condition: preserving a role would require changing its accepted responsibility/tool/output contract or writing canonical `aili-workflows`.
-- Commit allowance: none.
+- Commit allowance: user explicitly authorized the isolated `release/0.1.13` release commit from `origin/main`; push/publish/release remain separate gates.
 
 ## Canonical CONT-005 envelope
 

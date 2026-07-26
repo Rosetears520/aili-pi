@@ -1,6 +1,6 @@
 # Persistent Agents (`task` and `hub`)
 
-> **Availability:** The AILI-owned runtime is the public orchestration surface. The package registers `task` and `hub` and does not register a legacy `subagent` alias. Deterministic tests plus authorized real-provider, child-sandbox, and disposable external-workspace lifecycle probes are release-bound evidence.
+> **Availability:** The AILI-owned runtime is the public orchestration surface. The package registers `task` and `hub` and does not register a legacy `subagent` alias. Deterministic tests plus authorized Pi 0.82.1 provider, positive child-sandbox, disposable-HOME, and external-workspace lifecycle probes are bound in `manifests/live-verification.json`.
 
 ## Agent selectors
 
@@ -86,7 +86,7 @@ Complete raw output is stored at the parent-owned `<agent-id>.md`; the official 
 
 Use `agent://<agent-id>` and `history://<agent-id>` as stable references. `hub output/history` resolves them with `offset` and `limit`, including after an Agent is released.
 
-Child history cannot be deleted independently. It follows the parent session. Forks start with an empty Agent registry and never copy/control old child artifacts. Confirmed AILI parent deletion can cascade its owned sidecar; official Pi 0.81.1 built-in Ctrl+D/archive has no sidecar hook, so doctor keeps that host gap visible and orphaned sidecars are preserved for reconciliation.
+Child history cannot be deleted independently. It follows the parent session. Forks start with an empty Agent registry and never copy/control old child artifacts. Confirmed AILI parent deletion can cascade its owned sidecar; official Pi 0.82.1 built-in Ctrl+D/archive has no sidecar hook, so doctor keeps that host gap visible and orphaned sidecars are preserved for reconciliation.
 
 ## Models
 
@@ -107,7 +107,7 @@ An explicit unknown, unavailable, unauthenticated, or incompatible model fails a
 
 Isolation projects the current dirty tracked/untracked baseline into a disposable worktree, returns child-only patch/branch evidence, never auto-merges, and checks that the main workspace stayed unchanged. After cleanup, history/output remain readable but that Agent cannot revive.
 
-Effective tools are always an intersection of parent-active tools, child-loadable definitions, role/capability ceilings, hard guards, and per-call narrowing. Child `task`/`hub` definitions are AILI-owned bridges, never reused parent coordinator definitions. In sandbox-required permission modes, child Bash reuses the parent-initialized `pi-permission-modes` SandboxManager with a child-cwd-specific filesystem profile; missing/degraded sandbox state and incompatible Git-worktree metadata deny Bash instead of falling back unsandboxed. Credential/auth/private-key material is denied before approval and excluded from messages/output/artifacts. Background asks suspend only that job and return to the parent UI; no UI, rejection, cancellation, shutdown, or bridge loss denies and settles the request.
+Effective tools are always an intersection of parent-active tools, child-loadable definitions, role/capability ceilings, hard guards, and per-call narrowing. Child `task`/`hub` definitions are AILI-owned bridges, never reused parent coordinator definitions. In sandbox-required modes, an already-effective child `bash` is replaced by exact-profile operations from the one process-owned ready `pi-permission-modes` SandboxController; children cannot initialize, reconfigure, reset, or downgrade it. Missing/degraded/profile-mismatched sandboxes deny Bash, and incompatible Git-worktree `.git` files remain fail closed. Credential/auth/private-key material is denied before approval and excluded from messages/output/artifacts. Background asks suspend only that job and return to the parent UI; no UI, rejection, cancellation, shutdown, or bridge loss denies and settles the request.
 
 ## Legacy data
 

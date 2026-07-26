@@ -4,9 +4,9 @@
 
 - Change：`add-reversible-context-compression`
 - 依据：修订后的 `proposal.md`、`context.md`、`design.md`、capability spec、`tasks.md`、当前 runtime/tests、Pi 0.81.1 installed host evidence，以及 pinned ACP `v1.12.6` commit `f1a33d9f4ce55af808eb4e050717c914ed16084b` 的只读源码审计。
-- Scope：Pi-adapted AILI Compact 的 private/local BUILD 与 corrective 0.1.12 MIT/reference-only release readiness。
-- 状态：**accepted for resumed private BUILD on 2026-07-25; public release and corrective 0.1.12 hotfix subsequently approved**。用户明确接受模型引用、recap protocol、range/message schema、functional command、six-slot prompt、subagent/GC 和 cache-identity 验收，并批准在 fresh release checks 通过后 commit/push/publish/install 0.1.12。
-- 本计划不授权 AGPL source/prompt/schema/fixture/asset copy、新 dependency 或真实 provider request；ACP 只作为精确 revision/license attribution 的行为参考。
+- Prior scope/status：2026-07-25仅接受private/local BUILD；该接受不覆盖新的package-wide relicensing/public release scope。
+- Revised scope：用户已选择从目标 0.1.13 起将整个Package改为`AGPL-3.0-or-later`并保留AILI Compact；本修订定义license/provenance/tarball/release-gate验收。
+- 当前状态：**accepted for local AGPL/0.1.13 candidate BUILD on 2026-07-26**。用户在了解测试范围后回复“你做吧”，授权实施license/version-candidate相关本地文件；direct source copy、provider/TUI、commit、push、tag、publish、GitHub release和安装替换仍需各自精确授权。
 
 ## 1. 追踪矩阵
 
@@ -28,7 +28,7 @@
 | RCC-14 | generational GC/native emergency fallback | 5.7-5.9, 6.1-6.2 | lifecycle + compaction hook tests | implemented locally; real host ordering remains Unverified |
 | RCC-15 | current-Session accounting + full cache identity/truthful telemetry | 6.3-6.8 | replay/incremental/tree/reload + identity/accounting/projection sequence | implemented locally; live hit rate remains UV-LIVE-1 |
 | RCC-16 | bounded UI and doctor health | 6.5-6.6, 6.9, 7.2 | default-on left/right aligned-column presentation/runtime widget + health/redaction | doctor/runtime widget implemented; live resize remains Unverified |
-| RCC-17 | private-build/public-release boundary | 1.3-1.4, 7.4, 8 | provenance/release non-pass inspection | implemented and rechecked non-pass for named blockers |
+| RCC-17 | prospective package-wide AGPL disposition | 1.3-1.4, 7.4, 8, 9 | exact license/provenance/SBOM/tarball/release checks | user decision confirmed; implementation planned; prior private-only acceptance stale |
 
 `implemented` 表示当前 tree 已有直接证据，但仍会参加最终 regression；`partial/open` 不得用于完成声明。
 
@@ -43,8 +43,8 @@
 | command/manual behavior | focused integration command tests | distinct context/stats/sweep/compress/decompress/recompress/manual semantics | interactive TUI ergonomics |
 | policy/subagent/GC | focused policy, lineage and compaction tests | grouped cooling, protection, dedupe/purge, nudge, subagent fail-open, nested/generational GC | unknown external subagent providers |
 | cache identity/accounting/UI | Session replay/incremental/tree/reload + cache identity + telemetry + presentation tests | current-branch totals recover without hot-path replay; full identity transitions, missing-field unavailable, numeric-only UI | provider-side cache hit target |
-| whole repo contracts | `npm run typecheck && npm test` | TypeScript and existing/new regression coverage | live provider quality |
-| packaging/contracts | `npm run validate:capabilities && npm run validate:release && npm run validate:package && npm pack --dry-run --json && git diff --check` | capability/package integrity, resolved reference-only provenance and publishable 0.1.12 tarball with all declared bundled dependencies physically present | live registry mutation until checks pass |
+| whole repo contracts | `npm run typecheck && npm test` | TypeScript and existing/new regression coverage | public release or live provider quality |
+| packaging/contracts | `npm run validate:capabilities && npm run validate:release && npm run validate:package && npm pack --dry-run --json && git diff --check` | capability/package integrity and named release non-pass evidence | publish authorization |
 | OpenSpec integrity | `CI=true OPENSPEC_TELEMETRY=0 OPEN_SPEC_INTERACTIVE=0 openspec validate add-reversible-context-compression --strict` | coherent contract structure | implementation behavior |
 
 Exact new test filenames may be merged into existing focused suites when one owner is clearer; tests SHALL remain under the project-defined `tests/unit/`, `tests/integration/` and `tests/fixtures/` paths.
@@ -121,7 +121,8 @@ Exact new test filenames may be merged into existing focused suites when one own
 
 - Doctor reports reducer/reference/projection/recap invariant failure as ERROR and never PASS solely from command registration.
 - Missing optional/live evidence remains WARN/Unverified; diagnostics contain only bounded IDs/counts/hashes/error names.
-- Release validation passes the approved MIT/reference-only route only when exact ACP provenance/no-copy evidence and inherited persistent-Agent live verification are present.
+- Before implementation, release validation remains non-pass for the named AGPL/MIT disposition.
+- After implementation, the unconditional license blocker disappears only when root package/lock/LICENSE/README/provenance/notice/SBOM/tarball evidence agrees on `AGPL-3.0-or-later`; stale live evidence remains non-pass.
 
 ## 4. Fault-injection / false-PASS cases
 
@@ -141,16 +142,33 @@ Exact new test filenames may be merged into existing focused suites when one own
 | FI-12 | cancel overflow without complete healthy GC coverage | Pi emergency recovery remains available |
 | FI-13 | treat missing cache fields as zero hit, use the wrong cache formula/window/sample minimum, or omit provider/model/branch/tool surface from identity | cache test fails |
 | FI-14 | doctor passes from command registration while projection is unhealthy | doctor test fails |
-| FI-15 | release validator passes without exact reference-only provenance/no-copy evidence or required inherited live evidence | release test fails |
+| FI-15 | release validator passes before exact AGPL metadata/provenance/tarball consistency or required live evidence | release test fails |
+| FI-16 | blanket MIT→AGPL replacement rewrites a third-party license declaration | provenance/notice/SBOM preservation test fails |
+| FI-17 | target 0.1.13 tarball includes `.pi`, graphify, OpenSpec, tests, artifacts, logs, secrets or local absolute paths | package sanitizer fails |
 
 ## 5. Unverified and excluded evidence
 
 - `UV-LIVE-1`: real provider tool use, summary quality and eligible warm-session `>=85%` cache rate require a separately approved named provider/model probe. Local deterministic/accounting evidence does not claim live performance.
 - `UV-EXT-ORDER-1`: unknown later third-party context handlers remain unverified. AILI promises unmatched preservation/fail-open diagnostics, not universal hook compatibility.
 - `UV-PI-INTERNAL-1`: Pi real-host title/summary/native-compaction internal request ordering remains unverified until bounded host evidence confirms whether AILI hooks require an explicit internal-request gate.
-- `UV-ACP-RUNTIME-1`: pinned ACP source/tests were inspected, but its suite was not executed because ACP is neither a runtime dependency nor a distributed component. The source audit informs behavior, not an upstream runtime PASS claim.
-- Public release uses the approved MIT/reference-only route. Exact ACP revision/license attribution is required; no ACP source, source-derived asset/prompt/schema/fixture or new dependency is included.
+- `UV-ACP-RUNTIME-1`: pinned ACP source/tests were inspected, but its test suite was not executed because no dependency-install approval was granted. The source audit informs behavior, not an upstream runtime PASS claim.
+- `UV-LICENSE-1` is resolved at the decision level by selecting package-wide `AGPL-3.0-or-later`, but remains implementation-pending until exact metadata, complete license text, packaged attribution, generated evidence and tarball checks pass.
+- `UV-RELEASE-TREE-1`: the exact clean Git commit/tag for 0.1.13 is not yet assembled; the current dirty 0.1.9-based workspace and clean origin/main 0.1.12 worktree must not be conflated.
+- `UV-LIVE-1` plus persistent-Agent provider/sandbox/external-workspace and real TUI evidence remain separate release gates. No source copy, provider/TUI, Git or publish operation is authorized by this test-plan draft.
 
-## 6. Acceptance gate
+## 6. Package-wide AGPL and candidate scenarios
 
-The user explicitly accepted this revised final `test-plan.md` on 2026-07-25, so private/local BUILD may resume. Acceptance authorizes only the implementation scope described here; it does not authorize any separately gated source copy, dependency, Git, live-provider or release operation.
+- Root `package.json` and root package-lock metadata identify exact 0.1.13 and `AGPL-3.0-or-later`; dependency license fields remain unchanged.
+- Root `LICENSE` contains the complete standard GNU Affero General Public License v3 text; required package metadata/tarball includes it.
+- README states 0.1.13+ licensing prospectively and does not claim prior grants are revoked.
+- Packaged provenance and generated notice identify exact opencode-acp repository/tag/commit/license and no-direct-copy reference boundary.
+- Generated root SBOM takes name/version/license from package metadata instead of hard-coded development/MIT values.
+- Doctor/release tests fail on any license drift and no longer emit `AGPL-MIT-DISPOSITION` when all license evidence passes.
+- Third-party MIT/OFL/Apache and other license records/notices survive generation byte/semantic checks.
+- Exact candidate pack includes required license/provenance surfaces and excludes internal state/evidence paths; bounded scans find no credentials or local absolute paths.
+- Release validation may remain non-pass only for still-applicable named live/provider/sandbox/external-workspace/TUI evidence until separately authorized and satisfied.
+
+## 7. Acceptance gate
+
+- [x] 用户于2026-07-26明确接受本次package-wide AGPL与0.1.13 candidate修订后的最终测试计划并要求开始执行。
+- 接受仅允许本地license/provenance/validator/candidate BUILD；不授权direct source copy、provider/TUI、commit、push、tag、publish、GitHub release或安装替换。

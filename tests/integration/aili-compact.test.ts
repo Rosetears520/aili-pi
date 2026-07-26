@@ -735,7 +735,13 @@ describe("AILI Compact runtime", () => {
     const ctx = context(entries);
     runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
     await runtime.commandHandlers.get("aili-compact")!("doctor", ctx);
-    expect(JSON.parse(ctx.notifications.at(-1)!)).toMatchObject({ status: "NON_PASS", components: { projection: { status: "UNVERIFIED" }, publicRelease: { status: "PASS", code: "MIT-REFERENCE-ONLY" } } });
+    expect(JSON.parse(ctx.notifications.at(-1)!)).toMatchObject({
+      status: "NON_PASS",
+      components: {
+        projection: { status: "UNVERIFIED" },
+        publicRelease: { status: "PASS", code: "AGPL-3.0-OR-LATER" },
+      },
+    });
     expect(ctx.notifications.at(-1)).not.toContain("RAW_DOCTOR_SENTINEL");
 
     runtime.handlers.get("context")!({ type: "context", messages: [{ role: "assistant", content: "invalid" }] }, ctx);

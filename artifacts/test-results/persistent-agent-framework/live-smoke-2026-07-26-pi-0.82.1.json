@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-07-26T10:27:50.000Z",
+  "platform": "linux",
+  "piVersion": "0.82.1",
+  "package": {
+    "name": "@rosetears/aili-pi",
+    "version": "0.1.13",
+    "source": "release/0.1.13 candidate bytes copied into a disposable normal Git checkout"
+  },
+  "status": "passed",
+  "probes": [
+    {
+      "id": "provider-turn",
+      "status": "passed",
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "contextWindow": 272000,
+      "evidence": [
+        "headless parent provider turn completed",
+        "synchronous persistent child provider turn completed",
+        "task result returned CHILD_TASK_DONE without stderr"
+      ],
+      "credentialHandling": "Existing configured Pi authentication was referenced through the configured agent directory; no credential value or auth file is included."
+    },
+    {
+      "id": "child-sandbox",
+      "status": "passed",
+      "mode": "build",
+      "workspace": "shared",
+      "evidence": [
+        "release candidate process-owned pi-permission-modes sandbox provider reported ready with an exact profile",
+        "persistent child invoked its same-name custom Bash definition",
+        "sandboxed Bash returned isError=false",
+        "disposable marker contained exact CHILD_SANDBOX_OK",
+        "gated containment test allowed the in-project write and denied outside-write and deny-read targets"
+      ],
+      "changedTrackedFiles": 0
+    },
+    {
+      "id": "external-workspace-lifecycle",
+      "status": "passed",
+      "command": "AILI_RUN_EXTERNAL_GIT_LIVE=1 AILI_RUN_CHILD_SANDBOX_LIVE=1 npx vitest run tests/integration/persistent-agent-live-gated.test.ts",
+      "evidence": [
+        "two authorized live-gated tests passed",
+        "disposable external Git repository preserved dirty parent baseline",
+        "isolated child patch captured only child changes",
+        "parent HEAD and status remained unchanged",
+        "isolated workspace cleanup and no-revive assertion passed"
+      ],
+      "changedTrackedFiles": 0
+    }
+  ],
+  "sanitization": {
+    "rawProviderTranscriptIncluded": false,
+    "rawCredentialMaterialIncluded": false,
+    "credentialMarkerFindings": 0,
+    "localAbsolutePathsIncluded": false
+  },
+  "preflightNotes": [
+    "A direct release-worktree sandbox attempt failed closed because Git worktree metadata is a .git file.",
+    "The passing provider probe used exact release-candidate source bytes in a disposable normal Git checkout and a disposable HOME with empty protected directories.",
+    "No failed preflight was relabeled as a pass."
+  ]
+}

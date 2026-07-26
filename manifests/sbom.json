@@ -2,8 +2,8 @@
   "spdxVersion": "SPDX-2.3",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "name": "@rosetears/aili-pi-0.0.0-development",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/adcbf5627dd7014db6b09f2f3669c4ac",
+  "name": "@rosetears/aili-pi-0.1.13",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/865101fd011449dcd3601c4a689a9b17",
   "creationInfo": {
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
@@ -13,11 +13,11 @@
     {
       "SPDXID": "SPDXRef-Package-aili-pi",
       "name": "@rosetears/aili-pi",
-      "versionInfo": "0.0.0-development",
+      "versionInfo": "0.1.13",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
+      "licenseConcluded": "AGPL-3.0-or-later",
+      "licenseDeclared": "AGPL-3.0-or-later",
       "checksums": [],
       "primaryPackagePurpose": "APPLICATION"
     },
@@ -1171,6 +1171,23 @@
       "comment": "npm lock path=node_modules/devtools-protocol; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-diff-db80d3b9d8",
+      "name": "diff",
+      "versionInfo": "8.0.4",
+      "downloadLocation": "https://registry.npmjs.org/diff/-/diff-8.0.4.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "BSD-3-Clause",
+      "licenseDeclared": "BSD-3-Clause",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/diff; development=true; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-dom-serializer-841d6ae3b1",
       "name": "dom-serializer",
       "versionInfo": "2.0.0",
@@ -1239,17 +1256,34 @@
       "comment": "npm lock path=node_modules/domutils; development=false; optional=false"
     },
     {
-      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-ai-26a52f7c9a",
-      "name": "@earendil-works/pi-ai",
-      "versionInfo": "0.81.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.81.1.tgz",
+      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-agent-core-c009226610",
+      "name": "@earendil-works/pi-agent-core",
+      "versionInfo": "0.82.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.82.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "hzHE7Z8l5mgJk+ke67Lge0rwS2+wbKJrFKl9o5M1R1rh33+cCT7D1AHz1OAtX5wFs90E1/BTGhyJRTUHaMxGvQ=="
+          "checksumValue": "Z3kloziJIE2dmrisRckZX8zDca/gIv9/YdFAzeoqpHiLV2wsni6bL4hInNSjVKLbqT+4kqLIkph2JQLKvSepjg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@earendil-works/pi-agent-core; development=true; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-ai-26a52f7c9a",
+      "name": "@earendil-works/pi-ai",
+      "versionInfo": "0.82.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.82.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "3WFYRhEp3lQB3444EhPMBcM7zSaEUE3eJgHOR7s4081NLqbw/FsWilIKWXSua0Gv3sRr7m9xMidR3pPDE7jI/A=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -1258,15 +1292,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-9848483bff",
       "name": "@earendil-works/pi-coding-agent",
-      "versionInfo": "0.81.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.81.1.tgz",
+      "versionInfo": "0.82.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.82.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "r6ovAsZOgAqbC/aU6s+/dPnv/sGZBuWyZNvi3pXjpbuX5wvp3XvGkQI7/VLvX2o9XpmpFaPUxKNym1WfkN/P8A=="
+          "checksumValue": "zbkAhoIuDPMF3pKuja0ajZabrMWU29FUMV9A/XMXT/XC1yXs5xt6t6t13GogQFsDrDqbFP4DkZQO1w8rWRAzYA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -1938,8 +1972,8 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-agent-core-865ec0637c",
       "name": "@earendil-works/pi-agent-core",
-      "versionInfo": "0.81.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.81.1.tgz",
+      "versionInfo": "0.82.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.82.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1950,8 +1984,8 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-ai-93728abce9",
       "name": "@earendil-works/pi-ai",
-      "versionInfo": "0.81.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.81.1.tgz",
+      "versionInfo": "0.82.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.82.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1962,8 +1996,8 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-tui-eff2aca2e7",
       "name": "@earendil-works/pi-tui",
-      "versionInfo": "0.81.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.81.1.tgz",
+      "versionInfo": "0.82.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.82.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -2943,15 +2977,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-protobufjs-77a52c21c4",
       "name": "protobufjs",
-      "versionInfo": "7.6.4",
-      "downloadLocation": "https://registry.npmjs.org/protobufjs/-/protobufjs-7.6.4.tgz",
+      "versionInfo": "7.6.5",
+      "downloadLocation": "https://registry.npmjs.org/protobufjs/-/protobufjs-7.6.5.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "BSD-3-Clause",
       "licenseDeclared": "BSD-3-Clause",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "RJJPTTpvFfHcWLkIa2JFWK4XvtSzS0yEWDmunqHXli1h3JlkbcQZXDZdcWxv+JK3Xsl5/UFDPZ0iGm7DAengYw=="
+          "checksumValue": "/FPD0nUc9jH6rfFjji9IBqOz4pcSE3CsT1m7Ep6Mdb0LxSUMj8hgl6GomOvZzpNpAqqGaXA0P3VSrZLFzIhQrw=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -3623,15 +3657,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-tui-35871b6679",
       "name": "@earendil-works/pi-tui",
-      "versionInfo": "0.81.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.81.1.tgz",
+      "versionInfo": "0.82.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.82.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "OMEe+Zt8oQYi/rCq3upxsTlIScWL0FPhXwQus34TbQb3EmTx88S7Uzx32JxvQiEeWOw8eDCdJf2PBUBE9r6wIg=="
+          "checksumValue": "9yN8hALfKaxZq7n54EMxqhFCWnMi6LHkraMJ/1YjHiATq75XrI6XDMVppn9EDtiK7Fks8hUe1SDXUTrIvwRWfQ=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -4282,6 +4316,23 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/https-proxy-agent; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-ignore-a37e1a18eb",
+      "name": "ignore",
+      "versionInfo": "7.0.5",
+      "downloadLocation": "https://registry.npmjs.org/ignore/-/ignore-7.0.5.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/ignore; development=true; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-ip-address-072f02a1c0",
@@ -7123,6 +7174,23 @@
       "comment": "npm lock path=node_modules/y18n; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-yaml-d4ccbe242a",
+      "name": "yaml",
+      "versionInfo": "2.9.0",
+      "downloadLocation": "https://registry.npmjs.org/yaml/-/yaml-2.9.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "ISC",
+      "licenseDeclared": "ISC",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/yaml; development=true; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-yargs-bd1626d7a3",
       "name": "yargs",
       "versionInfo": "17.7.3",
@@ -7579,6 +7647,11 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-diff-db80d3b9d8"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-dom-serializer-841d6ae3b1"
     },
     {
@@ -7595,6 +7668,11 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-domutils-c4ef98ffde"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-agent-core-c009226610"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -8499,6 +8577,11 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-ignore-a37e1a18eb"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-ip-address-072f02a1c0"
     },
     {
@@ -9330,6 +9413,11 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-y18n-9a8ac12d8c"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-yaml-d4ccbe242a"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",

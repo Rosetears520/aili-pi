@@ -4,6 +4,17 @@ import { loadRoleProfiles, validateRoleProfiles } from "./roles.ts";
 import { resolvePermissionModesPackageRoot } from "./package-resolution.ts";
 
 const ROOT = new URL("../../", import.meta.url);
+const SUPPORTED_PI_VERSION = "0.82.1";
+const PACKAGE_NAME = "@rosetears/aili-pi";
+const PACKAGE_VERSION = "0.1.13";
+const PACKAGE_LICENSE = "AGPL-3.0-or-later";
+const PACKAGE_LICENSE_SHA256 = "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0";
+const ACTIVE_PI_PACKAGES = [
+  "@earendil-works/pi-coding-agent",
+  "@earendil-works/pi-agent-core",
+  "@earendil-works/pi-ai",
+  "@earendil-works/pi-tui",
+] as const;
 
 export type CompatibilityStatus = "native" | "adapted" | "optional" | "blocked";
 
@@ -117,6 +128,8 @@ export async function validateStableRelease(): Promise<string[]> {
     ...registryErrors,
     ...(await validateProvenance()),
     ...(await validateLiveVerification()),
+    ...(await validatePiHostInstallation()),
+    ...(await validateLicenseDisposition()),
     ...compatibility.records
       .filter((record) => record.status === "blocked")
       .map((record) => `${record.name}: blocked (${record.reason})`),
@@ -140,6 +153,94 @@ export async function validateStableRelease(): Promise<string[]> {
   return errors;
 }
 
+export interface LicenseDispositionEvidence {
+  packageManifest: { name?: string; version?: string; license?: string };
+  packageLockRoot: { name?: string; version?: string; license?: string };
+  licenseSha256: string;
+  readme: string;
+  notices: string;
+  sbomRoot?: { name?: string; versionInfo?: string; licenseConcluded?: string; licenseDeclared?: string };
+}
+
+/** Pure validation for the package-wide AGPL disposition and its generated public metadata. */
+export function validateLicenseDispositionData(evidence: LicenseDispositionEvidence): string[] {
+  const errors: string[] = [];
+  const expectedIdentity = { name: PACKAGE_NAME, version: PACKAGE_VERSION, license: PACKAGE_LICENSE };
+  if (
+    evidence.packageManifest.name !== expectedIdentity.name ||
+    evidence.packageManifest.version !== expectedIdentity.version ||
+    evidence.packageManifest.license !== expectedIdentity.license
+  ) errors.push(`license disposition: package manifest must declare ${PACKAGE_NAME}@${PACKAGE_VERSION} as ${PACKAGE_LICENSE}`);
+  if (
+    evidence.packageLockRoot.name !== expectedIdentity.name ||
+    evidence.packageLockRoot.version !== expectedIdentity.version ||
+    evidence.packageLockRoot.license !== expectedIdentity.license
+  ) errors.push("license disposition: package-lock root identity or license is stale");
+  if (evidence.licenseSha256 !== PACKAGE_LICENSE_SHA256) errors.push("license disposition: root AGPL-3.0 license text is missing or drifted");
+  if (
+    !evidence.readme.includes(`version ${PACKAGE_VERSION} and later is licensed under \`${PACKAGE_LICENSE}\``) ||
+    !evidence.readme.includes("Corresponding source is available from the repository declared in `package.json`")
+  ) errors.push("license disposition: README declaration or corresponding-source notice is missing");
+  if (
+    !evidence.notices.includes(PACKAGE_LICENSE) ||
+    evidence.notices.includes("This distribution is MIT-licensed") ||
+    !evidence.notices.includes("retain their own license terms")
+  ) errors.push("license disposition: third-party notice still misstates the package license or omits retained terms");
+  if (
+    evidence.sbomRoot?.name !== PACKAGE_NAME ||
+    evidence.sbomRoot.versionInfo !== PACKAGE_VERSION ||
+    evidence.sbomRoot.licenseConcluded !== PACKAGE_LICENSE ||
+    evidence.sbomRoot.licenseDeclared !== PACKAGE_LICENSE
+  ) errors.push("license disposition: SPDX root package identity or license is stale");
+  return errors;
+}
+
+export async function validateLicenseDisposition(): Promise<string[]> {
+  try {
+    const [packageManifest, packageLock, licenseText, readme, notices, sbom] = await Promise.all([
+      json<{ name?: string; version?: string; license?: string }>("package.json"),
+      json<{ packages?: Record<string, { name?: string; version?: string; license?: string }> }>("package-lock.json"),
+      readFile(new URL("LICENSE", ROOT), "utf8"),
+      readFile(new URL("README.md", ROOT), "utf8"),
+      readFile(new URL("THIRD_PARTY_NOTICES.md", ROOT), "utf8"),
+      json<{ packages?: Array<{ SPDXID?: string; name?: string; versionInfo?: string; licenseConcluded?: string; licenseDeclared?: string }> }>("manifests/sbom.json"),
+    ]);
+    return validateLicenseDispositionData({
+      packageManifest,
+      packageLockRoot: packageLock.packages?.[""] ?? {},
+      licenseSha256: createHash("sha256").update(licenseText).digest("hex"),
+      readme,
+      notices,
+      sbomRoot: sbom.packages?.find((item) => item.SPDXID === "SPDXRef-Package-aili-pi"),
+    });
+  } catch (error) {
+    return [`license disposition: ${error instanceof Error ? error.message : String(error)}`];
+  }
+}
+
+export async function validatePiHostInstallation(): Promise<string[]> {
+  const errors: string[] = [];
+  const codingAgentRoot = new URL("node_modules/@earendil-works/pi-coding-agent/", ROOT);
+  for (const packageName of ACTIVE_PI_PACKAGES) {
+    const relative = packageName.slice("@earendil-works/".length);
+    const candidates = packageName === "@earendil-works/pi-coding-agent"
+      ? [codingAgentRoot]
+      : [new URL(`node_modules/@earendil-works/${relative}/`, codingAgentRoot), new URL(`node_modules/@earendil-works/${relative}/`, ROOT)];
+    let installed: { name?: string; version?: string } | undefined;
+    for (const candidate of candidates) {
+      try {
+        installed = JSON.parse(await readFile(new URL("package.json", candidate), "utf8")) as { name?: string; version?: string };
+        break;
+      } catch { /* npm may hoist or nest an active host package */ }
+    }
+    if (installed?.name !== packageName || installed.version !== SUPPORTED_PI_VERSION) {
+      errors.push(`Pi host: active ${packageName} must be exact ${SUPPORTED_PI_VERSION}`);
+    }
+  }
+
+  return errors;
+}
+
 export async function validateLiveVerification(): Promise<string[]> {
   const errors: string[] = [];
   try {
@@ -155,7 +256,7 @@ export async function validateLiveVerification(): Promise<string[]> {
     if (
       evidence.schemaVersion !== 3 ||
       evidence.platform !== "linux" ||
-      evidence.piVersion !== "0.81.1" ||
+      evidence.piVersion !== SUPPORTED_PI_VERSION ||
       evidence.runtime !== "aili-persistent-agents-v1"
     ) {
       errors.push("live verification: persistent Agent identity is incomplete or stale");
@@ -177,9 +278,13 @@ export async function validateLiveVerification(): Promise<string[]> {
     const requiredImplementation = [
       "src/runtime/persistent-agents/production.ts",
       "src/runtime/persistent-agents/runtime.ts",
-      "src/runtime/persistent-agents/sandbox.ts",
-      "src/runtime/persistent-agents/permission.ts",
-      "src/runtime/persistent-agents/workspace.ts",
+      "src/runtime/persistent-agents/child-sandbox.ts",
+      "src/runtime/persistent-agents/policy.ts",
+      "src/vendor/pi-permission-modes/index.ts",
+      "tests/integration/package-runtime.test.ts",
+      "tests/integration/persistent-agent-runtime.test.ts",
+      "tests/integration/persistent-agent-live-gated.test.ts",
+      "tests/unit/persistent-agent-child-sandbox.test.ts",
     ];
     for (const [filePath, expected] of Object.entries(evidence.implementation ?? {})) {
       const content = await readFile(new URL(filePath, ROOT), "utf8");
@@ -210,11 +315,15 @@ export async function validatePermissionModeAdaptation(): Promise<string[]> {
     const expectedLocalChanges = [
       "Package-owned adapted entry redirects all unchanged sibling modules to the exact pi-permission-modes dependency while owning resolve.ts locally.",
       "matchPattern compiles its anchored glob RegExp with dotAll so * and ? include ECMAScript line terminators.",
+      "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.82.1 can derive current PI_* session environment values.",
+      "The adapted sandbox BashOperations wrapper injects Pi's resolved five-variable session environment as a shell-safe prelude because pi-permission-modes@2.2.0 ignores BashOperations.options.env.",
+      "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime.",
     ];
     const expectedVerification = [
       "npm run verify:permission-modes",
       "tests/unit/permission-patterns.test.ts",
       "tests/integration/permission-modes.test.ts",
+      "tests/unit/persistent-agent-child-sandbox.test.ts",
     ];
     if (
       lock.schemaVersion !== 1 ||
@@ -241,7 +350,7 @@ export async function validatePermissionModeAdaptation(): Promise<string[]> {
       errors.push("permission adaptation: upstream baseline hashes do not match the accepted 2.2.0 revision");
     }
     const expectedAdapted = {
-      "src/vendor/pi-permission-modes/index.ts": "8bfa0364967a2b76e9900cc72b8f434ea1cfa6520899c7827488220f2e288ee8",
+      "src/vendor/pi-permission-modes/index.ts": "5ca8743e55776e3d0bd1f8c2daef40f55a7ac6009306bc66398a9753105ed848",
       "src/vendor/pi-permission-modes/resolve.ts": "f71688f847495da5122724f75c5ebe3b41066b3d3cac74cbe99f66b9906404f6",
       "licenses/pi-permission-modes-MIT.txt": "d87cb99b43f6bf8771e57be83485db11b977b9dfa21b6bd201b8d3d370bdce43",
     };
@@ -293,7 +402,7 @@ export async function validatePermissionModeAdaptation(): Promise<string[]> {
 export async function validateProvenance(): Promise<string[]> {
   const errors: string[] = [...await validatePermissionModeAdaptation()];
   try {
-    const provenance = await json<{ schemaVersion: number; sources: Array<{ name: string; revision: string; license: string; status: string; repository: string; sourceFiles: string[]; symbols: string[]; localChanges: string[]; verification: string[] }> }>("manifests/provenance.json");
+    const provenance = await json<{ schemaVersion: number; sources: Array<{ name: string; revision: string; version: string; license: string; status: string; repository: string; sourceFiles: string[]; symbols: string[]; localChanges: string[]; verification: string[]; attribution?: string }> }>("manifests/provenance.json");
     const sbom = await json<{ spdxVersion?: string; packages?: Array<{ SPDXID?: string; name?: string; licenseDeclared?: string }> }>("manifests/sbom.json");
     const notices = await readFile(new URL("THIRD_PARTY_NOTICES.md", ROOT), "utf8");
     if (provenance.schemaVersion !== 1 || provenance.sources.length !== 10) errors.push("provenance: expected ten schema-v1 source records");
@@ -307,8 +416,21 @@ export async function validateProvenance(): Promise<string[]> {
       if (source.status === "dependency" && (source.sourceFiles.length === 0 || source.symbols.length === 0 || source.localChanges.length === 0)) errors.push(`provenance: incomplete dependency source ${source.name}`);
       if (!notices.includes(`## ${source.name}`) || !notices.includes(`Revision: ${source.revision}`)) errors.push(`provenance: notice missing ${source.name}`);
     }
+    const compactReference = provenance.sources.find((source) => source.name === "opencode-acp reference");
+    if (
+      compactReference?.repository !== "https://github.com/ranxianglei/opencode-acp.git" ||
+      compactReference.revision !== "f1a33d9f4ce55af808eb4e050717c914ed16084b" ||
+      compactReference.version !== "1.12.6" ||
+      compactReference.license !== PACKAGE_LICENSE ||
+      compactReference.status !== "reference-only" ||
+      !compactReference.attribution?.includes("opencode-dynamic-context-pruning by Tarquinen")
+    ) errors.push("provenance: exact opencode-acp reference identity or attribution is missing");
+    if (!notices.includes("## opencode-acp reference") || !notices.includes("Source files: none copied")) errors.push("provenance: opencode-acp no-copy notice is missing");
     if (sbom.spdxVersion !== "SPDX-2.3" || !Array.isArray(sbom.packages) || sbom.packages.length < 3) errors.push("provenance: invalid or empty SPDX SBOM");
     if (sbom.packages?.some((item) => !item.SPDXID || !item.name || !item.licenseDeclared)) errors.push("provenance: incomplete SPDX package record");
+    const hasSupportedHost = (sbom.packages as Array<{ name?: string; versionInfo?: string }> | undefined)
+      ?.some((item) => item.name === "@earendil-works/pi-coding-agent" && item.versionInfo === SUPPORTED_PI_VERSION);
+    if (!hasSupportedHost) errors.push(`provenance: active Pi host must include exact ${SUPPORTED_PI_VERSION}`);
   } catch (error) {
     errors.push(`provenance: ${error instanceof Error ? error.message : String(error)}`);
   }

@@ -126,7 +126,8 @@
       "sourceFiles": [],
       "symbols": [],
       "localChanges": [],
-      "verification": ["tests/unit/aili-compact-provider-serializers.test.ts", "tests/integration/aili-compact.test.ts", "manual no-copy provenance inspection"]
+      "verification": ["tests/integration/aili-compact.test.ts", "openspec/changes/add-reversible-context-compression/test-plan.md", "manual pinned-source no-copy provenance inspection"],
+      "attribution": "Based on opencode-dynamic-context-pruning by Tarquinen (https://github.com/Tarquinen/opencode-dynamic-context-pruning); modified by ranxianglei, 2026 — 34 bug fixes, performance optimizations, enhanced stability."
     }
   ]
 }

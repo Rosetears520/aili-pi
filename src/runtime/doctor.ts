@@ -109,9 +109,8 @@ export async function runDoctor(
   }
 
   try {
-    const [profileErrors, liveErrors] = await Promise.all([
+    const [profileErrors] = await Promise.all([
       validateRoleProfiles(),
-      validateLiveVerification(),
       ...[
         "src/runtime/persistent-agents/runtime.ts",
         "src/runtime/persistent-agents/storage.ts",
@@ -125,14 +124,15 @@ export async function runDoctor(
       status: profileErrors.length === 0 ? "PASS" : "ERROR",
       evidence: profileErrors.length === 0 ? "profiles=20; selectors=19 specialized + general" : profileErrors.slice(0, 3).join("; "),
     });
+    const liveErrors = await validateLiveVerification();
     results.push({
       id: "agent.framework",
-      status: profileErrors.length === 0 && liveErrors.length === 0 ? "PASS" : profileErrors.length > 0 ? "ERROR" : "UNVERIFIED",
+      status: profileErrors.length > 0 ? "ERROR" : liveErrors.length > 0 ? "UNVERIFIED" : "PASS",
       evidence: profileErrors.length > 0
         ? `public runtime registered but profile validation failed: ${profileErrors.slice(0, 3).join("; ")}`
         : liveErrors.length > 0
-          ? `public tools=task,hub; legacy subagent absent; ${liveErrors.slice(0, 2).join("; ")}`
-          : "public tools=task,hub; legacy subagent absent; deterministic and authorized provider/sandbox/external-workspace gates pass",
+          ? `public tools=task,hub; deterministic runtime gates pass; ${liveErrors.slice(0, 2).join("; ")}`
+          : "public tools=task,hub; legacy subagent absent; deterministic and Pi 0.82.1 provider/sandbox/external-workspace lifecycle gates pass",
     });
   } catch (error) {
     results.push({ id: "agent.framework", status: "ERROR", evidence: boundedError(error) });
