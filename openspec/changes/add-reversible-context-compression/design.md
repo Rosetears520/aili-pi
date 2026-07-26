@@ -44,7 +44,7 @@ Each declared subcommand has distinct behavior:
 - `recompress <block...>`: accept 1..16 block refs and append one all-or-nothing human control that reactivates only current-epoch blocks previously deactivated by explicit decompress/control. It cannot create a summary or revive GC/native-epoch archived blocks.
 - `cache`, `prompt`, `on`, `off`, `restore-all`, `doctor`: retain the accepted bounded AILI controls and diagnostics. Unsupported arguments append no state.
 
-Pi `/compact` is not repurposed: a manual compaction event is cancelled with bounded guidance to the AILI Compact command when the component is healthy.
+Pi `/compact` is not repurposed: while AILI is enabled, every manual compaction event is cancelled with bounded guidance to the AILI Compact command.
 
 ### Model tools
 
@@ -117,14 +117,16 @@ Subagent compression/cooling is disabled by default. When explicitly enabled, AI
 
 Blocks begin in a young generation, track deterministic survival/use counters and may be promoted to old generation. Nested compression deactivates child blocks while preserving lineage. GC may deactivate stale blocks or truncate only summaries under configured bounds; it never deletes source entries.
 
-At the Pi overflow boundary, major GC may return a standard Pi extension compaction only when every message Pi would discard is represented by active semantic recap blocks. It deterministically merges eligible old summaries plus the previous Pi summary, without a provider call. If coverage, order, bounded output or protocol safety cannot be proven, it permits Pi emergency recovery instead.
+Before each provider request, AILI independently evaluates projected usage and runs provider-free major GC at the configured emergency boundary. GC may truncate or merge eligible old-generation summaries only through an append-only AILI control transaction; it never requests a Pi `CompactionEntry`, never deletes raw Session entries and never calls a model. If coverage, order, bounded output or protocol safety cannot be proven, it makes no destructive claim and allows the provider request to fail with its real overflow error.
 
-## Native compaction and epochs
+## Native compaction ownership and historical epochs
 
-- **threshold:** reconstruct and evaluate a healthy projection. Cancel Pi threshold compaction only when projected tokens are safely below the configured reserve; otherwise do not interfere.
-- **manual:** cancel Pi manual compaction while AILI Compact is healthy and direct the user to `/aili-compact manual|compress|sweep`.
-- **overflow:** first attempt deterministic AILI major GC; if no safe result exists, allow Pi emergency recovery.
-- **after any completed Pi compaction:** whether native emergency or extension-provided AILI major GC, the persisted compaction entry plus kept tail defines a new epoch. Earlier blocks/references become archived/query-only and can never be reactivated into provider context. A cancelled threshold/manual event creates no epoch.
+- **installed default:** Linux bootstrap atomically merges `compaction.enabled=false` into user-global `~/.pi/agent/settings.json`. Existing unrelated keys are preserved. Missing files may be created with restrictive normal user permissions; malformed/non-object JSON causes a non-zero failure with the original bytes unchanged.
+- **project overrides:** bootstrap does not scan or rewrite project `.pi/settings.json`. Runtime therefore treats every manual/threshold/overflow `session_before_compact` event as a forbidden native fallback while AILI is enabled and cancels it after attempting only the already-planned AILI GC path.
+- **manual:** Pi `/compact` is cancelled and the user is directed to `/aili-compact manual|compress|sweep`.
+- **threshold/overflow:** no Pi-generated summary, retained-tail checkpoint or compact-and-retry is allowed. AILI GC is independent of Pi compaction events; failure to recover budget surfaces the provider overflow error.
+- **AILI disabled:** the bootstrap-owned Pi setting remains disabled until explicitly changed by the user; `/aili-compact off` does not silently re-enable Pi native compaction.
+- **historical sessions:** pre-existing Pi compaction entries remain valid read-only ancestry. Their summary-plus-tail epoch semantics still govern replay, but no new native epoch is expected after the exclusive-owner configuration is installed.
 
 ## Cache identity, accounting and UI
 
@@ -190,11 +192,11 @@ Custom prompts are opt-in and fixed to six slots. Global files are read from `~/
 
 Global files load first and project files override the same slot. Unknown Markdown files are ignored with `prompt-unknown-slot`. Each file is limited to 4 KiB and the final snapshot to 8 KiB. Pi cannot vary registered TypeBox schemas per session, so slot text is placed in the corresponding system-guidance section while immutable schema/protocol/safety text remains authoritative. The session retains only the bounded slot snapshot and fingerprint. `/aili-compact prompt reload` explicitly refreshes it and starts a new cache-input state.
 
-AILI never creates, migrates or mutates config/custom prompt files. `off` makes context projection return input unchanged and suppresses all AILI guidance without deleting journal state. `restore-all` deactivates current-epoch blocks and disables auto cooling. Prompt text never appears in JSONL state entries, diagnostics, widget or tool results.
+AILI never creates, migrates or mutates AILI config/custom prompt files. The Linux bootstrap separately performs the explicitly authorized atomic merge into Pi's user-global `settings.json`; runtime commands do not mutate that file. `off` makes context projection return input unchanged and suppresses all AILI guidance without deleting journal state or re-enabling Pi compaction. `restore-all` deactivates current-epoch blocks and disables auto cooling. Prompt text never appears in JSONL state entries, diagnostics, widget or tool results.
 
 ## Diagnostics and health
 
-Doctor health is not satisfied merely because `/aili-compact` is registered. It reports bounded component status for reducer/replay schema, reference catalog, projection/recap invariants, native-compaction hooks, cache telemetry availability, prompt slot count/hash and release blockers. A known projection/replay invariant failure is `ERROR`; missing optional/live evidence is `WARN`/`Unverified`. The former unconditional AGPL/MIT blocker may become resolved only when exact AGPL package metadata, LICENSE, packaged attribution, generated SBOM/notices and tarball checks all pass.
+Doctor health is not satisfied merely because `/aili-compact` is registered. It reports bounded component status for reducer/replay schema, reference catalog, projection/recap invariants, exclusive native-compaction cancellation, independently triggered major GC, effective user-global Pi auto-compaction disablement, cache telemetry availability, prompt slot count/hash and release blockers. A known projection/replay invariant failure is `ERROR`; missing optional/live evidence is `WARN`/`Unverified`. The former unconditional AGPL/MIT blocker may become resolved only when exact AGPL package metadata, LICENSE, packaged attribution, generated SBOM/notices and tarball checks all pass.
 
 ## Private-source and release boundary
 

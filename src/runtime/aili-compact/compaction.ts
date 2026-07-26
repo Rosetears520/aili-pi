@@ -4,7 +4,7 @@ export type NativeCompactionReason = "manual" | "threshold" | "overflow";
 
 export interface NativeCompactionDecisionInput {
   reason: NativeCompactionReason;
-  /** Only an explicitly healthy replay/projection may intercept Pi. */
+  /** Retained for callers recording diagnostics; cancellation is unconditional. */
   healthy?: boolean;
   contextTokens?: number;
   estimatedSavingTokens?: number;
@@ -13,12 +13,8 @@ export interface NativeCompactionDecisionInput {
 
 export type NativeCompactionDecisionReason =
   | "manual-aili-guidance"
-  | "manual-unhealthy-fallback"
-  | "overflow-native-recovery"
-  | "threshold-unhealthy-fallback"
-  | "threshold-budget-unproven"
-  | "threshold-projection-unsafe"
-  | "threshold-projection-safe";
+  | "threshold-aili-owned"
+  | "overflow-aili-owned";
 
 /** The exact envelope consumable by Pi's `session_before_compact` hook. */
 export interface NativeCompactionDecision {
@@ -27,30 +23,14 @@ export interface NativeCompactionDecision {
 }
 
 /**
- * Decides whether AILI Compact can safely suppress Pi native compaction.
- *
- * A threshold is suppressed only when health and all token inputs are proven
- * and the projected context is strictly below the response reserve. Healthy
- * manual requests are redirected to AILI; unhealthy/manual uncertainty and
- * every overflow decision leave Pi recovery available.
+ * AILI owns every native compaction trigger while it is enabled. The hook must
+ * only cancel; recovery is performed independently through replayable AILI
+ * control transactions before a provider request.
  */
 export function decideNativeCompaction(input: NativeCompactionDecisionInput): NativeCompactionDecision {
-  if (input.reason === "overflow") return { cancel: false, reason: "overflow-native-recovery" };
-  if (input.reason === "manual") return input.healthy === true
-    ? { cancel: true, reason: "manual-aili-guidance" }
-    : { cancel: false, reason: "manual-unhealthy-fallback" };
-  if (input.healthy !== true) return { cancel: false, reason: "threshold-unhealthy-fallback" };
-
-  const { contextTokens, estimatedSavingTokens, safeBudgetTokens } = input;
-  if (!isTokenCount(contextTokens) || !isTokenCount(estimatedSavingTokens) || !isTokenCount(safeBudgetTokens) || estimatedSavingTokens > contextTokens) {
-    return { cancel: false, reason: "threshold-budget-unproven" };
-  }
-
-  if (contextTokens - estimatedSavingTokens >= safeBudgetTokens) {
-    return { cancel: false, reason: "threshold-projection-unsafe" };
-  }
-
-  return { cancel: true, reason: "threshold-projection-safe" };
+  if (input.reason === "manual") return { cancel: true, reason: "manual-aili-guidance" };
+  if (input.reason === "threshold") return { cancel: true, reason: "threshold-aili-owned" };
+  return { cancel: true, reason: "overflow-aili-owned" };
 }
 
 function isTokenCount(value: number | undefined): value is number {
@@ -214,6 +194,40 @@ export function planGenerationalGc(input: GenerationalGcInput): GenerationalGcPl
     transaction: { schema: AILI_COMPACT_SCHEMA, id, kind: "control", epochId: input.epochId, lifecycleUpdates: updates },
     boundedSummaries,
   };
+}
+
+export interface EmergencyGcInput {
+  epochId: string;
+  blocks: readonly CompactBlock[];
+  contextTokens?: number;
+  contextWindow?: number;
+  thresholdPercent: number;
+  maxOldSummaryChars: number;
+  transactionId?: string;
+}
+
+/**
+ * Plans the ACP-style emergency pass independently of Pi compaction events.
+ * It can only shorten active old-generation summaries and persists those
+ * replacements through an append-only AILI lifecycle transaction.
+ */
+export function planEmergencyGc(input: EmergencyGcInput): CompactTransaction | undefined {
+  if (!isTokenCount(input.contextTokens) || !isTokenCount(input.contextWindow) || input.contextWindow === 0
+    || !isBoundedInteger(input.thresholdPercent, 90, 100)
+    || !isBoundedInteger(input.maxOldSummaryChars, 256, 10_000)
+    || (input.contextTokens / input.contextWindow) * 100 < input.thresholdPercent) return undefined;
+
+  const updates: CompactLifecycleUpdate[] = [];
+  for (const block of input.blocks) {
+    if (!block.active || block.queryOnly || block.epochId !== input.epochId || block.generation !== "old") continue;
+    const summary = boundSummary(block.summary, input.maxOldSummaryChars);
+    if (summary.length < block.summary.length) updates.push({ blockId: block.id, summary });
+  }
+  if (updates.length === 0) return undefined;
+  updates.sort((left, right) => left.blockId.localeCompare(right.blockId));
+  const id = input.transactionId ?? `gc:emergency:${input.epochId}:${digest(updates).slice(0, 24)}`;
+  if (!id || id.length > 256) return undefined;
+  return { schema: AILI_COMPACT_SCHEMA, id, kind: "control", epochId: input.epochId, lifecycleUpdates: updates };
 }
 
 export interface CompletedCompactionEpochInput {

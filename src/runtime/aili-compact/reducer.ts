@@ -153,6 +153,7 @@ function applyTransaction(
     for (const update of transaction.lifecycleUpdates) {
       const block = state.blocks.get(update.blockId);
       if (!block || block.epochId !== state.epochId || block.queryOnly) return "invalid-lifecycle";
+      if (update.summary !== undefined && (!block.active || update.summary.length >= block.summary.length)) return "invalid-lifecycle";
       if (update.active === true) return "invalid-lifecycle";
       if (update.active === false && (update.deactivationReason !== "gc" && update.deactivationReason !== "nested")) return "invalid-lifecycle";
       if (update.active === undefined && update.deactivationReason !== undefined) return "invalid-lifecycle";

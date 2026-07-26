@@ -94,6 +94,18 @@
       "verification": ["tests/unit/runtime.test.ts", "tests/integration/package-runtime.test.ts", "npm pack --dry-run --json"]
     },
     {
+      "name": "pi-zentui",
+      "repository": "https://github.com/lmilojevicc/pi-zentui.git",
+      "revision": "fda2c9c7d0027f7e98a3eba7d4e03f5c0ac7d600",
+      "version": "0.11.0",
+      "license": "MIT",
+      "status": "adapted",
+      "sourceFiles": ["extensions/zentui/**"],
+      "symbols": ["fixed editor compositor", "editor chrome", "user-message rendering", "Zentui footer"],
+      "localChanges": ["the pi-sakura-cyberdeck lineage supplied the vendored base", "AILI applies Rose Cyberdeck palette and gradients, package defaults and configuration paths, Pi 0.82.1 lifecycle adaptations, and bounded fallback behavior"],
+      "verification": ["tests/unit/zentui-gradient.test.ts", "tests/unit/zentui-settings.test.ts", "tests/integration/package-runtime.test.ts", "npm run typecheck", "npm test", "npm pack --json"]
+    },
+    {
       "name": "pi-sakura-cyberdeck",
       "repository": "https://github.com/beautifulrem/pi-sakura-cyberdeck.git",
       "revision": "165a1f8011a12a58a6409b56b8a6c0416cd9b589",

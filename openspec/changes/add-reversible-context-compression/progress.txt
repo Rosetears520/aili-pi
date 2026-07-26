@@ -1,9 +1,9 @@
 2026-07-25 private BUILD closeout — add-reversible-context-compression
 
-status: RELEASED_0.1.12_WITH_ONE_PUBLIC_HOST_EVIDENCE_GAP
-acceptance: revised final test-plan.md explicitly accepted by the user on 2026-07-25; MIT/reference-only public-release route and corrective 0.1.12 hotfix explicitly approved
-package_version: 0.1.12
-task_ledger: 55 completed, 1 open
+status: RELEASE_CANDIDATE_0.1.13_EXCLUSIVE_OWNER
+acceptance: prior BUILD/release-plan acceptances plus the user-accepted 2026-07-27 exclusive-owner/bootstrap-HOME-write delta; exact 0.1.13 release commit authorized
+package_version: 0.1.13
+task_ledger: 62 completed, 1 host-evidence gap retained as Unverified
 
 completed_runtime:
 - append-only v2 transaction/replay state with safe v1 upgrade/query-only fallback, atomic batches, branch/epoch references and exact commit boundaries
@@ -15,8 +15,8 @@ completed_runtime:
 - exact one-turn manual trigger binding, deterministic consumption/clear and send-failure compensation; manual mode remains independent of autoCooling
 - normative config merge/validation and six fixed opt-in prompt slots
 - hard/configurable protection, grouped cooling, journaled dedupe/purge-error, adaptive nudges and default-off public-evidence subagent gating
-- young/old lifecycle, nested block transitions, bounded generational GC and safe provider-free major GC with Pi fallback
-- health-gated native interception, fresh projection revalidation and completed-compaction epoch reconstruction
+- young/old lifecycle, nested block transitions, bounded generational GC and independent provider-free emergency GC without Pi fallback
+- exclusive manual/threshold/overflow native cancellation, fresh projection revalidation and historical completed-compaction epoch reconstruction
 - two-part numeric cache surface: current-branch Pi Session assistant usage replays once at session start/reload/tree navigation and updates incrementally after each assistant response; AILI cold/state-change/warm repeated-request diagnostics remain separate
 - cache widget now defaults on and preserves the detailed current Session statistics in a left-aligned column beside right-aligned AILI stability rows; it reserves Pi's observed two-column widget inset so trailing full-width characters do not wrap; `/aili-compact cache` retains the sequential two-section view
 - full canonical cache identity, cold/state-change/warm classification, last-20 window and minimum-5 gate; cache footer/panel labels default to concise Simplified Chinese
@@ -101,5 +101,19 @@ release_boundary:
 - packaged provenance/notices include exact `ranxianglei/opencode-acp@v1.12.6`, commit `f1a33d9f4ce55af808eb4e050717c914ed16084b`, attribution and no-copy boundary
 - source release is isolated from `.pi/`, `graphify-out/`, `.tmp/`, raw sessions and private artifacts
 - clean release-worktree typecheck/full test/prepublish/generated/capability/compatibility/provenance/strict OpenSpec gates pass; full suite: 56 passed + 2 skipped files, 359 passed + 3 skipped tests; separately authorized live gate: 2/2 PASS
-- exact npm tarball: 6,189 files, 13,644,257 bytes, SHA-256 `103788430c4709c8042dd21a1fbd7927948fae84fe158d22ae2b23ff91f2d837`
-- extracted-tarball required-file/license/provenance/bundle/deny-path/credential-marker/local-path scans pass; clean tarball-only consumer install confirms Compact, child sandbox and all three declared bundled dependencies
+- exact npm tarball before the exclusive-owner delta: 6,189 files, 13,644,257 bytes, SHA-256 `103788430c4709c8042dd21a1fbd7927948fae84fe158d22ae2b23ff91f2d837`
+- extracted-tarball required-file/license/provenance/bundle/deny-path/credential-marker/local-path scans passed; clean tarball-only consumer install confirmed Compact, child sandbox and all three declared bundled dependencies
+
+2026-07-27_exclusive_owner_delta:
+- bootstrap atomically and idempotently merges user-global `compaction.enabled=false`, preserves unrelated settings/mode, rejects malformed or non-object JSON without replacement, and never rewrites project `.pi/settings.json`
+- while AILI is enabled, manual, threshold and overflow Pi compaction hooks are cancellation-only; AILI never returns a native compaction envelope or summary/retry fallback
+- emergency old-generation summary GC runs provider-free before provider projection and persists only append-only AILI lifecycle state; historical Pi compaction epochs remain replayable
+- doctor, README and `/aili-compact off` diagnostics expose the effective exclusive-owner setting without leaking raw HOME content
+- current-user structured HOME merge completed with existing keys and mode 0644 preserved; Pi restart remains required after code/package replacement
+- focused 5-file suite: PASS (93 tests); typecheck PASS; full Vitest PASS (366 + 2 skipped); package validation PASS; strict OpenSpec and `git diff --check` PASS
+- release-readiness audit found an inherited pi-zentui attribution gap; exact upstream `v0.11.0` revision, adapted-file provenance, generated notice/SBOM record and packaged `notices/pi-zentui-NOTICE.txt` were added with regression coverage
+- `manifests/live-verification.json` remains intentionally public, bounded release evidence required by the fail-closed validator; it contains hashes and sanitized probe descriptions but no credential value, raw transcript or absolute HOME path
+- clean release-worktree `npm run typecheck`, full Vitest (56 passed + 2 skipped files; 365 passed + 3 skipped tests), `prepublishOnly`, generated/capability/compatibility/provenance validators, strict OpenSpec and `git diff --check`: PASS
+- exact npm tarball after provenance repair and README attribution: 6,191 files; 13,647,738 bytes; unpacked 59,391,773 bytes; SHA-256 `85c9b48949a9e268e27b597c1bb99f6083d45057be9d840d769002fc5ac6bad0`
+- required exclusive-owner runtime/helper, generated notices/SBOM, intentional live evidence, pi-zentui notice/license and all three bundled dependencies are present; repository-only metadata and suspicious own-package paths are absent; bounded credential/home marker scan found no credential value or local HOME path
+- exact commit evidence remains pending the authorized release commit

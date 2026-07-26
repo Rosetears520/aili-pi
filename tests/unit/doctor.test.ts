@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   assessAiliCompactHealth,
+  assessPiCompactionSettings,
   collectLocalAiliCompactHealthEvidence,
   formatDoctorReport,
   runBoundedProbe,
@@ -133,6 +134,21 @@ describe("doctor", () => {
     ]));
     expect(formatDoctorReport(report)).toContain("AILI doctor: NON_PASS");
     expect(JSON.parse(JSON.stringify(report))).toEqual(report);
+  });
+
+  it("distinguishes exclusive Pi compaction settings without exposing file content", () => {
+    expect(assessPiCompactionSettings('{"theme":"rose","compaction":{"enabled":false}}')).toEqual({
+      id: "pi.compaction", status: "PASS", evidence: "global=disabled; project=absent",
+    });
+    expect(assessPiCompactionSettings('{"compaction":{"enabled":false}}', '{"compaction":{"enabled":true},"secret":"do-not-render"}')).toEqual({
+      id: "pi.compaction", status: "ERROR", evidence: "global=disabled; project=override-enabled",
+    });
+    expect(assessPiCompactionSettings('{broken SECRET_TOKEN')).toEqual({
+      id: "pi.compaction", status: "ERROR", evidence: "global=malformed; project=not-evaluated",
+    });
+    expect(assessPiCompactionSettings('[]')).toEqual({
+      id: "pi.compaction", status: "ERROR", evidence: "global=non-object; project=not-evaluated",
+    });
   });
 
   it("uses bounded injectable invariant evidence and makes known failures errors", () => {

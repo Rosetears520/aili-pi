@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { detectLifecycleConflicts } from "./conflicts.js";
 import { loadRegistry, validateLiveVerification, validateProvenance, validateRegistry } from "./registry.js";
 import { inspectGlobalResources } from "./global-resources.js";
@@ -97,6 +98,7 @@ export async function runDoctor(
   } catch (error) {
     results.push({ id: "aili.compact", status: "ERROR", evidence: `health-probe=${boundedErrorName(error)}` });
   }
+  results.push(await inspectPiCompactionSettings(options.home));
 
   try {
     const errors = await validateRegistry();
@@ -155,6 +157,30 @@ export async function runDoctor(
     status: results.every((item) => item.status === "PASS" || item.status === "SKIP") ? "PASS" : "NON_PASS",
     results,
   };
+}
+
+export function assessPiCompactionSettings(globalText: string | undefined, projectText?: string): DoctorResult {
+  const global = parsePiSettings(globalText);
+  if (global.state !== "valid") {
+    return { id: "pi.compaction", status: "ERROR", evidence: `global=${global.state}; project=not-evaluated` };
+  }
+  if (global.value.compaction?.enabled !== false) {
+    return { id: "pi.compaction", status: "ERROR", evidence: "global=auto-enabled-or-unset; project=not-evaluated" };
+  }
+  const project = parsePiSettings(projectText);
+  if (project.state === "missing") return { id: "pi.compaction", status: "PASS", evidence: "global=disabled; project=absent" };
+  if (project.state !== "valid") return { id: "pi.compaction", status: "ERROR", evidence: `global=disabled; project=${project.state}` };
+  if (project.value.compaction?.enabled === true) return { id: "pi.compaction", status: "ERROR", evidence: "global=disabled; project=override-enabled" };
+  return { id: "pi.compaction", status: "PASS", evidence: `global=disabled; project=${project.value.compaction?.enabled === false ? "disabled" : "no-override"}` };
+}
+
+export async function inspectPiCompactionSettings(home = process.env.HOME, cwd = process.cwd()): Promise<DoctorResult> {
+  if (!home) return { id: "pi.compaction", status: "ERROR", evidence: "global=home-unavailable; project=not-evaluated" };
+  const global = await readOptionalSettings(join(home, ".pi", "agent", "settings.json"));
+  if (global.state === "unreadable") return { id: "pi.compaction", status: "ERROR", evidence: "global=unreadable; project=not-evaluated" };
+  const project = await readOptionalSettings(join(cwd, ".pi", "settings.json"));
+  if (project.state === "unreadable") return { id: "pi.compaction", status: "ERROR", evidence: "global=unchecked; project=unreadable" };
+  return assessPiCompactionSettings(global.text, project.text);
 }
 
 const REQUIRED_COMPACT_INVARIANTS = ["reducer", "reference", "projection", "recap", "prompt", "nativeHook"] as const;
@@ -218,16 +244,16 @@ export function collectLocalAiliCompactHealthEvidence(): AiliCompactHealthEviden
   const recap = projectMessages(messages, { ...baseState, blocks: new Map([[block.id, block]]) }, identity);
   let telemetry = emptyCacheTelemetry();
   for (let index = 0; index < 5; index += 1) telemetry = recordCacheTelemetry(telemetry, { input: 10, cacheRead: 90, cacheWrite: 0 }, true, undefined);
-  const nativeOk = decideNativeCompaction({ reason: "manual", healthy: true }).cancel
-    && !decideNativeCompaction({ reason: "manual", healthy: false }).cancel
-    && !decideNativeCompaction({ reason: "overflow", healthy: true }).cancel;
+  const nativeOk = decideNativeCompaction({ reason: "manual", healthy: false }).cancel
+    && decideNativeCompaction({ reason: "threshold", healthy: false }).cancel
+    && decideNativeCompaction({ reason: "overflow", healthy: false }).cancel;
   return {
     reducer: localCompactEvidence(!reduced.enabled && reduced.diagnostics.length === 0, 1, digest({ enabled: reduced.enabled, diagnostics: reduced.diagnostics })),
     reference: localCompactEvidence(catalog.messages.map((item) => item.ref).join(",") === "m000001,m000002" && SHA256.test(catalog.catalogId), catalog.messages.length, catalog.catalogId),
     projection: localCompactEvidence(unchanged.diagnostic === undefined && unchanged.messages[0] === messages[0] && failOpen.messages === malformed && failOpen.diagnostic === "missing-user-message", unchanged.messages.length, unchanged.hash),
     recap: localCompactEvidence(recap.diagnostic === undefined && recap.messages.length === 3 && recap.messages[1]?.role === "assistant" && recap.messages[2]?.role === "toolResult" && recap.messages[2]?.toolName === "aili_context_recap", recap.messages.length, recap.hash),
     prompt: localCompactEvidence(COMPACT_PROMPT_SLOTS.length === 6 && new Set(COMPACT_PROMPT_SLOTS).size === 6, COMPACT_PROMPT_SLOTS.length, digest(COMPACT_PROMPT_SLOTS)),
-    nativeHook: localCompactEvidence(nativeOk, 2, digest(["session_before_compact", "session_compact"])),
+    nativeHook: localCompactEvidence(nativeOk, 3, digest(["manual-cancel", "threshold-cancel", "overflow-cancel"])),
     cache: localCompactEvidence(telemetry.window.length === 5 && telemetry.hitRate === 90, telemetry.window.length, digest({ samples: telemetry.window.length, hitRate: telemetry.hitRate })),
     live: { status: "unverified", error: "uv-live-1" },
     hostOrdering: { status: "unverified", error: "uv-ext-order-1" },
@@ -236,6 +262,28 @@ export function collectLocalAiliCompactHealthEvidence(): AiliCompactHealthEviden
 
 function localCompactEvidence(ok: boolean, count: number, hash: string): AiliHealthInvariantEvidence {
   return ok ? { status: "pass", count, hash } : { status: "fail", error: "local-invariant-failed" };
+}
+
+function parsePiSettings(text: string | undefined): { state: "valid"; value: { compaction?: { enabled?: unknown } } } | { state: "missing" | "malformed" | "non-object" } {
+  if (text === undefined) return { state: "missing" };
+  try {
+    const value = JSON.parse(text) as unknown;
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return { state: "non-object" };
+    const compaction = (value as { compaction?: unknown }).compaction;
+    if (compaction !== undefined && (compaction === null || typeof compaction !== "object" || Array.isArray(compaction))) return { state: "non-object" };
+    return { state: "valid", value: value as { compaction?: { enabled?: unknown } } };
+  } catch {
+    return { state: "malformed" };
+  }
+}
+
+async function readOptionalSettings(path: string): Promise<{ state: "readable" | "missing" | "unreadable"; text?: string }> {
+  try {
+    return { state: "readable", text: await readFile(path, "utf8") };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return { state: "missing" };
+    return { state: "unreadable" };
+  }
 }
 
 function renderCompactInvariant(name: string, evidence: AiliHealthInvariantEvidence): string {

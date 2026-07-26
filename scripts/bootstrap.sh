@@ -1,6 +1,7 @@
 #!/bin/sh
 set -eu
 
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd -P)
 PACKAGE_SOURCE='npm:@rosetears/aili-pi@latest'
 PACKAGE_ID='npm:@rosetears/aili-pi'
 MINIMUM_PI_VERSION='0.82.1'
@@ -160,6 +161,9 @@ fi
 preflight
 say "AILI bootstrap: preflight=pass pi_version=$OBSERVED_PI_VERSION"
 
+command -v node >/dev/null 2>&1 || fail 'user-global-settings-runtime'
+node "$SCRIPT_DIR/merge-global-settings.mjs" --check || fail 'user-global-settings-validate'
+
 if ! pi install "$PACKAGE_SOURCE" >/dev/null 2>&1; then
   say 'AILI bootstrap: ERROR stage=aili-package-install'
   say "pi_state=$PI_STATE"
@@ -173,6 +177,7 @@ if ! pi install "$PACKAGE_SOURCE" >/dev/null 2>&1; then
   exit 1
 fi
 
+node "$SCRIPT_DIR/merge-global-settings.mjs" || fail 'user-global-settings-merge'
 say "AILI bootstrap: success pi_state=$PI_STATE aili_state=installed"
 say 'start=pi'
 say "update=pi update $PACKAGE_ID"

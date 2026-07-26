@@ -1,0 +1,10 @@
+This package includes a modified copy of pi-zentui by Luka.
+
+Original project: https://github.com/lmilojevicc/pi-zentui
+Upstream version: 0.11.0
+Upstream revision: fda2c9c7d0027f7e98a3eba7d4e03f5c0ac7d600
+License: MIT. Full license text: licenses/pi-zentui-MIT.txt
+
+Modifications include the Rose Cyberdeck palette and gradients, editor chrome,
+package-specific defaults and configuration paths, Pi 0.82.1 lifecycle
+adaptations, and bounded fallback behavior.

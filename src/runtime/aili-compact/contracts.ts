@@ -59,6 +59,8 @@ export interface CompactPolicyDecision {
 
 export interface CompactLifecycleUpdate {
   blockId: string;
+  /** A provider-free GC replacement; it may only shorten an existing summary. */
+  summary?: string;
   generation?: CompactGeneration;
   survivedCount?: number;
   age?: number;
@@ -237,6 +239,7 @@ function isPolicyDecision(value: unknown): value is CompactPolicyDecision {
 
 function isLifecycleUpdate(value: unknown): value is CompactLifecycleUpdate {
   if (!isRecord(value) || !isBoundedString(value.blockId, 256)) return false;
+  if (value.summary !== undefined && !isBoundedString(value.summary, 10_000)) return false;
   if (value.generation !== undefined && value.generation !== "young" && value.generation !== "old") return false;
   if (value.survivedCount !== undefined && !isNonNegativeInteger(value.survivedCount)) return false;
   if (value.age !== undefined && !isNonNegativeInteger(value.age)) return false;

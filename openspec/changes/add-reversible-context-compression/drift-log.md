@@ -24,6 +24,14 @@
 - **Loophole-pass reconciliation:** read-only `aili.doc-researcher` and `aili.test-engineer` findings were integrated. The final draft rejects split-atom range boundaries, defines `v2`/`mNNNNNN`/`bNNNNNN`, command bounds, recap/decompression output limits, concrete config/protection/cache contracts, and starts a new epoch after every completed Pi compaction including AILI major GC.
 - **License effect:** no AGPL source/prompt/schema/fixture/asset was copied. Public release remains blocked and direct adaptation still requires separate exact approval.
 
+## 2026-07-27 — Exclusive AILI owner supersedes Pi overflow fallback
+
+- **Prior accepted behavior:** AILI cancelled healthy threshold/manual compaction but allowed Pi native overflow recovery when projection or major GC could not prove safety.
+- **New user decision:** follow pinned ACP deployment semantics and automatically set user-global Pi `compaction.enabled=false`; AILI becomes the only threshold/manual/overflow compression and GC owner.
+- **Trade-off accepted:** if independent AILI GC cannot recover provider budget, the real overflow error surfaces; no Pi summary/retry fallback remains. `/aili-compact off` also does not re-enable Pi automatically.
+- **Operation approval:** exact structured merge into `/home/rosetears/.pi/agent/settings.json` is approved, but execution is sequenced after renewed test-plan acceptance, implementation and focused checks.
+- **Effect:** tasks 5.9/6.2 remain current-tree baseline evidence but are superseded for target behavior by tasks 10.1-10.5. Prior acceptance is stale; production/bootstrap/HOME edits remain blocked until the revised final `test-plan.md` is accepted.
+
 ## 2026-07-25 — Public widget resize event unavailable
 
 - **Accepted contract:** the Pi 0.81.1 below-editor widget should hide/reappear responsively without focus capture and rerender only for numeric state changes.

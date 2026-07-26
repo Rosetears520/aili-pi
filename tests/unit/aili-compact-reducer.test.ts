@@ -357,6 +357,27 @@ describe("AILI Compact reducer", () => {
     expect(incomplete.diagnostics).toContain("invalid-block-lineage:bad-recompress");
   });
 
+  it("replays emergency GC summary shortening and rejects summary expansion", () => {
+    const blockTx: CompactTransaction = {
+      schema: "aili.compact.tx.v2", id: "summary-run", kind: "compact", epochId: "root",
+      blocks: [v2Block("summary-block", [source], ["entry-1"], { runId: "summary-run", summary: "x".repeat(400), generation: "old" })],
+    };
+    const shortened = custom("summary-gc", {
+      schema: "aili.compact.tx.v2", id: "summary-gc", kind: "control", epochId: "root",
+      lifecycleUpdates: [{ blockId: "summary-block", summary: "x".repeat(255) + "…" }],
+    });
+    const accepted = reduceCompactState([source, successfulToolResult("summary-result", blockTx), shortened]);
+    expect(accepted.blocks.get("summary-block")?.summary).toHaveLength(256);
+    expect(accepted.diagnostics).toEqual([]);
+
+    const expanded = reduceCompactState([source, successfulToolResult("summary-result", blockTx), custom("bad-summary-gc", {
+      schema: "aili.compact.tx.v2", id: "bad-summary-gc", kind: "control", epochId: "root",
+      lifecycleUpdates: [{ blockId: "summary-block", summary: "y".repeat(401) }],
+    })]);
+    expect(expanded.blocks.get("summary-block")?.summary).toHaveLength(400);
+    expect(expanded.diagnostics).toContain("invalid-lifecycle:bad-summary-gc");
+  });
+
   it("rejects lifecycle reactivation and prior-epoch lifecycle updates", () => {
     const blockTx: CompactTransaction = {
       schema: "aili.compact.tx.v2",

@@ -121,18 +121,18 @@ All tasks belong to the single `add-reversible-context-compression` change. Chec
 - [x] 5.8 Keep the deterministic provider-free Pi overflow major-GC helper for a fully covered discard prefix.
   - Acceptance: current focused evidence proves the base helper returns a Pi compaction only when discarded entries are covered by active semantic summaries.
   - Verify: current compaction unit tests.
-- [x] 5.9 Integrate generational/nested blocks and complete safety checks into major GC without weakening overflow fail-open fallback.
-  - Acceptance: protocol/order, duplicate coverage, previous-summary and merged-summary bounds are validated; merge order is deterministic; incomplete/oversized coverage always allows Pi recovery.
-  - Verify: nested/generation/protocol/order/bounds overflow compaction tests.
+- [x] 5.9 Integrate generational/nested blocks and complete safety checks into the former Pi-overflow fallback path. **Superseded for target behavior by tasks 10.2-10.3; retained as current-tree baseline evidence.**
+  - Acceptance: current implementation validates protocol/order, duplicate coverage, previous-summary and merged-summary bounds before its existing fallback decision.
+  - Verify: existing nested/generation/protocol/order/bounds compaction tests.
 
 ## 6. Native compaction and cache observability
 
 - [x] 6.1 Keep the implemented base threshold/manual/overflow event handlers and pure decision/major-GC helpers.
   - Acceptance: current synthetic evidence covers safe/unsafe threshold decisions, manual cancellation guidance and a successful fully-covered major-GC path without claiming health/event-order completeness.
   - Verify: current compaction/runtime tests.
-- [x] 6.2 Complete health-gated manual cancellation, unsafe-overflow runtime fallback and epoch reconstruction for every completed Pi compaction.
-  - Acceptance: unhealthy manual requests are not intercepted; unsafe overflow demonstrably reaches Pi recovery; extension major GC and native recovery each create a new summary-plus-tail epoch while cancelled events do not.
-  - Verify: runtime event-order/compaction-entry/epoch integration tests.
+- [x] 6.2 Complete the former health-gated manual cancellation, unsafe-overflow runtime fallback and completed-Pi-compaction epoch reconstruction baseline. **Superseded for new events by tasks 10.2-10.4; historical epoch replay remains required.**
+  - Acceptance: current-tree behavior and historical native epoch reconstruction remain covered until the exclusive-owner package replaces new native fallback.
+  - Verify: existing runtime event-order/compaction-entry/epoch integration tests.
 - [x] 6.3 Complete SHA-256 canonical cache identity with provider, model, session, branch leaf/source digest, epoch, projection, guidance and sorted active tool metadata.
   - Acceptance: any field change is state-change; equivalent sorted-key inputs remain stable.
   - Verify: cache identity canonicalization matrix.
@@ -198,3 +198,21 @@ All tasks belong to the single `add-reversible-context-compression` change. Chec
   - Verify: `npm pack --dry-run --json`, extracted-tarball allow/deny scan and bounded secret/path scan.
 - [x] 9.8 Keep version commit, push, tag, npm publish, GitHub release and installed-package replacement as separate exact SHIP operations after all deterministic and required live gates pass.
   - Verify: no release-state mutation occurs during DEFINE/BUILD.
+
+## 10. Exclusive AILI compaction ownership and bootstrap settings
+
+- [x] 10.1 Add an idempotent atomic Linux-bootstrap merge for user-global `~/.pi/agent/settings.json` that writes `compaction.enabled=false`, preserves unrelated keys and permissions where possible, creates a missing object-valued file, and refuses malformed/non-object JSON without changing original bytes.
+  - Acceptance: both `install.sh` and `scripts/bootstrap.sh` paths use one tested helper/implementation; project `.pi/settings.json` files are never scanned or rewritten.
+  - Verify: bootstrap fixtures covering missing, nested-existing, already-disabled, enabled-to-disabled, malformed, non-object, repeated-run and fault-before-rename cases.
+- [x] 10.2 Replace health/budget-dependent native decisions with exclusive cancellation for every `manual|threshold|overflow` event while AILI is enabled.
+  - Acceptance: no path returns a Pi-generated compaction or allows native compact-and-retry; manual receives AILI command guidance; historical compaction replay remains supported.
+  - Verify: decision unit matrix and runtime hook integration asserting `cancel:true`, no `compaction` envelope and no appended Pi compaction entry.
+- [x] 10.3 Move provider-free 100% major GC off Pi `session_before_compact` and trigger it independently before provider projection using append-only AILI control state.
+  - Acceptance: eligible old summaries truncate/merge deterministically without model calls or Pi compaction entries; ineligible/insufficient GC changes nothing and allows the real provider overflow to surface.
+  - Verify: request-boundary GC threshold, idempotence, replay, no-hidden-call and insufficient-budget tests.
+- [x] 10.4 Update doctor, status and documentation for the effective Pi-setting/exclusive-owner contract.
+  - Acceptance: doctor distinguishes disabled/missing/overridden/malformed/unreadable settings without exposing raw HOME content; `/aili-compact off` explicitly reports that Pi compaction remains disabled until the user changes settings.
+  - Verify: doctor/settings redaction fixtures and README/bootstrap contract inspection.
+- [x] 10.5 Apply the exact user-authorized HOME configuration mutation only after the revised test plan is accepted and the runtime/bootstrap implementation passes its focused checks.
+  - Acceptance: `/home/rosetears/.pi/agent/settings.json` preserves all existing keys and gains exact `compaction.enabled=false`; no other HOME file changes.
+  - Verify: before/after structured comparison and JSON parse; restart-required guidance reported.

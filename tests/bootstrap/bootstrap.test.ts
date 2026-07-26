@@ -1,4 +1,4 @@
-import { chmod, cp, mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, cp, mkdtemp, mkdir, readFile, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const INSTALL = join(ROOT, "install.sh");
+const BOOTSTRAP = join(ROOT, "scripts/bootstrap.sh");
+const SETTINGS_MERGER = join(ROOT, "scripts/merge-global-settings.mjs");
 const scratch: string[] = [];
 
 afterEach(async () => {
@@ -37,6 +39,7 @@ async function fixture(options: {
   const fakeUname = join(bin, "uname");
   await mkdir(bin);
   await mkdir(home);
+  await symlink(process.execPath, join(bin, "node"));
   await writeFile(template, `#!/bin/sh
 set -eu
 printf '%s\\n' "$*" >> "$FAKE_PI_LOG"
@@ -108,6 +111,14 @@ function run(env: NodeJS.ProcessEnv, args: string[] = []) {
   return spawnSync("sh", [INSTALL, ...args], { cwd: ROOT, env, encoding: "utf8" });
 }
 
+function runBootstrap(env: NodeJS.ProcessEnv, args: string[] = []) {
+  return spawnSync("sh", [BOOTSTRAP, ...args], { cwd: ROOT, env, encoding: "utf8" });
+}
+
+function runSettingsMerger(env: NodeJS.ProcessEnv, args: string[] = []) {
+  return spawnSync(process.execPath, [SETTINGS_MERGER, ...args], { cwd: ROOT, env, encoding: "utf8" });
+}
+
 describe("thin Unix bootstrap", () => {
   it("uses only the official installer when Pi is absent, then installs AILI", async () => {
     const fx = await fixture({ withPi: false });
@@ -122,14 +133,15 @@ describe("thin Unix bootstrap", () => {
     expect(log).toContain("install npm:@rosetears/aili-pi@latest");
   });
 
-  it("preserves existing Pi and unrelated user state on repeat install", async () => {
+  it("merges settings idempotently while preserving unrelated user state", async () => {
     const fx = await fixture();
-    const state = join(fx.home, ".pi/agent");
-    await mkdir(state, { recursive: true });
+    const agentState = join(fx.home, ".pi/agent");
+    const settings = join(agentState, "settings.json");
+    await mkdir(agentState, { recursive: true });
+    await writeFile(settings, '{"theme":"rose","compaction":{"threshold":42}}\n', { mode: 0o640 });
     const files = [
-      join(state, "settings.json"),
-      join(state, "auth.json"),
-      join(state, "sessions/session.jsonl"),
+      join(agentState, "auth.json"),
+      join(agentState, "sessions/session.jsonl"),
       join(fx.home, "project/owned.txt"),
     ];
     for (const [index, file] of files.entries()) {
@@ -138,12 +150,66 @@ describe("thin Unix bootstrap", () => {
     }
     const before = await Promise.all(files.map((file) => readFile(file, "utf8")));
     expect(run(fx.env).status).toBe(0);
+    const mergedBytes = await readFile(settings, "utf8");
+    expect(JSON.parse(mergedBytes)).toEqual({
+      theme: "rose",
+      compaction: { threshold: 42, enabled: false },
+    });
+    expect((await stat(settings)).mode & 0o777).toBe(0o640);
+
     expect(run(fx.env).status).toBe(0);
+    expect(await readFile(settings, "utf8")).toBe(mergedBytes);
     expect(await Promise.all(files.map((file) => readFile(file, "utf8")))).toEqual(before);
     const log = await readFile(fx.log, "utf8");
     expect(log).not.toContain("official-installer");
     expect(log.match(/install npm:@rosetears\/aili-pi@latest/g)).toHaveLength(2);
     expect((await readFile(fx.state, "utf8")).trim()).toBe("npm:@rosetears/aili-pi@latest");
+  });
+
+  it("creates missing global settings without touching project settings", async () => {
+    const fx = await fixture();
+    const projectSettings = join(fx.root, ".pi/settings.json");
+    await mkdir(resolve(projectSettings, ".."), { recursive: true });
+    await writeFile(projectSettings, '{"compaction":{"enabled":true}}\n');
+
+    const result = runBootstrap(fx.env);
+    expect(result.status).toBe(0);
+    expect(JSON.parse(await readFile(join(fx.home, ".pi/agent/settings.json"), "utf8"))).toEqual({
+      compaction: { enabled: false },
+    });
+    expect(await readFile(projectSettings, "utf8")).toBe('{"compaction":{"enabled":true}}\n');
+  });
+
+  it("keeps original settings when the atomic temporary write cannot start", async () => {
+    const fx = await fixture();
+    const agentState = join(fx.home, ".pi/agent");
+    const settings = join(agentState, "settings.json");
+    const original = '{"theme":"rose"}\n';
+    await mkdir(agentState, { recursive: true });
+    await writeFile(settings, original, { mode: 0o600 });
+    await chmod(agentState, 0o500);
+    try {
+      expect(runSettingsMerger(fx.env).status).not.toBe(0);
+      expect(await readFile(settings, "utf8")).toBe(original);
+    } finally {
+      await chmod(agentState, 0o700);
+    }
+  });
+
+  it.each([
+    ["malformed JSON", '{"theme":'],
+    ["non-object root", '[1,2,3]\n'],
+  ])("fails on %s without changing settings bytes", async (_label, original) => {
+    const fx = await fixture();
+    const settings = join(fx.home, ".pi/agent/settings.json");
+    await mkdir(resolve(settings, ".."), { recursive: true });
+    await writeFile(settings, original, { mode: 0o600 });
+
+    const result = run(fx.env);
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("stage=user-global-settings-validate");
+    expect(await readFile(settings, "utf8")).toBe(original);
+    expect(await readFile(fx.log, "utf8")).not.toContain("install npm:");
   });
 
   it("updates official Pi only when explicitly requested", async () => {
@@ -198,6 +264,7 @@ describe("thin Unix bootstrap", () => {
     expect(result.stdout).toContain("repair=pi install npm:@rosetears/aili-pi@latest");
     expect(result.stdout).toContain("optional_destructive_remove=pi remove npm:@rosetears/aili-pi");
     expect(await readFile(fx.pi, "utf8")).toContain("FAKE_PI_LOG");
+    expect(await readFile(join(fx.home, ".pi/agent/settings.json"), "utf8").catch(() => undefined)).toBeUndefined();
 
     const existing = await fixture({ installFails: true });
     await writeFile(existing.state, "npm:@rosetears/aili-pi@latest\n");

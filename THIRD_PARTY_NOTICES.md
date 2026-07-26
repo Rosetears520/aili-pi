@@ -79,6 +79,17 @@ This distribution is licensed under AGPL-3.0-or-later. The following adapted sou
 - Reused symbols/patterns: default Extension, lsp_diagnostics, lsp_fix, /lsp
 - Local changes: AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied
 
+## pi-zentui
+
+- Status: adapted
+- Source: https://github.com/lmilojevicc/pi-zentui.git
+- Revision: fda2c9c7d0027f7e98a3eba7d4e03f5c0ac7d600
+- Version: 0.11.0
+- License: MIT
+- Source files: extensions/zentui/**
+- Reused symbols/patterns: fixed editor compositor, editor chrome, user-message rendering, Zentui footer
+- Local changes: the pi-sakura-cyberdeck lineage supplied the vendored base; AILI applies Rose Cyberdeck palette and gradients, package defaults and configuration paths, Pi 0.82.1 lifecycle adaptations, and bounded fallback behavior
+
 ## pi-sakura-cyberdeck
 
 - Status: adapted

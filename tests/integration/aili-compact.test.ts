@@ -365,6 +365,13 @@ describe("AILI Compact runtime", () => {
     expect(result.content[0].text).toContain("invalid-lineage");
   });
 
+  it("warns that turning AILI off does not re-enable Pi auto-compaction", async () => {
+    const runtime = harness();
+    const ctx = context([{ id: "user", type: "message", message: { role: "user", content: "question" } }]);
+    await runtime.commandHandlers.get("aili-compact")!("off", ctx);
+    expect(ctx.notifications.at(-1)).toContain("Pi auto-compaction remains disabled");
+  });
+
   it("persists manual-mode toggles as independent session controls", async () => {
     const runtime = harness();
     const ctx = context([{ id: "user", type: "message", message: { role: "user", content: "question" } }]);
@@ -499,19 +506,22 @@ describe("AILI Compact runtime", () => {
     expect(result.systemPrompt).toContain("aili_compact_status");
   });
 
-  it("appends a replayable generational lifecycle transaction when no cooling candidate wins", () => {
+  it("appends replayable emergency summary GC only at the provider boundary", () => {
     const runtime = harness();
     const source = { id: "source", type: "message", message: { role: "assistant", content: "source" } };
     const entries: any[] = [source, { id: "current", type: "message", message: { role: "user", content: "current" } }];
     entries.push(successfulCompactResult("block-result", {
       schema: "aili.compact.tx.v2", id: "block-tx", kind: "compact", epochId: "root",
-      blocks: [{ id: "block", kind: "semantic", epochId: "root", sourceEntryIds: ["source"], sourceDigest: sourceDigest(entries, ["source"]), summary: "summary", active: true,
-        mode: "message", topic: "topic", batchTopic: "batch", anchorEntryId: "source", runId: "block-tx", childBlockIds: [], generation: "young", survivedCount: 0, age: 0 }],
+      blocks: [{ id: "block", kind: "semantic", epochId: "root", sourceEntryIds: ["source"], sourceDigest: sourceDigest(entries, ["source"]), summary: "s".repeat(4_000), active: true,
+        mode: "message", topic: "topic", batchTopic: "batch", anchorEntryId: "source", runId: "block-tx", childBlockIds: [], generation: "old", survivedCount: 5, age: 5 }],
     }));
-    const ctx = context(entries);
+    const ctx = context(entries, { tokens: 10_000, contextWindow: 10_000 });
     runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
-    runtime.handlers.get("turn_end")!({ type: "turn_end" }, ctx);
-    expect(runtime.appended).toEqual([expect.objectContaining({ data: expect.objectContaining({ kind: "control", lifecycleUpdates: [expect.objectContaining({ blockId: "block", age: 1, survivedCount: 1 })] }) })]);
+    runtime.handlers.get("before_agent_start")!({ type: "before_agent_start", systemPrompt: "PI BASE" }, ctx);
+    expect(runtime.appended).toEqual([expect.objectContaining({ data: expect.objectContaining({
+      kind: "control", id: "gc:emergency:block-result",
+      lifecycleUpdates: [{ blockId: "block", summary: expect.stringMatching(/…$/) }],
+    }) })]);
   });
 
   it("classifies runtime cache telemetry over one cold plus five warm requests", async () => {
@@ -756,32 +766,30 @@ describe("AILI Compact runtime", () => {
     projectHealthy(runtime, ctx.sessionManager.getBranch(), ctx);
     const result = runtime.handlers.get("session_before_compact")!({ reason: "manual" }, ctx);
     expect(result).toEqual({ cancel: true });
-    expect(ctx.notifications.at(-1)).toContain("/aili-compact manual");
+    expect(ctx.notifications.at(-1)).toContain("/aili-compact context");
   });
 
-  it("does not intercept manual Pi compaction when a fresh projection is unhealthy", () => {
+  it("cancels manual Pi compaction even when projection health is unavailable", () => {
     const runtime = harness();
     const ctx = context([
       { id: "user", type: "message", message: { role: "user", content: "question" } },
       { id: "orphan", type: "message", message: { role: "toolResult", toolCallId: "missing", toolName: "read", content: "orphan" } },
     ]);
     runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
-    expect(runtime.handlers.get("session_before_compact")!({ reason: "manual" }, ctx)).toBeUndefined();
+    expect(runtime.handlers.get("session_before_compact")!({ reason: "manual" }, ctx)).toEqual({ cancel: true });
+    expect(ctx.notifications.at(-1)).toContain("/aili-compact context");
+  });
+
+  it("cancels threshold and overflow without returning a Pi compaction envelope", () => {
+    const runtime = harness();
+    const ctx = context([{ id: "user", type: "message", message: { role: "user", content: "question" } }]);
+    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+    expect(runtime.handlers.get("session_before_compact")!({ reason: "threshold" }, ctx)).toEqual({ cancel: true });
+    expect(runtime.handlers.get("session_before_compact")!({ reason: "overflow" }, ctx)).toEqual({ cancel: true });
     expect(ctx.notifications).toEqual([]);
   });
 
-  it("revalidates current projection health before intercepting native compaction", () => {
-    const runtime = harness();
-    const entries: any[] = [{ id: "user", type: "message", message: { role: "user", content: "question" } }];
-    const ctx = context(entries, { tokens: 1_000, contextWindow: 20_000 });
-    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
-    projectHealthy(runtime, entries, ctx);
-    entries.push({ id: "orphan", type: "message", message: { role: "toolResult", toolCallId: "missing", toolName: "read", content: "orphan" } });
-    expect(runtime.handlers.get("session_before_compact")!({ reason: "manual" }, ctx)).toBeUndefined();
-    expect(runtime.handlers.get("session_before_compact")!({ reason: "threshold" }, ctx)).toBeUndefined();
-  });
-
-  it("uses provider-free major GC before overflow only when semantic blocks cover the discarded messages", () => {
+  it("never returns a Pi major-GC envelope from overflow", () => {
     const runtime = harness();
     const oldUser = { id: "old-user", type: "message", message: { role: "user", content: "old question" } };
     const oldAssistant = { id: "old-assistant", type: "message", message: { role: "assistant", content: "old answer" } };
@@ -826,16 +834,12 @@ describe("AILI Compact runtime", () => {
       branchEntries: entries,
       preparation: { firstKeptEntryId: "tail-one", tokensBefore: 32_000 },
     }, ctx);
-    expect(result).toEqual(expect.objectContaining({
-      compaction: expect.objectContaining({
-        firstKeptEntryId: "tail-one",
-        details: { ailiCompact: { kind: "major-gc", blockIds: ["semantic:old"] } },
-      }),
-    }));
-    expect(ctx.notifications.at(-1)).toContain("planned deterministic major GC");
+    expect(result).toEqual({ cancel: true });
+    expect(result).not.toHaveProperty("compaction");
+    expect(ctx.notifications).toEqual([]);
   });
 
-  it("defers threshold compaction only after a conservative active-block budget proves safe", () => {
+  it("cancels threshold compaction without using a native fallback budget", () => {
     const runtime = harness();
     const activeEntries = (content: string) => {
       const source = { id: "old", type: "message", message: { role: "assistant", content } };
@@ -859,6 +863,6 @@ describe("AILI Compact runtime", () => {
     const unsafe = context(activeEntries("x".repeat(400)), { tokens: 20_000, contextWindow: 20_000 });
     runtime.handlers.get("session_start")!({ type: "session_start" }, unsafe);
     projectHealthy(runtime, unsafe.sessionManager.getBranch(), unsafe);
-    expect(runtime.handlers.get("session_before_compact")!({ reason: "threshold" }, unsafe)).toBeUndefined();
+    expect(runtime.handlers.get("session_before_compact")!({ reason: "threshold" }, unsafe)).toEqual({ cancel: true });
   });
 });

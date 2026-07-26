@@ -133,16 +133,26 @@ Subagent compression/cooling SHALL be disabled by default. When explicitly enabl
 - **WHEN** AILI cannot prove whether a tool result belongs to a completed subagent run
 - **THEN** no compression/cooling transaction covers it and projection remains source-faithful
 
-### Requirement: AILI Compact owns ordinary compaction while Pi retains emergency recovery
-AILI Compact SHALL handle threshold/manual compaction according to its safe projection and command policy. It SHALL try deterministic major GC before allowing overflow. Blocks SHALL track bounded generation/age/lineage data for safe promotion, nesting and summary truncation. Pi native recovery SHALL remain available when AILI cannot prove a safe healthy result. Every completed Pi compaction, including an extension-provided AILI major GC, SHALL begin a new epoch from its persisted compaction summary plus kept tail; cancelled events SHALL NOT begin an epoch.
+### Requirement: AILI Compact exclusively owns compaction and GC
+AILI Compact SHALL be the only automatic compression owner after installation. The Linux bootstrap SHALL atomically merge exact `compaction.enabled=false` into user-global `~/.pi/agent/settings.json`, preserve every unrelated setting, and leave the original bytes unchanged with a non-zero error when the existing file is malformed or is not a JSON object. It SHALL NOT scan or rewrite project-local Pi settings.
 
-#### Scenario: Manual Pi compaction is requested while healthy
-- **WHEN** a `session_before_compact` event has reason `manual` and AILI Compact is healthy
-- **THEN** Pi compaction is cancelled with bounded guidance to `/aili-compact` and no persisted source entry is changed
+AILI SHALL independently evaluate projected usage before provider requests and run provider-free major GC at the configured emergency boundary. Major GC SHALL alter only append-only AILI block/control state and SHALL NOT create a Pi `CompactionEntry` or invoke a hidden model request. While AILI is enabled, every manual, threshold or overflow `session_before_compact` event that still arrives SHALL be cancelled. If AILI projection/GC cannot recover sufficient budget, the real provider overflow SHALL surface without Pi summary generation or compact-and-retry fallback. Historical Pi compaction entries SHALL remain replayable read-only ancestry.
 
-#### Scenario: Overflow cannot be resolved by major GC
-- **WHEN** active summaries do not cover every entry Pi would discard or bounded merge safety cannot be established
-- **THEN** Pi overflow recovery proceeds and subsequent active projection starts from Pi's new summary and kept tail
+#### Scenario: Bootstrap disables Pi auto-compaction
+- **WHEN** the Linux bootstrap installs or refreshes AILI in a HOME containing a missing or valid object-valued Pi `settings.json`
+- **THEN** the resulting user-global settings contain `compaction.enabled=false`, preserve all unrelated keys, and repeated bootstrap runs are idempotent
+
+#### Scenario: Existing Pi settings are malformed
+- **WHEN** bootstrap encounters malformed JSON or a non-object root in `~/.pi/agent/settings.json`
+- **THEN** installation fails with bounded guidance and the original file remains byte-identical
+
+#### Scenario: A native compaction event still arrives
+- **WHEN** project override, manual `/compact`, threshold or overflow causes `session_before_compact` while AILI is enabled
+- **THEN** AILI cancels the event, no Pi compaction entry is appended, and manual requests receive bounded `/aili-compact` guidance
+
+#### Scenario: AILI major GC cannot recover budget
+- **WHEN** no eligible old-generation summaries can be safely truncated or merged enough to fit the provider budget
+- **THEN** AILI performs no Pi/native fallback and the provider overflow is reported truthfully
 
 ### Requirement: Current Session cache accounting is replayable and low-overhead
 AILI Compact SHALL display current-branch Pi Session cache totals separately from its repeated-request stability diagnostic. It SHALL reconstruct assistant usage once from `SessionManager.getBranch()` on session start/reload and explicit tree navigation, update totals in O(1) on each finalized assistant message, and SHALL NOT rescan Session JSONL for these totals from the provider `context` hook or widget rendering. It SHALL show numeric input, output, cache-read, cache-write, response and unavailable counts plus `cacheRead / (input + cacheRead + cacheWrite) * 100` when prompt tokens are nonzero.
@@ -186,7 +196,7 @@ The component SHALL default to enabled with global < project < session precedenc
 
 Unknown keys, invalid JSONC, invalid type/range or invalid cross-field threshold SHALL produce bounded `config-*` diagnostics and contribute no invalid value. AILI SHALL NOT create, migrate or modify config/prompt files.
 
-`off` SHALL return context input unchanged and suppress AILI guidance without deleting journal state. `restore-all` SHALL deactivate current-epoch blocks and disable auto cooling. Doctor health SHALL inspect reducer/reference/projection/recap/cache/prompt/native-hook state and SHALL NOT report healthy solely because the command is registered.
+`off` SHALL return context input unchanged and suppress AILI guidance without deleting journal state. It SHALL NOT silently re-enable Pi compaction in user-global settings. `restore-all` SHALL deactivate current-epoch blocks and disable auto cooling. Doctor health SHALL inspect reducer/reference/projection/recap/cache/prompt, exclusive native-hook cancellation, independent major-GC triggering and effective user-global `compaction.enabled=false`; it SHALL NOT report healthy solely because the command is registered.
 
 #### Scenario: User disables AILI Compact
 - **WHEN** `/aili-compact off` succeeds

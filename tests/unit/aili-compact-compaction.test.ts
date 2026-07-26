@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   decideNativeCompaction,
+  planEmergencyGc,
   planGenerationalGc,
   planMajorGc,
   reconstructCompletedCompactionEpoch,
@@ -8,27 +9,25 @@ import {
 import { sourceDigest, type CompactBlock, type SessionLikeEntry } from "../../src/runtime/aili-compact/contracts.js";
 
 describe("AILI Compact native compaction decision", () => {
-  it("cancels threshold compaction only when healthy projection is strictly below the safe budget", () => {
-    expect(decideNativeCompaction({ reason: "threshold", healthy: true, contextTokens: 20_000, estimatedSavingTokens: 4_000, safeBudgetTokens: 16_384 }))
-      .toEqual({ cancel: true, reason: "threshold-projection-safe" });
-    expect(decideNativeCompaction({ reason: "threshold", healthy: true, contextTokens: 20_000, estimatedSavingTokens: 3_616, safeBudgetTokens: 16_384 }))
-      .toEqual({ cancel: false, reason: "threshold-projection-unsafe" });
-  });
-
-  it("fails open to Pi when health or a threshold budget cannot be proven", () => {
-    expect(decideNativeCompaction({ reason: "threshold", healthy: false }))
-      .toEqual({ cancel: false, reason: "threshold-unhealthy-fallback" });
-    expect(decideNativeCompaction({ reason: "threshold", healthy: true, contextTokens: 20_000, safeBudgetTokens: 16_384 }))
-      .toEqual({ cancel: false, reason: "threshold-budget-unproven" });
-  });
-
-  it("never cancels overflow and health-gates manual cancellation", () => {
-    expect(decideNativeCompaction({ reason: "overflow", healthy: true }))
-      .toEqual({ cancel: false, reason: "overflow-native-recovery" });
-    expect(decideNativeCompaction({ reason: "manual", healthy: true }))
-      .toEqual({ cancel: true, reason: "manual-aili-guidance" });
+  it("cancels every Pi compaction reason without a health or budget fallback", () => {
     expect(decideNativeCompaction({ reason: "manual", healthy: false }))
-      .toEqual({ cancel: false, reason: "manual-unhealthy-fallback" });
+      .toEqual({ cancel: true, reason: "manual-aili-guidance" });
+    expect(decideNativeCompaction({ reason: "threshold", healthy: false }))
+      .toEqual({ cancel: true, reason: "threshold-aili-owned" });
+    expect(decideNativeCompaction({ reason: "overflow", healthy: false }))
+      .toEqual({ cancel: true, reason: "overflow-aili-owned" });
+  });
+
+  it("plans provider-free emergency summary truncation only at the configured boundary", () => {
+    const blocks: CompactBlock[] = [
+      { id: "old", kind: "semantic", epochId: "root", sourceEntryIds: ["a"], sourceDigest: "d", summary: "x".repeat(400), active: true, generation: "old" },
+      { id: "young", kind: "semantic", epochId: "root", sourceEntryIds: ["b"], sourceDigest: "d", summary: "y".repeat(400), active: true, generation: "young" },
+    ];
+    expect(planEmergencyGc({ epochId: "root", blocks, contextTokens: 9_999, contextWindow: 10_000, thresholdPercent: 100, maxOldSummaryChars: 256 })).toBeUndefined();
+    expect(planEmergencyGc({ epochId: "root", blocks, contextTokens: 10_000, contextWindow: 10_000, thresholdPercent: 100, maxOldSummaryChars: 256, transactionId: "gc:emergency:leaf" })).toEqual(expect.objectContaining({
+      id: "gc:emergency:leaf", kind: "control", epochId: "root",
+      lifecycleUpdates: [{ blockId: "old", summary: expect.stringMatching(/…$/) }],
+    }));
   });
 
   it("creates provider-free major GC only for ordered old semantic coverage", () => {

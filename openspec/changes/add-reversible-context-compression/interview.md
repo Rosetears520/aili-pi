@@ -11,11 +11,12 @@
 - Confirmed namespace: `/aili-compact` plus prefixed `aili_*` model tools; no user-facing ACP/DCP name or alias
 - Confirmed config: enabled by default; global < project < append-only session state; explicit writes only
 - Confirmed search scope: current active branch only, matching Pi provider-context lineage; no cross-tree search scope
-- Confirmed emergency semantics: after Pi native compaction, active context remains native summary + kept tail; no cross-epoch active decompression
-- Confirmed parity/owner/UI: Pi-adapted full parity; AILI Compact owns threshold/manual; Pi overflow is emergency-only; three-surface cache UI
+- Superseded emergency semantics: historical Pi compactions remain replayable, but new manual/threshold/overflow native compaction is forbidden after exclusive-owner installation
+- Confirmed parity/owner/UI: Pi-adapted full parity; AILI Compact is the sole compression/GC owner; three-surface cache UI
 - Confirmed precedence rule: Pi owns host/session semantics; pinned prior art informs compression behavior; Pi invariants win every conflict
-- Final `test-plan.md` acceptance: not granted
-- BUILD / external access / dependency / Git / install / release permission: not granted
+- Final `test-plan.md` acceptance: renewed and accepted on 2026-07-27 for tasks 10.1-10.5
+- Exact HOME operation: the approved structured merge of `/home/rosetears/.pi/agent/settings.json` completed after implementation and focused checks
+- BUILD permission: granted for tasks 10.1-10.5; dependency/provider permissions were not granted by this decision; later Git/release operations remain separately recorded
 
 > Round 6全部关闭，且用户确认总体分层：Session保存、tree/current-branch搜索、native compaction epoch和host lifecycle遵循Pi 0.81.1；compress/decompress/prune、summary/block、protected content、nudge和GC compression policy参考pinned prior art。两者冲突时Pi host invariants优先。Requirements grilling可进入material writeback；这仍不接受旧test plan，也不启动BUILD或修改依赖/lockfile/version。
 
@@ -496,3 +497,32 @@ Requirements grilling结束。下一步是material writeback和重写private-BUI
 ### Write-back and readiness
 
 Owning artifacts and direct dependents were revised. The prior private-BUILD test-plan acceptance is stale for public relicensing. Readiness is `BLOCKED_PENDING_REVISED_TEST_PLAN_ACCEPTANCE` until the user accepts the new package-wide AGPL/0.1.13 test plan.
+
+## Superseding Exclusive-Compaction Decision — 2026-07-27
+
+### User decision
+
+After direct comparison with pinned `ranxianglei/opencode-acp@v1.12.6`, the user rejected the previously selected Pi overflow emergency fallback and selected option **B** from the focused implementation question: the AILI bootstrap SHALL automatically modify user-global Pi settings so AILI Compact is the exclusive compression and GC owner.
+
+### Confirmed behavior
+
+- Exact HOME target: `/home/rosetears/.pi/agent/settings.json` for the current user; packaged bootstrap generalizes this as `~/.pi/agent/settings.json`.
+- Bootstrap atomically merges `compaction.enabled=false`, preserves unrelated settings, is idempotent, and refuses malformed/non-object JSON without replacement.
+- AILI independently runs provider-free major GC before provider projection at its emergency boundary; this path must not depend on Pi `session_before_compact`.
+- Every delivered Pi `manual|threshold|overflow` compaction event is cancelled while AILI is enabled. No new Pi-generated summary or compact-and-retry fallback is permitted.
+- If AILI GC cannot recover enough budget, the provider overflow error is surfaced truthfully.
+- `/aili-compact off` does not silently undo the user-global Pi setting; the documented consequence is that no automatic compaction owner remains until the user re-enables one.
+- Historical Pi compaction entries remain replayable ancestry and are not rewritten.
+
+### Classification and write-back
+
+- Classification: `confirmed` + `material-delta` + exact user-HOME write approval.
+- Supersedes Round 5 Q2 option B and Round 6 emergency-fallback summaries for future compaction behavior.
+- Affected artifacts: `proposal.md`, `context.md`, `design.md`, capability spec, `tasks.md`, `test-plan.md`, runtime/bootstrap/settings tests, doctor and README.
+- Requirements-grilling readiness: `READY`.
+
+### Final test-plan acceptance
+
+- On 2026-07-27 the user replied “开始” to the explicit renewed-acceptance prompt.
+- Classification: confirmed final `test-plan.md` acceptance plus BUILD authorization for tasks 10.1-10.5.
+- Exact HOME merge remains authorized only after implementation and focused checks; Git/provider/TUI/publish/release remain unauthorized.

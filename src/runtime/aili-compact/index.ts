@@ -38,7 +38,7 @@ import {
   type CacheUsage,
   type SessionCacheStats,
 } from "./cache.js";
-import { decideNativeCompaction, planGenerationalGc, planMajorGc, reconstructCompletedCompactionEpoch } from "./compaction.js";
+import { decideNativeCompaction, planEmergencyGc, planGenerationalGc, reconstructCompletedCompactionEpoch } from "./compaction.js";
 import {
   appendCompactPromptGuidance,
   loadCompactConfig,
@@ -80,6 +80,7 @@ type SessionRuntime = {
   configDiagnostics: readonly string[];
   prompt: CompactPromptSnapshot;
   lastAutoTurnId?: string;
+  lastProviderGcLeafId?: string;
   lastWidgetRenderKey?: string;
   projectionHealthy?: boolean;
   nudgeState: AdaptiveNudgeState;
@@ -327,7 +328,10 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
         pi.appendEntry(AILI_COMPACT_ENTRY, planned.value.control);
       }
       publishStatus(ctx, stateFor(ctx, runtime.config), runtime);
-      ctx.ui.notify(`AILI Compact ${plan.kind} applied append-only.`, "info");
+      const notice = plan.kind === "control" && plan.value === "off"
+        ? "AILI Compact off applied append-only. Pi auto-compaction remains disabled until you explicitly change ~/.pi/agent/settings.json."
+        : `AILI Compact ${plan.kind} applied append-only.`;
+      ctx.ui.notify(notice, "info");
     },
   });
 
@@ -352,14 +356,33 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
     // Do not introduce provider-time file I/O: a session_start snapshot is required.
     const runtime = initializedRuntimeFor(ctx);
     if (!runtime) return;
-    const state = stateFor(ctx, runtime.config);
+    let state = stateFor(ctx, runtime.config);
+    const leaf = ctx.sessionManager.getLeafId() ?? "root";
+    const usage = ctx.getContextUsage();
+    if (state.enabled && runtime.lastProviderGcLeafId !== leaf) {
+      const gc = planEmergencyGc({
+        epochId: state.epochId,
+        blocks: [...state.blocks.values()],
+        contextTokens: usage?.tokens ?? undefined,
+        contextWindow: usage?.contextWindow,
+        thresholdPercent: runtime.config.gc.majorThresholdPercent,
+        maxOldSummaryChars: runtime.config.gc.maxOldSummaryChars,
+        transactionId: `gc:emergency:${leaf}`,
+      });
+      if (gc) {
+        // Provider-free emergency GC is durable AILI state. It never asks Pi
+        // for a CompactionEntry and never invokes a hidden model request.
+        pi.appendEntry(AILI_COMPACT_ENTRY, gc);
+        state = stateFor(ctx, runtime.config);
+      }
+      runtime.lastProviderGcLeafId = leaf;
+    }
     let systemPrompt = event.systemPrompt;
     let changed = false;
     const custom = state.enabled ? appendCompactPromptGuidance(systemPrompt, runtime.prompt) : undefined;
     if (custom) { systemPrompt = custom; changed = true; }
     if (state.enabled) {
       const entries = branch(ctx);
-      const usage = ctx.getContextUsage();
       const contextPercent = usage?.tokens != null && usage.contextWindow > 0 ? (usage.tokens / usage.contextWindow) * 100 : 0;
       const contextChars = entries.reduce((sum, entry) => sum + (isRecord(entry.message) ? extractText(entry.message.content).length : 0), 0);
       const turn = entries.filter((entry) => isRecord(entry.message) && entry.message.role === "assistant").length;
@@ -447,8 +470,14 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
         runtime.lastAutoTurnId = turnId; return;
       }
     }
-    const gc = planGenerationalGc({ epochId: state.epochId, blocks: [...state.blocks.values()], promotionSurvivals: runtime.config.gc.promotionSurvivals,
-      maxBlockAge: runtime.config.gc.maxBlockAge, maxOldSummaryChars: runtime.config.gc.maxOldSummaryChars, transactionId: `gc:${turnId}` });
+    const gc = planGenerationalGc({
+      epochId: state.epochId,
+      blocks: [...state.blocks.values()],
+      promotionSurvivals: runtime.config.gc.promotionSurvivals,
+      maxBlockAge: runtime.config.gc.maxBlockAge,
+      maxOldSummaryChars: runtime.config.gc.maxOldSummaryChars,
+      transactionId: `gc:${turnId}`,
+    });
     if (gc) pi.appendEntry(AILI_COMPACT_ENTRY, gc.transaction);
     runtime.lastAutoTurnId = turnId;
   });
@@ -458,41 +487,13 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
     if (!runtime) return;
     const state = stateFor(ctx, runtime.config);
     if (!state.enabled) return;
-    const healthy = state.diagnostics.length === 0 && proveCurrentProjectionHealth(branch(ctx), state);
-    runtime.projectionHealthy = healthy;
+    const decision = decideNativeCompaction({ reason: event.reason });
     if (event.reason === "manual") {
-      const manual = decideNativeCompaction({ reason: "manual", healthy });
-      if (!manual.cancel) return;
-      ctx.ui.notify("Pi /compact is handled by AILI Compact. Use /aili-compact manual, compress, or sweep.", "info");
-      return { cancel: true };
+      ctx.ui.notify("AILI Compact owns compaction. Use /aili-compact context, compress [focus], or sweep 16.", "info");
     }
-    if (event.reason === "overflow" && healthy) {
-      const majorGc = planMajorGc({
-        entries: event.branchEntries as unknown as SessionLikeEntry[],
-        firstKeptEntryId: event.preparation.firstKeptEntryId,
-        tokensBefore: event.preparation.tokensBefore,
-        previousSummary: event.preparation.previousSummary,
-        activeBlocks: activeBlocks(state), epochId: state.epochId,
-        maxBlockSummaryChars: runtime.config.gc.maxOldSummaryChars,
-      });
-      if (majorGc) {
-        ctx.ui.notify("AILI Compact planned deterministic major GC; completion awaits Pi session_compact evidence.", "info");
-        return { compaction: majorGc };
-      }
-    }
-    const usage = ctx.getContextUsage();
-    const contextWindow = usage?.contextWindow;
-    const reserve = contextWindow === undefined ? undefined : Math.max(1_024, Math.ceil(contextWindow * 0.02));
-    const decision = decideNativeCompaction({
-      reason: event.reason, healthy,
-      contextTokens: usage?.tokens ?? undefined,
-      estimatedSavingTokens: estimateActiveSavingTokens(branch(ctx), state),
-      safeBudgetTokens: contextWindow === undefined || reserve === undefined ? undefined : contextWindow - reserve,
-    });
-    if (decision.cancel) {
-      ctx.ui.notify("AILI Compact safely deferred threshold compaction using the current projection.", "info");
-      return { cancel: true };
-    }
+    // Do not return a Pi compaction envelope here. Threshold and overflow are
+    // cancellation-only; provider-free GC runs before provider projection.
+    return decision.cancel ? { cancel: true } : undefined;
   });
 
   pi.on("session_compact", (event, ctx) => {
@@ -996,24 +997,6 @@ function publishStatus(ctx: ExtensionContext, state: CompactState, runtime: Sess
       runtime.lastWidgetRenderKey = widgetRenderKey;
     }
   }
-}
-
-function proveCurrentProjectionHealth(entries: readonly SessionLikeEntry[], state: CompactState): boolean {
-  const messages = entries.flatMap((entry) => entry.type === "message" && isRecord(entry.message) ? [entry.message as ProjectionMessage] : []);
-  const alignment = alignEntriesToMessages(entries, messages);
-  if (alignment.diagnostic) return false;
-  return projectMessages(messages, state, alignment.byEntryId).diagnostic === undefined;
-}
-
-function estimateActiveSavingTokens(entries: readonly SessionLikeEntry[], state: CompactState): number {
-  const sourceIds = new Set(activeBlocks(state).flatMap((block) => block.sourceEntryIds));
-  let chars = 0;
-  for (const entry of entries) {
-    if (!sourceIds.has(entry.id) || !isRecord(entry.message)) continue;
-    chars += extractText(entry.message.content).length;
-  }
-  // Deliberately under-estimate to avoid cancelling Pi compaction on an uncertain budget.
-  return Math.floor(chars / 8);
 }
 
 function renderPromptStatus(prompt: CompactPromptSnapshot): string {

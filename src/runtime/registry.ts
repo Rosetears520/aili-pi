@@ -405,7 +405,7 @@ export async function validateProvenance(): Promise<string[]> {
     const provenance = await json<{ schemaVersion: number; sources: Array<{ name: string; revision: string; version: string; license: string; status: string; repository: string; sourceFiles: string[]; symbols: string[]; localChanges: string[]; verification: string[]; attribution?: string }> }>("manifests/provenance.json");
     const sbom = await json<{ spdxVersion?: string; packages?: Array<{ SPDXID?: string; name?: string; licenseDeclared?: string }> }>("manifests/sbom.json");
     const notices = await readFile(new URL("THIRD_PARTY_NOTICES.md", ROOT), "utf8");
-    if (provenance.schemaVersion !== 1 || provenance.sources.length !== 10) errors.push("provenance: expected ten schema-v1 source records");
+    if (provenance.schemaVersion !== 1 || provenance.sources.length !== 11) errors.push("provenance: expected eleven schema-v1 source records");
     const names = new Set<string>();
     for (const source of provenance.sources) {
       if (!source.name || names.has(source.name)) errors.push(`provenance: duplicate or missing source ${source.name}`);

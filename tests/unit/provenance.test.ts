@@ -31,8 +31,8 @@ describe("provenance and SBOM", () => {
       readFile(new URL("../../manifests/provenance.json", import.meta.url), "utf8").then(JSON.parse),
       readFile(new URL("../../THIRD_PARTY_NOTICES.md", import.meta.url), "utf8"),
     ]);
-    expect(provenance.sources).toHaveLength(10);
-    expect(provenance.sources.filter((item: { status: string }) => item.status === "adapted")).toHaveLength(3);
+    expect(provenance.sources).toHaveLength(11);
+    expect(provenance.sources.filter((item: { status: string }) => item.status === "adapted")).toHaveLength(4);
     expect(provenance.sources.filter((item: { status: string }) => item.status === "dependency")).toHaveLength(5);
     expect(provenance.sources.filter((item: { status: string }) => item.status === "reference-only")).toHaveLength(2);
     expect(provenance.sources.find((item: { name: string }) => item.name === "Oh My Pi reference")).toMatchObject({
@@ -61,6 +61,13 @@ describe("provenance and SBOM", () => {
       version: "2.2.0",
       sourceFiles: expect.arrayContaining(["src/vendor/pi-permission-modes/index.ts", "src/vendor/pi-permission-modes/resolve.ts"]),
     }));
+    expect(provenance.sources.find((item: { name: string }) => item.name === "pi-zentui")).toEqual(expect.objectContaining({
+      status: "adapted",
+      revision: "fda2c9c7d0027f7e98a3eba7d4e03f5c0ac7d600",
+      version: "0.11.0",
+      sourceFiles: ["extensions/zentui/**"],
+    }));
+    expect(notices).toContain("## pi-zentui");
     expect(provenance.sources.find((item: { name: string }) => item.name === "pi-sakura-cyberdeck")).toEqual(expect.objectContaining({
       status: "adapted",
       revision: "165a1f8011a12a58a6409b56b8a6c0416cd9b589",

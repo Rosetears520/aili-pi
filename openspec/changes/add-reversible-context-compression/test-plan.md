@@ -6,7 +6,8 @@
 - 依据：修订后的 `proposal.md`、`context.md`、`design.md`、capability spec、`tasks.md`、当前 runtime/tests、Pi 0.81.1 installed host evidence，以及 pinned ACP `v1.12.6` commit `f1a33d9f4ce55af808eb4e050717c914ed16084b` 的只读源码审计。
 - Prior scope/status：2026-07-25仅接受private/local BUILD；该接受不覆盖新的package-wide relicensing/public release scope。
 - Revised scope：用户已选择从目标 0.1.13 起将整个Package改为`AGPL-3.0-or-later`并保留AILI Compact；本修订定义license/provenance/tarball/release-gate验收。
-- 当前状态：**accepted for local AGPL/0.1.13 candidate BUILD on 2026-07-26**。用户在了解测试范围后回复“你做吧”，授权实施license/version-candidate相关本地文件；direct source copy、provider/TUI、commit、push、tag、publish、GitHub release和安装替换仍需各自精确授权。
+- 2026-07-27 material delta：用户选择安装器自动修改用户全局 Pi 配置（选项 B），要求 AILI 成为唯一 threshold/manual/overflow 压缩与 GC owner，不再保留 Pi emergency summary fallback。
+- 当前状态：**accepted for exclusive-owner BUILD on 2026-07-27**。用户回复“开始”，明确接受本修订并授权执行 tasks 10.1-10.5；目标 HOME 设置写入仍须在实现与 focused checks 通过后执行。
 
 ## 1. 追踪矩阵
 
@@ -25,10 +26,11 @@
 | RCC-11 | branch/nested/epoch search/decompression | 2.4, 4.4, 4.10-4.11 | current-branch/nesting/archive tests | implemented locally |
 | RCC-12 | adaptive nudges and six-slot prompts | 4.8-4.9, 5.5 | config/prompt/nudge fixtures | implemented |
 | RCC-13 | default-off subagent gating | 5.6 | lineage/in-flight/completion fixtures | implemented for public AILI task evidence; unknown third-party lineage fails protected |
-| RCC-14 | generational GC/native emergency fallback | 5.7-5.9, 6.1-6.2 | lifecycle + compaction hook tests | implemented locally; real host ordering remains Unverified |
+| RCC-14 | generational GC and historical native epoch replay | 5.7-5.9, 6.1-6.2, 10.3 | lifecycle + request-boundary GC + historical compaction replay tests | existing fallback baseline implemented; exclusive request-boundary GC planned |
 | RCC-15 | current-Session accounting + full cache identity/truthful telemetry | 6.3-6.8 | replay/incremental/tree/reload + identity/accounting/projection sequence | implemented locally; live hit rate remains UV-LIVE-1 |
 | RCC-16 | bounded UI and doctor health | 6.5-6.6, 6.9, 7.2 | default-on left/right aligned-column presentation/runtime widget + health/redaction | doctor/runtime widget implemented; live resize remains Unverified |
-| RCC-17 | prospective package-wide AGPL disposition | 1.3-1.4, 7.4, 8, 9 | exact license/provenance/SBOM/tarball/release checks | user decision confirmed; implementation planned; prior private-only acceptance stale |
+| RCC-17 | prospective package-wide AGPL disposition | 1.3-1.4, 7.4, 8, 9 | exact license/provenance/SBOM/tarball/release checks | implemented local candidate evidence retained |
+| RCC-18 | exclusive AILI ownership + user-global Pi disablement | 10.1-10.5 | bootstrap fault fixtures + all-reason hook matrix + independent major-GC tests + doctor/settings inspection | implemented; focused/full regression PASS |
 
 `implemented` 表示当前 tree 已有直接证据，但仍会参加最终 regression；`partial/open` 不得用于完成声明。
 
@@ -41,8 +43,9 @@
 | recap/projection/fidelity | `npx vitest run tests/unit/aili-compact-projector.test.ts` plus recap fixtures | stable anchor pair, stale-call removal, idempotence, fail-open and source isolation | every future provider/extension |
 | provider serialization | focused adapter fixture test using installed Pi AI serializers | details/diagnostics/prompts/raw source absent from provider content | live provider server behavior |
 | command/manual behavior | focused integration command tests | distinct context/stats/sweep/compress/decompress/recompress/manual semantics | interactive TUI ergonomics |
-| policy/subagent/GC | focused policy, lineage and compaction tests | grouped cooling, protection, dedupe/purge, nudge, subagent fail-open, nested/generational GC | unknown external subagent providers |
+| policy/subagent/GC | focused policy, lineage, request-boundary GC and compaction-hook tests | grouped cooling, protection, dedupe/purge, nudge, subagent fail-open, nested/generational GC, all-reason native cancellation | unknown external subagent providers and live overflow ordering |
 | cache identity/accounting/UI | Session replay/incremental/tree/reload + cache identity + telemetry + presentation tests | current-branch totals recover without hot-path replay; full identity transitions, missing-field unavailable, numeric-only UI | provider-side cache hit target |
+| bootstrap/settings | focused bootstrap tests with disposable HOME | atomic/idempotent user-global merge, malformed preservation, no project rewrite | actual user HOME mutation until post-check task 10.5 |
 | whole repo contracts | `npm run typecheck && npm test` | TypeScript and existing/new regression coverage | public release or live provider quality |
 | packaging/contracts | `npm run validate:capabilities && npm run validate:release && npm run validate:package && npm pack --dry-run --json && git diff --check` | capability/package integrity and named release non-pass evidence | publish authorization |
 | OpenSpec integrity | `CI=true OPENSPEC_TELEMETRY=0 OPEN_SPEC_INTERACTIVE=0 openspec validate add-reversible-context-compression --strict` | coherent contract structure | implementation behavior |
@@ -104,13 +107,16 @@ Exact new test filenames may be merged into existing focused suites when one own
 - Manual mode is independent from `autoCooling`.
 - Subagent handling defaults off; in-flight/ambiguous lineage remains raw; enabled completed-result handling uses only public Pi evidence and no sidecar transcript.
 
-### Native compaction, GC and cache
+### Exclusive compaction ownership, GC and cache
 
-- Healthy safe threshold projections cancel native threshold compaction; unsafe/unhealthy ones do not.
-- Healthy manual Pi compaction is cancelled with AILI guidance.
+- Bootstrap writes exact `compaction.enabled=false` into a missing or valid object-valued user-global Pi settings file, preserves unrelated nested keys, is idempotent, and never scans or rewrites project `.pi/settings.json`.
+- Malformed/non-object settings and injected pre-rename failures return non-zero and preserve the original bytes; successful replacement is atomic.
+- Every manual/threshold/overflow native event is cancelled while AILI is enabled, independent of projection health or estimated savings; no handler returns a Pi compaction envelope.
+- Manual Pi `/compact` receives bounded AILI guidance. `/aili-compact off` does not silently re-enable Pi auto-compaction.
 - Young/old promotion, survival/age, nested child lifecycle and bounded summary handling replay deterministically.
-- Overflow major GC proceeds only with complete discard-prefix semantic coverage; otherwise Pi emergency recovery remains available.
-- Every completed Pi compaction, including extension AILI major GC, begins a new summary-plus-kept-tail epoch; cancelled events do not; older blocks remain archived/query-only.
+- Provider-free major GC runs independently before provider projection at the configured emergency boundary, commits only append-only AILI control state and never creates a Pi compaction entry or hidden model request.
+- If independent GC cannot recover sufficient budget, no native summary/retry occurs and the provider overflow remains visible.
+- Historical completed Pi compactions still replay as summary-plus-kept-tail epochs; older blocks remain archived/query-only.
 - Current-branch assistant usage replays once on session start/reload or tree navigation, survives restart, and thereafter updates in O(1) from finalized assistant messages without provider-context/widget replay scans.
 - Cache identity changes on provider, model, session, branch leaf/source digest, epoch, projection, prompt/guidance or sorted tool name/description/schema/immutable-prompt surface change.
 - Only a warm identity match with numeric cache-read/write is eligible. Hit is `cacheRead/(input+read+write)` over the last 20 eligible responses; fewer than 5 samples are insufficient; cold/state-change/unavailable are excluded and separately shown.
@@ -139,7 +145,9 @@ Exact new test filenames may be merged into existing focused suites when one own
 | FI-09 | prune protected/current/unconsumed/image/subagent-in-flight content | policy rejects it |
 | FI-10 | allow autonomous compact in manual mode or reuse one-shot trigger | command/tool matrix fails |
 | FI-11 | reinsert archived/GC block or break nested child lineage | decompression/recompress test fails |
-| FI-12 | cancel overflow without complete healthy GC coverage | Pi emergency recovery remains available |
+| FI-12 | permit any manual/threshold/overflow path to generate or accept a Pi compaction | exclusive-owner hook test fails |
+| FI-12A | independent AILI GC cannot recover budget | no native summary/retry; provider overflow remains visible and state is not falsely marked recovered |
+| FI-12B | bootstrap receives malformed/non-object settings or fails before rename | non-zero result and byte-identical original settings |
 | FI-13 | treat missing cache fields as zero hit, use the wrong cache formula/window/sample minimum, or omit provider/model/branch/tool surface from identity | cache test fails |
 | FI-14 | doctor passes from command registration while projection is unhealthy | doctor test fails |
 | FI-15 | release validator passes before exact AGPL metadata/provenance/tarball consistency or required live evidence | release test fails |
@@ -150,7 +158,7 @@ Exact new test filenames may be merged into existing focused suites when one own
 
 - `UV-LIVE-1`: real provider tool use, summary quality and eligible warm-session `>=85%` cache rate require a separately approved named provider/model probe. Local deterministic/accounting evidence does not claim live performance.
 - `UV-EXT-ORDER-1`: unknown later third-party context handlers remain unverified. AILI promises unmatched preservation/fail-open diagnostics, not universal hook compatibility.
-- `UV-PI-INTERNAL-1`: Pi real-host title/summary/native-compaction internal request ordering remains unverified until bounded host evidence confirms whether AILI hooks require an explicit internal-request gate.
+- `UV-PI-INTERNAL-1`: Pi real-host title/summary/native-compaction internal request ordering remains unverified; deterministic tests must nevertheless prove that any delivered manual/threshold/overflow event is cancelled and that independent GC does not depend on native event delivery.
 - `UV-ACP-RUNTIME-1`: pinned ACP source/tests were inspected, but its test suite was not executed because no dependency-install approval was granted. The source audit informs behavior, not an upstream runtime PASS claim.
 - `UV-LICENSE-1` is resolved at the decision level by selecting package-wide `AGPL-3.0-or-later`, but remains implementation-pending until exact metadata, complete license text, packaged attribution, generated evidence and tarball checks pass.
 - `UV-RELEASE-TREE-1`: the exact clean Git commit/tag for 0.1.13 is not yet assembled; the current dirty 0.1.9-based workspace and clean origin/main 0.1.12 worktree must not be conflated.
@@ -170,5 +178,6 @@ Exact new test filenames may be merged into existing focused suites when one own
 
 ## 7. Acceptance gate
 
-- [x] 用户于2026-07-26明确接受本次package-wide AGPL与0.1.13 candidate修订后的最终测试计划并要求开始执行。
-- 接受仅允许本地license/provenance/validator/candidate BUILD；不授权direct source copy、provider/TUI、commit、push、tag、publish、GitHub release或安装替换。
+- [x] Historical: 用户于2026-07-26接受package-wide AGPL与0.1.13 candidate计划；该 acceptance 已完成其原范围，但不覆盖本次 material delta。
+- [x] 用户于2026-07-27回复“开始”，明确接受 exclusive-owner/bootstrap-HOME-write 修订后的最终测试计划并授权 BUILD。
+- 本 acceptance 已授权并完成本地 runtime/bootstrap/tests/docs/doctor 实现及对精确 `/home/rosetears/.pi/agent/settings.json` 的结构化合并；不授权direct source copy、provider/TUI、commit、push、tag、publish或GitHub release。
