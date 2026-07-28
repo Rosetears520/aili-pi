@@ -6,6 +6,7 @@ import {
   type CompactState,
   type SessionLikeEntry,
 } from "./contracts.js";
+import { alignProviderMessages } from "./alignment.js";
 import { blockReferenceFor } from "./references.js";
 import { activeBlocks } from "./reducer.js";
 
@@ -21,36 +22,28 @@ export interface ProjectionResult<T extends ProjectionMessage> {
   diagnostic?: string;
 }
 
-type RecapProjection = { call: ProjectionMessage; result: ProjectionMessage };
+export interface ProjectionOptions {
+  blockReferenceFor?: (blockId: string) => string | undefined;
+}
+
+export type RecapProjection = { call: ProjectionMessage; result: ProjectionMessage };
 
 export function alignEntriesToMessages(
   entries: readonly SessionLikeEntry[],
   messages: readonly ProjectionMessage[],
 ): { byEntryId: ReadonlyMap<string, number>; diagnostic?: string } {
-  const byFingerprint = new Map<string, number[]>();
-  for (const [index, message] of messages.entries()) {
-    const key = messageFingerprint(message);
-    const values = byFingerprint.get(key) ?? [];
-    values.push(index);
-    byFingerprint.set(key, values);
-  }
-  const byEntryId = new Map<string, number>();
-  const used = new Set<number>();
-  for (const entry of entries) {
-    if (entry.type !== "message" || !isRecord(entry.message)) continue;
-    const candidates = (byFingerprint.get(messageFingerprint(entry.message)) ?? []).filter((index) => !used.has(index));
-    if (candidates.length === 0) continue;
-    if (candidates.length !== 1) return { byEntryId, diagnostic: `ambiguous-entry:${entry.id}` };
-    byEntryId.set(entry.id, candidates[0]);
-    used.add(candidates[0]);
-  }
-  return { byEntryId };
+  const result = alignProviderMessages(entries, messages);
+  const diagnostic = result.diagnostic?.startsWith("alignment-ambiguous:")
+    ? `ambiguous-entry:${result.diagnostic.slice("alignment-ambiguous:".length)}`
+    : result.diagnostic;
+  return { byEntryId: result.byEntryId, ...(diagnostic ? { diagnostic } : {}) };
 }
 
 export function projectMessages<T extends ProjectionMessage>(
   messages: readonly T[],
   state: CompactState,
   byEntryId: ReadonlyMap<string, number>,
+  options: ProjectionOptions = {},
 ): ProjectionResult<T> {
   const sourceSnapshot = canonicalJson(messages);
   const originalHash = digest(messages);
@@ -64,7 +57,7 @@ export function projectMessages<T extends ProjectionMessage>(
     const recaps = new Map<number, RecapProjection>();
     const semanticBlockIds = new Set<string>();
     const claimedIndexes = new Set<number>();
-    const protectedUserIndexes = recentUserIndexes(messages, 2);
+    const protectedUserIndexes = recentUserIndexes(messages, 1);
 
     for (const block of activeBlocks(state)) {
       const indexes = block.sourceEntryIds.map((id) => byEntryId.get(id));
@@ -99,11 +92,11 @@ export function projectMessages<T extends ProjectionMessage>(
       if (block.kind === "semantic") {
         const anchorEntryId = block.anchorEntryId ?? block.sourceEntryIds[0];
         const anchorIndex = anchorEntryId ? byEntryId.get(anchorEntryId) : undefined;
-        const blockRef = blockReferenceFor(state, block.id);
+        const blockRef = options.blockReferenceFor?.(block.id) ?? blockReferenceFor(state, block.id);
         if (anchorIndex === undefined || !blockIndexes.has(anchorIndex) || !blockRef || recaps.has(anchorIndex)) {
           return failOpen(messages, originalHash, `invalid-recap-anchor:${block.id}`);
         }
-        recaps.set(anchorIndex, recapProjection(block, blockRef));
+        recaps.set(anchorIndex, semanticRecapProjection(block, blockRef));
         semanticBlockIds.add(block.id);
       }
     }
@@ -134,7 +127,8 @@ export function projectMessages<T extends ProjectionMessage>(
   }
 }
 
-function recapProjection(block: CompactBlock, blockRef: string): RecapProjection {
+/** The single production recap envelope used by projection and token economics. */
+export function semanticRecapProjection(block: CompactBlock, blockRef: string): RecapProjection {
   const callId = `aili-recap-${digest({ epochId: block.epochId, blockId: block.id }).slice(0, 24)}`;
   const metadata = [
     `block=${blockRef}`,
@@ -324,17 +318,6 @@ function toolCallIds(message: ProjectionMessage): string[] {
     for (const part of message.content) if (isRecord(part) && part.type === "toolCall" && typeof part.id === "string") ids.push(part.id);
   }
   return ids;
-}
-
-function messageFingerprint(message: Record<string, unknown>): string {
-  return canonicalJson({
-    role: message.role,
-    content: message.content,
-    toolCallId: message.toolCallId,
-    toolName: message.toolName,
-    toolCalls: message.toolCalls,
-    isError: message.isError,
-  });
 }
 
 function firstChange(before: readonly ProjectionMessage[], after: readonly ProjectionMessage[]): number | undefined {

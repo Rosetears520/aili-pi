@@ -51,8 +51,7 @@ describe("child pi-permission-modes policy adapter", () => {
     expect(await resolver.decide("read", { path: "~/.ssh/id_ed25519" })).toMatchObject({ action: "deny", reason: expect.stringContaining("credential") });
     expect(await resolver.decide("custom_tool", { nested: { apiKey: "secret-value" } })).toMatchObject({ action: "deny", reason: expect.stringContaining("credential") });
     expect(await resolver.decide("bash", { command: "curl -H 'Authorization: Bearer abc123' example.test" })).toMatchObject({ action: "deny" });
-    const syntheticPrivateKey = `-----BEGIN ${"PRIVATE KEY"}-----\nabc\n-----END ${"PRIVATE KEY"}-----`;
-    expect(await findCredentialMaterial({ payload: syntheticPrivateKey }, scratch)).toMatchObject({ reason: "private-key material" });
+    expect(await findCredentialMaterial({ payload: "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----" }, scratch)).toMatchObject({ reason: "private-key material" });
     await expect(assertNoCredentialMaterial("token=secret", "artifact", scratch)).rejects.toThrow(/denied credential/);
     expect(redactCredentialText("token=secret Bearer abc")).toBe("token=<redacted> Bearer <redacted>");
   });

@@ -20,12 +20,14 @@ function block(id: string, overrides: Partial<CompactBlock> = {}): CompactBlock 
 }
 
 describe("AILI Compact generational GC planning", () => {
-  it("increments survival and age, promotes exactly at the threshold, and deactivates stale blocks", () => {
+  it("increments survival and age, promotes exactly at the threshold, and retains top-level blocks across the legacy age boundary", () => {
     const plan = planGenerationalGc({
       epochId: "root",
       blocks: [
         block("survivor", { survivedCount: 3, age: 2 }),
-        block("stale", { generation: "old", survivedCount: 8, age: 14 }),
+        block("below-age", { generation: "old", survivedCount: 8, age: 13 }),
+        block("equal-age", { generation: "old", survivedCount: 8, age: 14 }),
+        block("above-age", { generation: "old", survivedCount: 8, age: 15 }),
       ],
       promotionSurvivals: 4,
       maxBlockAge: 15,
@@ -35,7 +37,9 @@ describe("AILI Compact generational GC planning", () => {
     expect(plan?.transaction).toMatchObject({ schema: "aili.compact.tx.v2", id: "gc-turn-1", kind: "control", epochId: "root" });
     expect(plan?.transaction.lifecycleUpdates).toEqual([
       { blockId: "survivor", generation: "old", survivedCount: 4, age: 3 },
-      { blockId: "stale", generation: "old", survivedCount: 9, age: 15, active: false, deactivationReason: "gc" },
+      { blockId: "below-age", generation: "old", survivedCount: 9, age: 14 },
+      { blockId: "equal-age", generation: "old", survivedCount: 9, age: 15 },
+      { blockId: "above-age", generation: "old", survivedCount: 9, age: 16 },
     ]);
   });
 
@@ -62,6 +66,8 @@ describe("AILI Compact generational GC planning", () => {
     const input = { epochId: "root", promotionSurvivals: 5, maxBlockAge: 15, maxOldSummaryChars: 300 };
     expect(planGenerationalGc({ ...input, blocks: [child, first, second] })).toBeUndefined();
     expect(planGenerationalGc({ ...input, blocks: [block("missing-parent", { childBlockIds: ["missing"] })] })).toBeUndefined();
+    expect(planGenerationalGc({ ...input, blocks: [child], maxBlockAge: 0 })).toBeUndefined();
+    expect(planGenerationalGc({ ...input, blocks: [child], maxBlockAge: 1_001 })).toBeUndefined();
     expect(planGenerationalGc({ ...input, blocks: [child], maxOldSummaryChars: 255 })).toBeUndefined();
 
     const cycleA = block("a", { sourceEntryIds: ["a", "b"], childBlockIds: ["b"] });

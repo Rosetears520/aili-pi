@@ -14,9 +14,9 @@
 - Superseded emergency semantics: historical Pi compactions remain replayable, but new manual/threshold/overflow native compaction is forbidden after exclusive-owner installation
 - Confirmed parity/owner/UI: Pi-adapted full parity; AILI Compact is the sole compression/GC owner; three-surface cache UI
 - Confirmed precedence rule: Pi owns host/session semantics; pinned prior art informs compression behavior; Pi invariants win every conflict
-- Final `test-plan.md` acceptance: renewed and accepted on 2026-07-27 for tasks 10.1-10.5
-- Exact HOME operation: the approved structured merge of `/home/rosetears/.pi/agent/settings.json` completed after implementation and focused checks
-- BUILD permission: granted for tasks 10.1-10.5; dependency/provider permissions were not granted by this decision; later Git/release operations remain separately recorded
+- Final `test-plan.md` acceptance: stale after 2026-07-27 material delta; renewed acceptance not granted
+- Exact HOME operation: user selected automatic bootstrap mutation of `/home/rosetears/.pi/agent/settings.json`; execution remains sequenced after accepted plan, implementation and focused checks
+- BUILD / dependency / Git / provider / release permission: not granted by this decision
 
 > Round 6全部关闭，且用户确认总体分层：Session保存、tree/current-branch搜索、native compaction epoch和host lifecycle遵循Pi 0.81.1；compress/decompress/prune、summary/block、protected content、nudge和GC compression policy参考pinned prior art。两者冲突时Pi host invariants优先。Requirements grilling可进入material writeback；这仍不接受旧test plan，也不启动BUILD或修改依赖/lockfile/version。
 

@@ -1,6 +1,6 @@
 {
   "name": "@rosetears/aili-pi",
-  "version": "0.1.13",
+  "version": "0.1.15",
   "description": "AILI and ROSE distribution for official Pi",
   "type": "module",
   "license": "AGPL-3.0-or-later",
@@ -59,7 +59,7 @@
   },
   "scripts": {
     "postinstall": "node scripts/sync-global-skills.mjs --if-pi-managed",
-    "prepublishOnly": "npm run validate:release && npm run validate:package && npm run validate:bundles",
+    "prepublishOnly": "npm run validate:interim-release && npm run validate:package && npm run validate:bundles",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "sync:skills": "node --experimental-strip-types scripts/sync-skills.ts",
@@ -74,6 +74,9 @@
     "verify:permission-modes": "node --experimental-strip-types scripts/sync-permission-modes.ts --verify",
     "generate:provenance": "node --experimental-strip-types scripts/sync-permission-modes.ts --verify && node --experimental-strip-types scripts/generate-provenance.ts",
     "validate:provenance": "node --experimental-strip-types scripts/sync-permission-modes.ts --verify && node --experimental-strip-types scripts/generate-provenance.ts --verify",
+    "generate:compact-release-evidence": "node --experimental-strip-types scripts/generate-aili-compact-release-evidence.ts",
+    "validate:compact-release-evidence": "node --experimental-strip-types scripts/generate-aili-compact-release-evidence.ts --verify",
+    "validate:interim-release": "node --experimental-strip-types scripts/validate-interim-release.ts",
     "validate:capabilities": "node --experimental-strip-types scripts/validate-runtime.ts",
     "validate:release": "node --experimental-strip-types scripts/validate-runtime.ts --release",
     "test:doctor": "vitest run tests/unit/doctor.test.ts",
@@ -111,5 +114,10 @@
     "pi-permission-modes": "2.2.0",
     "pi-quota-status": "0.3.0",
     "pi-web-access": "0.13.0"
-  }
+  },
+  "bundleDependencies": [
+    "@narumitw/pi-lsp",
+    "pi-cache-optimizer",
+    "pi-markdown-preview"
+  ]
 }

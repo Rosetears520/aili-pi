@@ -8,11 +8,13 @@ import { nativeIntegrationDiagnostics } from "./native-integrations.js";
 import { validateRoleProfiles } from "./roles.js";
 import { emptyCacheTelemetry, recordCacheTelemetry } from "./aili-compact/cache.js";
 import { COMPACT_PROMPT_SLOTS } from "./aili-compact/config.js";
-import { decideNativeCompaction } from "./aili-compact/compaction.js";
+import { decideNativeCompaction, planMajorGc } from "./aili-compact/compaction.js";
 import { AILI_COMPACT_ENTRY, AILI_COMPACT_SCHEMA, digest, sourceDigest, type CompactState, type SessionLikeEntry } from "./aili-compact/contracts.js";
 import { projectMessages, type ProjectionMessage } from "./aili-compact/projector.js";
 import { buildReferenceCatalog } from "./aili-compact/references.js";
 import { reduceCompactState } from "./aili-compact/reducer.js";
+import { CheckpointCoordinator } from "./aili-compact/recovery.js";
+import { parseRepairEntry } from "./aili-compact/repair.js";
 
 export type DoctorStatus = "PASS" | "WARN" | "SKIP" | "ERROR" | "UNVERIFIED";
 
@@ -45,6 +47,10 @@ export interface AiliCompactHealthEvidence {
   recap: AiliHealthInvariantEvidence;
   prompt: AiliHealthInvariantEvidence;
   nativeHook: AiliHealthInvariantEvidence;
+  repair: AiliHealthInvariantEvidence;
+  checkpointPlanner: AiliHealthInvariantEvidence;
+  coordinator: AiliHealthInvariantEvidence;
+  epoch: AiliHealthInvariantEvidence;
   cache?: AiliHealthInvariantEvidence;
   live?: AiliHealthInvariantEvidence;
   hostOrdering?: AiliHealthInvariantEvidence;
@@ -161,17 +167,32 @@ export async function runDoctor(
 
 export function assessPiCompactionSettings(globalText: string | undefined, projectText?: string): DoctorResult {
   const global = parsePiSettings(globalText);
-  if (global.state !== "valid") {
+  if (global.state === "malformed" || global.state === "non-object") {
     return { id: "pi.compaction", status: "ERROR", evidence: `global=${global.state}; project=not-evaluated` };
   }
-  if (global.value.compaction?.enabled !== false) {
-    return { id: "pi.compaction", status: "ERROR", evidence: "global=auto-enabled-or-unset; project=not-evaluated" };
-  }
   const project = parsePiSettings(projectText);
-  if (project.state === "missing") return { id: "pi.compaction", status: "PASS", evidence: "global=disabled; project=absent" };
-  if (project.state !== "valid") return { id: "pi.compaction", status: "ERROR", evidence: `global=disabled; project=${project.state}` };
-  if (project.value.compaction?.enabled === true) return { id: "pi.compaction", status: "ERROR", evidence: "global=disabled; project=override-enabled" };
-  return { id: "pi.compaction", status: "PASS", evidence: `global=disabled; project=${project.value.compaction?.enabled === false ? "disabled" : "no-override"}` };
+  if (project.state === "malformed" || project.state === "non-object") {
+    return { id: "pi.compaction", status: "ERROR", evidence: `global=${settingsLocationState(global)}; project=${project.state}` };
+  }
+  const globalValue = global.state === "valid" ? global.value.compaction?.enabled : undefined;
+  const projectValue = project.state === "valid" ? project.value.compaction?.enabled : undefined;
+  if ((globalValue !== undefined && typeof globalValue !== "boolean")
+    || (projectValue !== undefined && typeof projectValue !== "boolean")) {
+    return { id: "pi.compaction", status: "ERROR", evidence: `global=${settingsLocationState(global)}; project=${settingsLocationState(project)}; value=invalid-type` };
+  }
+  const effective = typeof projectValue === "boolean" ? projectValue : typeof globalValue === "boolean" ? globalValue : true;
+  const explicitTrue = projectValue === true || (projectValue === undefined && globalValue === true);
+  return effective
+    ? {
+      id: "pi.compaction",
+      status: "PASS",
+      evidence: `nativeAutomaticFallback=enabled; nativeAutomaticFallbackProvenance=${explicitTrue ? "explicit-user" : "unknown"}; global=${settingsLocationState(global)}; project=${settingsLocationState(project)}`,
+    }
+    : {
+      id: "pi.compaction",
+      status: "UNVERIFIED",
+      evidence: `nativeAutomaticFallback=disabled-config; nativeAutomaticFallbackProvenance=unknown; global=${settingsLocationState(global)}; project=${settingsLocationState(project)}; manual=available`,
+    };
 }
 
 export async function inspectPiCompactionSettings(home = process.env.HOME, cwd = process.cwd()): Promise<DoctorResult> {
@@ -183,7 +204,7 @@ export async function inspectPiCompactionSettings(home = process.env.HOME, cwd =
   return assessPiCompactionSettings(global.text, project.text);
 }
 
-const REQUIRED_COMPACT_INVARIANTS = ["reducer", "reference", "projection", "recap", "prompt", "nativeHook"] as const;
+const REQUIRED_COMPACT_INVARIANTS = ["reducer", "repair", "reference", "projection", "recap", "prompt", "checkpointPlanner", "coordinator", "epoch", "nativeHook"] as const;
 const OPTIONAL_COMPACT_INVARIANTS = ["cache", "live", "hostOrdering"] as const;
 const SAFE_EVIDENCE_ERROR = /^[a-z0-9][a-z0-9._:-]{0,79}$/i;
 const SHA256 = /^[a-f0-9]{64}$/i;
@@ -244,16 +265,44 @@ export function collectLocalAiliCompactHealthEvidence(): AiliCompactHealthEviden
   const recap = projectMessages(messages, { ...baseState, blocks: new Map([[block.id, block]]) }, identity);
   let telemetry = emptyCacheTelemetry();
   for (let index = 0; index < 5; index += 1) telemetry = recordCacheTelemetry(telemetry, { input: 10, cacheRead: 90, cacheWrite: 0 }, true, undefined);
-  const nativeOk = decideNativeCompaction({ reason: "manual", healthy: false }).cancel
-    && decideNativeCompaction({ reason: "threshold", healthy: false }).cancel
-    && decideNativeCompaction({ reason: "overflow", healthy: false }).cancel;
+  const compaction = { summary: "health", firstKeptEntryId: "health-2", tokensBefore: 2 };
+  const nativeOk = (["manual", "threshold", "overflow"] as const).every((reason) =>
+    decideNativeCompaction({ reason }) === undefined
+    && decideNativeCompaction({ reason, compaction })?.compaction.summary === "health");
+  const plannerEntries: SessionLikeEntry[] = [
+    { id: "planner-old-user", type: "message", message: { role: "user", content: "old" } },
+    { id: "planner-old-assistant", type: "message", message: { role: "assistant", content: "answer" } },
+    { id: "planner-kept", type: "message", message: { role: "user", content: "current" } },
+  ];
+  const plannerBlock = {
+    id: "planner-block", kind: "semantic" as const, epochId: "root",
+    sourceEntryIds: ["planner-old-user", "planner-old-assistant"],
+    sourceDigest: sourceDigest(plannerEntries, ["planner-old-user", "planner-old-assistant"]),
+    summary: "old work", active: true, generation: "old" as const,
+  };
+  const planner = planMajorGc({
+    entries: plannerEntries, firstKeptEntryId: "planner-kept", tokensBefore: 3,
+    activeBlocks: [plannerBlock], epochId: "root",
+  });
+  const tuple = { sessionId: "health-session", branchId: `br_${digest(["health"])}`, epochId: "root" };
+  const coordinator = new CheckpointCoordinator(tuple);
+  const scheduled = coordinator.schedule("rescue", "deterministic-first");
+  let completion: (() => void) | undefined;
+  const invoked = scheduled.requestId ? coordinator.invoke(scheduled.requestId, (callbacks) => { completion = callbacks.onComplete; }) : false;
+  completion?.();
+  coordinator.observeEpoch(tuple, "health-epoch", "deterministic");
+  const coordinatorOk = invoked && coordinator.snapshot().state === "succeeded";
   return {
     reducer: localCompactEvidence(!reduced.enabled && reduced.diagnostics.length === 0, 1, digest({ enabled: reduced.enabled, diagnostics: reduced.diagnostics })),
+    repair: localCompactEvidence(parseRepairEntry({ schema: "aili.compact.repair.v1", unknown: true }) === undefined, 1, digest("closed-repair-reader")),
     reference: localCompactEvidence(catalog.messages.map((item) => item.ref).join(",") === "m000001,m000002" && SHA256.test(catalog.catalogId), catalog.messages.length, catalog.catalogId),
     projection: localCompactEvidence(unchanged.diagnostic === undefined && unchanged.messages[0] === messages[0] && failOpen.messages === malformed && failOpen.diagnostic === "missing-user-message", unchanged.messages.length, unchanged.hash),
     recap: localCompactEvidence(recap.diagnostic === undefined && recap.messages.length === 3 && recap.messages[1]?.role === "assistant" && recap.messages[2]?.role === "toolResult" && recap.messages[2]?.toolName === "aili_context_recap", recap.messages.length, recap.hash),
     prompt: localCompactEvidence(COMPACT_PROMPT_SLOTS.length === 6 && new Set(COMPACT_PROMPT_SLOTS).size === 6, COMPACT_PROMPT_SLOTS.length, digest(COMPACT_PROMPT_SLOTS)),
-    nativeHook: localCompactEvidence(nativeOk, 3, digest(["manual-cancel", "threshold-cancel", "overflow-cancel"])),
+    checkpointPlanner: localCompactEvidence(planner?.firstKeptEntryId === "planner-kept", planner?.details.ailiCompact.blockIds.length ?? 0, digest(planner?.details ?? null)),
+    coordinator: localCompactEvidence(coordinatorOk, 1, digest(coordinator.snapshot())),
+    epoch: localCompactEvidence(coordinator.snapshot().tuple.epochId === "health-epoch", 1, digest(coordinator.snapshot().tuple.epochId)),
+    nativeHook: localCompactEvidence(nativeOk, 3, digest(["manual-cooperative", "threshold-cooperative", "overflow-cooperative"])),
     cache: localCompactEvidence(telemetry.window.length === 5 && telemetry.hitRate === 90, telemetry.window.length, digest({ samples: telemetry.window.length, hitRate: telemetry.hitRate })),
     live: { status: "unverified", error: "uv-live-1" },
     hostOrdering: { status: "unverified", error: "uv-ext-order-1" },
@@ -275,6 +324,12 @@ function parsePiSettings(text: string | undefined): { state: "valid"; value: { c
   } catch {
     return { state: "malformed" };
   }
+}
+
+function settingsLocationState(value: ReturnType<typeof parsePiSettings>): string {
+  if (value.state !== "valid") return value.state === "missing" ? "absent" : value.state;
+  const enabled = value.value.compaction?.enabled;
+  return enabled === undefined ? "no-override" : enabled === true ? "enabled" : enabled === false ? "disabled" : "invalid-type";
 }
 
 async function readOptionalSettings(path: string): Promise<{ state: "readable" | "missing" | "unreadable"; text?: string }> {

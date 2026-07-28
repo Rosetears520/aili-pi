@@ -27,7 +27,7 @@
 
 ### Modified Capabilities
 
-<!-- `openspec/specs/` 当前为空；本 change 不声明已发布 capability delta。它在变更关系上 supersede `create-aili-pi-distribution` 的旧 subagent-orchestration 决策以及 `fix-subagent-inline-sdk-compatibility`，并要求 `support-pi-0-82-0` 的 subagent-specific D4/tasks 在进入受影响 BUILD 前回到 DEFINE 对齐。 -->
+<!-- `openspec/specs/` 当前为空；本 change 不声明已发布 capability delta。它在变更关系上 supersede `create-aili-pi-distribution` 的旧 subagent-orchestration 决策以及 `fix-subagent-inline-sdk-compatibility`，并要求 `support-pi-0-82-1` 的 subagent-specific D4/tasks 在进入受影响 BUILD 前回到 DEFINE 对齐。 -->
 
 ## Impact
 
@@ -37,7 +37,7 @@
 
 - supersede `openspec/changes/fix-subagent-inline-sdk-compatibility/` 的后续 live/default-backend目标；新 runtime 不再以修复旧 inline/headless selector 为目标；
 - supersede `openspec/changes/create-aili-pi-distribution/` 中由 `@agwab/pi-subagent`、fresh/single-use/no-resume/no-recursion 定义的 subagent 条款，但不改变官方 Pi、单一 Extension、Linux、权限和凭据边界；
-- invalidate `openspec/changes/support-pi-0-82-0/` 中“保持 `@agwab/pi-subagent@0.4.8`”的 subagent-specific 设计/任务；该 direct dependent 必须在本 change 的 design/spec 确认后同步修订并重新验证。
+- invalidate `openspec/changes/support-pi-0-82-1/` 中“保持 `@agwab/pi-subagent@0.4.8`”的 subagent-specific 设计/任务；该 direct dependent 必须在本 change 的 design/spec 确认后同步修订并重新验证。
 
 Harness evolution primary component 为 `subagent-config`，secondary components 为 `workflow-pattern`、`docs/protocol`、`install/setup`。主要回归风险是父/子会话串线、并发双写、park/revive race、消息丢失、模型 override 污染永久配置、权限扩大、孤儿 job/session 和旧 skill 继续强制 single-use。验证触发器必须至少覆盖 disposable HOME 中的 create→yield→park→process teardown→parent resume→revive、parallel ID collision、same-ID concurrency rejection、hard-abort、isolated transcript-only、model precedence/config byte-stability、credential/tool ceiling、async delivery 和旧 runtime 完全未注册。
 

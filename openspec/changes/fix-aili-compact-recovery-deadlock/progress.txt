@@ -1,0 +1,49 @@
+2026-07-27 BUILD 进度 — fix-aili-compact-recovery-deadlock
+
+目标：@rosetears/aili-pi@0.1.14 P0
+工作区包版本：0.1.13（未修改；version/lock/provenance candidate mutation 尚未获得单独精确授权）
+状态：LOCAL_BUILD_PASS_RELEASE_BLOCKED
+
+本地完成：
+- repair v1 closed reader/reducer、1..16 batch、atomic/idempotent/concurrent rejection，以及 session_start/session_tree/fork activation guard
+- age-only deactivation 已移除；maxBlockAge 保持 deprecated no-op diagnostic
+- compaction hook 只返回 validated envelope 或 exact undefined；无 AILI cancellation/error envelope
+- ManualCompactPermit、NativeOnlyCompactPermit、CheckpointCoordinator、pressure cycle、rescue/native/status 与 epoch recovery
+- host compaction=false 的 threshold/overflow 抑制、公开 manual compact、AILI-off native fallthrough与 continued work
+- doctor/config/bootstrap/docs、copied-session migration、生产 AgentSession 与脱敏 durable evidence
+
+2026-07-27 fresh evidence：
+- Compact focused：45 files / 351 tests PASS
+- production AgentSession：5/5 PASS；包含 host-disabled overflow/threshold、AILI-disabled native fallthrough、controlled overflow→native retry→continued work、custom rescue persist/reload/once/zero-send
+- copied-session migration：4/4 PASS；完整旧 JSONL byte prefix、v1/v2/repair/v3、fork/epoch/rollback、index exact-raw fallback 与 next-clean continued work
+- fake-provider：1/1 PASS；storm/interrupted reload/repair/legacy upgrade 仍保留 live Unverified 边界
+- direct strict OpenSpec：fix 与 redesign 均 PASS；sequential base→base+fix→base+fix+redesign：2/2 PASS
+- typecheck PASS；bootstrap 15/15；package 6/6；generated 6/6；provenance baseline PASS；capabilities PASS
+- full suite：npm test -- --maxWorkers=4 --testTimeout=15000，84 files / 546 tests PASS，2 个明确 live-gated tests skipped
+- 默认无界并发首跑有 2 个 unrelated persistent-agent 5 秒资源 timeout；两项 focused 19/19 PASS，受控并发全量随后 546/546 PASS
+
+Durable evidence：
+- artifacts/test-results/aili-compact-agent-session.json
+- artifacts/test-results/aili-compact-migration.json
+- artifacts/test-results/aili-compact-fake-provider.json
+- artifacts/test-results/aili-compact-lifecycle-performance.json
+- artifacts/test-results/aili-compact-build-verification.json
+
+仍未勾选且阻塞 release：
+- 1.1：没有逐项的人类 DEFINE acceptance 记录
+- 1.5：没有发生在 BUILD 前、独立可追溯的 Pi 0.82.1 public contract reconfirm 记录；现有 public-entry tests 不能倒推时间性任务
+- 10.1–10.2：LIVE-P0-1..7 与真实 provider context-length overflow/retry 未获授权、未运行
+- 10.3–10.4：candidate/package review 与 0.1.14 version/lock/provenance mutation 未获单独精确授权
+- 11.2：all live gates 尚未 PASS，因此不能宣告完整 P0 release acceptance
+
+Release validator：
+- npm run validate:release 正确 fail closed（8 categories），其中 package/provenance/index/candidate-bound artifacts/live/sanitizer 都不能用 local BUILD evidence 代替
+- 本轮未使用真实 HOME/Session、provider network，未执行 dependency/version/lock mutation、Git、pack/publish/tag/release
+
+2026-07-28 continuation：
+- 已完成 `openspec/changes/redesign-aili-compact-lifecycle/pi-0.82.1-contract-audit.md`，结果 `PASS_NO_PUBLIC_CONTRACT_DRIFT`、时间属性 `POST_BUILD_ONLY`；task 1.5 因“BUILD 前”条件不可倒签，继续保持未勾选。
+- 当前工作区没有可追溯的 P0-only source snapshot、tag、stash 或 `v0.1.14` tarball；源码已同时包含 P0 与 v0.2.0。把当前树直接改名为 `0.1.14` 会伪造历史候选，因此没有执行。
+- 当前用户已授权清单内非真人 repo-local candidate/version/lock/SBOM/provenance/notices/dry-run 工作；P0 candidate 仍未物化是 source provenance 阻塞，不是等待重复授权。dependency、真实 HOME/provider、Git 与发布动作仍不在 scope。
+- 已在 WSL/Linux 对当前真实 `0.1.13` 树运行 `npm pack --dry-run --json`：6213 entries、无 `artifacts/`、`tests/`、`openspec/`、`.tmp/` 或 `.env*`；这只是 baseline package-boundary 检查，不是 P0 candidate review。
+- continuation 全量回归：84 files / 547 tests PASS，2 个明确 live-gated tests skipped；typecheck、bootstrap、package、generated、provenance、capabilities 与两个 change strict validation 均 PASS。
+- P0 统计仍为 54/61；10.3、10.4 和 11.2 继续由真实 P0-only candidate、live gates 与最终顺序门阻塞。

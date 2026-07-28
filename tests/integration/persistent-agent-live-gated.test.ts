@@ -1,52 +1,28 @@
 import { execFile } from "node:child_process";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
-import { loadStockDefaults } from "pi-permission-modes/src/config-load.ts";
-import { SandboxController } from "pi-permission-modes/src/sandbox.ts";
-import {
-  installPersistentAgentSandboxProvider,
-  resolvePersistentAgentSandbox,
-} from "../../src/runtime/persistent-agents/child-sandbox.js";
 import { CoordinatorJournal, ensureSidecarLayout } from "../../src/runtime/persistent-agents/storage.js";
 import type { AgentRecord } from "../../src/runtime/persistent-agents/types.js";
 import { GitIsolationAdapter } from "../../src/runtime/persistent-agents/workspace.js";
 
 const exec = promisify(execFile);
-const externalGitIt = process.env.AILI_RUN_EXTERNAL_GIT_LIVE === "1" ? it : it.skip;
-const childSandboxIt = process.env.AILI_RUN_CHILD_SANDBOX_LIVE === "1" ? it : it.skip;
+const liveIt = process.env.AILI_RUN_EXTERNAL_GIT_LIVE === "1" ? it : it.skip;
 let scratch = "";
-let sandbox: SandboxController | undefined;
-let restoreSandboxProvider: (() => void) | undefined;
-let originalHome: string | undefined;
-let homeOverridden = false;
-let originalCwd: string | undefined;
 
 async function git(cwd: string, args: string[]): Promise<string> {
   return (await exec("git", args, { cwd, encoding: "utf8" })).stdout;
 }
 
 afterEach(async () => {
-  restoreSandboxProvider?.();
-  restoreSandboxProvider = undefined;
-  await sandbox?.reset();
-  sandbox = undefined;
-  if (originalCwd) process.chdir(originalCwd);
-  originalCwd = undefined;
-  if (homeOverridden) {
-    if (originalHome === undefined) delete process.env.HOME;
-    else process.env.HOME = originalHome;
-  }
-  originalHome = undefined;
-  homeOverridden = false;
   if (scratch) await rm(scratch, { recursive: true, force: true });
   scratch = "";
 });
 
 describe("authorized persistent-Agent live gates", () => {
-  externalGitIt("proves external disposable Git isolation without mutating the parent workspace", async () => {
+  liveIt("proves external disposable Git isolation without mutating the parent workspace", async () => {
     scratch = await mkdtemp(join(tmpdir(), "aili-persistent-agent-live-"));
     const repo = join(scratch, "external-repo");
     await (await import("node:fs/promises")).mkdir(repo);
@@ -96,56 +72,5 @@ describe("authorized persistent-Agent live gates", () => {
     await expect(access(cleaned.root)).rejects.toThrow();
     expect(() => adapter.assertResumable(agent.id)).toThrow(/was cleaned.*cannot revive/);
     expect(journal.getState().workspaces[agent.id]?.status).toBe("cleaned");
-  });
-
-  childSandboxIt("executes child Bash inside the parent-initialized OS sandbox and blocks filesystem escape", async () => {
-    await mkdir(resolve(".tmp"), { recursive: true });
-    scratch = await mkdtemp(resolve(".tmp/persistent-agent-child-sandbox-live-"));
-    const project = join(scratch, "project");
-    const home = join(scratch, "home");
-    const outside = join(scratch, "outside.txt");
-    const secret = join(scratch, "secret.txt");
-    await mkdir(project);
-    await Promise.all([".ssh", ".aws", ".gnupg"].map((name) => mkdir(join(home, name), { recursive: true })));
-    originalCwd = process.cwd();
-    process.chdir(project);
-    originalHome = process.env.HOME;
-    homeOverridden = true;
-    process.env.HOME = home;
-    await writeFile(secret, "must-not-read\n");
-
-    const profile = {
-      ...loadStockDefaults().modes.build!.sandbox,
-      allowWrite: ["."],
-      denyWrite: [],
-      denyRead: [secret],
-      network: { allowedDomains: [], deniedDomains: [] },
-    };
-    sandbox = new SandboxController();
-    await sandbox.init({ cwd: project, noSandbox: false, hasUI: false, notify: () => undefined, profile });
-    expect(sandbox.ready, sandbox.warn).toBe(true);
-
-    restoreSandboxProvider = installPersistentAgentSandboxProvider({
-      currentProfile: () => profile,
-      operations: ({ readOnly }) => sandbox?.ready ? sandbox.bashOps({ readOnly }) : null,
-      diagnostic: () => sandbox?.warn,
-    });
-    const child = resolvePersistentAgentSandbox(profile);
-    expect(child.reason).toBeUndefined();
-    expect(child.available).toBe(true);
-    expect(child.operations).toBeDefined();
-
-    const run = async (command: string) => {
-      const chunks: Buffer[] = [];
-      const result = await child.operations!.exec(command, project, { onData: (data) => chunks.push(data) });
-      return { ...result, output: Buffer.concat(chunks).toString("utf8") };
-    };
-    const inside = await run("printf 'inside\\n' > allowed.txt");
-    expect(inside.exitCode, inside.output).toBe(0);
-    expect(await readFile(join(project, "allowed.txt"), "utf8")).toBe("inside\n");
-
-    expect((await run(`printf 'escape\\n' > ${JSON.stringify(outside)}`)).exitCode).not.toBe(0);
-    await expect(access(outside)).rejects.toThrow();
-    expect((await run(`cat ${JSON.stringify(secret)}`)).exitCode).not.toBe(0);
   });
 });

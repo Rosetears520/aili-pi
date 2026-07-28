@@ -44,9 +44,16 @@ describe("AILI Compact configuration", () => {
       compress: { mode: "range", summaryMaxChars: 6_000, summaryHardMaxChars: 10_000, minSourceChars: 5_000, minSavingsChars: 1_000 },
       protection: { tools: ["write", "aili_*"], recentUserMessages: 4 },
       nudges: { minContextPercent: 40, maxContextPercent: 60, emergencyPercent: 98 },
-      strategies: { dedupe: { enabled: true }, purgeErrors: { enabled: true, graceTurns: 4 } },
+      strategies: { dedupe: { enabled: true }, purgeErrors: { enabled: true, graceTurns: 5 } },
       subagents: { enabled: false },
       gc: { promotionSurvivals: 5, maxBlockAge: 15, maxOldSummaryChars: 3_000, majorThresholdPercent: 100 },
+      checkpoint: { mode: "hybrid", deterministic: true, nativeFallback: true, autoRescue: true },
+      planning: { enabled: true },
+      quality: { enabled: true, warningPolicy: "record" },
+      providerSuffix: { enabled: true, maxChars: 2_048, maxTokens: 512 },
+      tokenEconomics: { minSavingsRatio: 0.20, minSteadySavingsTokens: { T1: 256, T2: 512, T3: 768 }, maxBreakEvenTurns: { NORMAL: 8, PRESSURE: 4, FORCE_SEMANTIC: 1 } },
+      tiers: { enabled: true, restill: { enabled: true, minChildren: 2, minSourceTokens: 8_000, minSavingsTokens: 1_024, minSavingsRatio: 0.25, maxSummaryTokens: 3_000, minTurnsSinceCreate: 8 } },
+      index: { enabled: true, snapshotLru: 4 },
     });
     expect(resolveCompactConfig(undefined, undefined)).toEqual(DEFAULT_COMPACT_CONFIG);
   });
@@ -65,6 +72,46 @@ describe("AILI Compact configuration", () => {
       "config-out-of-range:global:compress.summaryMaxChars",
       "config-invalid-thresholds:project:nudges",
     ]));
+  });
+
+  it("accepts maxBlockAge as a deprecated compatibility no-op with a bounded diagnostic", () => {
+    const result = resolveCompactConfigResult({ gc: { maxBlockAge: 42 } }, undefined);
+    expect(result.config.gc.maxBlockAge).toBe(42);
+    expect(result.diagnostics).toEqual(["config-deprecated:maxBlockAge"]);
+  });
+
+  it("accepts only safe hybrid checkpoint configuration", () => {
+    const configured = resolveCompactConfigResult(
+      { checkpoint: { deterministic: false, autoRescue: false } },
+      { checkpoint: { mode: "hybrid", nativeFallback: true } },
+    );
+    expect(configured.config.checkpoint).toEqual({ mode: "hybrid", deterministic: false, nativeFallback: true, autoRescue: false });
+    expect(configured.diagnostics).toEqual([]);
+
+    const unsafe = resolveCompactConfigResult({ checkpoint: { mode: "exclusive", nativeFallback: false } }, undefined);
+    expect(unsafe.config.checkpoint).toEqual(DEFAULT_COMPACT_CONFIG.checkpoint);
+    expect(unsafe.diagnostics).toEqual(expect.arrayContaining([
+      "config-invalid-type:global:checkpoint.mode",
+      "config-invalid-unsafe-checkpoint",
+    ]));
+  });
+
+  it("applies v0.2 safety defaults and accepts only tightening overrides", () => {
+    const result = resolveCompactConfigResult({
+      planning: { enabled: false },
+      protection: { preserveRecentAtoms: 12, preserveRecentTokens: 20_000, preserveRecentTokenCapRatio: 0.2, preserveLastUserMessage: false },
+      tokenEconomics: { minSavingsRatio: 0.3, minSteadySavingsTokens: { T1: 512 }, maxBreakEvenTurns: { NORMAL: 4 } },
+      tiers: { restill: { minSourceTokens: 10_000, minTurnsSinceCreate: 12 } },
+      index: { snapshotLru: 2 },
+    }, undefined);
+    expect(result.config).toMatchObject({
+      planning: { enabled: false },
+      protection: { preserveRecentAtoms: 12, preserveRecentTokens: 20_000, preserveRecentTokenCapRatio: 0.2, preserveLastUserMessage: true },
+      tokenEconomics: { minSavingsRatio: 0.3, minSteadySavingsTokens: { T1: 512 }, maxBreakEvenTurns: { NORMAL: 4 } },
+      tiers: { restill: { minSourceTokens: 10_000, minTurnsSinceCreate: 12 } },
+      index: { snapshotLru: 2 },
+    });
+    expect(result.diagnostics).toContain("config-invalid-unsafe-protection");
   });
 
   it("reports malformed JSONC and keeps the valid file contribution", () => {

@@ -207,7 +207,7 @@ describe("durable Agent output and exactly-once parent delivery", () => {
 describe("output/history references and parent-owned retention", () => {
   it("resolves bounded output/history from disk after Agent release", async () => {
     await createPersistedAgent();
-    await expect(persistFullAgentOutput(layout, "Worker", `api_${"key"}=secret-value`)).rejects.toThrow(/credential\/auth\/private-key/);
+    await expect(persistFullAgentOutput(layout, "Worker", "api_key=secret-value")).rejects.toThrow(/credential\/auth\/private-key/);
     await expect(access(agentOutputPath(layout, "Worker"))).rejects.toThrow();
     await persistFullAgentOutput(layout, "Worker", "line-1\nline-2\nline-3");
     expect(parseAgentReference("agent://Worker")).toEqual({ kind: "output", agentId: "Worker" });

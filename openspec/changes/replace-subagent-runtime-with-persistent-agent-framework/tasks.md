@@ -1,7 +1,7 @@
 ## 1. DEFINE readiness and host seam gates
 
 - [x] 1.1 Record the user's 2026-07-25 explicit acceptance of the final `test-plan.md` and repository-local BUILD authorization; dependency/lockfile, real provider, real HOME, external workspace, OMP code-copy, Git, publish, and release approvals remain separate.
-- [x] 1.2 Select official Pi `0.81.1` as the exact current BUILD baseline, record that `support-pi-0-82-0` remains a dependent realignment target, and bind host-seam fixtures to the installed/declared version.
+- [x] 1.2 Select official Pi `0.81.1` as the exact current BUILD baseline, record that `support-pi-0-82-1` remains a dependent realignment target, and bind host-seam fixtures to the installed/declared version.
 - [x] 1.3 Prototype persistent child `SessionManager.create/open()` with a parent-owned sidecar and prove exact-file reopen without a model/provider call.
 - [x] 1.4 Prototype trusted parent resource/tool reconstruction with `DefaultResourceLoader`, top-level coordinator filtering, and explicit unavailable-tool boundaries.
 - [x] 1.5 Prototype a child-only async `tool_call` approval bridge that waits for an external parent decision without unattended-yolo; full policy/no-UI hardening remains tasks 8.1–8.5.
@@ -106,7 +106,7 @@
 ## 13. Documentation, cross-change alignment, and acceptance
 
 - [x] 13.1 Update README and user docs for `task`/`hub`, 20 selectors, async/sync, Agent vs job IDs, messaging, park/revive, model overrides, conflict scopes, retention, output refs, and process-bound long tasks.
-- [x] 13.2 Supersede the affected subagent clauses in `create-aili-pi-distribution` and `fix-subagent-inline-sdk-compatibility`, and return the subagent-specific `support-pi-0-82-0` clauses to DEFINE alignment.
+- [x] 13.2 Supersede the affected subagent clauses in `create-aili-pi-distribution` and `fix-subagent-inline-sdk-compatibility`, and return the subagent-specific `support-pi-0-82-1` clauses to DEFINE alignment.
 - [x] 13.3 Prepare an exact cross-repository migration packet for `aili-workflows` fresh/single-use/no-resume/no-recursion language; do not write that repository without separate approval.
 - [x] 13.4 Update this change's progress/test-plan evidence and record only actual contract drift in `drift-log.md`.
 

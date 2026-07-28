@@ -29,14 +29,13 @@
     }
   ],
   "implementation": {
-    "src/runtime/persistent-agents/production.ts": "976640bcb58ca8d883638a5ed048d909c0dd1cdab51b11fa45ca9bdc575dcaae",
+    "src/runtime/persistent-agents/production.ts": "de9de76c24d11b13ca0eadce4753130d521f32c1622d79be6ad939029c3d0ae1",
     "src/runtime/persistent-agents/runtime.ts": "fbf90c6c4ba573b64bca98e775aeb036ba8f28788e3919d0beebe52c36ef58de",
     "src/runtime/persistent-agents/child-sandbox.ts": "d6a654b4f52911fee650d5d499abe7f755349bbea8bcd2b04d95f38670687100",
-    "src/runtime/persistent-agents/policy.ts": "c76df50611bf707ff4d61da692635b6452b2b066c250f1ab53bf42957de215af",
+    "src/runtime/persistent-agents/policy.ts": "8d2afb8197cabc91e640f29458f1f564a5b783f1f4a316d6380e944bb55a9e49",
     "src/vendor/pi-permission-modes/index.ts": "5ca8743e55776e3d0bd1f8c2daef40f55a7ac6009306bc66398a9753105ed848",
     "tests/integration/package-runtime.test.ts": "bc3659d12c416343b1c3bafffd3365a77fb342e6b5ac5e4d3abd8aaf9d608eea",
     "tests/integration/persistent-agent-runtime.test.ts": "50c930a4b72e5697f0931f0fcd9ff1a17a22b8dcd8f7e3ad51c255b6e454a2f9",
-    "tests/integration/persistent-agent-live-gated.test.ts": "5c89f0d68b7085abb00bebc448bbc4dda50af2477f10bcce29011c9fb676a05d",
     "tests/unit/persistent-agent-child-sandbox.test.ts": "67708cfb547b8ce7fd3acae48e9bd87dada314440276b3b81de2b8159a93f41c"
   },
   "credentialHandling": "Existing Pi authentication was referenced for the authorized provider call; no credential value, auth file, encrypted reasoning payload, or raw provider transcript is included in the durable artifact. A bounded scan of task-owned temporary output found zero credential markers before cleanup."

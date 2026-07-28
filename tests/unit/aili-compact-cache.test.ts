@@ -9,6 +9,7 @@ import {
   recordCacheTelemetry,
   recordSessionCacheUsage,
   replaySessionCacheUsages,
+  providerSurfaceIdentities,
   type CacheIdentityInput,
 } from "../../src/runtime/aili-compact/cache.js";
 
@@ -67,6 +68,24 @@ describe("AILI Compact cache identity", () => {
     expect(classifyCacheRequest(undefined, current)).toBe("cold");
     expect(classifyCacheRequest(current, current)).toBe("warm-candidate");
     expect(classifyCacheRequest(identity({ epochId: "old" }), current)).toBe("state-change");
+  });
+
+  it("separates static, logical-prefix, suffix and full provider surfaces", () => {
+    const base = {
+      providerId: "provider", modelId: "model", staticSystemPrompt: "stable", immutableGuidance: { version: 1 },
+      activeTools: [], logicalProviderMessages: [{ role: "user", content: "same" }],
+      sessionId: "session", branchLeafId: "leaf", branchSourceDigest: "source", epochId: "epoch", projectionHash: "projection",
+    };
+    const first = providerSurfaceIdentities(base);
+    const suffixChanged = providerSurfaceIdentities({ ...base, suffixContent: "pressure=PRESSURE" });
+    expect(suffixChanged.staticSurfaceIdentity).toBe(first.staticSurfaceIdentity);
+    expect(suffixChanged.logicalProviderPrefixIdentity).toBe(first.logicalProviderPrefixIdentity);
+    expect(suffixChanged.suffixFingerprint).not.toBe(first.suffixFingerprint);
+    expect(suffixChanged.fullProviderInputIdentity).not.toBe(first.fullProviderInputIdentity);
+
+    const projectionChanged = providerSurfaceIdentities({ ...base, logicalProviderMessages: [{ role: "user", content: "changed" }] });
+    expect(projectionChanged.staticSurfaceIdentity).toBe(first.staticSurfaceIdentity);
+    expect(projectionChanged.logicalProviderPrefixIdentity).not.toBe(first.logicalProviderPrefixIdentity);
   });
 });
 

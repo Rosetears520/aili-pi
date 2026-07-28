@@ -1,5 +1,7 @@
 ## Why
 
+> **Superseded (2026-07-25):** `replace-subagent-runtime-with-persistent-agent-framework` replaces the affected runtime instead of repairing inline compatibility. This change must not receive an independent production patch; its historical failure fixtures remain regression evidence only until the separately gated legacy dependency removal completes.
+
 [已知|会话证据] 普通 `subagent` 调用在未指定 backend 时由 `@agwab/pi-subagent@0.4.8` 自动选择 `inline`，但该 runner 仍调用 Pi 0.81.1 主入口未导出的 `AuthStorage.create()` 和不存在的 `ModelRegistry.create()`，导致子任务在模型请求发出前以 `Cannot read properties of undefined (reading 'create')` 立即失败。现有 AILI live verification 只显式覆盖 `headless`，因此发布验证可以通过而默认用户路径仍不可用。
 
 ## What Changes

@@ -1,36 +1,34 @@
-import { AILI_COMPACT_SCHEMA, digest, isRecord, type CompactBlock, type CompactLifecycleUpdate, type CompactTransaction, type SessionLikeEntry } from "./contracts.js";
+import { AILI_COMPACT_SCHEMA, digest, isRecord, sourceDigest, type CompactBlock, type CompactLifecycleUpdate, type CompactTransaction, type SessionLikeEntry } from "./contracts.js";
 
 export type NativeCompactionReason = "manual" | "threshold" | "overflow";
 
 export interface NativeCompactionDecisionInput {
   reason: NativeCompactionReason;
-  /** Retained for callers recording diagnostics; cancellation is unconditional. */
-  healthy?: boolean;
-  contextTokens?: number;
-  estimatedSavingTokens?: number;
-  safeBudgetTokens?: number;
+  enabled?: boolean;
+  policy?: "deterministic-first" | "native-only";
+  compaction?: {
+    summary: string;
+    firstKeptEntryId: string;
+    tokensBefore: number;
+    details?: unknown;
+  };
 }
-
-export type NativeCompactionDecisionReason =
-  | "manual-aili-guidance"
-  | "threshold-aili-owned"
-  | "overflow-aili-owned";
 
 /** The exact envelope consumable by Pi's `session_before_compact` hook. */
-export interface NativeCompactionDecision {
-  cancel: boolean;
-  reason: NativeCompactionDecisionReason;
-}
+export type NativeCompactionDecision = { compaction: NonNullable<NativeCompactionDecisionInput["compaction"]> } | undefined;
 
 /**
- * AILI owns every native compaction trigger while it is enabled. The hook must
- * only cancel; recovery is performed independently through replayable AILI
- * control transactions before a provider request.
+ * Cooperative return matrix used by health probes and adapters. No branch can
+ * manufacture cancellation: a validated deterministic envelope is returned,
+ * otherwise exact undefined leaves native checkpoint/retry ownership to Pi.
  */
 export function decideNativeCompaction(input: NativeCompactionDecisionInput): NativeCompactionDecision {
-  if (input.reason === "manual") return { cancel: true, reason: "manual-aili-guidance" };
-  if (input.reason === "threshold") return { cancel: true, reason: "threshold-aili-owned" };
-  return { cancel: true, reason: "overflow-aili-owned" };
+  if (input.enabled === false || input.policy === "native-only" || !input.compaction) return undefined;
+  const value = input.compaction;
+  if (typeof value.summary !== "string" || value.summary.length === 0 || value.summary.length > 12_000
+    || typeof value.firstKeptEntryId !== "string" || value.firstKeptEntryId.length === 0
+    || !isTokenCount(value.tokensBefore)) return undefined;
+  return { compaction: structuredClone(value) };
 }
 
 function isTokenCount(value: number | undefined): value is number {
@@ -73,12 +71,14 @@ export function planMajorGc(input: MajorGcInput): {
   if (input.previousSummary !== undefined && (typeof input.previousSummary !== "string" || input.previousSummary.length > previousLimit)) return undefined;
 
   const firstKeptIndex = input.entries.findIndex((entry) => entry.id === input.firstKeptEntryId);
-  if (firstKeptIndex <= 0 || input.entries.some((entry, index) => index !== firstKeptIndex && entry.id === input.firstKeptEntryId)) return undefined;
+  if (firstKeptIndex <= 0 || new Set(input.entries.map((entry) => entry.id)).size !== input.entries.length) return undefined;
   const discarded = input.entries.slice(0, firstKeptIndex);
   const allDiscardedMessages = discarded.filter((entry) => entry.type === "message");
   if (allDiscardedMessages.length === 0 || !hasSafeProtocolOrder(allDiscardedMessages)) return undefined;
 
-  const semanticBlocks = input.activeBlocks.filter((block) => block.kind === "semantic" && block.active && !block.queryOnly);
+  const semanticBlocks = input.activeBlocks.filter((block) => block.kind === "semantic" && block.active && !block.queryOnly
+    && (input.epochId === undefined || block.epochId === input.epochId));
+  if (new Set(semanticBlocks.map((block) => block.id)).size !== semanticBlocks.length) return undefined;
   const redundantProtocolIds = committedCompactProtocolEntryIds(allDiscardedMessages, semanticBlocks);
   const discardedMessages = allDiscardedMessages.filter((entry) => !redundantProtocolIds.has(entry.id));
   if (discardedMessages.length === 0) return undefined;
@@ -86,11 +86,12 @@ export function planMajorGc(input: MajorGcInput): {
   const entryOrder = new Map(discardedMessages.map((entry, index) => [entry.id, index]));
   const sourceToBlock = new Map<string, CompactBlock>();
   for (const block of semanticBlocks) {
-    if (block.generation !== "old" || (input.epochId !== undefined && block.epochId !== input.epochId)
-      || block.summary.length > blockLimit || block.sourceEntryIds.length === 0) continue;
+    if (block.generation !== "old" || block.summary.length > blockLimit || block.sourceEntryIds.length === 0) continue;
     const coveredDiscardedIds = block.sourceEntryIds.filter((sourceId) => entryOrder.has(sourceId));
     if (coveredDiscardedIds.length === 0) continue;
-    if (coveredDiscardedIds.length !== block.sourceEntryIds.length) return undefined;
+    if (coveredDiscardedIds.length !== block.sourceEntryIds.length
+      || new Set(block.sourceEntryIds).size !== block.sourceEntryIds.length
+      || block.sourceDigest !== sourceDigest(input.entries, block.sourceEntryIds)) return undefined;
     const positions: number[] = [];
     for (const sourceId of coveredDiscardedIds) {
       const position = entryOrder.get(sourceId)!;
@@ -98,7 +99,6 @@ export function planMajorGc(input: MajorGcInput): {
       sourceToBlock.set(sourceId, block);
       positions.push(position);
     }
-    positions.sort((left, right) => left - right);
     if (positions.some((position, index) => index > 0 && position !== positions[index - 1]! + 1)) return undefined;
   }
   if (discardedMessages.some((entry) => !sourceToBlock.has(entry.id))) return undefined;
@@ -109,6 +109,7 @@ export function planMajorGc(input: MajorGcInput): {
     if (included.at(-1) !== block && !included.includes(block)) included.push(block);
   }
   if (included.some((block) => block.sourceEntryIds.some((id) => !discardedIds.has(id)))) return undefined;
+  if (!hasSafeBlockLineage(included)) return undefined;
   if (!protocolAtomsShareBlocks(discardedMessages, sourceToBlock)) return undefined;
 
   const sections = [
@@ -183,9 +184,7 @@ export function planGenerationalGc(input: GenerationalGcInput): GenerationalGcPl
     if (generation === "old") boundedSummaries.set(block.id, boundSummary(block.summary, input.maxOldSummaryChars));
     updates.push(nested
       ? { blockId: block.id, age, survivedCount, generation, active: false, deactivationReason: "nested" }
-      : age >= input.maxBlockAge
-        ? { blockId: block.id, age, survivedCount, generation, active: false, deactivationReason: "gc" }
-        : { blockId: block.id, age, survivedCount, generation });
+      : { blockId: block.id, age, survivedCount, generation });
   }
   if (updates.length === 0) return undefined;
   const id = input.transactionId ?? `gc:${input.epochId}:${digest(updates).slice(0, 24)}`;
@@ -326,6 +325,32 @@ function protocolAtomsShareBlocks(entries: readonly SessionLikeEntry[], sourceTo
     if (!isRecord(result.message) || result.message.role !== "toolResult" || typeof result.message.toolCallId !== "string") continue;
     const call = entryByCall.get(result.message.toolCallId);
     if (!call || sourceToBlock.get(call.id) !== sourceToBlock.get(result.id)) return false;
+  }
+  return true;
+}
+
+function hasSafeBlockLineage(blocks: readonly CompactBlock[]): boolean {
+  const byId = new Map(blocks.map((block) => [block.id, block]));
+  const parentByChild = new Map<string, string>();
+  for (const parent of blocks) {
+    const children = parent.childBlockIds ?? [];
+    if (new Set(children).size !== children.length) return false;
+    for (const childId of children) {
+      const child = byId.get(childId);
+      if (!child) continue;
+      if (childId === parent.id || parentByChild.has(childId)
+        || child.sourceEntryIds.some((sourceId) => !parent.sourceEntryIds.includes(sourceId))) return false;
+      parentByChild.set(childId, parent.id);
+    }
+  }
+  for (const block of blocks) {
+    const seen = new Set([block.id]);
+    let parent = parentByChild.get(block.id);
+    while (parent !== undefined) {
+      if (seen.has(parent)) return false;
+      seen.add(parent);
+      parent = parentByChild.get(parent);
+    }
   }
   return true;
 }

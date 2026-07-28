@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parseQualityEvidence, type QualityEvidenceV1 } from "./quality.js";
 
 export const AILI_COMPACT_SCHEMA_V1 = "aili.compact.tx.v1" as const;
 export const AILI_COMPACT_SCHEMA_V2 = "aili.compact.tx.v2" as const;
@@ -44,6 +45,8 @@ export interface CompactBlock {
   deactivationReason?: CompactDeactivationReason;
   legacy?: boolean;
   queryOnly?: boolean;
+  /** PR2 additive, bounded evidence only. Raw source/fact/anchor text is forbidden. */
+  qualityEvidence?: QualityEvidenceV1;
 }
 
 export interface CompactManualTrigger {
@@ -100,6 +103,8 @@ export interface CompactState {
   policyDecisions: readonly CompactPolicyDecision[];
   /** Accepted transactions replayed on the selected current branch. */
   transactionCount?: number;
+  /** Accepted standalone legacy repair transactions on the selected branch. */
+  repairTransactionCount?: number;
   diagnostics: readonly string[];
 }
 
@@ -117,6 +122,11 @@ export function digest(value: unknown): string {
   return createHash("sha256").update(canonicalJson(value)).digest("hex");
 }
 
+/** Hashes an already-canonical JSON surface without parsing or walking it again. */
+export function digestCanonicalJson(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
 export function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
   if (value && typeof value === "object") {
@@ -128,6 +138,21 @@ export function canonicalJson(value: unknown): string {
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Identifies data that claims the additive v3 envelope without widening the
+ * v1/v2 transaction reader. Full v3 validation remains owned by v3.ts.
+ */
+export function isV3CompactTransactionCandidate(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (value.schema === "aili.compact.tx.v3") return true;
+  if (isRecord(value.header) && value.header.schema === "aili.compact.tx.v3") return true;
+  return value.tag === "semantic-create"
+    || value.tag === "decompress"
+    || value.tag === "recompress"
+    || value.tag === "cooling"
+    || value.tag === "control";
 }
 
 export function isCompactTransaction(value: unknown): value is CompactTransaction {
@@ -210,6 +235,10 @@ function isCompactBlock(value: unknown, schema: CompactTransactionSchema): value
   if (value.deactivationReason !== undefined && !isDeactivationReason(value.deactivationReason)) return false;
   if (value.legacy !== undefined && typeof value.legacy !== "boolean") return false;
   if (value.queryOnly !== undefined && typeof value.queryOnly !== "boolean") return false;
+  if (value.qualityEvidence !== undefined) {
+    const evidence = parseQualityEvidence(value.qualityEvidence);
+    if (!evidence || evidence.verdict === "reject" || evidence.tier !== "T1" || evidence.sourceKind !== "messages") return false;
+  }
   if (value.kind === "semantic") {
     return (value.mode === "range" || value.mode === "message")
       && typeof value.topic === "string" && value.topic.length > 0

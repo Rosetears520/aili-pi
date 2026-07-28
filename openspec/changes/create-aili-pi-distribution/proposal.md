@@ -1,5 +1,7 @@
 ## Why
 
+> **Persistent-Agent supersession (2026-07-25):** `replace-subagent-runtime-with-persistent-agent-framework` supersedes this change's public `subagent`/`@agwab` lifecycle clauses with the accepted AILI-owned `task` + `hub`, 20-selector, parent-scoped persistent Agent contract. Unaffected distribution/bootstrap/skills/theme/permission clauses remain in force. The production dependency/removal switch is still separately gated, so current package discovery remains legacy until that exact operation is approved.
+
 [已知|用户] `aili-workflows` 当前承载共享 skills 与 OpenCode 特化工作流，而用户需要一个保持官方 `pi` CLI、可一行安装、并完整表达 AILI/ROSE 语义的独立 Pi distribution（来源：`interview.md` Q1-Q14）。[已知|外部] Pi Package 原生支持 extensions、skills、prompts 与 themes，但不提供 package-level agents 或内建权限系统，因此仅复制现有 Markdown 不能满足 subagent 生命周期和 bounded YOLO 合同（来源：[Pi packages](https://github.com/earendil-works/pi/blob/906b40a75329bc3a4c19865f0279903f6be6d476/packages/coding-agent/docs/packages.md)、[Pi security](https://github.com/earendil-works/pi/blob/906b40a75329bc3a4c19865f0279903f6be6d476/packages/coding-agent/docs/security.md)）。
 
 ## What Changes

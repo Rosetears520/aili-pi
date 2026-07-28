@@ -123,6 +123,24 @@ describe("AILI Compact pure command parser/planner", () => {
     expectUsage(`compress ${"x".repeat(1_001)}`);
   });
 
+  it("keeps public rescue separate from normal agent requests", () => {
+    expect(planCompactCommand("rescue", inputs())).toEqual({
+      kind: "rescue",
+      policy: "deterministic-first",
+      effects: { append: false, request: false },
+    });
+    expect(planCompactCommand("rescue native", inputs())).toEqual({
+      kind: "rescue",
+      policy: "native-only",
+      effects: { append: false, request: false },
+    });
+    expect(planCompactCommand("rescue status", inputs())).toEqual({
+      kind: "rescue-status",
+      effects: { append: false, request: false },
+    });
+    for (const args of ["rescue maybe", "rescue native extra", "rescue status extra"]) expectUsage(args);
+  });
+
   it("validates 1..16 all-or-nothing block refs and recompress eligibility", () => {
     expect(planCompactCommand("decompress b000001", inputs())).toMatchObject({
       kind: "decompress", catalogId: "catalog-safe", blockRefs: ["b000001"], effects: { append: true, request: false },

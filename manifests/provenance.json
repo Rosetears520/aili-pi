@@ -94,18 +94,6 @@
       "verification": ["tests/unit/runtime.test.ts", "tests/integration/package-runtime.test.ts", "npm pack --dry-run --json"]
     },
     {
-      "name": "pi-zentui",
-      "repository": "https://github.com/lmilojevicc/pi-zentui.git",
-      "revision": "fda2c9c7d0027f7e98a3eba7d4e03f5c0ac7d600",
-      "version": "0.11.0",
-      "license": "MIT",
-      "status": "adapted",
-      "sourceFiles": ["extensions/zentui/**"],
-      "symbols": ["fixed editor compositor", "editor chrome", "user-message rendering", "Zentui footer"],
-      "localChanges": ["the pi-sakura-cyberdeck lineage supplied the vendored base", "AILI applies Rose Cyberdeck palette and gradients, package defaults and configuration paths, Pi 0.82.1 lifecycle adaptations, and bounded fallback behavior"],
-      "verification": ["tests/unit/zentui-gradient.test.ts", "tests/unit/zentui-settings.test.ts", "tests/integration/package-runtime.test.ts", "npm run typecheck", "npm test", "npm pack --json"]
-    },
-    {
       "name": "pi-sakura-cyberdeck",
       "repository": "https://github.com/beautifulrem/pi-sakura-cyberdeck.git",
       "revision": "165a1f8011a12a58a6409b56b8a6c0416cd9b589",
@@ -131,15 +119,15 @@
     {
       "name": "opencode-acp reference",
       "repository": "https://github.com/ranxianglei/opencode-acp.git",
-      "revision": "f1a33d9f4ce55af808eb4e050717c914ed16084b",
-      "version": "1.12.6",
+      "revision": "00e8ba5c53fcbc46dfd86b5d7aa6eae058d29acb",
+      "version": "1.14.3",
       "license": "AGPL-3.0-or-later",
       "status": "reference-only",
       "sourceFiles": [],
       "symbols": [],
       "localChanges": [],
-      "verification": ["tests/integration/aili-compact.test.ts", "openspec/changes/add-reversible-context-compression/test-plan.md", "manual pinned-source no-copy provenance inspection"],
-      "attribution": "Based on opencode-dynamic-context-pruning by Tarquinen (https://github.com/Tarquinen/opencode-dynamic-context-pruning); modified by ranxianglei, 2026 — 34 bug fixes, performance optimizations, enhanced stability."
+      "verification": ["tests/integration/aili-compact.test.ts", "tests/unit/provenance.test.ts", "openspec/changes/redesign-aili-compact-lifecycle/test-plan.md", "manual pinned-source no-copy provenance inspection"],
+      "attribution": "Based on opencode-dynamic-context-pruning by Tarquinen (https://github.com/Tarquinen/opencode-dynamic-context-pruning); modified by ranxianglei, 2026 — 35 bug fixes plus performance and stability improvements."
     }
   ]
 }

@@ -1,6 +1,6 @@
 import type { CompactReferenceCatalog } from "./references.js";
 
-export const COMPACT_COMMAND_USAGE = "Usage: /aili-compact [context [offset] [limit]|stats|sweep [limit]|manual [on|off|status]|compress [focus...]|decompress <b-ref...>|recompress <b-ref...>|cache [panel on|off]|prompt [reload]|on|off|restore-all|doctor]";
+export const COMPACT_COMMAND_USAGE = "Usage: /aili-compact [context [offset] [limit]|stats|sweep [limit]|manual [on|off|status]|compress [focus...]|rescue [native|status]|decompress [one|raw] <b-ref...>|recompress <b-ref...>|cache [panel on|off]|prompt [reload]|on|off|restore-all|doctor]";
 
 const BLOCK_REF = /^b\d{6}$/;
 const REASON_CODE = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -53,7 +53,10 @@ export type CompactCommandPlan =
   | { kind: "manual-status"; manualMode: boolean; autoCooling: boolean; effects: CommandEffects }
   | { kind: "manual-control"; value: "on" | "off"; effects: CommandEffects }
   | { kind: "compress"; focus?: string; trigger: "one-shot"; effects: CommandEffects }
-  | { kind: "decompress" | "recompress"; catalogId: string; blockRefs: readonly string[]; effects: CommandEffects }
+  | { kind: "rescue"; policy: "deterministic-first" | "native-only"; effects: CommandEffects }
+  | { kind: "rescue-status"; effects: CommandEffects }
+  | { kind: "decompress"; catalogId: string; blockRefs: readonly string[]; depth: "one" | "raw"; effects: CommandEffects }
+  | { kind: "recompress"; catalogId: string; blockRefs: readonly string[]; effects: CommandEffects }
   | { kind: "cache-status"; effects: CommandEffects }
   | { kind: "cache-panel"; value: "on" | "off"; effects: CommandEffects }
   | { kind: "prompt-status"; effects: CommandEffects }
@@ -89,6 +92,11 @@ export function planCompactCommand(args: string, inputs: CompactCommandInputs): 
       if (focus.length > 1_000 || inputs.enabled === false || inputs.pendingManualTrigger === true) return usage();
       return { kind: "compress", ...(focus ? { focus } : {}), trigger: "one-shot", effects: { append: true, request: true } };
     }
+    case "rescue":
+      if (words.length === 0) return { kind: "rescue", policy: "deterministic-first", effects: NO_EFFECTS };
+      if (words.length === 1 && words[0] === "native") return { kind: "rescue", policy: "native-only", effects: NO_EFFECTS };
+      if (words.length === 1 && words[0] === "status") return { kind: "rescue-status", effects: NO_EFFECTS };
+      return usage();
     case "decompress":
     case "recompress": return blockControl(command, words, inputs);
     case "cache":
@@ -107,15 +115,20 @@ export function planCompactCommand(args: string, inputs: CompactCommandInputs): 
 }
 
 function blockControl(kind: "decompress" | "recompress", refs: readonly string[], inputs: CompactCommandInputs): CompactCommandPlan {
-  if (refs.length < 1 || refs.length > 16 || new Set(refs).size !== refs.length || refs.some((ref) => !BLOCK_REF.test(ref))) return usage();
+  const depth = kind === "decompress" && (refs[0] === "one" || refs[0] === "raw") ? refs[0] : "one";
+  const blockRefs = kind === "decompress" && (refs[0] === "one" || refs[0] === "raw") ? refs.slice(1) : refs;
+  if (blockRefs.length < 1 || blockRefs.length > 16 || new Set(blockRefs).size !== blockRefs.length || blockRefs.some((ref) => !BLOCK_REF.test(ref))) return usage();
   const provided: readonly CommandBlockEligibility[] = inputs.blockEligibility ?? inputs.catalog.blocks.map((block) => ({ blockRef: block.ref, active: block.active, queryOnly: block.queryOnly }));
   const eligibility = new Map(provided.map((block) => [block.blockRef, block]));
-  const valid = refs.every((ref) => {
+  const valid = blockRefs.every((ref) => {
     const block = eligibility.get(ref);
     if (!block || block.queryOnly) return false;
     return kind === "decompress" ? block.active : !block.active && block.deactivationReason === "decompress";
   });
-  return valid ? { kind, catalogId: inputs.catalog.catalogId, blockRefs: [...refs], effects: APPEND_ONLY } : usage();
+  if (!valid) return usage();
+  return kind === "decompress"
+    ? { kind, catalogId: inputs.catalog.catalogId, blockRefs: [...blockRefs], depth, effects: APPEND_ONLY }
+    : { kind, catalogId: inputs.catalog.catalogId, blockRefs: [...blockRefs], effects: APPEND_ONLY };
 }
 
 function presentContext(inputs: CompactCommandInputs, offset: number, limit: number): CommandContextOutput {

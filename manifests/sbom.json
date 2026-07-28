@@ -2,8 +2,8 @@
   "spdxVersion": "SPDX-2.3",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "name": "@rosetears/aili-pi-0.1.13",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/865101fd011449dcd3601c4a689a9b17",
+  "name": "@rosetears/aili-pi-0.1.15",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/fc42ccac6303edb780b0538ea715c77b",
   "creationInfo": {
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
@@ -13,7 +13,7 @@
     {
       "SPDXID": "SPDXRef-Package-aili-pi",
       "name": "@rosetears/aili-pi",
-      "versionInfo": "0.1.13",
+      "versionInfo": "0.1.15",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "AGPL-3.0-or-later",
@@ -104,18 +104,6 @@
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
       "comment": "revision=npm:0.25.0; files=extensions/pi-lsp/src/pi-lsp.ts, extensions/pi-lsp/src/; symbols=default Extension, lsp_diagnostics, lsp_fix, /lsp; local changes=AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied"
-    },
-    {
-      "SPDXID": "SPDXRef-source-pi-zentui-18638800c3",
-      "name": "pi-zentui",
-      "versionInfo": "0.11.0",
-      "downloadLocation": "https://github.com/lmilojevicc/pi-zentui/commit/fda2c9c7d0027f7e98a3eba7d4e03f5c0ac7d600",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "checksums": [],
-      "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=fda2c9c7d0027f7e98a3eba7d4e03f5c0ac7d600; files=extensions/zentui/**; symbols=fixed editor compositor, editor chrome, user-message rendering, Zentui footer; local changes=the pi-sakura-cyberdeck lineage supplied the vendored base | AILI applies Rose Cyberdeck palette and gradients, package defaults and configuration paths, Pi 0.82.1 lifecycle adaptations, and bounded fallback behavior"
     },
     {
       "SPDXID": "SPDXRef-source-pi-sakura-cyberdeck-7125826ba0",
@@ -7340,11 +7328,6 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-source-narumitw-pi-lsp-3da38ce655"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-source-pi-zentui-18638800c3"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",

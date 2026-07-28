@@ -38,16 +38,18 @@ function assistant(id: string): SessionLikeEntry {
 }
 
 describe("AILI Compact consumed-result policy", () => {
-  it("does not cool a normal result before a later assistant has consumed it", () => {
+  it("never treats elapsed assistant messages as provider-observation evidence", () => {
     expect(findCoolingCandidate([toolCall(), result()], state)).toBeUndefined();
-    expect(findCoolingCandidate([toolCall(), result(), assistant("later")], state)?.id).toBe("cool:result");
+    expect(findCoolingCandidate([toolCall(), result(), assistant("later"), assistant("later-again")], state)).toBeUndefined();
   });
 
-  it("gives an error result two persisted assistant messages of grace", () => {
+  it("keeps unresolved errors raw regardless of grace age", () => {
     expect(findCoolingCandidate([toolCall(), result(true), assistant("one")], state)).toBeUndefined();
-    const block = findCoolingCandidate([toolCall(), result(true), assistant("one"), assistant("two")], state);
-    expect(block?.summary).toContain("error");
-    expect(block?.stub).toContain("outcome=error");
+    expect(findCoolingCandidate([
+      toolCall(),
+      result(true),
+      ...Array.from({ length: 8 }, (_, index) => assistant(`later-${index + 1}`)),
+    ], state)).toBeUndefined();
   });
 
   it("never cools protected/unpaired/image/AILI Compact output or an already-active source", () => {

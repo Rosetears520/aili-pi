@@ -1,9 +1,9 @@
 2026-07-25 private BUILD closeout — add-reversible-context-compression
 
-status: RELEASE_CANDIDATE_0.1.13_EXCLUSIVE_OWNER
-acceptance: prior BUILD/release-plan acceptances plus the user-accepted 2026-07-27 exclusive-owner/bootstrap-HOME-write delta; exact 0.1.13 release commit authorized
-package_version: 0.1.13
-task_ledger: 62 completed, 1 host-evidence gap retained as Unverified
+status: LOCAL_BUILD_PASS_WITH_ONE_PUBLIC_HOST_EVIDENCE_GAP
+acceptance: revised final test-plan.md explicitly accepted by the user on 2026-07-25
+package_version: 0.1.13 local candidate (package-wide AGPL-3.0-or-later; not published)
+task_ledger: 62 completed, 1 open
 
 completed_runtime:
 - append-only v2 transaction/replay state with safe v1 upgrade/query-only fallback, atomic batches, branch/epoch references and exact commit boundaries
@@ -15,8 +15,8 @@ completed_runtime:
 - exact one-turn manual trigger binding, deterministic consumption/clear and send-failure compensation; manual mode remains independent of autoCooling
 - normative config merge/validation and six fixed opt-in prompt slots
 - hard/configurable protection, grouped cooling, journaled dedupe/purge-error, adaptive nudges and default-off public-evidence subagent gating
-- young/old lifecycle, nested block transitions, bounded generational GC and independent provider-free emergency GC without Pi fallback
-- exclusive manual/threshold/overflow native cancellation, fresh projection revalidation and historical completed-compaction epoch reconstruction
+- young/old lifecycle, nested block transitions, bounded generational GC and safe provider-free major GC with Pi fallback
+- health-gated native interception, fresh projection revalidation and completed-compaction epoch reconstruction
 - two-part numeric cache surface: current-branch Pi Session assistant usage replays once at session start/reload/tree navigation and updates incrementally after each assistant response; AILI cold/state-change/warm repeated-request diagnostics remain separate
 - cache widget now defaults on and preserves the detailed current Session statistics in a left-aligned column beside right-aligned AILI stability rows; it reserves Pi's observed two-column widget inset so trailing full-width characters do not wrap; `/aili-compact cache` retains the sequential two-section view
 - full canonical cache identity, cold/state-change/warm classification, last-20 window and minimum-5 gate; cache footer/panel labels default to concise Simplified Chinese
@@ -43,41 +43,7 @@ fresh_verification:
 - `npm pack --dry-run --json`: PASS (`@rosetears/aili-pi@0.1.10`, 6195 files); task-owned scratch removed
 - strict OpenSpec validation: PASS (`Change 'add-reversible-context-compression' is valid`)
 - strict OpenSpec and `git diff --check`: rerun PASS after the two-part cache-surface change
-- private-build `npm run validate:release`: EXPECTED NON-PASS at that time for named evidence; the current release candidate inherits passed persistent-Agent live evidence from `origin/main@12af234` and records ACP v1.12.6 as reference-only under the approved MIT route
-
-fresh_0.1.11_release_candidate_verification:
-- `npm run typecheck`: PASS
-- Compact + doctor/runtime/provenance/package focus: PASS (23 files, 198 tests after package-resource fixture setup)
-- `npm test`: PASS (54 passed + 2 skipped files; 350 passed + 3 skipped tests)
-- `npm run validate:capabilities`: PASS
-- `npm run validate:release`: PASS (`stable release validation passed`)
-- `npm run validate:package`: PASS (6 tests)
-- `npm run validate:generated`: PASS (6 tests)
-- strict OpenSpec validation: PASS (`Change 'add-reversible-context-compression' is valid`)
-- `npm pack --dry-run --json`: PASS (`@rosetears/aili-pi@0.1.11`, 6,196 files; required Compact/provenance files present; forbidden `.pi/`, `graphify-out/`, `.worktrees/` absent)
-- `git diff --check`: PASS
-
-0.1.11_publish_incident:
-- Git `f0fb5c6` and npm 0.1.11 were published, but the release worktree's temporary dependency link was removed before `npm publish`; npm therefore emitted only 611 files and omitted all three declared bundled Pi packages.
-- A clean consumer install proved `@narumitw/pi-lsp`, `pi-cache-optimizer` and `pi-markdown-preview` absent from the package root. 0.1.11 is not accepted as a working release and will be deprecated after the corrective version is live.
-- Root cause is release packaging state plus a missing fail-closed prepublish bundle-presence gate, not AILI Compact runtime behavior.
-
-fresh_0.1.12_corrective_verification:
-- red/green bundle gate: `npm run validate:bundles` failed with all three bundles absent before `npm ci --ignore-scripts`, then passed after real package-root installation
-- `npm run typecheck`: PASS
-- `npm test`: PASS (54 passed + 2 skipped files; 350 passed + 3 skipped tests)
-- `npm run prepublishOnly`: PASS, including stable release, package-resource and physical bundle checks
-- `npm run validate:generated` and `npm run validate:capabilities`: PASS
-- real `npm pack --json`: PASS (`@rosetears/aili-pi@0.1.12`, 6,190 files); Compact, validator and all three bundle package manifests present; forbidden local paths absent
-- clean install from the generated tarball: PASS; version 0.1.12, Compact runtime and all three nested bundled Pi packages present
-- strict OpenSpec validation and `git diff --check`: PASS
-
-0.1.12_release_evidence:
-- corrective commit `482ff91` pushed to `origin/main`
-- npm publish PASS: `@rosetears/aili-pi@0.1.12`; publish notice reports 6,190 total files and 82 bundled dependencies
-- npm registry PASS: `dist-tags.latest=0.1.12`; npm 0.1.11 deprecated with `Incomplete tarball: use 0.1.12 or newer.`
-- Pi user install PASS: `npm:@rosetears/aili-pi@0.1.12` resolves to `~/.pi/agent/npm/node_modules/@rosetears/aili-pi`; prior local-path source removed after settings backup
-- installed-package smoke PASS through official `discoverAndLoadExtensions`: version 0.1.12, one owned extension, no load errors, Compact hooks present and all three declared bundle roots accessible
+- `npm run validate:release`: EXPECTED NON-PASS only for named evidence: persistent-Agent live sandbox lifecycle remains unverified; AILI Compact public release blocked pending AGPL/MIT disposition
 
 open_task:
 - 6.6 live resize evidence: public setWidget integration, width visibility helpers, numeric render keys and non-numeric rerender suppression are implemented. Pi 0.81.1 exposes no public terminal-resize event, so real hide/reappear-on-resize evidence remains Unverified rather than using private TUI/prototype patches.
@@ -86,34 +52,50 @@ unverified:
 - UV-LIVE-1 real provider tool use, summary quality and warmed-cache rate
 - UV-EXT-ORDER-1 unknown later third-party context-handler ordering
 - UV-PI-INTERNAL-1 real-host title/summary/native-compaction internal request ordering and public resize delivery
-- UV-ACP-RUNTIME-1 upstream ACP suite was not run because AILI does not install or distribute ACP; the pinned source was inspected only
+- UV-ACP-RUNTIME-1 upstream ACP suite was not run because no dependency installation was authorized
+- UV-LICENSE-1 resolved: package-wide AGPL-3.0-or-later route implemented and deterministically verified for the local 0.1.13 candidate
 
 release_boundary:
-- 0.1.12 and earlier release evidence above remains historical; prior granted licenses are not described as revoked
-- superseding user decision: target0.1.13 is package-wide `AGPL-3.0-or-later`, retains AILI Compact, and records ACP v1.12.6 as a no-copy AGPL behavioral reference
-- root package/lock/LICENSE/README/notice/SBOM consistency and third-party-license preservation are fail-closed release gates
-- fresh Pi 0.82.1 provider, positive process-owned child sandbox, disposable-HOME and external-workspace evidence passed; `npm run validate:release` passes
-- `release/0.1.13` preserves the origin/main prepublish bundle guard; current-repository push/publish/release/install remain separately gated until explicitly authorized
+- public release remains blocked
+- no dependency installation, Git commit/push, publish, release or live-provider request was performed
 
-0.1.13_agpl_candidate_evidence:
-- root identity: `@rosetears/aili-pi@0.1.13`, `AGPL-3.0-or-later`
-- official GNU AGPLv3 LICENSE SHA-256: `0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0`
-- packaged provenance/notices include exact `ranxianglei/opencode-acp@v1.12.6`, commit `f1a33d9f4ce55af808eb4e050717c914ed16084b`, attribution and no-copy boundary
-- source release is isolated from `.pi/`, `graphify-out/`, `.tmp/`, raw sessions and private artifacts
-- clean release-worktree typecheck/full test/prepublish/generated/capability/compatibility/provenance/strict OpenSpec gates pass; full suite: 56 passed + 2 skipped files, 359 passed + 3 skipped tests; separately authorized live gate: 2/2 PASS
-- exact npm tarball before the exclusive-owner delta: 6,189 files, 13,644,257 bytes, SHA-256 `103788430c4709c8042dd21a1fbd7927948fae84fe158d22ae2b23ff91f2d837`
-- extracted-tarball required-file/license/provenance/bundle/deny-path/credential-marker/local-path scans passed; clean tarball-only consumer install confirmed Compact, child sandbox and all three declared bundled dependencies
+2026-07-26_material_delta:
+- user selected package-wide `AGPL-3.0-or-later` beginning with target 0.1.13 and retained AILI Compact
+- prior 0.1.12 and earlier grants are not described as retroactively revoked
+- third-party licenses/notices remain unchanged
+- packaged opencode-acp exact reference/provenance is required; current boundary remains no direct copied source/prompt/schema/fixture/asset
+- prior private-BUILD acceptance is stale for the public-license/release expansion
+- revised final test plan accepted on 2026-07-26; local AGPL/0.1.13 candidate BUILD authorized and completed
+- root package/lock identity: `@rosetears/aili-pi@0.1.13`, `AGPL-3.0-or-later`
+- official GNU AGPLv3 root LICENSE SHA-256: `0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0`
+- generated provenance/SBOM/notices include the exact no-copy opencode-acp reference and preserve third-party license records
+- focused package/provenance/doctor/AILI Compact tests: PASS (4 files, 58 tests)
+- `npm run typecheck`: PASS
+- `npm test`: PASS (55 passed + 2 skipped files; 357 passed + 2 skipped tests)
+- provenance/package/generated/capabilities/compatibility/roles validators: PASS
+- strict OpenSpec validation and `git diff --check`: PASS
+- exact final npm pack: PASS (`@rosetears/aili-pi@0.1.13`, 6195 files)
+- extracted candidate tarball SHA-256: `b0fbfa701282f4f7d34311e75a86a3eadfd13aaa38e5cc66caab4dd2a8768105`
+- extracted candidate required-file, root identity/license, opencode provenance, deny-path, credential-marker, local-path and three bundled-dependency license checks: PASS
+- `npm run validate:release`: PASS after the separately authorized fresh Pi 0.82.1 provider, positive child-sandbox, and external-workspace lifecycle evidence
+- status: LOCAL_AGPL_0.1.13_RELEASE_GATES_PASS_WITH_COMPACT_HOST_OBSERVATIONS_STILL_UNVERIFIED
+- live provider/TUI, Git commit/push/tag, npm publish, GitHub release and install operations have not run
 
-2026-07-27_exclusive_owner_delta:
-- bootstrap atomically and idempotently merges user-global `compaction.enabled=false`, preserves unrelated settings/mode, rejects malformed or non-object JSON without replacement, and never rewrites project `.pi/settings.json`
-- while AILI is enabled, manual, threshold and overflow Pi compaction hooks are cancellation-only; AILI never returns a native compaction envelope or summary/retry fallback
-- emergency old-generation summary GC runs provider-free before provider projection and persists only append-only AILI lifecycle state; historical Pi compaction epochs remain replayable
-- doctor, README and `/aili-compact off` diagnostics expose the effective exclusive-owner setting without leaking raw HOME content
-- current-user structured HOME merge completed with existing keys and mode 0644 preserved; Pi restart remains required after code/package replacement
-- focused 5-file suite: PASS (93 tests); typecheck PASS; full Vitest PASS (366 + 2 skipped); package validation PASS; strict OpenSpec and `git diff --check` PASS
-- release-readiness audit found an inherited pi-zentui attribution gap; exact upstream `v0.11.0` revision, adapted-file provenance, generated notice/SBOM record and packaged `notices/pi-zentui-NOTICE.txt` were added with regression coverage
-- `manifests/live-verification.json` remains intentionally public, bounded release evidence required by the fail-closed validator; it contains hashes and sanitized probe descriptions but no credential value, raw transcript or absolute HOME path
-- clean release-worktree `npm run typecheck`, full Vitest (56 passed + 2 skipped files; 365 passed + 3 skipped tests), `prepublishOnly`, generated/capability/compatibility/provenance validators, strict OpenSpec and `git diff --check`: PASS
-- exact npm tarball after provenance repair and README attribution: 6,191 files; 13,647,738 bytes; unpacked 59,391,773 bytes; SHA-256 `85c9b48949a9e268e27b597c1bb99f6083d45057be9d840d769002fc5ac6bad0`
-- required exclusive-owner runtime/helper, generated notices/SBOM, intentional live evidence, pi-zentui notice/license and all three bundled dependencies are present; repository-only metadata and suspicious own-package paths are absent; bounded credential/home marker scan found no credential value or local HOME path
-- exact commit evidence remains pending the authorized release commit
+2026-07-27_exclusive_owner_material_delta:
+- mode: DEFINE
+- user_decision: option B; bootstrap automatically merges user-global Pi `compaction.enabled=false`, and AILI Compact becomes the sole threshold/manual/overflow compression and GC owner
+- superseded_contract: Pi emergency overflow summary/retry fallback for new events
+- preserved_contract: append-only Pi Session source, historical Pi compaction replay, AILI reversible projection and provider-free GC
+- exact_home_write_approval: `/home/rosetears/.pi/agent/settings.json`; execution deferred until renewed test-plan acceptance, implementation and focused checks
+- files_changed: proposal.md, context.md, design.md, capability spec, tasks.md, interview.md, test-plan.md, drift-log.md, progress.txt
+- unresolved_items: none for tasks 10.1-10.5; restart Pi to load the new user-global setting
+- evidence_state: pinned ACP v1.12.6 README requires host auto-compaction disabled and defines own 100% GC; strict OpenSpec validation and `git diff --check` PASS
+- acceptance: user replied “开始” on 2026-07-27; revised final test plan accepted and BUILD authorized
+- package_10_savepoint:
+  - scope: exclusive native cancellation, independent emergency summary GC, atomic bootstrap settings merge, doctor/docs and exact HOME application
+  - files_changed: scripts/bootstrap.sh, scripts/merge-global-settings.mjs, src/runtime/aili-compact/{index,compaction,contracts,reducer}.ts, src/runtime/doctor.ts, README.md, focused bootstrap/runtime/doctor tests and owning OpenSpec artifacts
+  - evidence_state: focused 5-file suite PASS (93 tests); `npm run typecheck` PASS; `npm test` PASS (366 + 2 skipped); `npm run validate:package` PASS; strict OpenSpec and `git diff --check` PASS
+  - home_evidence: existing keys and mode 0644 preserved; `compaction.enabled=false`; no temporary settings file remained
+  - unresolved_items: Pi process restart required; live overflow event ordering remains UV-PI-INTERNAL-1
+  - next_package: none for this accepted delta
+- status: IMPLEMENTED_TARGETED_VERIFIED

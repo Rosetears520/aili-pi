@@ -66,7 +66,7 @@ Two requested read-only subagent lanes were dispatched first and both timed out 
 - `package.json` pins devDependency `@earendil-works/pi-coding-agent` to `0.81.1`.
 - Installed `node_modules/@earendil-works/pi-coding-agent/package.json` is `0.81.1`.
 - The focused fixture asserts declared and installed versions match exactly.
-- `openspec/changes/support-pi-0-82-0/` remains a separate unfinished change whose old `@agwab/pi-subagent` assumptions are invalidated by this change. Production code must use only APIs verified on 0.81.1 now; task 13.2 must realign that dependent change before any later 0.82 migration claim.
+- `openspec/changes/support-pi-0-82-1/` remains a separate unfinished change whose old `@agwab/pi-subagent` assumptions were invalidated by this change. Production code must use only APIs verified on 0.81.1 now; the dependent change must complete its persistent-Agent realignment before any Pi 0.82.1 migration claim.
 
 ## Fresh verification
 

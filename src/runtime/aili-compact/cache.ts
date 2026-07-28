@@ -1,4 +1,4 @@
-import { digest } from "./contracts.js";
+import { canonicalJson, digest, digestCanonicalJson } from "./contracts.js";
 
 export const CACHE_WINDOW_SIZE = 20;
 export const CACHE_MINIMUM_SAMPLES = 5;
@@ -64,16 +64,64 @@ export interface CacheIdentityInput {
   activeTools: readonly ActiveToolCacheSurface[];
 }
 
+interface ProviderSurfaceIdentityBase {
+  providerId: string;
+  modelId: string;
+  staticSystemPrompt: string;
+  immutableGuidance: unknown;
+  activeTools: readonly ActiveToolCacheSurface[];
+  suffixContent?: string;
+  sessionId: string;
+  branchLeafId: string;
+  branchSourceDigest: string;
+  epochId: string;
+  projectionHash: string;
+}
+
+export type ProviderSurfaceIdentityInput = ProviderSurfaceIdentityBase & (
+  | { logicalProviderMessages: readonly unknown[]; logicalProviderMessagesCanonical?: never }
+  | { logicalProviderMessages?: never; logicalProviderMessagesCanonical: string }
+);
+
+export interface ProviderSurfaceIdentities {
+  staticSurfaceIdentity: string;
+  logicalProviderPrefixIdentity: string;
+  suffixFingerprint: string;
+  fullProviderInputIdentity: string;
+}
+
+/** Separates byte-stable, logical pre-suffix, suffix and complete request identities. */
+export function providerSurfaceIdentities(input: ProviderSurfaceIdentityInput): ProviderSurfaceIdentities {
+  const tools = canonicalTools(input.activeTools);
+  const staticSurfaceIdentity = digest({
+    providerId: input.providerId,
+    modelId: input.modelId,
+    staticSystemPrompt: input.staticSystemPrompt,
+    immutableGuidance: input.immutableGuidance,
+    tools,
+  });
+  const logicalProviderPrefixIdentity = input.logicalProviderMessagesCanonical === undefined
+    ? digest({
+      schema: "aili.logical-provider-prefix.v1",
+      messages: input.logicalProviderMessages,
+    })
+    : digestCanonicalJson(`{"messages":${input.logicalProviderMessagesCanonical},"schema":${canonicalJson("aili.logical-provider-prefix.v1")}}`);
+  const suffixFingerprint = digest(input.suffixContent ?? "none");
+  const fullProviderInputIdentity = digest({
+    logicalProviderPrefixIdentity,
+    suffixFingerprint,
+    sessionId: input.sessionId,
+    branchLeafId: input.branchLeafId,
+    branchSourceDigest: input.branchSourceDigest,
+    epochId: input.epochId,
+    projectionHash: input.projectionHash,
+  });
+  return { staticSurfaceIdentity, logicalProviderPrefixIdentity, suffixFingerprint, fullProviderInputIdentity };
+}
+
 /** SHA-256 identity over the complete canonical provider-input surface. */
 export function cacheIdentity(input: CacheIdentityInput): string {
-  const tools = [...input.activeTools]
-    .map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      parameterSchema: tool.parameterSchema,
-      immutablePrompt: tool.immutablePrompt,
-    }))
-    .sort((left, right) => left.name.localeCompare(right.name));
+  const tools = canonicalTools(input.activeTools);
   return digest({
     providerId: input.providerId,
     modelId: input.modelId,
@@ -85,6 +133,17 @@ export function cacheIdentity(input: CacheIdentityInput): string {
     guidanceFingerprint: input.guidanceFingerprint,
     tools,
   });
+}
+
+function canonicalTools(activeTools: readonly ActiveToolCacheSurface[]): ActiveToolCacheSurface[] {
+  return [...activeTools]
+    .map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      parameterSchema: tool.parameterSchema,
+      immutablePrompt: tool.immutablePrompt,
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name));
 }
 
 export function classifyCacheRequest(previousCompletedIdentity: string | undefined, identity: string): CacheRequestClassification {

@@ -6,7 +6,8 @@ import { resolvePermissionModesPackageRoot } from "./package-resolution.ts";
 const ROOT = new URL("../../", import.meta.url);
 const SUPPORTED_PI_VERSION = "0.82.1";
 const PACKAGE_NAME = "@rosetears/aili-pi";
-const PACKAGE_VERSION = "0.1.13";
+const PACKAGE_VERSION = "0.1.15";
+const PACKAGE_AGPL_START_VERSION = "0.1.13";
 const PACKAGE_LICENSE = "AGPL-3.0-or-later";
 const PACKAGE_LICENSE_SHA256 = "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0";
 const ACTIVE_PI_PACKAGES = [
@@ -178,7 +179,7 @@ export function validateLicenseDispositionData(evidence: LicenseDispositionEvide
   ) errors.push("license disposition: package-lock root identity or license is stale");
   if (evidence.licenseSha256 !== PACKAGE_LICENSE_SHA256) errors.push("license disposition: root AGPL-3.0 license text is missing or drifted");
   if (
-    !evidence.readme.includes(`version ${PACKAGE_VERSION} and later is licensed under \`${PACKAGE_LICENSE}\``) ||
+    !evidence.readme.includes(`version ${PACKAGE_AGPL_START_VERSION} and later is licensed under \`${PACKAGE_LICENSE}\``) ||
     !evidence.readme.includes("Corresponding source is available from the repository declared in `package.json`")
   ) errors.push("license disposition: README declaration or corresponding-source notice is missing");
   if (
@@ -283,7 +284,6 @@ export async function validateLiveVerification(): Promise<string[]> {
       "src/vendor/pi-permission-modes/index.ts",
       "tests/integration/package-runtime.test.ts",
       "tests/integration/persistent-agent-runtime.test.ts",
-      "tests/integration/persistent-agent-live-gated.test.ts",
       "tests/unit/persistent-agent-child-sandbox.test.ts",
     ];
     for (const [filePath, expected] of Object.entries(evidence.implementation ?? {})) {
@@ -405,7 +405,7 @@ export async function validateProvenance(): Promise<string[]> {
     const provenance = await json<{ schemaVersion: number; sources: Array<{ name: string; revision: string; version: string; license: string; status: string; repository: string; sourceFiles: string[]; symbols: string[]; localChanges: string[]; verification: string[]; attribution?: string }> }>("manifests/provenance.json");
     const sbom = await json<{ spdxVersion?: string; packages?: Array<{ SPDXID?: string; name?: string; licenseDeclared?: string }> }>("manifests/sbom.json");
     const notices = await readFile(new URL("THIRD_PARTY_NOTICES.md", ROOT), "utf8");
-    if (provenance.schemaVersion !== 1 || provenance.sources.length !== 11) errors.push("provenance: expected eleven schema-v1 source records");
+    if (provenance.schemaVersion !== 1 || provenance.sources.length !== 10) errors.push("provenance: expected ten schema-v1 source records");
     const names = new Set<string>();
     for (const source of provenance.sources) {
       if (!source.name || names.has(source.name)) errors.push(`provenance: duplicate or missing source ${source.name}`);
@@ -419,8 +419,8 @@ export async function validateProvenance(): Promise<string[]> {
     const compactReference = provenance.sources.find((source) => source.name === "opencode-acp reference");
     if (
       compactReference?.repository !== "https://github.com/ranxianglei/opencode-acp.git" ||
-      compactReference.revision !== "f1a33d9f4ce55af808eb4e050717c914ed16084b" ||
-      compactReference.version !== "1.12.6" ||
+      compactReference.revision !== "00e8ba5c53fcbc46dfd86b5d7aa6eae058d29acb" ||
+      compactReference.version !== "1.14.3" ||
       compactReference.license !== PACKAGE_LICENSE ||
       compactReference.status !== "reference-only" ||
       !compactReference.attribution?.includes("opencode-dynamic-context-pruning by Tarquinen")

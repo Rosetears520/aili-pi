@@ -7,9 +7,31 @@ import {
   type CompactTransaction,
   isCompactTransaction,
   isRecord,
+  isV3CompactTransactionCandidate,
   sourceDigest,
   type SessionLikeEntry,
 } from "./contracts.js";
+import { buildProtocolAtoms } from "./protocol-atoms.js";
+import { deriveRuntimeCatalogIdForState } from "./runtime-catalog.js";
+import {
+  discoverLegacyRepairCandidates,
+  parseRepairEntry,
+  repairBranchSourceEntryIds,
+  replayRepairEntry,
+  type RepairEntry,
+} from "./repair.js";
+import {
+  advanceV3Epoch,
+  applyV3Transaction,
+  createEmptyV3State,
+  maximalActiveV3Blocks,
+  parseV3Transaction,
+  type V3ErrorCode,
+  type V3LifecycleState,
+  type V3SemanticBlock,
+  type V3Transaction,
+  type V3TransitionContext,
+} from "./v3.js";
 
 const ROOT_EPOCH = "root";
 const MAX_POLICY_DECISIONS = 64;
@@ -28,11 +50,43 @@ type MutableCompactState = {
   blocks: Map<string, CompactBlock>;
   policyDecisions: CompactPolicyDecision[];
   transactionCount: number;
+  repairTransactionCount: number;
 };
 
+export interface V3ReplayDiagnostic {
+  phase: "parse" | "apply" | "epoch" | "derive";
+  entryId?: string;
+  transactionId?: string;
+  code: V3ErrorCode;
+  path: string;
+}
+
+/** Explicit v3 adapter output; v3 blocks are never coerced into CompactBlock. */
+export interface V3LifecycleReplay {
+  state?: V3LifecycleState;
+  maximalActiveBlocks: readonly V3SemanticBlock[];
+  archivedQueryOnlyBlocks: readonly V3SemanticBlock[];
+  acceptedTransactionCount: number;
+  diagnostics: readonly V3ReplayDiagnostic[];
+}
+
+/** Both schema families reduced from one stable branch-entry snapshot. */
+export interface CompactReadBundle {
+  legacy: CompactState;
+  v3: V3LifecycleReplay;
+}
+
 export function reduceCompactState(entries: readonly SessionLikeEntry[]): CompactState {
+  return reduceCompactStateFromEpoch(entries, ROOT_EPOCH);
+}
+
+/** Pure legacy replay for an already-scoped current-epoch tail. */
+export function reduceCompactStateFromEpoch(
+  entries: readonly SessionLikeEntry[],
+  initialEpochId: string,
+): CompactState {
   let current: MutableCompactState = {
-    epochId: ROOT_EPOCH,
+    epochId: initialEpochId,
     enabled: true,
     autoCooling: true,
     manualMode: false,
@@ -44,19 +98,45 @@ export function reduceCompactState(entries: readonly SessionLikeEntry[]): Compac
     blocks: new Map(),
     policyDecisions: [],
     transactionCount: 0,
+    repairTransactionCount: 0,
   };
   const diagnostics: string[] = [];
   const transactionIds = new Set<string>();
+  let committedRepairs = new Map<string, RepairEntry>();
 
-  for (const entry of entries) {
+  for (const [entryOrdinal, entry] of entries.entries()) {
     if (entry.type === "compaction") {
       const blocks = new Map(current.blocks);
       for (const [id, block] of blocks) {
         if (block.active && block.epochId === current.epochId) {
-          blocks.set(id, { ...block, active: false, deactivationReason: "epoch" });
+          blocks.set(id, { ...block, active: false, deactivationReason: "epoch", queryOnly: true });
         }
       }
       current = { ...current, epochId: entry.id, pendingManualTrigger: undefined, blocks };
+      continue;
+    }
+
+    if (entry.type === "custom" && entry.customType === AILI_COMPACT_ENTRY && parseRepairEntry(entry.data)) {
+      const replayEntries = entries.slice(0, entryOrdinal);
+      const result = replayRepairEntry({
+        entry: entry.data,
+        branchSourceEntryIds: repairBranchSourceEntryIds(replayEntries),
+        epochId: current.epochId,
+        entries: replayEntries,
+        blocks: current.blocks,
+        candidates: discoverLegacyRepairCandidates(replayEntries, current.blocks),
+        committed: committedRepairs,
+      });
+      if (!result.ok) {
+        diagnostics.push(`repair-${result.code}:${(entry.data as RepairEntry).id}`);
+        continue;
+      }
+      committedRepairs = new Map(result.committed);
+      current = {
+        ...current,
+        blocks: new Map(result.blocks),
+        repairTransactionCount: current.repairTransactionCount + (result.idempotent ? 0 : 1),
+      };
       continue;
     }
 
@@ -87,6 +167,179 @@ export function reduceCompactState(entries: readonly SessionLikeEntry[]): Compac
   }
 
   return { ...current, diagnostics };
+}
+
+/**
+ * Replays only custom aili-compact v3 envelopes. The legacy reducer is used
+ * solely to supply accepted v1/v2 IDs for the explicit legacy-child guard.
+ */
+export function reduceV3LifecycleState(entries: readonly SessionLikeEntry[]): V3LifecycleReplay {
+  const snapshot = [...entries];
+  const legacy = reduceCompactState(snapshot);
+  return reduceV3LifecycleSnapshot(snapshot, new Set(legacy.blocks.keys()));
+}
+
+/**
+ * Replays one current-epoch tail on top of the exact archived v3 state captured
+ * at its compaction boundary. This is the pure oracle used by an epoch-scoped
+ * BranchIndex; it preserves old query-only blocks without retaining or
+ * rescanning pre-epoch Session entries on provider requests.
+ */
+export function reduceV3LifecycleStateFromSeed(
+  entries: readonly SessionLikeEntry[],
+  seed: V3LifecycleReplay,
+): V3LifecycleReplay {
+  const snapshot = [...entries];
+  const legacy = reduceCompactStateFromEpoch(snapshot, seed.state?.epochId ?? ROOT_EPOCH);
+  return reduceV3LifecycleSnapshot(snapshot, new Set(legacy.blocks.keys()), seed);
+}
+
+export function reduceCompactReadBundle(entries: readonly SessionLikeEntry[]): CompactReadBundle {
+  const snapshot = [...entries];
+  const legacy = reduceCompactState(snapshot);
+  return {
+    legacy,
+    v3: reduceV3LifecycleSnapshot(snapshot, new Set(legacy.blocks.keys())),
+  };
+}
+
+function reduceV3LifecycleSnapshot(
+  entries: readonly SessionLikeEntry[],
+  legacyBlockIds: ReadonlySet<string>,
+  seed?: V3LifecycleReplay,
+): V3LifecycleReplay {
+  let current: V3LifecycleState | undefined = seed?.state;
+  let epochId = current?.epochId ?? ROOT_EPOCH;
+  let epochStartIndex = 0;
+  const diagnostics: V3ReplayDiagnostic[] = [...(seed?.diagnostics ?? [])];
+
+  for (const [entryOrdinal, entry] of entries.entries()) {
+    if (entry.type === "compaction") {
+      epochId = entry.id;
+      epochStartIndex = entryOrdinal + 1;
+      if (!current) continue;
+      const advanced = advanceV3Epoch(current, entry.id);
+      if (!advanced.ok) {
+        diagnostics.push(v3Diagnostic("epoch", advanced, entry.id));
+        continue;
+      }
+      current = advanced.value;
+      continue;
+    }
+
+    if (entry.type !== "custom"
+      || entry.customType !== AILI_COMPACT_ENTRY
+      || !isV3CompactTransactionCandidate(entry.data)) continue;
+
+    const parsed = parseV3Transaction(entry.data);
+    if (!parsed.ok) {
+      diagnostics.push(v3Diagnostic("parse", parsed, entry.id));
+      continue;
+    }
+
+    const candidate = current ?? createEmptyV3State({
+      sessionId: parsed.value.header.sessionId,
+      branchLeafId: parsed.value.header.branchLeafId,
+      epochId,
+      projectionVersion: parsed.value.header.projectionVersion,
+    });
+    const prefixEntries = entries.slice(0, entryOrdinal);
+    const prefixLegacyState = seed?.state
+      ? reduceCompactStateFromEpoch(prefixEntries, seed.state.epochId)
+      : reduceCompactState(prefixEntries);
+    const catalogEntries = seed?.state
+      ? [{ id: seed.state.epochId, type: "compaction" }, ...prefixEntries]
+      : prefixEntries;
+    const transition = applyV3Transaction(candidate, parsed.value, v3TransitionContext(
+      parsed.value,
+      entries.slice(epochStartIndex, entryOrdinal),
+      new Set(prefixLegacyState.blocks.keys()),
+      deriveRuntimeCatalogIdForState(catalogEntries, prefixLegacyState, candidate),
+    ));
+    if (!transition.ok) {
+      diagnostics.push(v3Diagnostic("apply", transition, entry.id, parsed.value.header.txId));
+      continue;
+    }
+    current = transition.value.state;
+  }
+
+  if (!current) {
+    return {
+      state: undefined,
+      maximalActiveBlocks: [],
+      archivedQueryOnlyBlocks: [],
+      acceptedTransactionCount: 0,
+      diagnostics,
+    };
+  }
+
+  const maximal = maximalActiveV3Blocks(current);
+  if (!maximal.ok) diagnostics.push(v3Diagnostic("derive", maximal));
+  const archivedQueryOnlyBlocks = [...current.blocks.values()]
+    .filter((block) => block.queryOnly)
+    .sort(compareV3Blocks);
+  return {
+    state: current,
+    maximalActiveBlocks: maximal.ok ? maximal.value : [],
+    archivedQueryOnlyBlocks,
+    acceptedTransactionCount: current.transactions.size,
+    diagnostics,
+  };
+}
+
+function v3TransitionContext(
+  transaction: V3Transaction,
+  epochEntries: readonly SessionLikeEntry[],
+  legacyBlockIds: ReadonlySet<string>,
+  expectedCatalogId: string,
+): V3TransitionContext {
+  if (transaction.tag !== "semantic-create" || transaction.payload.source.kind !== "messages") {
+    return { legacyBlockIds, expectedCatalogId };
+  }
+  return {
+    legacyBlockIds,
+    expectedCatalogId,
+    messageOrdinals: exactV3MessageOrdinals(epochEntries, transaction.payload.source.entryIds),
+  };
+}
+
+function exactV3MessageOrdinals(
+  epochEntries: readonly SessionLikeEntry[],
+  selectedEntryIds: readonly string[],
+): ReadonlyMap<string, number> {
+  const atomBuild = buildProtocolAtoms(epochEntries);
+  const selected = new Set(selectedEntryIds);
+  const touched = atomBuild.atoms.filter((atom) => atom.entryIds.some((entryId) => selected.has(entryId)));
+  const selectedAtomEntryIds = touched.flatMap((atom) => [...atom.entryIds]);
+  const exactSafeAtoms = selectedAtomEntryIds.length === selectedEntryIds.length
+    && touched.every((atom) => !atom.hardProtected && atom.entryIds.every((entryId) => selected.has(entryId)))
+    && selectedEntryIds.every((entryId) => atomBuild.entryToAtomId.has(entryId));
+  if (!exactSafeAtoms) return new Map();
+
+  const ordinals = new Map<string, number>();
+  let ordinal = 1;
+  for (const atom of atomBuild.atoms) {
+    for (const entryId of atom.entryIds) {
+      if (atomBuild.entryToAtomId.has(entryId)) ordinals.set(entryId, ordinal);
+      ordinal += 1;
+    }
+  }
+  return ordinals;
+}
+
+function v3Diagnostic(
+  phase: V3ReplayDiagnostic["phase"],
+  failure: { code: V3ErrorCode; path: string },
+  entryId?: string,
+  transactionId?: string,
+): V3ReplayDiagnostic {
+  return { phase, entryId, transactionId, code: failure.code, path: failure.path };
+}
+
+function compareV3Blocks(left: V3SemanticBlock, right: V3SemanticBlock): number {
+  return left.createdAt - right.createdAt
+    || left.firstLeafOrdinal - right.firstLeafOrdinal
+    || left.blockId.localeCompare(right.blockId);
 }
 
 function cloneState(state: MutableCompactState): MutableCompactState {

@@ -52,8 +52,8 @@ POST-UPDATE OBSERVATION
 LOCAL WORKSPACE INSTALL
 
 - User explicitly approved replacing the npm package entry with the current workspace.
-- Executed `pi remove npm:@rosetears/aili-pi`, then installed the approved local workspace path to avoid duplicate package identities and duplicate handlers.
-- `pi list` then reported only the approved local workspace as the AILI user package; the absolute HOME/workspace path is intentionally omitted from public evidence.
+- Executed `pi remove npm:@rosetears/aili-pi`, then `pi install /home/rosetears/code/aili-pi` to avoid duplicate package identities and duplicate handlers.
+- `pi list` now reports only `/home/rosetears/code/aili-pi` as the AILI user package.
 - Fresh offline/no-session headless Extension load completed with exit0 and no stderr.
 
 POST-REFRESH RUNTIME CHECK

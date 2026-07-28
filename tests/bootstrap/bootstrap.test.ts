@@ -133,12 +133,13 @@ describe("thin Unix bootstrap", () => {
     expect(log).toContain("install npm:@rosetears/aili-pi@latest");
   });
 
-  it("merges settings idempotently while preserving unrelated user state", async () => {
+  it("validates settings idempotently without changing unrelated user state", async () => {
     const fx = await fixture();
     const agentState = join(fx.home, ".pi/agent");
     const settings = join(agentState, "settings.json");
     await mkdir(agentState, { recursive: true });
-    await writeFile(settings, '{"theme":"rose","compaction":{"threshold":42}}\n', { mode: 0o640 });
+    const originalSettings = '{"theme":"rose","compaction":{"threshold":42}}\n';
+    await writeFile(settings, originalSettings, { mode: 0o640 });
     const files = [
       join(agentState, "auth.json"),
       join(agentState, "sessions/session.jsonl"),
@@ -150,15 +151,11 @@ describe("thin Unix bootstrap", () => {
     }
     const before = await Promise.all(files.map((file) => readFile(file, "utf8")));
     expect(run(fx.env).status).toBe(0);
-    const mergedBytes = await readFile(settings, "utf8");
-    expect(JSON.parse(mergedBytes)).toEqual({
-      theme: "rose",
-      compaction: { threshold: 42, enabled: false },
-    });
+    expect(await readFile(settings, "utf8")).toBe(originalSettings);
     expect((await stat(settings)).mode & 0o777).toBe(0o640);
 
     expect(run(fx.env).status).toBe(0);
-    expect(await readFile(settings, "utf8")).toBe(mergedBytes);
+    expect(await readFile(settings, "utf8")).toBe(originalSettings);
     expect(await Promise.all(files.map((file) => readFile(file, "utf8")))).toEqual(before);
     const log = await readFile(fx.log, "utf8");
     expect(log).not.toContain("official-installer");
@@ -166,7 +163,7 @@ describe("thin Unix bootstrap", () => {
     expect((await readFile(fx.state, "utf8")).trim()).toBe("npm:@rosetears/aili-pi@latest");
   });
 
-  it("creates missing global settings without touching project settings", async () => {
+  it("leaves missing global settings absent without touching project settings", async () => {
     const fx = await fixture();
     const projectSettings = join(fx.root, ".pi/settings.json");
     await mkdir(resolve(projectSettings, ".."), { recursive: true });
@@ -174,13 +171,26 @@ describe("thin Unix bootstrap", () => {
 
     const result = runBootstrap(fx.env);
     expect(result.status).toBe(0);
-    expect(JSON.parse(await readFile(join(fx.home, ".pi/agent/settings.json"), "utf8"))).toEqual({
-      compaction: { enabled: false },
-    });
+    expect(await readFile(join(fx.home, ".pi/agent/settings.json"), "utf8").catch(() => undefined)).toBeUndefined();
     expect(await readFile(projectSettings, "utf8")).toBe('{"compaction":{"enabled":true}}\n');
   });
 
-  it("keeps original settings when the atomic temporary write cannot start", async () => {
+  it.each([
+    ["explicit true", '{"compaction":{"enabled":true,"threshold":42}}\n'],
+    ["unmarked explicit false", '{"compaction":{"enabled":false,"threshold":42}}\n'],
+  ])("preserves %s settings byte-for-byte on validation and refresh", async (_label, original) => {
+    const fx = await fixture();
+    const settings = join(fx.home, ".pi/agent/settings.json");
+    await mkdir(resolve(settings, ".."), { recursive: true });
+    await writeFile(settings, original, { mode: 0o600 });
+
+    expect(runSettingsMerger(fx.env).status).toBe(0);
+    expect(await readFile(settings, "utf8")).toBe(original);
+    expect(runSettingsMerger(fx.env, ["--check"]).status).toBe(0);
+    expect(await readFile(settings, "utf8")).toBe(original);
+  });
+
+  it("validates readable settings without requiring write access", async () => {
     const fx = await fixture();
     const agentState = join(fx.home, ".pi/agent");
     const settings = join(agentState, "settings.json");
@@ -189,7 +199,7 @@ describe("thin Unix bootstrap", () => {
     await writeFile(settings, original, { mode: 0o600 });
     await chmod(agentState, 0o500);
     try {
-      expect(runSettingsMerger(fx.env).status).not.toBe(0);
+      expect(runSettingsMerger(fx.env).status).toBe(0);
       expect(await readFile(settings, "utf8")).toBe(original);
     } finally {
       await chmod(agentState, 0o700);

@@ -7,8 +7,8 @@
 - Target repository: `/home/rosetears/code/aili-pi`
 - Startup Git host evidence: branch `fix/quota-animation-subagent-label`, HEAD `227d9dc9392a83748ac4cf77f5c386cbacf7957c`; unrelated pre-existing dirty paths remain out of scope and must not be overwritten or cleaned.
 - Accepted contract: `proposal.md`, `interview.md` D-001–D-014, `design.md`, both `specs/**/spec.md`, `tasks.md`, and the user-accepted final `test-plan.md` in this change.
-- Acceptance: user accepted the final test plan and repository-local BUILD, then explicitly authorized dependency/public migration, local-package provider verification, disposable external Git and positive sandbox probes, a release-only worktree, version `0.1.10`, commit, push to `origin/main`, and npm publication on 2026-07-25.
-- Exact operations still not authorized: copied or substantively adapted OMP source; `aili-workflows` writes; unrelated current-worktree cleanup/stash; force-push/history rewrite; AILI Compact publication.
+- Acceptance: user accepted the final test plan and authorized repository-local BUILD on 2026-07-25.
+- Exact operations not authorized: dependency/lockfile mutation; copied or substantively adapted OMP source; real provider/sandbox/user-HOME/external-workspace probes; `aili-workflows` writes; commit/push/merge; publish/release; destructive cleanup.
 
 ## Accepted scope and forbidden scope
 
@@ -18,7 +18,7 @@ Forbidden without a new exact gate: modifying `package.json` or `package-lock.js
 
 ## Resolvable package queue
 
-1. **PKG-01 Host seams and version binding** — tasks 1.2–1.8. Exact current prototype baseline is the repository pin official Pi `0.81.1`; inspect the pending `support-pi-0-82-0` change for conflict, but do not change dependencies. Acceptance: disposable/offline evidence resolves SessionManager, resource cloning, approval bridge, parent sidecar lifecycle, and isolation seams or records a DEFINE-return blocker.
+1. **PKG-01 Host seams and version binding** — tasks 1.2–1.8. Exact current prototype baseline is the repository pin official Pi `0.81.1`; inspect the pending `support-pi-0-82-1` change for conflict, but do not change dependencies. Acceptance: disposable/offline evidence resolves SessionManager, resource cloning, approval bridge, parent sidecar lifecycle, and isolation seams or records a DEFINE-return blocker.
 2. **PKG-02 Role profile v2 and general** — tasks 2.1–2.5; depends on PKG-01 tool/profile seam.
 3. **PKG-03 Durable parent storage** — tasks 3.1–3.6; depends on HOST-1.
 4. **PKG-04 Child session/policy assembly** — tasks 4.1–4.5; depends on HOST-2/HOST-3 plus PKG-02/03.
@@ -37,11 +37,11 @@ Forbidden without a new exact gate: modifying `package.json` or `package-lock.js
 
 - Completed local scope: exact approved dependency/lockfile removal, deletion of the old wrapper and obsolete fixtures, public single-entry `task`/`hub` registration with direct-user model command, production official-Pi session/tool/model/permission/workspace/delivery wiring, capability/adapter/provenance/SBOM/doctor/docs/OpenSpec reconciliation, deterministic regression, package dry-run, and diff hygiene.
 - Public contract: `@agwab/pi-subagent` is absent from package and lock inventory; `src/runtime/subagents.ts` and old generic/live tests are removed; public discovery contains `task` and `hub` and rejects any `subagent` alias. Historical `.pi/agent/runs/`, Pi sessions, user configuration, and sidecars remain untouched.
-- Superseding 2026-07-26 evidence: the user authorized the process-owned positive child sandbox bridge and fresh Pi 0.82.1 provider, disposable-HOME sandbox, and disposable external-workspace probes. All three schema-v3 rows pass with sanitized durable evidence and exact implementation hashes.
-- Release integration: target0.1.13 combines this runtime with the existing AILI Compact baseline under the package-wide `AGPL-3.0-or-later` disposition. No direct ACP/OMP source, prompt, schema, fixture, or asset copy is introduced.
+- Superseding 2026-07-26 evidence: the user authorized the process-owned positive child sandbox bridge and fresh Pi 0.82.1 provider, disposable-HOME sandbox, and disposable external-workspace probes. All three schema-v3 rows now pass with sanitized durable evidence and exact implementation hashes; the package-wide AGPL disposition is also resolved.
+- Still forbidden without separate approval: OMP source copying, `aili-workflows` writes, current-repository Git mutations, publish, and release.
 - Verification: focused role generator/validation tests plus `npm run validate:roles` only after expected generated outputs are updated.
 - Pause condition: preserving a role would require changing its accepted responsibility/tool/output contract or writing canonical `aili-workflows`.
-- Commit allowance: user explicitly authorized the isolated `release/0.1.13` release commit from `origin/main`; push/publish/release remain separate gates.
+- Commit allowance: none.
 
 ## Canonical CONT-005 envelope
 

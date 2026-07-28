@@ -203,4 +203,4 @@ Rollback以恢复上一已发布AILIPackage版本为主；旧run数据保持可�
 - **Deletion/archive gate:** officialPi目标版本是否新增sidecar-awaredelete/archivehook？若没有，finalcontract必须把built-inCtrl+D即时cascade标记为hostgap，并只验收AILI-owneddelete/reconciliation路径。
 - **Permission seam gate:** child-onlypolicyextension与parentUIproxy能否覆盖file/bash/network/customtoolask且不与ambientpermissionextension双重裁决？
 - **Isolation seam gate:** 最小Gitworktreeadapter对dirtybaseline、nestedworktree和非Gitcwd的明确失败语义需要prototypeevidence。
-- **Version alignment:** `support-pi-0-82-0`仍是未完成change；implementation必须选一个精确officialPihostbaseline并同步revision-boundtests，不能混用0.81.1与OMPforkAPI事实。
+- **Version alignment:** `support-pi-0-82-1`仍是未完成change；implementation必须选一个精确officialPihostbaseline并同步revision-boundtests，不能混用0.81.1与OMPforkAPI事实。

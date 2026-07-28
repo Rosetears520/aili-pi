@@ -229,8 +229,14 @@ export class PersistentAgentProduction {
     const workspace = input ? await this.ensureWorkspace(state, input) : state.workspaces.get(controller.agentId);
     if (!workspace) throw new Error(`${controller.agentId}: workspace record is unavailable for revive`);
     const childCwd = state.childCwds.get(controller.agentId) ?? workspace.root;
+    const modeConfig = loadModeConfig(workspace.root, getAgentDir(), (message) => context.ui.notify(message, "warning"));
+    const mode = currentMode(modeConfig, context);
+    const sandbox = resolvePersistentAgentSandbox(mode.sandbox);
+    const sandboxedBash = sandbox.operations
+      ? createBashToolDefinition(childCwd, { operations: sandbox.operations }) as unknown as ToolDefinition
+      : undefined;
 
-    const nestedDefinitions = this.childToolDefinitions(state, input, role);
+    const nestedDefinitions = this.childToolDefinitions(state, input, role, sandboxedBash);
     const parent: ParentToolSnapshot = {
       active: this.pi.getActiveTools(),
       definitions: new Map(nestedDefinitions.map((definition) => [definition.name, definition])),
@@ -244,18 +250,6 @@ export class PersistentAgentProduction {
       hardDenied: input ? [] : ["task"],
       currentDepth: input?.depth ?? Number(agent.metadata?.depth ?? 0),
     });
-    const modeConfig = loadModeConfig(workspace.root, getAgentDir(), (message) => context.ui.notify(message, "warning"));
-    const mode = currentMode(modeConfig, context);
-    const sandboxResolution = policy.effectiveTools.includes("bash")
-      ? resolvePersistentAgentSandbox(mode.sandbox)
-      : { available: false, reason: "bash-not-enabled" };
-    const sandboxDefinition = sandboxResolution.operations
-      ? createBashToolDefinition(childCwd, { operations: sandboxResolution.operations }) as unknown as ToolDefinition
-      : undefined;
-    const effectivePolicy = sandboxDefinition
-      ? { ...policy, customTools: [...policy.customTools.filter((tool) => tool.name !== "bash"), sandboxDefinition] }
-      : policy;
-
     const configs = await new ModelConfigStore({
       globalPath: defaultGlobalModelConfigPath(),
       projectPath: defaultProjectModelConfigPath(context.cwd),
@@ -288,10 +282,8 @@ export class PersistentAgentProduction {
           sourceHash: role.sourceHash,
           profileVersion: role.profileVersion,
           runtimeAdapterVersion: role.runtimeAdapterVersion,
-          effectiveTools: effectivePolicy.effectiveTools,
-          unavailableTools: effectivePolicy.unavailable,
-          sandbox: mode.sandbox.enabled ? (sandboxDefinition ? "enabled" : "unavailable") : "disabled",
-          sandboxReason: sandboxResolution.reason,
+          effectiveTools: policy.effectiveTools,
+          unavailableTools: policy.unavailable,
           provider: choice.provider,
           model: choice.model,
           modelLayer: choice.layer,
@@ -302,7 +294,7 @@ export class PersistentAgentProduction {
       });
     }
 
-    const resolver = new ChildPermissionResolver({ mode, cwd: childCwd, sandboxExecutorAvailable: Boolean(sandboxDefinition) });
+    const resolver = new ChildPermissionResolver({ mode, cwd: childCwd, sandboxExecutorAvailable: sandbox.available });
     const permission = brokeredChildPermission(resolver, state.approval, {
       agentId: controller.agentId,
       jobId: input?.jobId ?? `hub-${controller.agentId}`,
@@ -321,7 +313,7 @@ export class PersistentAgentProduction {
         `Agent ID: ${controller.agentId}`,
         `Model: ${choice.canonical} (${choice.layer}, thinking=${choice.thinking})`,
         `Unavailable requested tools: ${policy.unavailable.map((item) => `${item.name}:${item.reason}`).join(", ") || "none"}`,
-        `Child sandbox: ${mode.sandbox.enabled ? (sandboxDefinition ? "active" : `unavailable (${sandboxResolution.reason ?? "unknown"})`) : "not required by active mode"}`,
+        `Child sandbox: ${mode.sandbox.enabled ? (sandbox.available ? "active" : `unavailable (${sandbox.reason ?? "unknown"})`) : "not required by active mode"}`,
       ].join("\n"),
       role,
       task: input?.item.task ?? "Continue this persistent Agent from the explicit hub message.",
@@ -335,7 +327,7 @@ export class PersistentAgentProduction {
       projectTrusted: context.isProjectTrusted(),
       sessionManager: manager,
       prompt,
-      policy: effectivePolicy,
+      policy,
       childExtensions: [
         { name: "aili-child-approval", factory: approval },
         { name: "aili-child-workspace", factory: createWorkspaceMutationGuard(state.leases, controller.agentId) },
@@ -456,7 +448,12 @@ export class PersistentAgentProduction {
     return state;
   }
 
-  private childToolDefinitions(state: ParentState, input: PersistentRuntimeExecutorInput | undefined, role: RoleProfile): ToolDefinition[] {
+  private childToolDefinitions(
+    state: ParentState,
+    input: PersistentRuntimeExecutorInput | undefined,
+    role: RoleProfile,
+    sandboxedBash?: ToolDefinition,
+  ): ToolDefinition[] {
     const task: ToolDefinition = {
       name: "task",
       label: "Task",
@@ -483,7 +480,7 @@ export class PersistentAgentProduction {
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
       },
     };
-    return [task, hub];
+    return [task, hub, ...(sandboxedBash ? [sandboxedBash] : [])];
   }
 
   private async ensureWorkspace(state: ParentState, input: PersistentRuntimeExecutorInput): Promise<WorkspaceLease> {

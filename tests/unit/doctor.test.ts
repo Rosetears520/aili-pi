@@ -69,12 +69,12 @@ describe("capability registry", () => {
 
   it("validates the package-wide AGPL disposition and rejects stale generated metadata", () => {
     const valid = {
-      packageManifest: { name: "@rosetears/aili-pi", version: "0.1.13", license: "AGPL-3.0-or-later" },
-      packageLockRoot: { name: "@rosetears/aili-pi", version: "0.1.13", license: "AGPL-3.0-or-later" },
+      packageManifest: { name: "@rosetears/aili-pi", version: "0.1.15", license: "AGPL-3.0-or-later" },
+      packageLockRoot: { name: "@rosetears/aili-pi", version: "0.1.15", license: "AGPL-3.0-or-later" },
       licenseSha256: "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
       readme: "version 0.1.13 and later is licensed under `AGPL-3.0-or-later`. Corresponding source is available from the repository declared in `package.json`.",
       notices: "This distribution is AGPL-3.0-or-later licensed. Adapted sources retain their own license terms.",
-      sbomRoot: { name: "@rosetears/aili-pi", versionInfo: "0.1.13", licenseConcluded: "AGPL-3.0-or-later", licenseDeclared: "AGPL-3.0-or-later" },
+      sbomRoot: { name: "@rosetears/aili-pi", versionInfo: "0.1.15", licenseConcluded: "AGPL-3.0-or-later", licenseDeclared: "AGPL-3.0-or-later" },
     };
     expect(validateLicenseDispositionData(valid)).toEqual([]);
     expect(validateLicenseDispositionData({
@@ -136,12 +136,15 @@ describe("doctor", () => {
     expect(JSON.parse(JSON.stringify(report))).toEqual(report);
   });
 
-  it("distinguishes exclusive Pi compaction settings without exposing file content", () => {
+  it("reports cooperative Pi compaction settings without exposing file content", () => {
     expect(assessPiCompactionSettings('{"theme":"rose","compaction":{"enabled":false}}')).toEqual({
-      id: "pi.compaction", status: "PASS", evidence: "global=disabled; project=absent",
+      id: "pi.compaction", status: "UNVERIFIED", evidence: "nativeAutomaticFallback=disabled-config; nativeAutomaticFallbackProvenance=unknown; global=disabled; project=absent; manual=available",
     });
     expect(assessPiCompactionSettings('{"compaction":{"enabled":false}}', '{"compaction":{"enabled":true},"secret":"do-not-render"}')).toEqual({
-      id: "pi.compaction", status: "ERROR", evidence: "global=disabled; project=override-enabled",
+      id: "pi.compaction", status: "PASS", evidence: "nativeAutomaticFallback=enabled; nativeAutomaticFallbackProvenance=explicit-user; global=disabled; project=enabled",
+    });
+    expect(assessPiCompactionSettings(undefined)).toEqual({
+      id: "pi.compaction", status: "PASS", evidence: "nativeAutomaticFallback=enabled; nativeAutomaticFallbackProvenance=unknown; global=absent; project=absent",
     });
     expect(assessPiCompactionSettings('{broken SECRET_TOKEN')).toEqual({
       id: "pi.compaction", status: "ERROR", evidence: "global=malformed; project=not-evaluated",

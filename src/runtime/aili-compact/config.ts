@@ -45,6 +45,10 @@ export interface CompactConfig {
   };
   protection: {
     recentUserMessages: number;
+    preserveRecentAtoms: number;
+    preserveRecentTokens: number;
+    preserveRecentTokenCapRatio: number;
+    preserveLastUserMessage: true;
     protectUserMessages: boolean;
     protectTags: boolean;
     tools: string[];
@@ -70,6 +74,33 @@ export interface CompactConfig {
     maxOldSummaryChars: number;
     majorThresholdPercent: number;
   };
+  checkpoint: {
+    mode: "hybrid";
+    deterministic: boolean;
+    nativeFallback: true;
+    autoRescue: boolean;
+  };
+  planning: { enabled: boolean };
+  quality: { enabled: boolean; warningPolicy: "record" | "reject" };
+  providerSuffix: { enabled: boolean; maxChars: number; maxTokens: number };
+  tokenEconomics: {
+    minSavingsRatio: number;
+    minSteadySavingsTokens: { T1: number; T2: number; T3: number };
+    maxBreakEvenTurns: { NORMAL: number; PRESSURE: number; FORCE_SEMANTIC: number };
+  };
+  tiers: {
+    enabled: boolean;
+    restill: {
+      enabled: boolean;
+      minChildren: number;
+      minSourceTokens: number;
+      minSavingsTokens: number;
+      minSavingsRatio: number;
+      maxSummaryTokens: number;
+      minTurnsSinceCreate: number;
+    };
+  };
+  index: { enabled: boolean; snapshotLru: number };
 }
 
 export interface CompactConfigResult {
@@ -100,6 +131,10 @@ export const DEFAULT_COMPACT_CONFIG: Readonly<CompactConfig> = Object.freeze<Com
   },
   protection: {
     recentUserMessages: 2,
+    preserveRecentAtoms: 8,
+    preserveRecentTokens: 12_000,
+    preserveRecentTokenCapRatio: 0.10,
+    preserveLastUserMessage: true,
     protectUserMessages: false,
     protectTags: false,
     tools: [...HARD_PROTECTED_TOOLS],
@@ -107,7 +142,7 @@ export const DEFAULT_COMPACT_CONFIG: Readonly<CompactConfig> = Object.freeze<Com
   },
   strategies: {
     dedupe: { enabled: true },
-    purgeErrors: { enabled: true, graceTurns: 4 },
+    purgeErrors: { enabled: true, graceTurns: 5 },
   },
   nudges: {
     minContextPercent: 45,
@@ -125,6 +160,33 @@ export const DEFAULT_COMPACT_CONFIG: Readonly<CompactConfig> = Object.freeze<Com
     maxOldSummaryChars: 3_000,
     majorThresholdPercent: 100,
   },
+  checkpoint: {
+    mode: "hybrid",
+    deterministic: true,
+    nativeFallback: true,
+    autoRescue: true,
+  },
+  planning: { enabled: true },
+  quality: { enabled: true, warningPolicy: "record" },
+  providerSuffix: { enabled: true, maxChars: 2_048, maxTokens: 512 },
+  tokenEconomics: {
+    minSavingsRatio: 0.20,
+    minSteadySavingsTokens: { T1: 256, T2: 512, T3: 768 },
+    maxBreakEvenTurns: { NORMAL: 8, PRESSURE: 4, FORCE_SEMANTIC: 1 },
+  },
+  tiers: {
+    enabled: true,
+    restill: {
+      enabled: true,
+      minChildren: 2,
+      minSourceTokens: 8_000,
+      minSavingsTokens: 1_024,
+      minSavingsRatio: 0.25,
+      maxSummaryTokens: 3_000,
+      minTurnsSinceCreate: 8,
+    },
+  },
+  index: { enabled: true, snapshotLru: 4 },
 });
 
 export const EMPTY_COMPACT_PROMPT_SNAPSHOT: Readonly<CompactPromptSnapshot> = Object.freeze({
@@ -149,6 +211,20 @@ type ConfigPatch = Partial<{
   nudges: Partial<CompactConfig["nudges"]>;
   subagents: Partial<CompactConfig["subagents"]>;
   gc: Partial<CompactConfig["gc"]>;
+  checkpoint: Partial<CompactConfig["checkpoint"]>;
+  planning: Partial<CompactConfig["planning"]>;
+  quality: Partial<CompactConfig["quality"]>;
+  providerSuffix: Partial<CompactConfig["providerSuffix"]>;
+  tokenEconomics: {
+    minSavingsRatio?: number;
+    minSteadySavingsTokens?: Partial<CompactConfig["tokenEconomics"]["minSteadySavingsTokens"]>;
+    maxBreakEvenTurns?: Partial<CompactConfig["tokenEconomics"]["maxBreakEvenTurns"]>;
+  };
+  tiers: {
+    enabled?: boolean;
+    restill?: Partial<CompactConfig["tiers"]["restill"]>;
+  };
+  index: Partial<CompactConfig["index"]>;
 }>;
 
 export function resolveCompactConfig(globalValue: unknown, projectValue: unknown): CompactConfig {
@@ -242,6 +318,18 @@ function applyValidatedPatch(base: CompactConfig, patch: ConfigPatch, source: st
   if (patch.nudges) next.nudges = { ...next.nudges, ...patch.nudges };
   if (patch.subagents) next.subagents = { ...next.subagents, ...patch.subagents };
   if (patch.gc) next.gc = { ...next.gc, ...patch.gc };
+  if (patch.checkpoint) next.checkpoint = { ...next.checkpoint, ...patch.checkpoint };
+  if (patch.planning) next.planning = { ...next.planning, ...patch.planning };
+  if (patch.quality) next.quality = { ...next.quality, ...patch.quality };
+  if (patch.providerSuffix) next.providerSuffix = { ...next.providerSuffix, ...patch.providerSuffix };
+  if (patch.tokenEconomics) next.tokenEconomics = {
+    ...next.tokenEconomics,
+    ...patch.tokenEconomics,
+    minSteadySavingsTokens: { ...next.tokenEconomics.minSteadySavingsTokens, ...patch.tokenEconomics.minSteadySavingsTokens },
+    maxBreakEvenTurns: { ...next.tokenEconomics.maxBreakEvenTurns, ...patch.tokenEconomics.maxBreakEvenTurns },
+  };
+  if (patch.tiers) next.tiers = { ...next.tiers, ...patch.tiers, restill: { ...next.tiers.restill, ...patch.tiers.restill } };
+  if (patch.index) next.index = { ...next.index, ...patch.index };
 
   if (next.compress.summaryMaxChars > next.compress.summaryHardMaxChars) {
     diagnostics.push(`config-invalid-thresholds:${source}:compress`);
@@ -264,7 +352,7 @@ function parseConfigPatch(value: unknown, source: string, diagnostics: string[])
     diagnostics.push(`config-invalid-type:${source}:root`);
     return {};
   }
-  reportUnknownKeys(value, ["enabled", "manualMode", "autoCooling", "cachePanel", "compress", "protection", "strategies", "nudges", "subagents", "gc", "experimental"], source, "", diagnostics);
+  reportUnknownKeys(value, ["enabled", "manualMode", "autoCooling", "cachePanel", "compress", "protection", "strategies", "nudges", "subagents", "gc", "checkpoint", "planning", "quality", "providerSuffix", "tokenEconomics", "tiers", "index", "experimental"], source, "", diagnostics);
   const patch: ConfigPatch = {};
   assignBoolean(value, "enabled", source, "enabled", diagnostics, patch);
   assignBoolean(value, "manualMode", source, "manualMode", diagnostics, patch);
@@ -277,6 +365,13 @@ function parseConfigPatch(value: unknown, source: string, diagnostics: string[])
   if (value.nudges !== undefined) patch.nudges = parseNudges(value.nudges, source, diagnostics);
   if (value.subagents !== undefined) patch.subagents = parseBooleanObject(value.subagents, source, "subagents", diagnostics);
   if (value.gc !== undefined) patch.gc = parseGc(value.gc, source, diagnostics);
+  if (value.checkpoint !== undefined) patch.checkpoint = parseCheckpoint(value.checkpoint, source, diagnostics);
+  if (value.planning !== undefined) patch.planning = parseBooleanObject(value.planning, source, "planning", diagnostics);
+  if (value.quality !== undefined) patch.quality = parseQuality(value.quality, source, diagnostics);
+  if (value.providerSuffix !== undefined) patch.providerSuffix = parseProviderSuffix(value.providerSuffix, source, diagnostics);
+  if (value.tokenEconomics !== undefined) patch.tokenEconomics = parseTokenEconomics(value.tokenEconomics, source, diagnostics);
+  if (value.tiers !== undefined) patch.tiers = parseTiers(value.tiers, source, diagnostics);
+  if (value.index !== undefined) patch.index = parseIndex(value.index, source, diagnostics);
   if (value.experimental !== undefined) {
     if (!isRecord(value.experimental)) diagnostics.push(`config-invalid-type:${source}:experimental`);
     else {
@@ -307,9 +402,18 @@ function parseCompress(value: unknown, source: string, diagnostics: string[]): P
 
 function parseProtection(value: unknown, source: string, diagnostics: string[]): Partial<CompactConfig["protection"]> {
   if (!isRecord(value)) return invalidObject(source, "protection", diagnostics);
-  reportUnknownKeys(value, ["recentUserMessages", "protectUserMessages", "protectTags", "tools", "fileGlobs"], source, "protection", diagnostics);
+  reportUnknownKeys(value, ["recentUserMessages", "preserveRecentAtoms", "preserveRecentTokens", "preserveRecentTokenCapRatio", "preserveLastUserMessage", "protectUserMessages", "protectTags", "tools", "fileGlobs"], source, "protection", diagnostics);
   const patch: Partial<CompactConfig["protection"]> = {};
   assignInteger(value, "recentUserMessages", 2, 20, source, "protection.recentUserMessages", diagnostics, patch);
+  if (patch.recentUserMessages !== undefined) diagnostics.push("config-deprecated:recentUserMessages");
+  assignInteger(value, "preserveRecentAtoms", 8, 128, source, "protection.preserveRecentAtoms", diagnostics, patch);
+  assignInteger(value, "preserveRecentTokens", 12_000, 1_000_000, source, "protection.preserveRecentTokens", diagnostics, patch);
+  assignNumber(value, "preserveRecentTokenCapRatio", 0.10, 1, source, "protection.preserveRecentTokenCapRatio", diagnostics, patch);
+  if (value.preserveLastUserMessage !== undefined) {
+    if (value.preserveLastUserMessage === true) patch.preserveLastUserMessage = true;
+    else if (value.preserveLastUserMessage === false) diagnostics.push("config-invalid-unsafe-protection");
+    else diagnostics.push(`config-invalid-type:${source}:protection.preserveLastUserMessage`);
+  }
   assignBoolean(value, "protectUserMessages", source, "protection.protectUserMessages", diagnostics, patch);
   assignBoolean(value, "protectTags", source, "protection.protectTags", diagnostics, patch);
   assignStringArray(value, "tools", source, "protection.tools", diagnostics, patch);
@@ -328,7 +432,7 @@ function parseStrategies(value: unknown, source: string, diagnostics: string[]):
       reportUnknownKeys(value.purgeErrors, ["enabled", "graceTurns"], source, "strategies.purgeErrors", diagnostics);
       const purge: Partial<CompactConfig["strategies"]["purgeErrors"]> = {};
       assignBoolean(value.purgeErrors, "enabled", source, "strategies.purgeErrors.enabled", diagnostics, purge);
-      assignInteger(value.purgeErrors, "graceTurns", 1, 50, source, "strategies.purgeErrors.graceTurns", diagnostics, purge);
+      assignInteger(value.purgeErrors, "graceTurns", 5, 50, source, "strategies.purgeErrors.graceTurns", diagnostics, purge);
       patch.purgeErrors = purge;
     }
   }
@@ -355,8 +459,111 @@ function parseGc(value: unknown, source: string, diagnostics: string[]): Partial
   const patch: Partial<CompactConfig["gc"]> = {};
   assignInteger(value, "promotionSurvivals", 1, 100, source, "gc.promotionSurvivals", diagnostics, patch);
   assignInteger(value, "maxBlockAge", 1, 1_000, source, "gc.maxBlockAge", diagnostics, patch);
+  if (patch.maxBlockAge !== undefined) diagnostics.push("config-deprecated:maxBlockAge");
   assignInteger(value, "maxOldSummaryChars", 256, 10_000, source, "gc.maxOldSummaryChars", diagnostics, patch);
   assignInteger(value, "majorThresholdPercent", 90, 100, source, "gc.majorThresholdPercent", diagnostics, patch);
+  return patch;
+}
+
+function parseCheckpoint(value: unknown, source: string, diagnostics: string[]): Partial<CompactConfig["checkpoint"]> {
+  if (!isRecord(value)) return invalidObject(source, "checkpoint", diagnostics);
+  reportUnknownKeys(value, ["mode", "deterministic", "nativeFallback", "autoRescue"], source, "checkpoint", diagnostics);
+  const patch: Partial<CompactConfig["checkpoint"]> = {};
+  if (value.mode !== undefined) {
+    if (value.mode === "hybrid") patch.mode = "hybrid";
+    else diagnostics.push(`config-invalid-type:${source}:checkpoint.mode`);
+  }
+  assignBoolean(value, "deterministic", source, "checkpoint.deterministic", diagnostics, patch);
+  if (value.nativeFallback !== undefined) {
+    if (value.nativeFallback === true) patch.nativeFallback = true;
+    else if (value.nativeFallback === false) diagnostics.push("config-invalid-unsafe-checkpoint");
+    else diagnostics.push(`config-invalid-type:${source}:checkpoint.nativeFallback`);
+  }
+  assignBoolean(value, "autoRescue", source, "checkpoint.autoRescue", diagnostics, patch);
+  return patch;
+}
+
+function parseQuality(value: unknown, source: string, diagnostics: string[]): Partial<CompactConfig["quality"]> {
+  if (!isRecord(value)) return invalidObject(source, "quality", diagnostics);
+  reportUnknownKeys(value, ["enabled", "warningPolicy"], source, "quality", diagnostics);
+  const patch: Partial<CompactConfig["quality"]> = {};
+  assignBoolean(value, "enabled", source, "quality.enabled", diagnostics, patch);
+  if (value.warningPolicy !== undefined) {
+    if (value.warningPolicy === "record" || value.warningPolicy === "reject") patch.warningPolicy = value.warningPolicy;
+    else diagnostics.push(`config-invalid-type:${source}:quality.warningPolicy`);
+  }
+  return patch;
+}
+
+function parseProviderSuffix(value: unknown, source: string, diagnostics: string[]): Partial<CompactConfig["providerSuffix"]> {
+  if (!isRecord(value)) return invalidObject(source, "providerSuffix", diagnostics);
+  reportUnknownKeys(value, ["enabled", "maxChars", "maxTokens"], source, "providerSuffix", diagnostics);
+  const patch: Partial<CompactConfig["providerSuffix"]> = {};
+  assignBoolean(value, "enabled", source, "providerSuffix.enabled", diagnostics, patch);
+  assignInteger(value, "maxChars", 256, 2_048, source, "providerSuffix.maxChars", diagnostics, patch);
+  assignInteger(value, "maxTokens", 64, 512, source, "providerSuffix.maxTokens", diagnostics, patch);
+  return patch;
+}
+
+function parseTokenEconomics(value: unknown, source: string, diagnostics: string[]): ConfigPatch["tokenEconomics"] {
+  if (!isRecord(value)) return invalidObject(source, "tokenEconomics", diagnostics);
+  reportUnknownKeys(value, ["minSavingsRatio", "minSteadySavingsTokens", "maxBreakEvenTurns"], source, "tokenEconomics", diagnostics);
+  const patch: NonNullable<ConfigPatch["tokenEconomics"]> = {};
+  assignNumber(value, "minSavingsRatio", 0.20, 1, source, "tokenEconomics.minSavingsRatio", diagnostics, patch);
+  if (value.minSteadySavingsTokens !== undefined) {
+    if (!isRecord(value.minSteadySavingsTokens)) diagnostics.push(`config-invalid-type:${source}:tokenEconomics.minSteadySavingsTokens`);
+    else {
+      reportUnknownKeys(value.minSteadySavingsTokens, ["T1", "T2", "T3"], source, "tokenEconomics.minSteadySavingsTokens", diagnostics);
+      const tiers: Partial<CompactConfig["tokenEconomics"]["minSteadySavingsTokens"]> = {};
+      assignInteger(value.minSteadySavingsTokens, "T1", 256, 1_000_000, source, "tokenEconomics.minSteadySavingsTokens.T1", diagnostics, tiers);
+      assignInteger(value.minSteadySavingsTokens, "T2", 512, 1_000_000, source, "tokenEconomics.minSteadySavingsTokens.T2", diagnostics, tiers);
+      assignInteger(value.minSteadySavingsTokens, "T3", 768, 1_000_000, source, "tokenEconomics.minSteadySavingsTokens.T3", diagnostics, tiers);
+      patch.minSteadySavingsTokens = tiers;
+    }
+  }
+  if (value.maxBreakEvenTurns !== undefined) {
+    if (!isRecord(value.maxBreakEvenTurns)) diagnostics.push(`config-invalid-type:${source}:tokenEconomics.maxBreakEvenTurns`);
+    else {
+      reportUnknownKeys(value.maxBreakEvenTurns, ["NORMAL", "PRESSURE", "FORCE_SEMANTIC"], source, "tokenEconomics.maxBreakEvenTurns", diagnostics);
+      const horizons: Partial<CompactConfig["tokenEconomics"]["maxBreakEvenTurns"]> = {};
+      assignInteger(value.maxBreakEvenTurns, "NORMAL", 0, 8, source, "tokenEconomics.maxBreakEvenTurns.NORMAL", diagnostics, horizons);
+      assignInteger(value.maxBreakEvenTurns, "PRESSURE", 0, 4, source, "tokenEconomics.maxBreakEvenTurns.PRESSURE", diagnostics, horizons);
+      assignInteger(value.maxBreakEvenTurns, "FORCE_SEMANTIC", 0, 1, source, "tokenEconomics.maxBreakEvenTurns.FORCE_SEMANTIC", diagnostics, horizons);
+      patch.maxBreakEvenTurns = horizons;
+    }
+  }
+  return patch;
+}
+
+function parseTiers(value: unknown, source: string, diagnostics: string[]): ConfigPatch["tiers"] {
+  if (!isRecord(value)) return invalidObject(source, "tiers", diagnostics);
+  reportUnknownKeys(value, ["enabled", "restill"], source, "tiers", diagnostics);
+  const patch: NonNullable<ConfigPatch["tiers"]> = {};
+  assignBoolean(value, "enabled", source, "tiers.enabled", diagnostics, patch);
+  if (value.restill !== undefined) {
+    if (!isRecord(value.restill)) diagnostics.push(`config-invalid-type:${source}:tiers.restill`);
+    else {
+      reportUnknownKeys(value.restill, ["enabled", "minChildren", "minSourceTokens", "minSavingsTokens", "minSavingsRatio", "maxSummaryTokens", "minTurnsSinceCreate"], source, "tiers.restill", diagnostics);
+      const restill: Partial<CompactConfig["tiers"]["restill"]> = {};
+      assignBoolean(value.restill, "enabled", source, "tiers.restill.enabled", diagnostics, restill);
+      assignInteger(value.restill, "minChildren", 2, 16, source, "tiers.restill.minChildren", diagnostics, restill);
+      assignInteger(value.restill, "minSourceTokens", 8_000, 1_000_000, source, "tiers.restill.minSourceTokens", diagnostics, restill);
+      assignInteger(value.restill, "minSavingsTokens", 1_024, 1_000_000, source, "tiers.restill.minSavingsTokens", diagnostics, restill);
+      assignNumber(value.restill, "minSavingsRatio", 0.25, 1, source, "tiers.restill.minSavingsRatio", diagnostics, restill);
+      assignInteger(value.restill, "maxSummaryTokens", 256, 3_000, source, "tiers.restill.maxSummaryTokens", diagnostics, restill);
+      assignInteger(value.restill, "minTurnsSinceCreate", 8, 10_000, source, "tiers.restill.minTurnsSinceCreate", diagnostics, restill);
+      patch.restill = restill;
+    }
+  }
+  return patch;
+}
+
+function parseIndex(value: unknown, source: string, diagnostics: string[]): Partial<CompactConfig["index"]> {
+  if (!isRecord(value)) return invalidObject(source, "index", diagnostics);
+  reportUnknownKeys(value, ["enabled", "snapshotLru"], source, "index", diagnostics);
+  const patch: Partial<CompactConfig["index"]> = {};
+  assignBoolean(value, "enabled", source, "index.enabled", diagnostics, patch);
+  assignInteger(value, "snapshotLru", 1, 4, source, "index.snapshotLru", diagnostics, patch);
   return patch;
 }
 
@@ -414,6 +621,17 @@ function cloneConfig(config: Readonly<CompactConfig>): CompactConfig {
     nudges: { ...config.nudges },
     subagents: { ...config.subagents },
     gc: { ...config.gc },
+    checkpoint: { ...config.checkpoint },
+    planning: { ...config.planning },
+    quality: { ...config.quality },
+    providerSuffix: { ...config.providerSuffix },
+    tokenEconomics: {
+      ...config.tokenEconomics,
+      minSteadySavingsTokens: { ...config.tokenEconomics.minSteadySavingsTokens },
+      maxBreakEvenTurns: { ...config.tokenEconomics.maxBreakEvenTurns },
+    },
+    tiers: { ...config.tiers, restill: { ...config.tiers.restill } },
+    index: { ...config.index },
   };
 }
 

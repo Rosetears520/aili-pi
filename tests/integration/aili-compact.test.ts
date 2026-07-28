@@ -5,6 +5,14 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it } from "vitest";
 import { registerAiliCompact } from "../../src/runtime/aili-compact/index.js";
 import { sourceDigest } from "../../src/runtime/aili-compact/contracts.js";
+import { reduceCompactState } from "../../src/runtime/aili-compact/reducer.js";
+import { deriveRuntimeCatalogIdForState } from "../../src/runtime/aili-compact/runtime-catalog.js";
+import {
+  AILI_COMPACT_SCHEMA_V3,
+  createEmptyV3State,
+  v3MessageLeafDigest,
+  v3SummaryDigest,
+} from "../../src/runtime/aili-compact/v3.js";
 
 type RegisteredTool = {
   name: string;
@@ -13,7 +21,11 @@ type RegisteredTool = {
 
 type Handler = (event: any, context: any) => any;
 
-function harness(options: { sendUserMessageThrows?: boolean } = {}) {
+function harness(options: {
+  sendUserMessageThrows?: boolean;
+  appendEntryThrows?: boolean;
+  onAppendEntry?: (customType: string, data: unknown) => void;
+} = {}) {
   const tools: RegisteredTool[] = [];
   const commands: string[] = [];
   const commandHandlers = new Map<string, (args: string, context: any) => Promise<void>>();
@@ -24,14 +36,21 @@ function harness(options: { sendUserMessageThrows?: boolean } = {}) {
     registerTool(tool: RegisteredTool) { tools.push(tool); },
     registerCommand(name: string, command: { handler: (args: string, context: any) => Promise<void> }) { commands.push(name); commandHandlers.set(name, command.handler); },
     on(event: string, handler: Handler) { handlers.set(event, handler); },
-    appendEntry(customType: string, data: unknown) { appended.push({ customType, data }); },
+    appendEntry(customType: string, data: unknown) {
+      if (options.appendEntryThrows) throw new Error("append failed");
+      appended.push({ customType, data });
+      options.onAppendEntry?.(customType, data);
+    },
     sendUserMessage(message: string) { if (options.sendUserMessageThrows) throw new Error("send failed"); requested.push(message); },
   } as unknown as ExtensionAPI);
   return { tools, commands, commandHandlers, handlers, appended, requested };
 }
 
 function successfulCompactResult(id: string, contextTx: Record<string, unknown> & { id?: unknown; kind?: unknown }, toolCallId = typeof contextTx.id === "string" ? contextTx.id : `call:${id}`) {
-  const toolName = contextTx.kind === "prune" ? "aili_prune" : contextTx.kind === "decompress" ? "aili_decompress" : "aili_compact";
+  const tag = typeof contextTx.tag === "string" ? contextTx.tag : undefined;
+  const toolName = contextTx.kind === "prune" ? "aili_prune"
+    : contextTx.kind === "decompress" || tag === "decompress" ? "aili_decompress"
+      : "aili_compact";
   return { id, type: "message", message: { role: "toolResult", toolCallId, toolName, content: [], isError: false, details: { contextTx } } };
 }
 
@@ -39,13 +58,28 @@ function context(entries: any[], usage?: { tokens: number | null; contextWindow:
   const statuses: string[] = [];
   const notifications: string[] = [];
   const widgets: Array<{ key: string; content: string[] | undefined }> = [];
+  const compactCalls: Array<{ onComplete?: (result?: unknown) => void; onError?: (error: Error) => void }> = [];
   return {
     cwd,
+    model: {
+      provider: "openai",
+      id: "gpt-4.1",
+      api: "openai-responses",
+      name: "Known OpenAI integration fixture",
+      baseUrl: "https://fixture.invalid",
+      reasoning: false,
+      input: ["text"],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: 128_000,
+      maxTokens: 4_096,
+    },
     isIdle: () => activity.idle,
     hasPendingMessages: () => activity.pending,
     getContextUsage: () => usage,
+    compact(options: { onComplete?: (result?: unknown) => void; onError?: (error: Error) => void } = {}) { compactCalls.push(options); },
     sessionManager: {
       getSessionId: () => "session",
+      getSessionFile: () => undefined,
       getLeafId: () => entries.at(-1)?.id ?? null,
       getBranch: () => entries,
     },
@@ -57,6 +91,23 @@ function context(entries: any[], usage?: { tokens: number | null; contextWindow:
     statuses,
     notifications,
     widgets,
+    compactCalls,
+  };
+}
+
+function beforeCompactEvent(entries: any[], reason: "manual" | "threshold" | "overflow", firstKeptEntryId = entries[0]?.id ?? "missing") {
+  return {
+    type: "session_before_compact",
+    reason,
+    willRetry: reason === "overflow",
+    branchEntries: entries,
+    preparation: {
+      firstKeptEntryId,
+      tokensBefore: 32_000,
+      messagesToSummarize: [],
+      turnPrefixMessages: [],
+    },
+    signal: new AbortController().signal,
   };
 }
 
@@ -64,9 +115,146 @@ function mutationCall(entries: any[], id: string, name: "aili_compact" | "aili_d
   entries.push({ id: `assistant:${id}`, type: "message", message: { role: "assistant", content: [{ type: "toolCall", id, name, arguments: arguments_ }] } });
 }
 
-async function statusSnapshot(runtime: ReturnType<typeof harness>, entries: any[]) {
+async function statusSnapshot(runtime: ReturnType<typeof harness>, entries: any[], ctx = context(entries)) {
   const status = runtime.tools.find((tool) => tool.name === "aili_compact_status")!;
-  return JSON.parse((await status.execute("status", {}, undefined, undefined, context(entries))).content[0].text);
+  return JSON.parse((await status.execute("status", {}, undefined, undefined, ctx)).content[0].text);
+}
+
+const LOW_PRESSURE_USAGE = { tokens: 100, contextWindow: 50_000 };
+const ARCHIVED_SUMMARY = "Archived implementation detail.";
+
+function v3CompressibleEntries(): any[] {
+  return [
+    { id: "source", type: "message", message: { role: "assistant", content: `${ARCHIVED_SUMMARY} ${"x".repeat(20_000)}` } },
+    { id: "task-call", type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "task-boundary", name: "task", arguments: { task: "boundary" } }] } },
+    { id: "task-result", type: "message", message: { role: "toolResult", toolCallId: "task-boundary", toolName: "task", content: "protected boundary", details: { status: "accepted", agentId: "boundary-agent", jobId: "boundary-job" } } },
+    ...Array.from({ length: 7 }, (_, index) => ({
+      id: `tail-${index + 1}`,
+      type: "message",
+      message: { role: "assistant", content: `recent tail ${index + 1} ${"t".repeat(5_000)}` },
+    })),
+    { id: "current", type: "message", message: { role: "user", content: `current request ${"u".repeat(5_000)}` } },
+  ];
+}
+
+function repairableActivationBranch(label: string): any[] {
+  const source = {
+    id: `${label}:source`,
+    type: "message",
+    message: { role: "assistant", content: `${label}:raw-source` },
+  };
+  const createId = `${label}:create`;
+  const blockId = `${label}:block`;
+  const create = {
+    schema: "aili.compact.tx.v2",
+    id: createId,
+    kind: "compact",
+    epochId: "root",
+    blocks: [{
+      id: blockId,
+      kind: "semantic",
+      epochId: "root",
+      sourceEntryIds: [source.id],
+      sourceDigest: sourceDigest([source], [source.id]),
+      summary: `${label}:repaired-summary`,
+      active: true,
+      mode: "message",
+      topic: `${label}:topic`,
+      batchTopic: `${label}:topic`,
+      anchorEntryId: source.id,
+      runId: createId,
+      childBlockIds: [],
+      generation: "young",
+      survivedCount: 0,
+      age: 0,
+    }],
+  };
+  const call = {
+    id: `${label}:create-call`,
+    parentId: source.id,
+    type: "message",
+    message: {
+      role: "assistant",
+      content: [{ type: "toolCall", id: createId, name: "aili_compact", arguments: {} }],
+    },
+  };
+  const result = {
+    ...successfulCompactResult(`${label}:create-result`, create, createId),
+    parentId: call.id,
+  };
+  const gcEntry = {
+    id: `${label}:gc-entry`,
+    parentId: result.id,
+    type: "custom",
+    customType: "aili-compact",
+    data: {
+      schema: "aili.compact.tx.v2",
+      id: `${label}:gc`,
+      kind: "control",
+      epochId: "root",
+      lifecycleUpdates: [{ blockId, active: false, deactivationReason: "gc" }],
+    },
+  };
+  return [
+    source,
+    call,
+    result,
+    {
+      ...gcEntry,
+    },
+    {
+      id: `${label}:current`,
+      parentId: gcEntry.id,
+      type: "message",
+      message: { role: "user", content: `${label}:current-request` },
+    },
+  ];
+}
+
+function exactMessageParams(status: any, summary = ARCHIVED_SUMMARY) {
+  const range = status.references.safeRanges.find((candidate: any) => candidate.orderedRefs.includes("m000001"));
+  if (!range) throw new Error("missing exact safe range for fixture source");
+  return {
+    range,
+    params: {
+      mode: "message",
+      catalogId: status.references.catalogId,
+      topic: "Archived implementation",
+      items: range.orderedRefs.map((messageRef: string) => ({ messageRef, topic: "Archived implementation", summary })),
+    },
+  };
+}
+
+function persistAppendedV3(runtime: ReturnType<typeof harness>, entries: any[], id: string, transaction: any) {
+  expect(runtime.appended.at(-1)).toMatchObject({ customType: "aili-compact", data: transaction });
+  entries.push({ id, type: "custom", customType: "aili-compact", data: transaction });
+}
+
+function providerMessages(entries: any[]) {
+  return entries.filter((entry) => entry.type === "message").map((entry) => entry.message);
+}
+
+function observeCoolingTwice(runtime: ReturnType<typeof harness>, entries: any[], ctx: any) {
+  const project = runtime.handlers.get("context")!;
+  const settle = runtime.handlers.get("message_end")!;
+  project({ type: "context", messages: providerMessages(entries) }, ctx);
+  settle({ type: "message_end", message: { role: "assistant", content: "first later request", usage: { input: 10, output: 2, cacheRead: 0, cacheWrite: 0 } } }, ctx);
+  project({ type: "context", messages: providerMessages(entries) }, ctx);
+  settle({ type: "message_end", message: { role: "assistant", content: "second later request", usage: { input: 10, output: 2, cacheRead: 0, cacheWrite: 0 } } }, ctx);
+}
+
+function coolingEntries(): any[] {
+  const repeated = "retrieved output ".repeat(700);
+  return [
+    { id: "user", type: "message", message: { role: "user", content: "retrieve both snapshots" } },
+    { id: "call-1", type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "read-1", name: "read", arguments: { path: "one.txt" } }] } },
+    { id: "result-1", type: "message", message: { role: "toolResult", toolCallId: "read-1", toolName: "read", content: repeated } },
+    { id: "used-1", type: "message", message: { role: "assistant", content: "used the first result" } },
+    { id: "call-2", type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "read-2", name: "read", arguments: { path: "two.txt" } }] } },
+    { id: "result-2", type: "message", message: { role: "toolResult", toolCallId: "read-2", toolName: "read", content: repeated } },
+    { id: "used-2", type: "message", message: { role: "assistant", content: "used the second result" } },
+    { id: "later-user", type: "message", message: { role: "user", content: "continue after both results" } },
+  ];
 }
 
 function projectHealthy(runtime: ReturnType<typeof harness>, entries: any[], ctx: any) {
@@ -176,60 +364,115 @@ describe("AILI Compact runtime", () => {
     }
   });
 
-  it("commits a message transaction from status references and projects only the provider copy", async () => {
+  it("writes, raw-decompresses, recompresses, and projects a v3 T1 transaction", async () => {
     const runtime = harness();
-    const oldAnswer = "old answer ".repeat(600);
-    const entries: any[] = [
-      { id: "user-1", type: "message", message: { role: "user", content: "old question" } },
-      { id: "assistant-1", type: "message", message: { role: "assistant", content: oldAnswer } },
-      { id: "user-2", type: "message", message: { role: "user", content: "current question" } },
-    ];
-    const ctx = context(entries);
+    const entries = v3CompressibleEntries();
+    const rawSource = entries[0].message.content;
+    const ctx = context(entries, LOW_PRESSURE_USAGE);
     runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
-    const status = await statusSnapshot(runtime, entries);
-    const assistantRef = status.references.refs.find((ref: any) => ref.role === "assistant").ref;
-    const params = { mode: "message", catalogId: status.references.catalogId, topic: "Completed work", items: [{ messageRef: assistantRef, topic: "Answer", summary: "old work is complete" }] };
+    const status = await statusSnapshot(runtime, entries, ctx);
+    const { range, params } = exactMessageParams(status);
+    expect(range).toMatchObject({ startRef: "m000001", endRef: "m000001", orderedRefs: ["m000001"] });
     mutationCall(entries, "call-1", "aili_compact", params);
     const compact = runtime.tools.find((tool) => tool.name === "aili_compact")!;
     const result = await compact.execute("call-1", params, undefined, undefined, ctx);
-    expect(result.details.contextTx.blocks[0]).toMatchObject({ id: "block:call-1:1", sourceEntryIds: ["assistant-1"], active: true, mode: "message" });
-    expect(entries[1].message.content).toBe(oldAnswer);
+    expect(result.isError, result.content[0].text).not.toBe(true);
+    expect(result.details.contextTx).toMatchObject({
+      header: {
+        schema: "aili.compact.tx.v3",
+        txId: "call-1",
+        sessionId: "session",
+        epochId: "root",
+        catalogId: status.references.catalogId,
+        projectionVersion: "aili.projector.v3",
+      },
+      tag: "semantic-create",
+      payload: {
+        tier: "T1",
+        summary: ARCHIVED_SUMMARY,
+        source: { kind: "messages", entryIds: ["source"], firstEntryId: "source", lastEntryId: "source" },
+        quality: expect.objectContaining({ status: expect.stringMatching(/^accepted/) }),
+        tokens: expect.objectContaining({ providerId: "openai", modelId: "gpt-4.1" }),
+      },
+    });
+    expect(entries[0].message.content).toBe(rawSource);
 
-    entries.push(successfulCompactResult("compact-result", result.details.contextTx, "call-1"));
-    const projected = runtime.handlers.get("context")!({ type: "context", messages: entries.filter((entry) => entry.type === "message").map((entry) => entry.message) }, ctx);
-    expect(projected.messages).toEqual([
-      { role: "user", content: "old question" },
+    const compactTx = result.details.contextTx;
+    persistAppendedV3(runtime, entries, "custom:compact", compactTx);
+    entries.push(successfulCompactResult("compact-result", compactTx, "call-1"));
+    const projected = runtime.handlers.get("context")!({ type: "context", messages: providerMessages(entries) }, ctx);
+    expect(projected.messages).toEqual(expect.arrayContaining([
       expect.objectContaining({ role: "assistant", content: [expect.objectContaining({ name: "aili_context_recap", arguments: { blockRef: "b000001" } })] }),
-      expect.objectContaining({ role: "toolResult", toolName: "aili_context_recap", content: [expect.objectContaining({ text: expect.stringContaining("old work is complete") })] }),
-      { role: "user", content: "current question" },
-    ]);
+      expect.objectContaining({ role: "toolResult", toolName: "aili_context_recap", content: [expect.objectContaining({ text: expect.stringContaining(ARCHIVED_SUMMARY) })] }),
+    ]));
+    expect(JSON.stringify(projected.messages)).not.toContain(rawSource.slice(0, 200));
     expect(JSON.stringify(projected.messages)).not.toContain('"name":"aili_compact"');
     expect(ctx.statuses.at(-1)).toContain("AILI Compact on");
+
+    const compactedStatus = await statusSnapshot(runtime, entries, ctx);
+    expect(compactedStatus.references.activeRecaps).toEqual([
+      expect.objectContaining({ blockRef: "b000001", summaryPreview: ARCHIVED_SUMMARY }),
+    ]);
+    const decompressParams = {
+      catalogId: compactedStatus.references.catalogId,
+      blockRefs: ["b000001"],
+      depth: "raw",
+    };
+    mutationCall(entries, "decompress-1", "aili_decompress", decompressParams);
+    const decompressed = await runtime.tools.find((tool) => tool.name === "aili_decompress")!
+      .execute("decompress-1", decompressParams, undefined, undefined, ctx);
+    expect(decompressed.isError).not.toBe(true);
+    expect(decompressed.details.contextTx).toMatchObject({
+      tag: "decompress",
+      payload: { rootBlockIds: [compactTx.payload.blockId], depth: "raw", reason: "decompress" },
+    });
+    const decompressTx = decompressed.details.contextTx;
+    persistAppendedV3(runtime, entries, "custom:decompress", decompressTx);
+    entries.push(successfulCompactResult("decompress-result", decompressTx, "decompress-1"));
+    const restored = runtime.handlers.get("context")!({ type: "context", messages: providerMessages(entries) }, ctx);
+    expect(JSON.stringify(restored.messages)).toContain(rawSource.slice(0, 200));
+    expect((await statusSnapshot(runtime, entries, ctx)).references.activeRecaps).toEqual([]);
+
+    await runtime.commandHandlers.get("aili-compact")!("recompress b000001", ctx);
+    const recompressTx = runtime.appended.at(-1)!.data as any;
+    expect(recompressTx).toMatchObject({
+      tag: "recompress",
+      payload: {
+        rootBlockIds: [compactTx.payload.blockId],
+        decompressionTxId: decompressTx.header.txId,
+        reason: "recompress",
+      },
+    });
+    persistAppendedV3(runtime, entries, "custom:recompress", recompressTx);
+    const recompressed = runtime.handlers.get("context")!({ type: "context", messages: providerMessages(entries) }, ctx);
+    expect(JSON.stringify(recompressed.messages)).toContain(ARCHIVED_SUMMARY);
+    expect(JSON.stringify(recompressed.messages)).not.toContain(rawSource.slice(0, 200));
   });
 
-  it("accepts a complete range atom and rejects a split message atom", async () => {
+  it("publishes only complete protocol-atom ranges and rejects a split atom", async () => {
     const runtime = harness();
     const entries: any[] = [
-      { id: "old-user", type: "message", message: { role: "user", content: "old question" } },
       { id: "call", type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "read-1", name: "read", arguments: { path: "notes.txt" } }] } },
-      { id: "result", type: "message", message: { role: "toolResult", toolCallId: "read-1", toolName: "read", content: [{ type: "text", text: "old output ".repeat(700) }] } },
-      { id: "current", type: "message", message: { role: "user", content: "current question" } },
+      { id: "result", type: "message", message: { role: "toolResult", toolCallId: "read-1", toolName: "read", content: [{ type: "text", text: "old output ".repeat(10_000) }] } },
+      { id: "task-call", type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "task-boundary", name: "task", arguments: { task: "boundary" } }] } },
+      { id: "task-result", type: "message", message: { role: "toolResult", toolCallId: "task-boundary", toolName: "task", content: "protected boundary", details: { status: "accepted", agentId: "agent", jobId: "job" } } },
+      ...Array.from({ length: 7 }, (_, index) => ({ id: `tail-${index}`, type: "message", message: { role: "assistant", content: `tail ${"t".repeat(5_000)}` } })),
+      { id: "current", type: "message", message: { role: "user", content: `current ${"u".repeat(5_000)}` } },
     ];
     const compact = runtime.tools.find((tool) => tool.name === "aili_compact")!;
-    const status = await statusSnapshot(runtime, entries);
-    const atomRefs = status.references.refs.find((ref: any) => ref.ref === "m000002").atomRefs;
-    const fullParams = { mode: "range", catalogId: status.references.catalogId, topic: "Tool work", ranges: [{ startRef: atomRefs[0], endRef: atomRefs.at(-1), summary: "old tool work" }] };
-    mutationCall(entries, "atom", "aili_compact", fullParams);
-    const full = await compact.execute("atom", fullParams, undefined, undefined, context(entries));
-    expect(full.isError).not.toBe(true);
-    expect(full.details.contextTx.blocks[0]?.sourceEntryIds).toEqual(["call", "result"]);
+    const ctx = context(entries, LOW_PRESSURE_USAGE);
+    const status = await statusSnapshot(runtime, entries, ctx);
+    const exact = status.references.safeRanges.find((range: any) => range.orderedRefs.includes("m000001"));
+    expect(exact).toMatchObject({ startRef: "m000001", endRef: "m000002", orderedRefs: ["m000001", "m000002"] });
+    expect(status.references.refs[0].atomRefs).toEqual(["m000001", "m000002"]);
+    expect(status.references.refs[1].atomRefs).toEqual(["m000001", "m000002"]);
 
-    const refreshed = await statusSnapshot(runtime, entries);
-    const partialParams = { mode: "range", catalogId: refreshed.references.catalogId, topic: "Partial", ranges: [{ startRef: "m000002", endRef: "m000002", summary: "partial" }] };
+    const partialParams = { mode: "range", catalogId: status.references.catalogId, topic: "Partial", ranges: [{ startRef: "m000001", endRef: "m000001", summary: "partial" }] };
     mutationCall(entries, "partial", "aili_compact", partialParams);
-    const partial = await compact.execute("partial", partialParams, undefined, undefined, context(entries));
+    const partial = await compact.execute("partial", partialParams, undefined, undefined, ctx);
     expect(partial.isError).toBe(true);
-    expect(partial.content[0].text).toContain("incomplete-atom");
+    expect(partial.content[0].text).toContain("source-summary-scope-mismatch");
+    expect(runtime.appended).toEqual([]);
   });
 
   it("fails open after an append-only session off control", () => {
@@ -334,7 +577,78 @@ describe("AILI Compact runtime", () => {
     expect(ctx.notifications.at(-1)).toContain("缓存读取：20 · 缓存写入：0");
   });
 
-  it("refuses to create a second active block over the same source reference", async () => {
+  it("fails activation exact-raw across repeated repair branch movement and recovers on a stable tree activation", () => {
+    const movingBranches = ["activation-a", "activation-b", "activation-c"].map(repairableActivationBranch);
+    const stableBranch = repairableActivationBranch("activation-stable");
+    const entries = structuredClone(movingBranches[0]!);
+    const pendingMoves = [movingBranches[1]!, movingBranches[2]!];
+    let persistRepair = false;
+    let repairEntrySerial = 0;
+    const runtime = harness({
+      onAppendEntry(customType, data) {
+        const nextBranch = pendingMoves.shift();
+        if (nextBranch) {
+          entries.splice(0, entries.length, ...structuredClone(nextBranch));
+          return;
+        }
+        if (!persistRepair) return;
+        repairEntrySerial += 1;
+        entries.push({
+          id: `activation-stable:repair-entry:${repairEntrySerial}`,
+          parentId: entries.at(-1)?.id,
+          type: "custom",
+          customType,
+          data,
+        });
+      },
+    });
+    const ctx = context(entries, LOW_PRESSURE_USAGE);
+
+    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+    expect(runtime.appended.filter((item) => (item.data as any)?.type === "aili.compact.repair.v1")).toHaveLength(2);
+    expect(entries[0]?.id).toBe("activation-c:source");
+    expect(entries.some((entry) => entry.data?.type === "aili.compact.repair.v1")).toBe(false);
+
+    const rawMessages = entries.filter((entry) => entry.type === "message").map((entry) => entry.message);
+    const failOpen = runtime.handlers.get("context")!({ type: "context", messages: rawMessages }, ctx);
+    expect(failOpen.messages).toBe(rawMessages);
+    expect(JSON.stringify(failOpen.messages)).toContain("activation-c:raw-source");
+    expect(ctx.statuses.at(-1)).toContain("repair-branch-moved");
+
+    entries.splice(0, entries.length, ...structuredClone(stableBranch));
+    persistRepair = true;
+    const appendCountBeforeStableActivation = runtime.appended.length;
+    runtime.handlers.get("session_tree")!({ type: "session_tree", newLeafId: entries.at(-1)?.id }, ctx);
+    expect(runtime.appended).toHaveLength(appendCountBeforeStableActivation + 1);
+    expect(entries.filter((entry) => entry.data?.type === "aili.compact.repair.v1")).toHaveLength(1);
+    expect(reduceCompactState(entries).repairTransactionCount).toBe(1);
+
+    const stableMessages = entries.filter((entry) => entry.type === "message").map((entry) => entry.message);
+    const projected = runtime.handlers.get("context")!({ type: "context", messages: stableMessages }, ctx);
+    expect(projected.messages).not.toBe(stableMessages);
+    expect(JSON.stringify(projected.messages)).not.toContain("activation-stable:raw-source");
+    expect(JSON.stringify(projected.messages)).toContain("activation-stable:repaired-summary");
+    expect(ctx.statuses.at(-1)).not.toContain("repair-branch-moved");
+  });
+
+  it("fails activation exact-raw without partial state when repair append throws", () => {
+    const entries = repairableActivationBranch("activation-append-failure");
+    const runtime = harness({ appendEntryThrows: true });
+    const ctx = context(entries, LOW_PRESSURE_USAGE);
+
+    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+    expect(runtime.appended).toEqual([]);
+    expect(entries.some((entry) => entry.data?.type === "aili.compact.repair.v1")).toBe(false);
+    expect(reduceCompactState(entries).repairTransactionCount).toBe(0);
+
+    const rawMessages = entries.filter((entry) => entry.type === "message").map((entry) => entry.message);
+    const failOpen = runtime.handlers.get("context")!({ type: "context", messages: rawMessages }, ctx);
+    expect(failOpen.messages).toBe(rawMessages);
+    expect(JSON.stringify(failOpen.messages)).toContain("activation-append-failure:raw-source");
+    expect(ctx.statuses.at(-1)).toContain("repair-append-failed");
+  });
+
+  it("omits already-active source from exact recommendations and refuses a guessed scope", async () => {
     const runtime = harness();
     const entries: any[] = [
       { id: "user-1", type: "message", message: { role: "user", content: "old question" } },
@@ -357,64 +671,76 @@ describe("AILI Compact runtime", () => {
       }],
     }));
     const status = await statusSnapshot(runtime, entries);
+    expect(status.references.safeRanges).toEqual([]);
     const params = { mode: "message", catalogId: status.references.catalogId, topic: "Duplicate", items: [{ messageRef: "m000002", topic: "Duplicate", summary: "duplicate" }] };
     mutationCall(entries, "call-2", "aili_compact", params);
     const compact = runtime.tools.find((tool) => tool.name === "aili_compact")!;
     const result = await compact.execute("call-2", params, undefined, undefined, context(entries));
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("invalid-lineage");
+    expect(result.content[0].text).toContain("source-summary-scope-mismatch");
+    expect(runtime.appended).toEqual([]);
   });
 
-  it("warns that turning AILI off does not re-enable Pi auto-compaction", async () => {
+  it("keeps Pi compaction settings user-owned when AILI is turned off", async () => {
     const runtime = harness();
     const ctx = context([{ id: "user", type: "message", message: { role: "user", content: "question" } }]);
     await runtime.commandHandlers.get("aili-compact")!("off", ctx);
-    expect(ctx.notifications.at(-1)).toContain("Pi auto-compaction remains disabled");
+    expect(ctx.notifications.at(-1)).toContain("Pi compaction settings remain user-owned");
+    expect(ctx.notifications.at(-1)).toContain("manual /compact stays available");
   });
 
   it("persists manual-mode toggles as independent session controls", async () => {
     const runtime = harness();
     const ctx = context([{ id: "user", type: "message", message: { role: "user", content: "question" } }]);
     await runtime.commandHandlers.get("aili-compact")!("manual on", ctx);
-    expect(runtime.appended).toEqual([expect.objectContaining({
-      customType: "aili-compact",
-      data: expect.objectContaining({ kind: "control", control: "manual-on" }),
-    })]);
+    expect(runtime.appended).toEqual([
+      expect.objectContaining({
+        customType: "aili-compact",
+        data: expect.objectContaining({ tag: "control", payload: expect.objectContaining({ action: "manual-on", reason: "manual-on" }) }),
+      }),
+      expect.objectContaining({
+        customType: "aili-compact",
+        data: expect.objectContaining({ kind: "control", control: "manual-on" }),
+      }),
+    ]);
   });
 
-  it("runs a bounded manual sweep only for a safely consumed paired tool result", async () => {
+  it("runs a bounded manual sweep only after exact successful later-request observations", async () => {
     const runtime = harness();
-    const entries: any[] = [
-      { id: "user", type: "message", message: { role: "user", content: "question" } },
-      { id: "call", type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "call-1", name: "read", arguments: { path: "notes.txt" } }] } },
-      { id: "result", type: "message", message: { role: "toolResult", toolCallId: "call-1", toolName: "read", content: "x".repeat(9_000) } },
-      { id: "later", type: "message", message: { role: "assistant", content: "consumed" } },
-    ];
-    await runtime.commandHandlers.get("aili-compact")!("sweep", context(entries));
+    const entries = coolingEntries();
+    const ctx = context(entries);
+    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+    await runtime.commandHandlers.get("aili-compact")!("sweep", ctx);
+    expect(runtime.appended).toEqual([]);
+    observeCoolingTwice(runtime, entries, ctx);
+    await runtime.commandHandlers.get("aili-compact")!("sweep", ctx);
     expect(runtime.appended).toEqual([expect.objectContaining({
       customType: "aili-compact",
       data: expect.objectContaining({
-        kind: "cool",
-        blocks: [expect.objectContaining({ id: "cool:result", sourceEntryIds: ["result"], kind: "cool" })],
+        tag: "cooling",
+        payload: expect.objectContaining({
+          targetEntryIds: ["result-1"],
+          profile: "retrieval",
+          profileVersion: "aili.tool-cooling.v1",
+          provenance: expect.objectContaining({ kind: "provider-observation", resultEntryId: "result-1", callId: "read-1" }),
+        }),
       }),
     })]);
   });
 
-  it("reports a bounded cooling candidate without exposing tool output", async () => {
+  it("reports a bounded observed cooling candidate without exposing tool output", async () => {
     const runtime = harness();
-    const entries: any[] = [
-      { id: "user", type: "message", message: { role: "user", content: "question" } },
-      { id: "call", type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "call-1", name: "read", arguments: { path: "notes.txt" } }] } },
-      { id: "result", type: "message", message: { role: "toolResult", toolCallId: "call-1", toolName: "read", content: "x".repeat(9_000) } },
-      { id: "completed-turn", type: "message", message: { role: "assistant", content: "consumed" } },
-    ];
+    const entries = coolingEntries();
+    const ctx = context(entries);
+    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+    observeCoolingTwice(runtime, entries, ctx);
     const status = runtime.tools.find((tool) => tool.name === "aili_compact_status")!;
-    const result = await status.execute("status", {}, undefined, undefined, context(entries));
+    const result = await status.execute("status", {}, undefined, undefined, ctx);
     expect(JSON.parse(result.content[0].text)).toMatchObject({
       autoCooling: true,
       coolingCandidate: { idHash: expect.stringMatching(/^[a-f0-9]{16}$/), sourceCount: 1 },
     });
-    expect(result.content[0].text).not.toContain("x".repeat(40));
+    expect(result.content[0].text).not.toContain("retrieved output ".repeat(3));
     expect(result.content[0].text).not.toContain("sourceEntryIds");
   });
 
@@ -455,55 +781,85 @@ describe("AILI Compact runtime", () => {
     expect(JSON.stringify(fetched)).not.toContain("old source body");
   });
 
-  it("appends at most one automatic cooling transaction for the same completed assistant turn", () => {
+  it("appends at most one automatic cooling transaction for the same observed assistant turn", () => {
     const runtime = harness();
-    const entries: any[] = [
-      { id: "user", type: "message", message: { role: "user", content: "question" } },
-      { id: "call", type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "call-1", name: "read", arguments: { path: "notes.txt" } }] } },
-      { id: "result", type: "message", message: { role: "toolResult", toolCallId: "call-1", toolName: "read", content: "x".repeat(9_000) } },
-      { id: "completed-turn", type: "message", message: { role: "assistant", content: "consumed" } },
-    ];
+    const entries = coolingEntries();
     const ctx = context(entries);
     runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+    observeCoolingTwice(runtime, entries, ctx);
     runtime.handlers.get("turn_end")!({ type: "turn_end" }, ctx);
     runtime.handlers.get("turn_end")!({ type: "turn_end" }, ctx);
     expect(runtime.appended).toHaveLength(1);
     expect(runtime.appended[0]).toEqual(expect.objectContaining({
-      data: expect.objectContaining({ kind: "cool", blocks: [expect.objectContaining({ id: "cool:result" })] }),
+      data: expect.objectContaining({ tag: "cooling", payload: expect.objectContaining({ targetEntryIds: ["result-1"], profile: "retrieval" }) }),
     }));
   });
 
-  it("journals one grouped dedupe strategy transaction at turn end", () => {
+  it("journals one v3 retrieval-cooling transaction after exact duplicate observations", () => {
     const runtime = harness();
-    const repeated = "d".repeat(3_000);
-    const entries: any[] = [
-      { id: "user", type: "message", message: { role: "user", content: "question" } },
-      { id: "call-1", type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "read-1", name: "read", arguments: { path: "one.txt" } }] } },
-      { id: "result-1", type: "message", message: { role: "toolResult", toolCallId: "read-1", toolName: "read", content: repeated } },
-      { id: "used-1", type: "message", message: { role: "assistant", content: "used one" } },
-      { id: "call-2", type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "read-2", name: "read", arguments: { path: "two.txt" } }] } },
-      { id: "result-2", type: "message", message: { role: "toolResult", toolCallId: "read-2", toolName: "read", content: repeated } },
-      { id: "used-2", type: "message", message: { role: "assistant", content: "used two" } },
-    ];
+    const entries = coolingEntries();
     const ctx = context(entries);
     runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+    observeCoolingTwice(runtime, entries, ctx);
     runtime.handlers.get("turn_end")!({ type: "turn_end" }, ctx);
     expect(runtime.appended).toHaveLength(1);
     expect(runtime.appended[0]!.data).toMatchObject({
-      kind: "cool",
-      policy: { strategy: "dedupe", sourceEntryIds: ["result-1"] },
-      blocks: [expect.objectContaining({ id: "dedupe:result-1", sourceEntryIds: ["result-1"] })],
+      tag: "cooling",
+      payload: {
+        targetEntryIds: ["result-1"],
+        profile: "retrieval",
+        profileVersion: "aili.tool-cooling.v1",
+        provenance: expect.objectContaining({ kind: "provider-observation", resultEntryId: "result-1" }),
+        reason: "cool",
+      },
     });
   });
 
-  it("injects bounded adaptive guidance through the public system-prompt hook", () => {
+  it("keeps dynamic planning out of the system prompt and adds only a transient provider suffix", () => {
     const runtime = harness();
-    const entries: any[] = [{ id: "user", type: "message", message: { role: "user", content: "x".repeat(7_000) } }];
+    const entries = v3CompressibleEntries();
     const ctx = context(entries, { tokens: 6_000, contextWindow: 10_000 });
     runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
     const result = runtime.handlers.get("before_agent_start")!({ type: "before_agent_start", systemPrompt: "PI BASE" }, ctx);
-    expect(result.systemPrompt).toContain("AILI Compact adaptive guidance");
-    expect(result.systemPrompt).toContain("aili_compact_status");
+    expect(result).toBeUndefined();
+    const projected = runtime.handlers.get("context")!({ type: "context", messages: providerMessages(entries) }, ctx);
+    expect(projected.messages.at(-1)).toMatchObject({
+      role: "custom",
+      customType: "aili-compact-provider-suffix",
+      display: false,
+      content: expect.stringMatching(/catalog=[a-f0-9]{64}[\s\S]*actions=compress[\s\S]*range=r000001:m000001-m000001/),
+    });
+    expect(JSON.stringify(entries)).not.toContain("aili-compact-provider-suffix");
+  });
+
+  it("keeps planning.enabled=false narrow: no proactive suffix, explicit v3 mutation still works", async () => {
+    const root = mkdtempSync(join(tmpdir(), "aili-compact-runtime-"));
+    try {
+      const project = join(root, "project");
+      mkdirSync(join(project, ".pi"), { recursive: true });
+      writeFileSync(join(project, ".pi", "aili-compact.jsonc"), '{ "planning": { "enabled": false } }');
+      const entries = v3CompressibleEntries();
+      const runtime = harness();
+      const ctx = context(entries, LOW_PRESSURE_USAGE, project);
+      runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+      const status = await statusSnapshot(runtime, entries, ctx);
+      expect(status.references.safeRangeDiagnostics).toMatchObject({ planningEnabled: false });
+      const projected = runtime.handlers.get("context")!({ type: "context", messages: providerMessages(entries) }, ctx);
+      expect(projected.messages.some((message: any) => message.customType === "aili-compact-provider-suffix")).toBe(false);
+
+      const { params } = exactMessageParams(status);
+      mutationCall(entries, "explicit-with-planning-off", "aili_compact", params);
+      const result = await runtime.tools.find((tool) => tool.name === "aili_compact")!
+        .execute("explicit-with-planning-off", params, undefined, undefined, ctx);
+      expect(result.isError, result.content[0].text).not.toBe(true);
+      expect(result.details.contextTx).toMatchObject({
+        header: { schema: "aili.compact.tx.v3" },
+        tag: "semantic-create",
+        payload: { tier: "T1", source: { kind: "messages", entryIds: ["source"] } },
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("appends replayable emergency summary GC only at the provider boundary", () => {
@@ -563,7 +919,7 @@ describe("AILI Compact runtime", () => {
     const decompress = runtime.tools.find((tool) => tool.name === "aili_decompress")!;
     const restored = await decompress.execute("restore-old", params, undefined, undefined, ctx);
     expect(restored.isError).toBe(true);
-    expect(restored.content[0].text).toContain("unknown-reference");
+    expect(restored.content[0].text).toContain("stale-ref");
 
     const search = runtime.tools.find((tool) => tool.name === "aili_search_context")!;
     const searched = await search.execute("search-old", { query: "needle" }, undefined, undefined, ctx);
@@ -571,6 +927,161 @@ describe("AILI Compact runtime", () => {
       scope: "current_branch",
       catalogId: expect.any(String),
       matches: [{ archived: true, sourceIdHash: expect.stringMatching(/^[a-f0-9]{16}$/), excerpt: "archived needle" }],
+    });
+  });
+
+  it("keeps archived v3 query-only state when the first new-epoch T1 arrives through registered context", async () => {
+    const runtime = harness();
+    const oldSource: any = {
+      id: "epoch-v3-old-source",
+      type: "message",
+      message: { role: "assistant", content: "epoch archived needle" },
+    };
+    const initial = createEmptyV3State({
+      sessionId: "session",
+      branchLeafId: "epoch-continuity-branch",
+      epochId: "root",
+      projectionVersion: "aili.projector.v3",
+    });
+    const oldCatalogId = deriveRuntimeCatalogIdForState([oldSource], reduceCompactState([oldSource]), initial);
+    const oldSummary = "old epoch v3 summary";
+    const oldTransaction: any = {
+      header: {
+        schema: AILI_COMPACT_SCHEMA_V3,
+        txId: "epoch-v3-old-transaction",
+        sessionId: initial.sessionId,
+        branchLeafId: initial.branchLeafId,
+        epochId: initial.epochId,
+        catalogId: oldCatalogId,
+        createdAt: 1,
+        projectionVersion: initial.projectionVersion,
+      },
+      tag: "semantic-create",
+      payload: {
+        blockId: "epoch-v3-old-block",
+        tier: "T1",
+        topic: "old epoch",
+        runId: "epoch-v3-old-run",
+        anchorEntryId: oldSource.id,
+        createdTurnOrdinal: 1,
+        summary: oldSummary,
+        summaryDigest: v3SummaryDigest(oldSummary),
+        source: {
+          kind: "messages",
+          entryIds: [oldSource.id],
+          firstEntryId: oldSource.id,
+          lastEntryId: oldSource.id,
+        },
+        leafDigest: v3MessageLeafDigest([oldSource.id]),
+        leafCount: 1,
+        tokens: {
+          estimatorVersion: "fixture-estimator",
+          providerId: "openai",
+          modelId: "gpt-4.1",
+          sourceTokensLower: 3_000,
+          sourceTokensUpper: 3_000,
+          replacementTokensUpper: 1_000,
+          steadySavingsTokensLower: 2_000,
+          oneTimeCostTokensUpper: 500,
+          breakEvenTurnsUpper: 1,
+          savingsRatio: 2 / 3,
+          summaryTokensUpper: 300,
+        },
+        quality: {
+          status: "accepted",
+          evaluatorVersion: "fixture-quality",
+          sourceFactDigest: "f".repeat(64),
+          hardFactCount: 1,
+          coveredHardFactCount: 1,
+          warningCodes: [],
+        },
+      },
+    };
+    const oldEntry = {
+      id: "epoch-v3-old-entry",
+      type: "custom",
+      customType: "aili-compact",
+      data: oldTransaction,
+      parentId: oldSource.id,
+    };
+    const boundary = {
+      id: "epoch-v3-checkpoint",
+      type: "compaction",
+      parentId: oldEntry.id,
+    };
+    const entries: any[] = [oldSource, oldEntry, boundary, ...v3CompressibleEntries()];
+    const ctx = context(entries, LOW_PRESSURE_USAGE);
+    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+
+    const status = await statusSnapshot(runtime, entries, ctx);
+    const newSummary = ARCHIVED_SUMMARY;
+    const newTransaction: any = {
+      header: {
+        schema: AILI_COMPACT_SCHEMA_V3,
+        txId: "epoch-v3-new-transaction",
+        sessionId: initial.sessionId,
+        branchLeafId: initial.branchLeafId,
+        epochId: boundary.id,
+        catalogId: status.references.catalogId,
+        createdAt: 2,
+        projectionVersion: initial.projectionVersion,
+      },
+      tag: "semantic-create",
+      payload: {
+        blockId: "epoch-v3-new-block",
+        tier: "T1",
+        topic: "new epoch",
+        runId: "epoch-v3-new-run",
+        anchorEntryId: "source",
+        createdTurnOrdinal: 1,
+        summary: newSummary,
+        summaryDigest: v3SummaryDigest(newSummary),
+        source: { kind: "messages", entryIds: ["source"], firstEntryId: "source", lastEntryId: "source" },
+        leafDigest: v3MessageLeafDigest(["source"]),
+        leafCount: 1,
+        tokens: {
+          estimatorVersion: "fixture-estimator",
+          providerId: "openai",
+          modelId: "gpt-4.1",
+          sourceTokensLower: 3_000,
+          sourceTokensUpper: 3_000,
+          replacementTokensUpper: 1_000,
+          steadySavingsTokensLower: 2_000,
+          oneTimeCostTokensUpper: 500,
+          breakEvenTurnsUpper: 1,
+          savingsRatio: 2 / 3,
+          summaryTokensUpper: 300,
+        },
+        quality: {
+          status: "accepted",
+          evaluatorVersion: "fixture-quality",
+          sourceFactDigest: "e".repeat(64),
+          hardFactCount: 1,
+          coveredHardFactCount: 1,
+          warningCodes: [],
+        },
+      },
+    };
+    entries.push({ id: "epoch-v3-new-entry", type: "custom", customType: "aili-compact", data: newTransaction });
+    const projected = runtime.handlers.get("context")!({ type: "context", messages: providerMessages(entries) }, ctx);
+    expect(JSON.stringify(projected.messages)).toContain(ARCHIVED_SUMMARY);
+
+    await runtime.commandHandlers.get("aili-compact")!("doctor", ctx);
+    expect(JSON.parse(ctx.notifications.at(-1)!)).toMatchObject({
+      components: {
+        lifecycle: {
+          status: "PASS",
+          schemaBlockCounts: { v3: 2 },
+          activeSchemaBlockCounts: { v3: 1 },
+          acceptedTransactions: { v3: 2 },
+        },
+        index: { status: "PASS", healthy: true },
+      },
+    });
+    const search = runtime.tools.find((tool) => tool.name === "aili_search_context")!;
+    const searched = await search.execute("epoch-v3-search", { query: "epoch archived needle" }, undefined, undefined, ctx);
+    expect(JSON.parse(searched.content[0].text)).toMatchObject({
+      matches: [{ archived: true, excerpt: "epoch archived needle" }],
     });
   });
 
@@ -589,13 +1100,13 @@ describe("AILI Compact runtime", () => {
     ] } });
     const sibling = await compact.execute("sibling", params, undefined, undefined, context(entries));
     expect(sibling.isError).toBe(true);
-    expect(sibling.content[0].text).toContain("mutation-conflict");
+    expect(sibling.content[0].text).toContain("sole-call-required");
 
     entries.push({ id: "catalog-change", type: "message", message: { role: "assistant", content: "new branch content" } });
     mutationCall(entries, "stale", "aili_compact", params);
     const stale = await compact.execute("stale", params, undefined, undefined, context(entries));
     expect(stale.isError).toBe(true);
-    expect(stale.content[0].text).toContain("stale-catalog");
+    expect(stale.content[0].text).toContain("source-summary-scope-mismatch");
   });
 
   it("decompresses by status block ref with a bounded UTF-8 preview", async () => {
@@ -618,12 +1129,11 @@ describe("AILI Compact runtime", () => {
     expect(payload.preview).toMatchObject({ utf8Bytes: 1_998, truncated: true });
   });
 
-  it("issues one append plus one request for manual one-shot and has no effects while busy", async () => {
+  it("issues one request with a session-memory manual permit and has no effects while busy", async () => {
     const runtime = harness();
     const entries = [{ id: "user", type: "message", message: { role: "user", content: "question" } }];
     await runtime.commandHandlers.get("aili-compact")!("compress accepted decisions", context(entries));
-    expect(runtime.appended).toHaveLength(1);
-    expect(runtime.appended[0]?.data).toMatchObject({ kind: "control", control: "manual-trigger" });
+    expect(runtime.appended).toEqual([]);
     expect(runtime.requested).toEqual([expect.stringContaining("accepted decisions")]);
 
     const busy = harness();
@@ -632,43 +1142,37 @@ describe("AILI Compact runtime", () => {
     expect(busy.requested).toEqual([]);
   });
 
-  it("clears a one-shot trigger if the visible request cannot be started", async () => {
+  it("clears a one-shot permit if the visible request cannot be started", async () => {
     const runtime = harness({ sendUserMessageThrows: true });
     const ctx = context([{ id: "user", type: "message", message: { role: "user", content: "question" } }]);
     await runtime.commandHandlers.get("aili-compact")!("compress", ctx);
     expect(runtime.requested).toEqual([]);
-    expect(runtime.appended).toHaveLength(2);
-    const trigger = runtime.appended[0]!.data as any;
-    expect(runtime.appended[1]!.data).toMatchObject({ control: "manual-clear", consumeManualTriggerId: trigger.manualTrigger.id });
-    expect(ctx.notifications.at(-1)).toContain("trigger was cleared");
+    expect(runtime.appended).toEqual([]);
+    expect(ctx.notifications.at(-1)).toContain("permit was cleared");
   });
 
-  it("binds a manual trigger to one exact turn and rejects reuse", async () => {
+  it("binds a manual permit to one exact turn and rejects reuse", async () => {
     const runtime = harness();
-    const source = { id: "source", type: "message", message: { role: "assistant", content: "x".repeat(7_000) } };
     const entries: any[] = [
-      { id: "anchor", type: "message", message: { role: "user", content: "earlier request" } }, source,
+      ...v3CompressibleEntries(),
       { id: "manual-on-entry", type: "custom", customType: "aili-compact", data: { schema: "aili.compact.tx.v2", id: "manual-on", kind: "control", epochId: "root", control: "manual-on" } },
-      { id: "trigger-entry", type: "custom", customType: "aili-compact", data: { schema: "aili.compact.tx.v2", id: "trigger-tx", kind: "control", epochId: "root", control: "manual-trigger", manualTrigger: { id: "trigger", turnId: "manual-on-entry" } } },
-      { id: "one-shot-user", type: "message", message: { role: "user", content: "one shot" } },
     ];
-    const snapshot = await statusSnapshot(runtime, entries);
+    const ctx = context(entries, LOW_PRESSURE_USAGE);
+    await runtime.commandHandlers.get("aili-compact")!("compress manual", ctx);
+    entries.push({ id: "one-shot-user", type: "message", message: { role: "user", content: "one shot" } });
+    const snapshot = await statusSnapshot(runtime, entries, ctx);
+    const { params } = exactMessageParams(snapshot, ARCHIVED_SUMMARY);
     mutationCall(entries, "manual-compact", "aili_compact", {});
     const compact = runtime.tools.find((tool) => tool.name === "aili_compact")!;
-    const first = await compact.execute("manual-compact", {
-      mode: "message", catalogId: snapshot.references.catalogId, topic: "manual",
-      items: [{ messageRef: "m000002", topic: "source", summary: "bounded manual summary" }],
-    }, undefined, undefined, context(entries));
-    expect(first.isError).not.toBe(true);
-    expect(first.details.contextTx.consumeManualTriggerId).toBe("trigger");
+    const first = await compact.execute("manual-compact", params, undefined, undefined, ctx);
+    expect(first.isError, first.content[0].text).not.toBe(true);
+    expect(first.details.contextTx).toMatchObject({ tag: "semantic-create", payload: { tier: "T1" } });
+    persistAppendedV3(runtime, entries, "custom:manual-compact", first.details.contextTx);
     entries.push(successfulCompactResult("manual-result", first.details.contextTx, "manual-compact"));
     mutationCall(entries, "manual-reuse", "aili_compact", {});
-    const reused = await compact.execute("manual-reuse", {
-      mode: "message", catalogId: snapshot.references.catalogId, topic: "manual",
-      items: [{ messageRef: "m000002", topic: "source", summary: "second" }],
-    }, undefined, undefined, context(entries));
+    const reused = await compact.execute("manual-reuse", params, undefined, undefined, ctx);
     expect(reused.isError).toBe(true);
-    expect(reused.content[0].text).toContain("fresh /aili-compact compress trigger");
+    expect(reused.content[0].text).toContain("fresh /aili-compact compress permit");
   });
 
   it("keeps task/subagent atoms protected for model compact and prune while default-off", async () => {
@@ -682,6 +1186,10 @@ describe("AILI Compact runtime", () => {
     ];
     const compactEntries: any[] = makeEntries();
     const compactSnapshot = await statusSnapshot(runtime, compactEntries);
+    expect(compactSnapshot.references.candidates.find((candidate: any) => candidate.ref === "m000002")).toMatchObject({
+      compressible: false,
+      reasonCodes: expect.arrayContaining(["subagent-disabled"]),
+    });
     mutationCall(compactEntries, "compact-task", "aili_compact", {});
     const compact = runtime.tools.find((tool) => tool.name === "aili_compact")!;
     const compactResult = await compact.execute("compact-task", {
@@ -689,7 +1197,7 @@ describe("AILI Compact runtime", () => {
       items: [{ messageRef: "m000002", topic: "task", summary: "task summary" }],
     }, undefined, undefined, context(compactEntries));
     expect(compactResult.isError).toBe(true);
-    expect(compactResult.content[0].text).toContain("subagent-disabled");
+    expect(compactResult.content[0].text).toContain("source-summary-scope-mismatch");
 
     const pruneEntries: any[] = makeEntries();
     const pruneSnapshot = await statusSnapshot(runtime, pruneEntries);
@@ -733,10 +1241,16 @@ describe("AILI Compact runtime", () => {
     const runtime = harness();
     const ctx = context([{ id: "user", type: "message", message: { role: "user", content: "question" } }]);
     await runtime.commandHandlers.get("aili-compact")!("cache panel on", ctx);
-    expect(runtime.appended).toEqual([expect.objectContaining({
-      customType: "aili-compact",
-      data: expect.objectContaining({ kind: "control", control: "panel-on" }),
-    })]);
+    expect(runtime.appended).toEqual([
+      expect.objectContaining({
+        customType: "aili-compact",
+        data: expect.objectContaining({ tag: "control", payload: expect.objectContaining({ action: "panel-on", reason: "panel-on" }) }),
+      }),
+      expect.objectContaining({
+        customType: "aili-compact",
+        data: expect.objectContaining({ kind: "control", control: "panel-on" }),
+      }),
+    ]);
   });
 
   it("reports bounded local doctor severity instead of command-registration health", async () => {
@@ -748,48 +1262,80 @@ describe("AILI Compact runtime", () => {
     expect(JSON.parse(ctx.notifications.at(-1)!)).toMatchObject({
       status: "NON_PASS",
       components: {
+        planning: { status: "PASS", enabled: true },
+        lifecycle: {
+          status: "PASS",
+          exact: true,
+          schemaBlockCounts: { v1: 0, v2: 0, v3: 0 },
+          activeTierBlockCounts: { T1: 0, T2: 0, T3: 0 },
+        },
+        cacheIdentities: {
+          status: "UNVERIFIED",
+          logicalProviderPrefixIdentity: { providerPrivateCacheKey: "UNVERIFIED" },
+        },
         projection: { status: "UNVERIFIED" },
+        liveProvider: { status: "UNVERIFIED", code: "UV-LIVE-1" },
+        hostOrdering: { status: "UNVERIFIED" },
         publicRelease: { status: "PASS", code: "AGPL-3.0-OR-LATER" },
       },
     });
     expect(ctx.notifications.at(-1)).not.toContain("RAW_DOCTOR_SENTINEL");
 
+    const publicStatus = await statusSnapshot(runtime, entries, ctx);
+    expect(publicStatus.doctor).toMatchObject({
+      planning: { enabled: true },
+      lifecycle: { schemaBlockCounts: { v1: 0, v2: 0, v3: 0 } },
+      index: { counters: expect.any(Object) },
+      liveProvider: { status: "UNVERIFIED" },
+    });
+
     runtime.handlers.get("context")!({ type: "context", messages: [{ role: "assistant", content: "invalid" }] }, ctx);
     await runtime.commandHandlers.get("aili-compact")!("doctor", ctx);
-    expect(JSON.parse(ctx.notifications.at(-1)!)).toMatchObject({ status: "ERROR", components: { projection: { status: "ERROR" } } });
+    expect(JSON.parse(ctx.notifications.at(-1)!)).toMatchObject({
+      status: "ERROR",
+      pressureStage: "Unverified",
+      nativeAutomaticFallback: "Unverified-effective",
+      nativeAutomaticFallbackProvenance: "Unverified",
+      repairTransactionCount: 0,
+      components: { projection: { status: "ERROR" }, repair: { status: "PASS" } },
+    });
   });
 
-  it("cancels healthy manual Pi compaction with AILI Compact guidance", () => {
+  it("falls through manual Pi compaction when deterministic coverage is unavailable", () => {
     const runtime = harness();
-    const ctx = context([{ id: "user", type: "message", message: { role: "user", content: "question" } }]);
+    const entries = [{ id: "user", type: "message", message: { role: "user", content: "question" } }];
+    const ctx = context(entries);
     runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
     projectHealthy(runtime, ctx.sessionManager.getBranch(), ctx);
-    const result = runtime.handlers.get("session_before_compact")!({ reason: "manual" }, ctx);
-    expect(result).toEqual({ cancel: true });
-    expect(ctx.notifications.at(-1)).toContain("/aili-compact context");
-  });
-
-  it("cancels manual Pi compaction even when projection health is unavailable", () => {
-    const runtime = harness();
-    const ctx = context([
-      { id: "user", type: "message", message: { role: "user", content: "question" } },
-      { id: "orphan", type: "message", message: { role: "toolResult", toolCallId: "missing", toolName: "read", content: "orphan" } },
-    ]);
-    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
-    expect(runtime.handlers.get("session_before_compact")!({ reason: "manual" }, ctx)).toEqual({ cancel: true });
-    expect(ctx.notifications.at(-1)).toContain("/aili-compact context");
-  });
-
-  it("cancels threshold and overflow without returning a Pi compaction envelope", () => {
-    const runtime = harness();
-    const ctx = context([{ id: "user", type: "message", message: { role: "user", content: "question" } }]);
-    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
-    expect(runtime.handlers.get("session_before_compact")!({ reason: "threshold" }, ctx)).toEqual({ cancel: true });
-    expect(runtime.handlers.get("session_before_compact")!({ reason: "overflow" }, ctx)).toEqual({ cancel: true });
+    const result = runtime.handlers.get("session_before_compact")!(beforeCompactEvent(entries, "manual"), ctx);
+    expect(result).toBeUndefined();
     expect(ctx.notifications).toEqual([]);
   });
 
-  it("never returns a Pi major-GC envelope from overflow", () => {
+  it("falls through manual Pi compaction even when projection health is unavailable", () => {
+    const runtime = harness();
+    const entries = [
+      { id: "user", type: "message", message: { role: "user", content: "question" } },
+      { id: "orphan", type: "message", message: { role: "toolResult", toolCallId: "missing", toolName: "read", content: "orphan" } },
+    ];
+    const ctx = context(entries);
+    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+    expect(runtime.handlers.get("session_before_compact")!(beforeCompactEvent(entries, "manual"), ctx)).toBeUndefined();
+    expect(ctx.notifications).toEqual([]);
+  });
+
+  it("returns exact undefined for ineligible threshold and overflow so Pi can recover", () => {
+    for (const reason of ["threshold", "overflow"] as const) {
+      const runtime = harness();
+      const entries = [{ id: "user", type: "message", message: { role: "user", content: "question" } }];
+      const ctx = context(entries);
+      runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+      expect(runtime.handlers.get("session_before_compact")!(beforeCompactEvent(entries, reason), ctx)).toBeUndefined();
+      expect(ctx.notifications).toEqual([]);
+    }
+  });
+
+  it("returns one validated deterministic envelope from eligible overflow coverage", () => {
     const runtime = harness();
     const oldUser = { id: "old-user", type: "message", message: { role: "user", content: "old question" } };
     const oldAssistant = { id: "old-assistant", type: "message", message: { role: "assistant", content: "old answer" } };
@@ -829,17 +1375,20 @@ describe("AILI Compact runtime", () => {
     const ctx = context(entries, { tokens: 32_000, contextWindow: 32_000 });
     runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
     projectHealthy(runtime, entries, ctx);
-    const result = runtime.handlers.get("session_before_compact")!({
-      reason: "overflow",
-      branchEntries: entries,
-      preparation: { firstKeptEntryId: "tail-one", tokensBefore: 32_000 },
-    }, ctx);
-    expect(result).toEqual({ cancel: true });
-    expect(result).not.toHaveProperty("compaction");
+    const result = runtime.handlers.get("session_before_compact")!(beforeCompactEvent(entries, "overflow", "tail-one"), ctx);
+    expect(result).toMatchObject({
+      compaction: {
+        summary: expect.stringContaining("Old work is complete."),
+        firstKeptEntryId: "tail-one",
+        tokensBefore: 32_000,
+        details: { ailiCompact: { kind: "major-gc", blockIds: ["semantic:old"] } },
+      },
+    });
+    expect(result).not.toHaveProperty("cancel");
     expect(ctx.notifications).toEqual([]);
   });
 
-  it("cancels threshold compaction without using a native fallback budget", () => {
+  it("uses deterministic coverage when complete and otherwise preserves native fallback", () => {
     const runtime = harness();
     const activeEntries = (content: string) => {
       const source = { id: "old", type: "message", message: { role: "assistant", content } };
@@ -847,22 +1396,50 @@ describe("AILI Compact runtime", () => {
       const transactionId = `block-tx:${content.length}`;
       entries.push({ id: `call:${content.length}`, type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: transactionId, name: "aili_compact", arguments: {} }] } });
       entries.push(successfulCompactResult("tx", {
-        schema: "aili.compact.tx.v1",
+        schema: "aili.compact.tx.v2",
         id: transactionId,
         kind: "compact",
         epochId: "root",
-        blocks: [{ id: "block", kind: "semantic", epochId: "root", sourceEntryIds: ["old"], sourceDigest: sourceDigest(entries, ["old"]), summary: "old", active: true }],
+        blocks: [{
+          id: "block", kind: "semantic", epochId: "root", sourceEntryIds: ["old"], sourceDigest: sourceDigest(entries, ["old"]), summary: "old", active: true,
+          mode: "message", topic: "old", batchTopic: "old", anchorEntryId: "old", runId: transactionId,
+          childBlockIds: [], generation: content.length > 1_000 ? "old" : "young", survivedCount: 5, age: 5,
+        }],
       }));
       return entries;
     };
     const safe = context(activeEntries("x".repeat(40_000)), { tokens: 19_500, contextWindow: 20_000 });
     runtime.handlers.get("session_start")!({ type: "session_start" }, safe);
     projectHealthy(runtime, safe.sessionManager.getBranch(), safe);
-    expect(runtime.handlers.get("session_before_compact")!({ reason: "threshold" }, safe)).toEqual({ cancel: true });
+    const safeEntries = safe.sessionManager.getBranch();
+    expect(runtime.handlers.get("session_before_compact")!(beforeCompactEvent(safeEntries, "threshold", "user"), safe)).toMatchObject({
+      compaction: { firstKeptEntryId: "user", summary: expect.stringContaining("old") },
+    });
 
     const unsafe = context(activeEntries("x".repeat(400)), { tokens: 20_000, contextWindow: 20_000 });
     runtime.handlers.get("session_start")!({ type: "session_start" }, unsafe);
     projectHealthy(runtime, unsafe.sessionManager.getBranch(), unsafe);
-    expect(runtime.handlers.get("session_before_compact")!({ reason: "threshold" }, unsafe)).toEqual({ cancel: true });
+    const unsafeEntries = unsafe.sessionManager.getBranch();
+    // The legacy v1 block is young and therefore cannot prove a deterministic
+    // checkpoint. Returning undefined leaves Pi's native threshold path open.
+    expect(runtime.handlers.get("session_before_compact")!(beforeCompactEvent(unsafeEntries, "threshold", "user"), unsafe)).toBeUndefined();
+  });
+
+  it("invokes public rescue exactly once with zero normal agent requests", async () => {
+    const runtime = harness();
+    const entries = [{ id: "user", type: "message", message: { role: "user", content: "question" } }];
+    const ctx = context(entries);
+    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+
+    await runtime.commandHandlers.get("aili-compact")!("rescue", ctx);
+    expect(ctx.compactCalls).toHaveLength(1);
+    expect(runtime.requested).toEqual([]);
+    await runtime.commandHandlers.get("aili-compact")!("rescue native", ctx);
+    expect(ctx.compactCalls).toHaveLength(1);
+    expect(ctx.notifications.at(-1)).toContain("checkpoint-cycle-exhausted");
+
+    await runtime.commandHandlers.get("aili-compact")!("rescue status", ctx);
+    expect(ctx.compactCalls).toHaveLength(1);
+    expect(JSON.parse(ctx.notifications.at(-1)!)).toMatchObject({ checkpointCoordinatorState: "inFlight", checkpointInFlight: true });
   });
 });

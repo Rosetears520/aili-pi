@@ -9,13 +9,15 @@ import {
 import { sourceDigest, type CompactBlock, type SessionLikeEntry } from "../../src/runtime/aili-compact/contracts.js";
 
 describe("AILI Compact native compaction decision", () => {
-  it("cancels every Pi compaction reason without a health or budget fallback", () => {
-    expect(decideNativeCompaction({ reason: "manual", healthy: false }))
-      .toEqual({ cancel: true, reason: "manual-aili-guidance" });
-    expect(decideNativeCompaction({ reason: "threshold", healthy: false }))
-      .toEqual({ cancel: true, reason: "threshold-aili-owned" });
-    expect(decideNativeCompaction({ reason: "overflow", healthy: false }))
-      .toEqual({ cancel: true, reason: "overflow-aili-owned" });
+  it("returns a validated deterministic envelope or exact native fallthrough, never cancellation", () => {
+    const compaction = { summary: "safe", firstKeptEntryId: "kept", tokensBefore: 10_000 };
+    for (const reason of ["manual", "threshold", "overflow"] as const) {
+      expect(decideNativeCompaction({ reason })).toBeUndefined();
+      expect(decideNativeCompaction({ reason, enabled: false, compaction })).toBeUndefined();
+      expect(decideNativeCompaction({ reason, policy: "native-only", compaction })).toBeUndefined();
+      expect(decideNativeCompaction({ reason, policy: "deterministic-first", compaction })).toEqual({ compaction });
+      expect(decideNativeCompaction({ reason, compaction: { ...compaction, summary: "" } })).toBeUndefined();
+    }
   });
 
   it("plans provider-free emergency summary truncation only at the configured boundary", () => {
@@ -65,6 +67,8 @@ describe("AILI Compact native compaction decision", () => {
     expect(planMajorGc({ ...base, activeBlocks: [block("oversized", ["call", "result"], { summary: "x".repeat(3_001) })] })).toBeUndefined();
     expect(planMajorGc({ ...base, activeBlocks: [block("whole", ["call", "result"]), block("duplicate", ["call"])] })).toBeUndefined();
     expect(planMajorGc({ ...base, activeBlocks: [block("whole", ["call", "result"])], previousSummary: "x".repeat(12_001) })).toBeUndefined();
+    expect(planMajorGc({ ...base, activeBlocks: [block("digest", ["call", "result"], { sourceDigest: "0".repeat(64) })] })).toBeUndefined();
+    expect(planMajorGc({ ...base, activeBlocks: [block("reversed", ["result", "call"])] })).toBeUndefined();
   });
 
   it("fails closed when discarded messages lack semantic coverage", () => {
@@ -78,7 +82,7 @@ describe("AILI Compact native compaction decision", () => {
     }] })).toBeUndefined();
   });
 
-  it("plans deterministic promotion, bounded summaries, nesting and stale deactivation", () => {
+  it("plans deterministic promotion, bounded summaries, nesting and age-only survival", () => {
     const blocks: CompactBlock[] = [
       { id: "parent", kind: "semantic", epochId: "root", sourceEntryIds: ["a", "b"], sourceDigest: "d", summary: "x".repeat(300), active: true, generation: "young", survivedCount: 1, age: 1, childBlockIds: ["child"] },
       { id: "child", kind: "semantic", epochId: "root", sourceEntryIds: ["a"], sourceDigest: "d", summary: "child", active: true, generation: "young", survivedCount: 0, age: 0, childBlockIds: [] },
@@ -89,11 +93,11 @@ describe("AILI Compact native compaction decision", () => {
     expect(plan?.transaction.lifecycleUpdates).toEqual([
       { blockId: "parent", age: 2, survivedCount: 2, generation: "old" },
       { blockId: "child", age: 1, survivedCount: 1, generation: "young", active: false, deactivationReason: "nested" },
-      { blockId: "stale", age: 3, survivedCount: 5, generation: "old", active: false, deactivationReason: "gc" },
+      { blockId: "stale", age: 3, survivedCount: 5, generation: "old" },
     ]);
     expect(plan?.boundedSummaries.get("parent")).toHaveLength(256);
     expect(plan?.boundedSummaries.get("parent")).toMatch(/…$/);
-    expect(planGenerationalGc(input)?.transaction.id).toBe(plan?.transaction.id);
+    expect(planGenerationalGc({ ...input, maxBlockAge: 99 })?.transaction).toEqual(plan?.transaction);
   });
 
   it("rejects invalid nested lineage", () => {

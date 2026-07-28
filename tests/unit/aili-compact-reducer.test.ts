@@ -1,6 +1,6 @@
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it } from "vitest";
-import { AILI_COMPACT_ENTRY, isCompactTransaction, sourceDigest, type CompactBlock, type CompactTransaction, type SessionLikeEntry } from "../../src/runtime/aili-compact/contracts.js";
+import { AILI_COMPACT_ENTRY, digest, isCompactTransaction, sourceDigest, type CompactBlock, type CompactTransaction, type SessionLikeEntry } from "../../src/runtime/aili-compact/contracts.js";
 import { activeBlocks, reduceCompactState, transactionFromEntry } from "../../src/runtime/aili-compact/reducer.js";
 
 const source: SessionLikeEntry = { id: "entry-1", type: "message", message: { role: "assistant", content: "source" } };
@@ -47,6 +47,55 @@ function successfulToolResult(id: string, data: CompactTransaction): SessionLike
 }
 
 describe("AILI Compact reducer", () => {
+  it("reads bounded v2 quality evidence without widening the closed reader", () => {
+    const evidence = {
+      version: 1 as const,
+      extractorVersion: "aili-quality-extractor-v1" as const,
+      evaluatorVersion: "aili-quality-evaluator-v1" as const,
+      tier: "T1" as const,
+      catalogId: "catalog-v2-quality",
+      sourceKind: "messages" as const,
+      orderedRefs: ["m000001"],
+      sourceDigest: digest("v2-quality-source"),
+      manifestDigest: digest("v2-quality-manifest"),
+      facts: [],
+      verdict: "pass" as const,
+      codes: [],
+      counts: {
+        totalFacts: 0,
+        hardFacts: 0,
+        warningFacts: 0,
+        optionalFacts: 0,
+        coveredFacts: 0,
+        coveredHardFacts: 0,
+        coveredWarningFacts: 0,
+        coveredOptionalFacts: 0,
+        missingHardFacts: 0,
+        missingWarningFacts: 0,
+        scorePermille: 1_000,
+      },
+    };
+    const transaction: CompactTransaction = {
+      schema: "aili.compact.tx.v2",
+      id: "v2-quality",
+      kind: "compact",
+      epochId: "root",
+      blocks: [v2Block("block:v2-quality", [source], [source.id], { qualityEvidence: evidence })],
+    };
+
+    expect(isCompactTransaction(transaction)).toBe(true);
+    const replayed = reduceCompactState([source, successfulToolResult("v2-quality-result", transaction)]);
+    expect(replayed.blocks.get("block:v2-quality")?.qualityEvidence).toEqual(evidence);
+    expect(isCompactTransaction({
+      ...transaction,
+      blocks: [{ ...transaction.blocks![0], qualityEvidence: { ...evidence, rawSource: "forbidden" } }],
+    })).toBe(false);
+    expect(isCompactTransaction({
+      ...transaction,
+      blocks: [{ ...transaction.blocks![0], qualityEvidence: { ...evidence, tier: "T2" } }],
+    })).toBe(false);
+  });
+
   it("replays successful current-epoch tool and custom transactions deterministically", () => {
     const toolResult = successfulToolResult("result", tx("tool"));
     const entries = [source, toolResult, custom("control", { schema: "aili.compact.tx.v1", id: "off", kind: "control", epochId: "root", control: "off" })];

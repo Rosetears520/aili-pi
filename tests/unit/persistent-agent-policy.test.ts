@@ -110,6 +110,30 @@ describe("persistent child prompt and policy assembly", () => {
     ]));
   });
 
+  it("allows an approved same-name custom Bash definition to replace execution without expanding the tool ceiling", async () => {
+    const general = (await loadRoleProfiles()).find((role) => role.selector === "general")!;
+    const sandboxedBash = tool("bash");
+    const policy = computeEffectiveTools({
+      parent: parent(["read", "bash"]),
+      childLoadable: ["read", "bash"],
+      childDefinitions: new Map([["bash", sandboxedBash]]),
+      role: general,
+      currentDepth: 0,
+    });
+    expect(policy.effectiveTools).toEqual(["read", "bash"]);
+    expect(policy.customTools).toEqual([sandboxedBash]);
+
+    const withoutParentBash = computeEffectiveTools({
+      parent: parent(["read"]),
+      childLoadable: ["read", "bash"],
+      childDefinitions: new Map([["bash", sandboxedBash]]),
+      role: general,
+      currentDepth: 0,
+    });
+    expect(withoutParentBash.effectiveTools).toEqual(["read"]);
+    expect(withoutParentBash.customTools).toEqual([]);
+  });
+
   it("enforces explicit non-self spawn allowlists, the depth cap, and synchronous nesting", async () => {
     const roles = await loadRoleProfiles();
     const general = roles.find((role) => role.selector === "general")!;

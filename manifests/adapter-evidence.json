@@ -13,7 +13,7 @@
       "artifacts": [
         {
           "path": "package-lock.json",
-          "sha256": "53ae98fb9b3ad96a6d3860155f767710b72bed0ea0efc73e1e2ae5cf0aae866e"
+          "sha256": "35c3745b8634363515e7ee3dc4634ba2e926480dbe2b3bbe4a180dc91d3eb971"
         },
         {
           "path": "tests/integration/extension-load.test.ts",
@@ -39,7 +39,7 @@
       "artifacts": [
         {
           "path": "src/runtime/persistent-agents/production.ts",
-          "sha256": "976640bcb58ca8d883638a5ed048d909c0dd1cdab51b11fa45ca9bdc575dcaae"
+          "sha256": "de9de76c24d11b13ca0eadce4753130d521f32c1622d79be6ad939029c3d0ae1"
         },
         {
           "path": "src/runtime/persistent-agents/runtime.ts",
@@ -63,7 +63,7 @@
         },
         {
           "path": "tests/unit/persistent-agent-policy.test.ts",
-          "sha256": "1a397beeef79d4553461314020fc91655ff1bbc88d1f23b76c1391ab1e78b8f8"
+          "sha256": "3afe82e718b8651cd848b6f1c46477367c9ad5b3cac9a42e3c9c1335826624e1"
         },
         {
           "path": "tests/integration/persistent-agent-runtime.test.ts",

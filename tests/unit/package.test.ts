@@ -26,7 +26,7 @@ describe("Pi package baseline", () => {
     const manifest = await readManifest();
 
     expect(manifest.name).toBe("@rosetears/aili-pi");
-    expect(manifest.version).toBe("0.1.13");
+    expect(manifest.version).toBe("0.1.15");
     expect(manifest.license).toBe("AGPL-3.0-or-later");
     expect(manifest.bin).toBeUndefined();
     expect(manifest.engines?.node).toBe(">=22.19.0");
@@ -99,8 +99,8 @@ describe("Pi package baseline", () => {
     expect(readme).toContain("version 0.1.13 and later is licensed under `AGPL-3.0-or-later`");
     expect(packageLock).toMatchObject({
       name: "@rosetears/aili-pi",
-      version: "0.1.13",
-      packages: { "": { name: "@rosetears/aili-pi", version: "0.1.13", license: "AGPL-3.0-or-later" } },
+      version: "0.1.15",
+      packages: { "": { name: "@rosetears/aili-pi", version: "0.1.15", license: "AGPL-3.0-or-later" } },
     });
     expect(JSON.stringify(packageLock)).not.toContain("@agwab/pi-subagent");
     expect(createHash("sha256").update(licenseText).digest("hex")).toBe("0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0");

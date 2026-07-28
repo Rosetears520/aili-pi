@@ -79,17 +79,6 @@ This distribution is licensed under AGPL-3.0-or-later. The following adapted sou
 - Reused symbols/patterns: default Extension, lsp_diagnostics, lsp_fix, /lsp
 - Local changes: AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied
 
-## pi-zentui
-
-- Status: adapted
-- Source: https://github.com/lmilojevicc/pi-zentui.git
-- Revision: fda2c9c7d0027f7e98a3eba7d4e03f5c0ac7d600
-- Version: 0.11.0
-- License: MIT
-- Source files: extensions/zentui/**
-- Reused symbols/patterns: fixed editor compositor, editor chrome, user-message rendering, Zentui footer
-- Local changes: the pi-sakura-cyberdeck lineage supplied the vendored base; AILI applies Rose Cyberdeck palette and gradients, package defaults and configuration paths, Pi 0.82.1 lifecycle adaptations, and bounded fallback behavior
-
 ## pi-sakura-cyberdeck
 
 - Status: adapted
@@ -116,10 +105,10 @@ This distribution is licensed under AGPL-3.0-or-later. The following adapted sou
 
 - Status: reference-only
 - Source: https://github.com/ranxianglei/opencode-acp.git
-- Revision: f1a33d9f4ce55af808eb4e050717c914ed16084b
-- Version: 1.12.6
+- Revision: 00e8ba5c53fcbc46dfd86b5d7aa6eae058d29acb
+- Version: 1.14.3
 - License: AGPL-3.0-or-later
-- Upstream notice: Based on opencode-dynamic-context-pruning by Tarquinen (https://github.com/Tarquinen/opencode-dynamic-context-pruning); modified by ranxianglei, 2026 — 34 bug fixes, performance optimizations, enhanced stability.
+- Upstream notice: Based on opencode-dynamic-context-pruning by Tarquinen (https://github.com/Tarquinen/opencode-dynamic-context-pruning); modified by ranxianglei, 2026 — 35 bug fixes plus performance and stability improvements.
 - Source files: none copied
 - Reused symbols/patterns: none
 - Local changes: none

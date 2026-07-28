@@ -133,7 +133,7 @@ export function computeEffectiveTools(input: ComputeEffectiveToolsInput): Effect
   }
 
   const customTools = effectiveTools
-    .filter((name) => !BUILTIN_TOOL_NAMES.has(name))
+    .filter((name) => !BUILTIN_TOOL_NAMES.has(name) || input.childDefinitions?.has(name))
     .map((name) => input.childDefinitions?.get(name) ?? input.parent.definitions.get(name))
     .filter((definition): definition is ToolDefinition => definition !== undefined);
   return {
