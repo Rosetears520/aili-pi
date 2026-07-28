@@ -30,3 +30,9 @@ Artifacts contain only versions, bounded IDs/digests/counters/usage/verdicts and
 On 2026-07-28 the user explicitly requested publication of `0.1.15` instead of `0.1.14` or `0.2.0`, followed by installation into the user's WSL Pi Package directory. This authorizes the exact package/lock/SBOM identity update, task-scoped commit, fast-forward push to `origin/main`, annotated `v0.1.15` tag, public npm/GitHub release, and WSL Pi installation for this interim patch release.
 
 This authorization is a release exception, not retrospective evidence. The package keeps real-provider, interactive, and historical old-binary rows `Unverified`; it does not mark the final `v0.2.0` acceptance checklist complete. The fail-closed Compact candidate validator therefore remains authoritative for the later `v0.2.0` release and is expected to stay `NON_PASS` for this explicitly authorized interim patch.
+
+## Interim patch execution record
+
+The authorized `v0.1.15` release completed on 2026-07-28. npm `@rosetears/aili-pi@0.1.15` is public and is the `latest` dist-tag; annotated tag `v0.1.15` and the GitHub Release bind release commit `bf7b41eef62a614d3b5dad26a71f4cebb6988dc7`. The user's real WSL Pi `0.82.1` installation now resolves only `npm:@rosetears/aili-pi@0.1.15`, and Pi's package listing plus extension-loading help smoke both pass.
+
+The complete immutable identity, test summary, installation checks, and remaining evidence boundary are recorded in `ship-closeout-v0.1.15.md`. This execution record changes no final `v0.2.0` gate and grants no future publish, dependency, credential, or live-provider authority.

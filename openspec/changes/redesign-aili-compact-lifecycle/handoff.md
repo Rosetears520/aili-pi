@@ -1,4 +1,4 @@
-# Session Handoff: AILI Compact P0 + v0.2.0 / interim v0.1.15
+# Session Handoff: AILI Compact P0 + v0.2.0 / v0.1.15 released
 
 ## 目标与当前结论
 
@@ -7,7 +7,17 @@
 - `openspec/changes/fix-aili-compact-recovery-deadlock/`，原目标 `v0.1.14`；npm 从未发布该版本
 - `openspec/changes/redesign-aili-compact-lifecycle/`，目标 `v0.2.0`
 
-截至 2026-07-28 release continuation，生产实现、自动化测试、复制 session 迁移、fake-provider、生产入口、性能门、Pi 0.82.1 post-BUILD contract audit、精确 ACP provenance 和 fail-closed candidate evidence 工具链均已完成。用户在已知当前源码混合 P0 与 redesign、没有 P0-only snapshot、live/provider 与历史 binary 证据仍缺失后，明确要求跳过未发布的 `0.1.14`，把当前合并实现作为 patch `0.1.15` 发布并安装到 WSL Pi；不得发布 `0.2.0`。独立 `.worktrees/release-0.1.15` 候选现已绑定 `0.1.15`。任务统计仍为 P0 `54/61`、v0.2.0 `46/57`，本次例外不把最终 `v0.2.0` gate 或缺失证据改成 PASS。
+截至 2026-07-28 release closeout，生产实现、自动化测试、复制 session 迁移、fake-provider、生产入口、性能门、Pi 0.82.1 post-BUILD contract audit、精确 ACP provenance 和 fail-closed candidate evidence 工具链均已完成。用户在已知当前源码混合 P0 与 redesign、没有 P0-only snapshot、live/provider 与历史 binary 证据仍缺失后，明确要求跳过未发布的 `0.1.14`，把当前合并实现作为 patch `0.1.15` 发布并安装到 WSL Pi；不得发布 `0.2.0`。该授权现已执行完毕：npm/GitHub `v0.1.15` 已公开发布，真实 WSL Pi 已从 `0.1.13` 升级到唯一的 `0.1.15`。任务统计仍为 P0 `54/61`、v0.2.0 `46/57`，本次例外不把最终 `v0.2.0` gate 或缺失证据改成 PASS。
+
+## 2026-07-28 v0.1.15 发布 closeout
+
+- npm `@rosetears/aili-pi@0.1.15` 已发布并成为 `latest`；shasum `009b776e032b98fd3cb40abd5543273bf33f2a5f`，`gitHead` `bf7b41eef62a614d3b5dad26a71f4cebb6988dc7`。
+- annotated `v0.1.15`、`origin/main`、`origin/release/0.1.15` 已发布；tag peel 精确指向 release commit。GitHub Release 为公开、非 draft、非 prerelease，并带 13,812,792-byte tarball。
+- clean-clone 全量复验：84 files PASS、2 live-gated skipped；547 tests PASS、2 skipped。interim validator、Linux E2E、publish dry-run、tarball sanitizer/review 和所有授权内验证均 PASS。
+- 真实 WSL Pi 保持 `0.82.1`；settings 仅有 `npm:@rosetears/aili-pi@0.1.15`，安装 package 为 `0.1.15`，`pi list` 与无 provider 调用的 `pi --help` extension-load smoke 均 PASS。
+- 真实 WSL Pi Package 的 production audit 为 0 vulnerabilities / 120 dependencies；安装文件抽样与 release candidate byte-identical。
+- candidate 源码的 peer-inclusive audit 仍有 1 high，来自官方 Pi `0.82.1 -> minimatch@10.2.5 -> brace-expansion@5.0.7`；AILI tarball 不含这些文件，本次未授权 dependency upgrade。真实 WSL AILI 安装树审计为 0，二者不能混写。
+- 完整证据与下一会话边界见 `ship-closeout-v0.1.15.md`。live/provider、人眼 TUI、post-BUILD 时间偏差与 historical `v0.1.14` binary row 继续保持 `Unverified`。
 
 ## 不要重做的工作
 
@@ -116,11 +126,10 @@ redesign task 5.4 要求的 reference-only identity 已精确更新为 `v1.14.3@
 
 ## 下一会话建议执行顺序
 
-1. 在带真实 `.git/` 目录的 clean clone 中运行 final full suite，排除 worktree sandbox 结构影响。
-2. 若 PASS，提交 `release/0.1.15`，确认远端 main 未漂移后快进推送并创建 annotated `v0.1.15`。
-3. 执行公开 npm publish 与 GitHub release，核对 registry version/dist-tag/gitHead/shasum/integrity。
-4. 用 `pi install npm:@rosetears/aili-pi@0.1.15` 更新真实 WSL Pi Package，核对 `pi list`、settings、安装 package version 和 extension load。
-5. 写入 release closeout；live/provider、人眼 TUI 与 historical binary row 继续留给后续，不得改成 PASS。
+1. 不要重发 `v0.1.15`、移动其 tag 或重复真实 WSL 安装；先读取 `ship-closeout-v0.1.15.md` 并核对当前 Registry/Git 状态。
+2. 如用户授权 live scope，再执行三 provider family、真实 overflow/retry 与第三方 handler 顺序矩阵；没有实际证据的 row 继续保持 `Unverified`。
+3. 如要补 historical binary row，必须先解决从未发布且无可信 snapshot 的 `v0.1.14` 身份问题，不能拿当前合并树冒充历史 binary。
+4. `v0.2.0` candidate/version/lock/tag/publish 仍需新的精确授权，并须通过默认 fail-closed final validator 与 human review。
 
 ## 验证命令
 
@@ -145,17 +154,17 @@ npm run validate:release
 
 ## 停止条件与禁止推断
 
-- 当前用户指令已授权 exact `0.1.15` 的任务范围 commit、push、tag、公开 npm/GitHub release 和真实 WSL Pi Package 安装；不扩大到 dependency upgrade、provider credentials/live matrix 或 `0.2.0` 发布。
+- exact `0.1.15` 的任务范围 commit、push、tag、公开 npm/GitHub release 和真实 WSL Pi Package 安装已经完成；后续不得把该历史授权扩大到 dependency upgrade、provider credentials/live matrix 或 `0.2.0` 发布。
 - 不触碰真实 HOME、真实 session 或 provider credentials，除非 live scope 和证据落点已单独批准。
 - 不把 static/fake/copied-session evidence 当成 live evidence。
 - 不把 post-BUILD audit 倒签成“BUILD 前已确认”。
 - 不因聚合 task 看似接近完成而勾选 P0 11.2 或 redesign 6.1–6.3/6.5。
-- 只执行 `v0.1.15` 授权范围内的 commit、push、tag、publish、GitHub release 与 WSL Package 更新；任何依赖升级或 `v0.2.0` 发布都需新授权。
+- 不重复执行已完成的 `v0.1.15` 发布或移动 tag；任何依赖升级、live provider 运行或 `v0.2.0` 发布都需新授权。
 
 ## 建议的下一会话提示词
 
 ```text
-继续完成 @rosetears/aili-pi@0.1.15 interim patch release。先读取 openspec/changes/redesign-aili-compact-lifecycle/handoff.md、release.md、drift-log.md，并核对 AGENTS.md 和 release/0.1.15 worktree。
+继续 AILI Compact 的发布后工作。先读取 openspec/changes/redesign-aili-compact-lifecycle/ship-closeout-v0.1.15.md、handoff.md、release.md、drift-log.md，并核对 AGENTS.md。
 
-用户已经明确授权 exact 0.1.15 package/lock/SBOM、任务范围 commit、快进 origin/main、annotated v0.1.15、公开 npm/GitHub release 和真实 WSL Pi Package 安装；明确不发布 0.2.0，也未授权依赖升级或 provider/live matrix。candidate publish dry-run、tarball review、Linux E2E、strict OpenSpec 与 interim validator 已通过。先在带真实 .git/ 目录的 clean clone 复跑 full suite；通过后完成 commit/push/tag/npm/GitHub release，再运行 pi install npm:@rosetears/aili-pi@0.1.15 并验证实际加载身份。live/provider、人眼 TUI 和 separately-installed-v0.1.14 row 必须继续保持 Unverified。
+@rosetears/aili-pi@0.1.15 已公开发布并成为 npm latest，annotated v0.1.15 精确绑定 release commit，真实 WSL Pi 0.82.1 已安装唯一的 0.1.15，自动验证和安装 smoke 均通过。不要重发、移动 tag 或重复安装。只有用户新授权后才运行 live/provider matrix、依赖升级或物化 v0.2.0；人眼 TUI、post-BUILD 时间条件、真实 provider/overflow 和 separately-installed-v0.1.14 row 必须继续保持 Unverified。
 ```

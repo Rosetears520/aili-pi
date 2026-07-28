@@ -2,7 +2,7 @@
 
 目标：@rosetears/aili-pi@0.2.0 mandatory PR2–PR5 scope
 工作区包版本：0.1.15（interim patch release exception；final target 仍为 0.2.0）
-状态：INTERIM_0_1_15_CANDIDATE_AUTOMATED_PASS_FINAL_0_2_0_RELEASE_BLOCKED
+状态：INTERIM_0_1_15_RELEASED_AND_WSL_INSTALLED_AUTOMATED_PASS_FINAL_0_2_0_RELEASE_BLOCKED
 
 PR2 usable-main gate — PASS：
 - exact protocol atoms、8-atom + 12K/10% tail、hard protection、safe ranges/digests/exclusions
@@ -68,3 +68,13 @@ Release validator：
 - 当前源码没有可追溯的 P0-only snapshot，不能物化历史 `v0.1.14`；用户已明确选择把合并树作为 `v0.1.15` interim patch 发布，且明确不发布 `v0.2.0`。这项例外不补全历史或 live evidence。
 - `npm run validate:interim-release` PASS：exact 0.1.15 identity、自动 evidence、唯一历史 Unverified、缺失 live artifact 与 final 0.2.0 八类 NON_PASS 均被显式检查。依赖升级、provider credentials/live matrix 仍未授权。
 - redesign 统计更新为 46/57；仍未勾选 1.1、1.4、3.11、5.7、5.9-5.11、6.1-6.3、6.5。
+
+2026-07-28 v0.1.15 release closeout：
+- release commit `bf7b41eef62a614d3b5dad26a71f4cebb6988dc7` 已推送到 `origin/main` 与 `origin/release/0.1.15`；annotated `v0.1.15` peel 精确指向该 commit。
+- npm `@rosetears/aili-pi@0.1.15` 已公开发布并成为 `latest`；registry shasum `009b776e032b98fd3cb40abd5543273bf33f2a5f`、integrity 与 gitHead 均匹配候选。
+- GitHub Release `v0.1.15` 已公开，非 draft、非 prerelease；附件 `rosetears-aili-pi-0.1.15.tgz` 为 13,812,792 bytes。
+- clean-clone final full suite：84 files PASS、2 live-gated skipped；547 tests PASS、2 skipped。所有授权内静态/自动化/pack/Linux/OpenSpec/interim gates PASS。
+- 真实 WSL Pi `0.82.1` 已从 `@rosetears/aili-pi@0.1.13` 原位升级；settings 仅有 `npm:@rosetears/aili-pi@0.1.15`，实际安装版本 `0.1.15`，`pi list` 与 `pi --help` extension-load smoke PASS。
+- 真实 WSL Pi Package production dependency audit：0 vulnerabilities / 120 dependencies；抽样安装内容与 release candidate byte-identical。
+- candidate 源码 peer-inclusive audit 有 1 high：官方 Pi `0.82.1 -> minimatch@10.2.5 -> brace-expansion@5.0.7`。AILI tarball 不包含 Pi/brace-expansion 文件；本次未授权依赖升级，该 upstream residual 已在 closeout 区分记录。
+- closeout：`openspec/changes/redesign-aili-compact-lifecycle/ship-closeout-v0.1.15.md`。live/provider、人眼 TUI、post-BUILD 时间条件与 historical `v0.1.14` binary row 不变，继续 `Unverified`；final `v0.2.0` validator 继续按设计 fail closed。
