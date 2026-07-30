@@ -1,0 +1,9 @@
+[2026-07-29T16:36:25+08:00] DEFINE BLOCKED_UPSTREAM
+[KNOWN|USER] decision=defer this change until official Pi exposes the required public runtime seam; session decision 2026-07-29: “可以先不做，等他们更新再说”
+[COMPUTED] evidence=Pi 0.82.1 public ExtensionContext exposes model/modelRegistry/ctx.compact but not the active Agent transport or retry policy; node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/types.d.ts:208-243; node_modules/@earendil-works/pi-coding-agent/dist/core/settings-manager.d.ts:195-220
+[INFERRED] blocker=an Extension-owned secondary summary request cannot prove inheritance of the proposal-required current provider/model/auth/headers/env/transport/retry surface
+[FRAME] required_upstream_seam=a public Pi operation that executes AILI-provided summary work through the active Agent's effective provider runtime, including configured SSE/transport and retry behavior, without private API or node_modules edits
+[FRAME] lifecycle=DEFINE
+[FRAME] artifact_state=proposal.md only; design/spec deltas/tasks/test-plan/migration/release gates intentionally not fabricated
+[FRAME] build_readiness=BLOCKED — awaiting an official Pi public seam and a fresh user request to resume DEFINE
+[FRAME] operation_gates=no dependency/lockfile/version/settings/HOME/Git/publish/release authority granted

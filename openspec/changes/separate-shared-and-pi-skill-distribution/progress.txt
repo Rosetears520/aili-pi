@@ -1,0 +1,36 @@
+[2026-07-30T06:19:22Z] BOARD BOARD_CREATED
+change_id=separate-shared-and-pi-skill-distribution
+phase=DEFINE
+status=blocked
+owner=ROSE
+scope=separate rose-aili shared skill installation from aili-pi Pi-specialized package resources
+decisions=sole shared installer; two explicit independent latest commands; no postinstall coupling; package-local future pi-skills; separate OpenSpec change
+evidence=current package/postinstall/tarball owners; Pi 0.82.1 official skill/package locations; npm rose-aili latest metadata; pinned-vs-latest formal protocol audit
+blockers=final test-plan acceptance; exact future rose-aili candidate with generic formal-board contract; separately gated lockfile mutation and file deletion
+permissions=no external write; no real HOME; no npm/npx install; no dependency/lockfile; no deletion; no Git/publish/release
+next_action=run strict OpenSpec validation, present final test-plan for explicit acceptance, and keep BUILD blocked
+
+[2026-07-30T06:20:26Z] BOARD VALIDATED
+validation=openspec validate separate-shared-and-pi-skill-distribution --strict --no-interactive PASS
+artifacts=.openspec.yaml; proposal.md; context.md; interview.md; design.md; specs/shared-and-pi-skill-distribution/spec.md; tasks.md; test-plan.md; progress.txt
+status=blocked
+blockers=explicit final test-plan acceptance; B-UPSTREAM-FORMAL-001; separately gated lockfile mutation and file deletion
+next_action=user explicitly accepts or requests revision of final test-plan.md; no BUILD or package/install mutation
+
+[2026-07-30T06:23:31Z] BOARD RECONCILED
+reason=user requested blocker explanation and explicitly retained the upstream formal-compatibility prerequisite
+decision=preserve B-UPSTREAM-FORMAL-001; do not accept temporary integrated formal incompatibility
+phase=DEFINE
+status=blocked
+remaining_blockers=explicit final test-plan acceptance; exact rose-aili successor; separately gated lockfile mutation and file deletion
+next_action=user explicitly accepts or requests revision of final test-plan.md; no BUILD or package/install mutation
+
+[2026-07-30T06:29:39Z] BOARD ACCEPTED
+decision=user explicitly accepted final test-plan.md and selected keep BUILD blocked
+phase=DEFINE
+acceptance=final test-plan accepted
+build_intent=absent
+status=blocked
+blocker=B-UPSTREAM-FORMAL-001 exact rose-aili successor required before fallback-removal BUILD
+operation_gates=lockfile mutation; file deletion; external write; npm/npx install; real HOME; Git; publish; release remain separately unauthorized
+next_action=wait for an exact rose-aili successor containing generic formal-board semantics; then revalidate target/evidence and request fresh BUILD intent plus exact operation approvals
