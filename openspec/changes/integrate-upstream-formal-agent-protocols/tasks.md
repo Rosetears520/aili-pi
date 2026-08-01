@@ -77,7 +77,8 @@
   - Completed 2026-08-01: overlapping boards remain historical/capability sources; TUI/image-paste is independent and unreconciled with historical candidate evidence; emergency checkpoint is proposal-only/upstream-blocked; none inherits or blocks this BUILD.
 - [x] 7.2 Record implementation, focused verification, full required suite, exact upstream release, candidate identity and public exposure review as separate states.
   - Completed 2026-08-01 in `release-state.md`; conditional full-suite non-execution, dirty-tree candidate identity, bounded local exposure review, live/real limitations and absent operation authority are explicit.
-- [ ] 7.3 Request separate exact approvals for commit, push, npm publish, GitHub release and real WSL install; execute none by default.
+- [x] 7.3 Request separate exact approvals for commit, push, npm publish, GitHub release and real current-user install; execute none by default.
+  - Completed 2026-08-01 under separately granted operation approvals: PR #1 and the bounded cold-load follow-up PR #2 were committed, pushed and merged; `@rosetears/aili-pi@0.1.16` was published to npm and released as GitHub tag `v0.1.16`; exact `rose-aili@0.4.2` shared Skills and the Pi Package were installed for the current Linux user and verified by version, configuration, package-list and read-only doctor evidence.
 
 ## 8. Bounded 0.1.16 SHIP repair
 
