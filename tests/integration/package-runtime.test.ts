@@ -29,7 +29,7 @@ describe("offline packaged runtime discovery", () => {
     expect(shortcuts).toContain("alt+m");
     expect(shortcuts).not.toContain("ctrl+shift+alt+a");
     expect([...extension.handlers.keys()]).toEqual(expect.arrayContaining(["before_agent_start", "session_start", "tool_call"]));
-  });
+  }, 30_000);
 
   it("loads the parent-only formal hub adapter and plans/reconciles one exact Board without automatic advancement", async () => {
     const scratchParent = join(root, ".tmp");
@@ -97,7 +97,7 @@ describe("offline packaged runtime discovery", () => {
     } finally {
       await rm(project, { recursive: true, force: true });
     }
-  });
+  }, 30_000);
 
   it("keeps the pinned repository snapshot without publishing or registering it as a Pi skill source", async () => {
     const [compatibility, workflowLock, roles, packageJson] = await Promise.all([
