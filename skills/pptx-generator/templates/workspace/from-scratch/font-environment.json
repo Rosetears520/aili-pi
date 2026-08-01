@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "report_kind": "font-environment",
+  "status": "unverified",
+  "platform": "unverified",
+  "wsl": false,
+  "external_reads": {"approval_state": "not-required", "requested_paths": [], "observed_paths": []},
+  "environments": {
+    "build": {"status": "unverified", "renderer": "unresolved", "visible_fonts": [], "registered_fonts": [], "mounted_font_files": [], "observed_substitutions": [], "evidence": []},
+    "render": {"status": "unverified", "renderer": "unresolved", "visible_fonts": [], "registered_fonts": [], "mounted_font_files": [], "observed_substitutions": [], "evidence": []},
+    "target": {"status": "unverified", "renderer": "unresolved", "visible_fonts": [], "registered_fonts": [], "mounted_font_files": [], "observed_substitutions": [], "evidence": []}
+  }
+}

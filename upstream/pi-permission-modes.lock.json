@@ -23,7 +23,7 @@
   "adaptedFiles": [
     {
       "path": "src/vendor/pi-permission-modes/index.ts",
-      "sha256": "5ca8743e55776e3d0bd1f8c2daef40f55a7ac6009306bc66398a9753105ed848"
+      "sha256": "dbf32a96e2d8273568996c5ed7726333a076d6f3148745e091626a06f08d037b"
     },
     {
       "path": "src/vendor/pi-permission-modes/resolve.ts",
@@ -39,7 +39,8 @@
     "matchPattern compiles its anchored glob RegExp with dotAll so * and ? include ECMAScript line terminators.",
     "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.82.1 can derive current PI_* session environment values.",
     "The adapted sandbox BashOperations wrapper injects Pi's resolved five-variable session environment as a shell-safe prelude because pi-permission-modes@2.2.0 ignores BashOperations.options.env.",
-    "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime."
+    "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime.",
+    "Formal persistent children compose their exact two owning-file denyWrite paths into each sandboxed command while preserving the active profile, network rules, and blocked-host diagnostics."
   ],
   "generatedBy": "scripts/sync-permission-modes.ts",
   "verification": [

@@ -4,22 +4,22 @@
     {
       "name": "aili-workflows",
       "repository": "https://github.com/Rosetears520/aili-workflows.git",
-      "revision": "7eb35f357ad489f5841ee10dac1e44549c1bdb76",
-      "version": "0.2.7",
+      "revision": "bb1fedacc46d71045daa6257d121f2b71ba29d54",
+      "version": "0.4.2",
       "license": "MIT",
       "status": "adapted",
       "sourceFiles": [
-        "upstream/aili-workflows.lock.json#files (471 exact skill files)",
-        "manifests/roles.json#records[].sourcePath (19 exact role source files)",
+        "upstream/aili-workflows.lock.json#files (588 exact skill files)",
+        "manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.2 source revision)",
         "upstream/opencode-global-agents.lock.json (pinned source template revision/hash)"
       ],
-      "symbols": ["64 canonical skill bodies and owned assets", "19 child-role prompt bodies"],
+      "symbols": ["65 canonical skill bodies and owned assets"],
       "localChanges": [
         "skills/** is an exact byte-for-byte snapshot with no semantic overlay",
-        "role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output",
+        "specialized role prompts preserve ordinary JSON output while the Pi Runtime supplies the exact canonical formal-result override; deterministic routing and role profiles remain manifest-hash bound to the exact 0.4.2 source revision",
         "templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded"
       ],
-      "verification": ["npm run verify:skills", "npm run verify:roles", "tests/unit/global-resources.test.ts"]
+      "verification": ["npm run verify:skills", "npm run verify:roles", "tests/unit/generated.test.ts", "tests/integration/formal-orchestration-runtime.test.ts", "tests/unit/global-resources.test.ts"]
     },
     {
       "name": "pi-permission-modes",
@@ -30,7 +30,7 @@
       "status": "adapted",
       "sourceFiles": ["src/vendor/pi-permission-modes/index.ts", "src/vendor/pi-permission-modes/resolve.ts", "upstream/pi-permission-modes.lock.json", "licenses/pi-permission-modes-MIT.txt"],
       "symbols": ["Default/Plan/Build/YOLO", "/perm", "Alt+M", "shared permission pattern matcher", "sandbox degradation"],
-      "localChanges": ["AILI's generated adapted entry redirects unchanged sibling modules to the exact 2.2.0 dependency", "the owned resolve.ts compiles permission globs with RegExp dotAll so * and ? include ECMAScript line terminators", "the exact upstream and adapted files are hash-locked and drift-checked"],
+      "localChanges": ["AILI's generated adapted entry redirects unchanged sibling modules to the exact 2.2.0 dependency", "the owned resolve.ts compiles permission globs with RegExp dotAll so * and ? include ECMAScript line terminators", "the process-owned sandbox composes the exact formal Board denyWrite paths for persistent children", "the exact upstream and adapted files are hash-locked and drift-checked"],
       "verification": ["npm run verify:permission-modes", "tests/unit/permission-patterns.test.ts", "tests/integration/permission-modes.test.ts", "tests/integration/extension-load.test.ts"]
     },
     {

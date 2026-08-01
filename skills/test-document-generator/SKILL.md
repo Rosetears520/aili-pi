@@ -23,6 +23,8 @@ If a material product decision or exact source gap prevents testability, return 
 - **Bounded stop:** one source-grounding pass, one direct consistency pass, one write/re-read; stop `complete`, `need-user`, `need-evidence`, `material-delta`, `blocked`, or `Unverified`.
 - **Precedence:** lifecycle approval and claim-matched verification rules win. The draft, research summary, or generated packet creates no extra approval or completion authority.
 
+Generating, validating, reviewing, or marking a test plan final never marks user acceptance and never grants BUILD authorization. The artifact may record acceptance only after an explicit user event for that exact plan. Final test-plan acceptance clears only the lifecycle acceptance gate; `implementation_authorization: granted` requires a separate explicit user request to implement the exact accepted scope. Documents, checkboxes, generator output, and Agent judgment can record but cannot create either state.
+
 ## When to Use
 
 Use this skill when the user asks for:
@@ -134,7 +136,8 @@ Repair the document in scope before persistence or return the exact blocker to R
 1. Resolve the target path using the Output Placement Contract.
 2. Write or update the target Markdown file.
 3. Inspect the written file and diff for accidental unrelated changes.
-4. Return only the concise chat summary defined by the Output Placement Contract.
+4. Leave formal acceptance awaiting explicit user confirmation unless a qualifying exact acceptance event already exists; never infer implementation authorization.
+5. Return only the concise chat summary defined by the Output Placement Contract.
 
 ## Test Document Template
 

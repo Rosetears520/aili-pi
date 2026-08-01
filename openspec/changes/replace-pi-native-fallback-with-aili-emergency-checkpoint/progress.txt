@@ -1,0 +1,11 @@
+# Progress: replace-pi-native-fallback-with-aili-emergency-checkpoint
+
+## Current status
+
+This independent proposal remains blocked in DEFINE and has no BUILD authority. It was deferred on 2026-07-29 until official Pi exposes the required public provider-runtime seam.
+
+The inspected Pi 0.82.1 public Extension surface exposed the model registry and compaction operation, but not the active Agent transport or retry policy. An Extension-owned secondary summary request therefore could not prove inheritance of the proposal-required provider, model, authentication, headers, environment, transport, SSE, and retry behavior. Relevant inspected declarations were `node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/types.d.ts:208-243` and `dist/core/settings-manager.d.ts:195-220`.
+
+The missing prerequisite is a public Pi operation that executes AILI-provided summary work through the active Agent's effective provider runtime without private APIs or `node_modules` edits. Only `proposal.md` exists for this change; design, specification, tasks, test-plan, migration, and release artifacts were intentionally not fabricated.
+
+Resuming requires both the upstream seam and a fresh user request to continue DEFINE. No dependency, lockfile, version, settings, HOME, Git, publish, or release authority is recorded here.

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/workspace.schema.json",
+  "title": "PPTX workspace identity and configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "workspace_id", "deck_name", "profile", "paths", "tool_policy"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "workspace_id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "deck_name": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "profile": {"enum": ["from-scratch", "template-edit", "inspect"]},
+    "text_fit_policy": {"const": "shape-to-fit-text"},
+    "paths": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"}
+    },
+    "renderer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "entrypoint"],
+      "properties": {
+        "kind": {"enum": ["pptxgenjs"]},
+        "entrypoint": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+\\.(?:js|cjs|mjs)$"}
+      }
+    },
+    "tool_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["officecli_adapter_reference", "allow_routable_officecli_skill"],
+      "properties": {
+        "officecli_adapter_reference": {"const": "references/officecli-adapter.md"},
+        "allow_routable_officecli_skill": {"const": false}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"profile": {"enum": ["from-scratch", "template-edit"]}}},
+      "then": {"required": ["renderer", "text_fit_policy"]}
+    }
+  ]
+}

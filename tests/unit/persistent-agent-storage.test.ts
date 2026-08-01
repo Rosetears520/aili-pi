@@ -101,6 +101,7 @@ describe("parent-owned persistent Agent storage", () => {
       snapshotPath: join(layout.root, "snapshot.json"),
       agentsDir: join(layout.root, "agents"),
       patchesDir: join(layout.root, "patches"),
+      resultsDir: join(layout.root, "results"),
       workspacesPath: join(layout.root, "workspaces.jsonl"),
     });
     expect(sanitizeAgentName("  Code Scout / α  ")).toBe("Code-Scout");
@@ -160,6 +161,103 @@ describe("parent-owned persistent Agent storage", () => {
 
     await writeFile(layout.snapshotPath, "{invalid snapshot\n");
     await expect(replayCoordinator(layout, "parent-1")).rejects.toThrow(/invalid coordinator snapshot/);
+  });
+
+  it("durably binds one immutable formal workspace lease to the exact Agent, job, and initial turn", async () => {
+    const { journal } = await CoordinatorJournal.open(layout, "parent-1", journalOptions());
+    const formalProtection = {
+      changeId: "exact-change",
+      protectedPaths: [
+        "openspec/changes/exact-change/formal-task-board.md",
+        "openspec/changes/exact-change/progress.txt",
+      ],
+    };
+    const formalContinuationIdentity = {
+      packageId: "P-01",
+      canonicalRole: "aili.implementer",
+      scope: "Implement the bounded package.",
+      forbiddenScope: "No board writes.",
+      writeScope: { paths: ["src"], resources: [] },
+      acceptanceBoundary: "Focused checks pass.",
+      expectedEvidence: "Focused test output.",
+    };
+    const formalWorkspaceRequest = {
+      mode: "shared",
+      writeScope: formalContinuationIdentity.writeScope,
+      cwd: ".",
+      selector: "aili.implementer",
+    };
+    const metadata = { formalProtection, formalContinuationIdentity, formalWorkspaceRequest };
+    await journal.append({
+      kind: "agent.created",
+      agentId: "Formal",
+      payload: { record: { ...agent("Formal"), selector: "aili.implementer", currentJobId: "job-1", currentTurnId: "turn-1", metadata } },
+    });
+    await journal.append({ kind: "job.created", agentId: "Formal", jobId: "job-1", payload: { record: { ...job("job-1", "Formal"), metadata } } });
+    await journal.append({ kind: "turn.created", agentId: "Formal", jobId: "job-1", turnId: "turn-1", payload: { record: { ...turn("turn-1", "Formal", "job-1"), metadata } } });
+    const lease = {
+      agentId: "Formal",
+      jobId: "job-1",
+      initialTurnId: "turn-1",
+      mode: "shared",
+      requestedMode: "shared",
+      projectRoot: join(scratch, "project"),
+      root: join(scratch, "project"),
+      cwd: join(scratch, "project"),
+      selector: "aili.implementer",
+      scope: { paths: ["src"], resources: [], declared: true },
+      protectedPaths: formalProtection.protectedPaths,
+      formalProtection,
+      formalContinuationIdentity,
+      formalWorkspaceRequest,
+      acquiredAt: "2026-07-25T00:00:00.000Z",
+    };
+    await journal.append({ kind: "workspace.lease", agentId: "Formal", jobId: "job-1", turnId: "turn-1", payload: { record: lease } });
+    await journal.flush();
+
+    expect(journal.getState().workspaceLeases.Formal).toEqual(lease);
+    expect((await replayCoordinator(layout, "parent-1")).state.workspaceLeases.Formal).toEqual(lease);
+    await expect(journal.append({
+      kind: "workspace.lease",
+      agentId: "Formal",
+      jobId: "job-1",
+      turnId: "turn-1",
+      payload: { record: { ...lease, root: join(scratch, "other") } },
+    })).rejects.toThrow(/immutable/);
+
+    const continued = (await CoordinatorJournal.open(layout, "parent-1", journalOptions())).journal;
+    await continued.append({ kind: "agent.state", agentId: "Formal", payload: { from: "queued", to: "running" } });
+    await continued.append({ kind: "job.state", agentId: "Formal", jobId: "job-1", payload: { from: "queued", to: "running" } });
+    await continued.append({ kind: "turn.state", agentId: "Formal", jobId: "job-1", turnId: "turn-1", payload: { from: "queued", to: "running" } });
+    const evidenceRecord = {
+      version: 1,
+      eventId: "pending",
+      eventSequence: 0,
+      agentId: "Formal",
+      jobId: "job-1",
+      turnId: "turn-1",
+      changeId: "exact-change",
+      packageId: "P-01",
+      roleId: "aili.implementer",
+      canonicalStatus: "completed",
+      outputPath: join(layout.resultsDir, "Formal--job-1--turn-1.result"),
+      outputSha256: "a".repeat(64),
+      outputBytes: 42,
+      historyPath: join(layout.agentsDir, "Formal.jsonl"),
+      historyPrefixSha256: "b".repeat(64),
+      historyPrefixBytes: 84,
+    };
+    await continued.append({ kind: "formal.result.evidence", agentId: "Formal", jobId: "job-1", turnId: "turn-1", payload: { record: evidenceRecord } });
+    const persistedEvidence = continued.getState().formalResultEvidence["job-1"]!;
+    expect(persistedEvidence).toMatchObject({ ...evidenceRecord, eventId: expect.stringMatching(/^event-/), eventSequence: expect.any(Number) });
+    expect((await replayCoordinator(layout, "parent-1")).state.formalResultEvidence["job-1"]).toEqual(persistedEvidence);
+    await expect(continued.append({
+      kind: "formal.result.evidence",
+      agentId: "Formal",
+      jobId: "job-1",
+      turnId: "turn-1",
+      payload: { record: evidenceRecord },
+    })).rejects.toThrow(/immutable/);
   });
 
   it("reports one final partial line but fails closed on complete corruption and duplicate event IDs", async () => {
@@ -239,11 +337,12 @@ describe("parent-owned persistent Agent storage", () => {
     expect(state.agents.Running.state).toBe("parked");
     expect(state.turns["turn-1"].state).toBe("interrupted");
     expect(state.turns["turn-1"].metadata).toMatchObject({ provider: "fixture", model: "model", modelLayer: "parent-fallback", effectiveTools: ["read"] });
-    expect(state.jobs["job-1"].state).toBe("failed");
+    expect(state.jobs["job-1"].state).toBe("unexecuted");
     expect(state.agents.Queued.state).toBe("parked");
     expect(state.jobs["job-2"].state).toBe("unexecuted");
     expect(resumed.reconciled).toEqual(expect.arrayContaining([
       { type: "interrupted", agentId: "Running", id: "turn-1" },
+      { type: "unexecuted", agentId: "Running", id: "job-1" },
       { type: "unexecuted", agentId: "Queued", id: "job-2" },
     ]));
 

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/asset-plan.schema.json",
+  "title": "PPTX asset plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "items"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "slide_ids", "purpose", "status"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "slide_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "purpose": {"type": "string", "minLength": 1},
+          "status": {"enum": ["planned", "available", "need-user", "not-applicable"]},
+          "source_requirement": {"type": "string"}
+        }
+      }
+    }
+  }
+}

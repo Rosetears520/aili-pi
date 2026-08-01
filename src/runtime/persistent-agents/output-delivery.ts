@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { lstat, open, readFile, realpath, rename, rm } from "node:fs/promises";
 import { relative, resolve, sep, isAbsolute } from "node:path";
 import type { CoordinatorJournal } from "./storage.js";
@@ -9,8 +9,9 @@ import {
   sidecarLayoutForParent,
   validateExactChildSessionPath,
 } from "./storage.js";
-import type { AgentRecord, SidecarLayout } from "./types.js";
+import type { AgentRecord, FormalResultEvidenceRecord, SidecarLayout } from "./types.js";
 import type { NormalizedTaskSettlement } from "./task-coordinator.js";
+import { parseCanonicalFormalResult } from "./task-coordinator.js";
 import { assertNoCredentialMaterial } from "./permission.js";
 
 export const PARENT_PREVIEW_CHAR_LIMIT = 5_000;
@@ -57,6 +58,136 @@ export async function persistFullAgentOutput(layout: SidecarLayout, agentId: str
   }
   await atomicWrite(outputPath, fullOutput);
   return outputPath;
+}
+
+const EVIDENCE_COMPONENT = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+
+function sha256(bytes: Buffer): string {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+function formalResultOutputPath(layout: SidecarLayout, agentId: string, jobId: string, turnId: string): string {
+  for (const value of [agentId, jobId, turnId]) {
+    if (!EVIDENCE_COMPONENT.test(value) || value.includes("..")) throw new Error("unsafe formal result evidence identity");
+  }
+  const path = resolve(layout.resultsDir, `${agentId}--${jobId}--${turnId}.result`);
+  if (!isInside(resolve(layout.resultsDir), path)) throw new Error("formal result evidence path escapes its owned directory");
+  return path;
+}
+
+function formalIdentity(record: { metadata?: Record<string, unknown> } | undefined): {
+  changeId: string;
+  packageId: string;
+  roleId: string;
+} {
+  const protection = record?.metadata?.formalProtection as { changeId?: unknown } | undefined;
+  const continuation = record?.metadata?.formalContinuationIdentity as { packageId?: unknown; canonicalRole?: unknown } | undefined;
+  if (typeof protection?.changeId !== "string" || typeof continuation?.packageId !== "string" || typeof continuation.canonicalRole !== "string") {
+    throw new Error("formal result evidence requires exact durable continuation identity");
+  }
+  return { changeId: protection.changeId, packageId: continuation.packageId, roleId: continuation.canonicalRole };
+}
+
+export async function persistFormalResultEvidence(
+  layout: SidecarLayout,
+  journal: CoordinatorJournal,
+  settlement: NormalizedTaskSettlement,
+  fullOutput: string,
+): Promise<FormalResultEvidenceRecord> {
+  if (!settlement.formalResultStatus) throw new Error("formal settlement has no classified result status");
+  const state = journal.getState();
+  const agent = state.agents[settlement.agentId];
+  const job = state.jobs[settlement.jobId];
+  const turn = state.turns[settlement.turnId];
+  if (!agent || agent.state !== "running" || !job || job.state !== "running" || !turn || turn.state !== "running"
+    || job.agentId !== agent.id || turn.agentId !== agent.id || turn.jobId !== job.id) {
+    throw new Error("formal result evidence requires the exact running Agent/job/turn");
+  }
+  const identity = formalIdentity(job);
+  if (identity.roleId !== settlement.selector || agent.selector !== settlement.selector
+    || JSON.stringify(job.metadata?.formalContinuationIdentity) !== JSON.stringify(agent.metadata?.formalContinuationIdentity)
+    || JSON.stringify(job.metadata?.formalContinuationIdentity) !== JSON.stringify(turn.metadata?.formalContinuationIdentity)
+    || JSON.stringify(job.metadata?.formalProtection) !== JSON.stringify(agent.metadata?.formalProtection)
+    || JSON.stringify(job.metadata?.formalProtection) !== JSON.stringify(turn.metadata?.formalProtection)) {
+    throw new Error("formal result evidence identity drifted before settlement");
+  }
+  if (!agent.sessionPath) throw new Error("formal result evidence requires an exact child history path");
+  const historyPath = await validateExactChildSessionPath(layout, agent.sessionPath);
+  const historyBytes = await readFile(historyPath);
+  const outputBytes = Buffer.from(fullOutput, "utf8");
+  await assertNoCredentialMaterial(fullOutput, "formal result evidence");
+  const outputPath = formalResultOutputPath(layout, agent.id, job.id, turn.id);
+  const handle = await open(outputPath, "wx", 0o600);
+  try {
+    await handle.writeFile(outputBytes);
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  const record = {
+    version: 1 as const,
+    eventId: "pending",
+    eventSequence: 0,
+    agentId: agent.id,
+    jobId: job.id,
+    turnId: turn.id,
+    changeId: identity.changeId,
+    packageId: identity.packageId,
+    roleId: identity.roleId,
+    canonicalStatus: settlement.formalResultStatus,
+    outputPath,
+    outputSha256: sha256(outputBytes),
+    outputBytes: outputBytes.byteLength,
+    historyPath,
+    historyPrefixSha256: sha256(historyBytes),
+    historyPrefixBytes: historyBytes.byteLength,
+  };
+  await journal.append({
+    kind: "formal.result.evidence",
+    agentId: agent.id,
+    jobId: job.id,
+    turnId: turn.id,
+    payload: { record },
+  });
+  return journal.getState().formalResultEvidence[job.id]!;
+}
+
+export async function verifyFormalResultEvidence(
+  layout: SidecarLayout,
+  state: ReturnType<CoordinatorJournal["getState"]>,
+  record: FormalResultEvidenceRecord,
+): Promise<void> {
+  const agent = state.agents[record.agentId] ?? state.releasedAgents[record.agentId];
+  const job = state.jobs[record.jobId];
+  const turn = state.turns[record.turnId];
+  if (!agent || !job || !turn || job.agentId !== agent.id || turn.agentId !== agent.id || turn.jobId !== job.id
+    || state.formalResultEvidence[record.jobId]?.eventId !== record.eventId
+    || state.appliedEventIds[record.eventSequence - 1] !== record.eventId) {
+    throw new Error("formal result evidence Journal identity is stale");
+  }
+  const identity = formalIdentity(job);
+  if (identity.changeId !== record.changeId || identity.packageId !== record.packageId || identity.roleId !== record.roleId
+    || agent.selector !== record.roleId) throw new Error("formal result evidence continuation identity is stale");
+  const expectedOutputPath = formalResultOutputPath(layout, record.agentId, record.jobId, record.turnId);
+  if (record.outputPath !== expectedOutputPath || record.historyPath !== agent.sessionPath) {
+    throw new Error("formal result evidence path identity is stale");
+  }
+  const outputStat = await lstat(record.outputPath);
+  if (outputStat.isSymbolicLink() || !outputStat.isFile()) throw new Error("formal result output snapshot is not a real file");
+  const output = await readFile(record.outputPath);
+  if (output.byteLength !== record.outputBytes || sha256(output) !== record.outputSha256) {
+    throw new Error("formal result output snapshot changed after settlement");
+  }
+  const parsed = parseCanonicalFormalResult(output.toString("utf8"), { packageId: record.packageId, roleId: record.roleId });
+  if (record.canonicalStatus === "malformed" ? parsed.ok : !parsed.ok || parsed.value.status !== record.canonicalStatus) {
+    throw new Error("formal result snapshot classification no longer matches its bytes");
+  }
+  const historyPath = await validateExactChildSessionPath(layout, record.historyPath);
+  const history = await readFile(historyPath);
+  if (history.byteLength < record.historyPrefixBytes
+    || sha256(history.subarray(0, record.historyPrefixBytes)) !== record.historyPrefixSha256) {
+    throw new Error("formal result history settlement prefix changed");
+  }
 }
 
 export interface BoundedTextResult {

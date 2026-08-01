@@ -1,112 +1,148 @@
-# QA Process & Common Pitfalls
+# QA Process and Common Pitfalls
 
-## QA Process
+## Evidence Levels
 
-**Assume there are problems. Your job is to find them.**
+[FRAME] Different checks prove different claims. Use the smallest fresh combination that supports the requested result.
 
-Your first render is almost never correct. Approach QA as a bug hunt, not a confirmation step. If you found zero issues on first inspection, you weren't looking hard enough.
+| Check | Supports | Does not support by itself |
+|---|---|---|
+| Successful compile/repack | Package generation completed without an immediate tool error | Visual correctness or absence of PowerPoint repair warnings |
+| Text extraction | Presence, order, and spelling of extractable text | Clipping, overlap, crop, contrast, or font rendering |
+| Package inspection | Relationships, masters/layouts, media, and XML integrity | Audience readability or visual hierarchy |
+| Rendered-slide inspection | Layout, crop, contrast, alignment, and visible font substitution | Animation behavior in every presentation runtime |
+| Compatible-runtime playback | Transitions and animations in that runtime | Universal behavior across all PowerPoint versions |
 
-### Content QA
+## Verification Loop
 
-```bash
-python -m markitdown output.pptx
-```
+[FRAME] In a full workspace, follow the current hash chain:
 
-Check for missing content, typos, wrong order.
+1. [FRAME] Compile canonical Markdown to `outline.json`; a mismatch is `STALE_OR_MUTATED_OUTLINE`.
+2. [FRAME] Compute workspace readiness and repair typed blockers before build.
+3. [FRAME] Build/repack, apply and verify shape-to-fit-text for every editable text shape, and bind the report to current plan, outline, authored-source, renderer, font/template, AutoFit, and final-PPTX hashes.
+4. [FRAME] Extract content and compare it with the canonical Markdown/outline.
+5. [FRAME] Capture current OfficeCLI issues, render every slide, and hash each image plus the contact sheet.
+6. [FRAME] Reread post-AutoFit geometry and run layout preflight for overflow, wrapping, font bounds, images, boundaries, collision, alignment, spacing, placeholders, and issue dispositions.
+7. [FRAME] Read those images, complete every page-level check with a concrete observation, and repair each issue at its authored or renderer source.
+8. [FRAME] Rebuild/re-render/review every invalidated downstream step, then compute delivery readiness.
 
-**Check for leftover placeholder text:**
+Do not require a ceremonial fix when the first output passes all selected checks. Do not skip re-verification after an actual repair.
 
-```bash
-python -m markitdown output.pptx | grep -iE "xxxx|lorem|ipsum|placeholder|this.*(page|slide).*layout"
-```
+## Content QA
 
-If grep returns results, fix them before declaring success.
+Check:
 
-### Verification Loop
+- slide count and order;
+- one primary message per slide;
+- conclusion-style titles where the content supports a conclusion;
+- missing, duplicated, or truncated source content;
+- placeholder text, sample data, or unused template labels;
+- spelling, punctuation, units, decimal places, and citations;
+- chart/table values against the source;
+- notes, comments, or hidden slides when they are part of the requested artifact.
 
-1. Generate slides -> Extract text with `python -m markitdown output.pptx` -> Review content
-2. **List issues found** (if none found, look again more critically)
-3. Fix issues
-4. **Re-verify affected slides** — one fix often creates another problem
-5. Repeat until a full pass reveals no new issues
+Text extraction with a supported PPTX parser can accelerate this pass, but compare the result with the approved source rather than only scanning for a few placeholder words.
 
-**Do not declare success until you've completed at least one fix-and-verify cycle.**
+## Per-Slide Visual QA
 
-### Per-Slide QA (for from-scratch creation)
+Inspect each affected slide at normal presentation scale:
 
-```bash
-python -m markitdown slide-XX-preview.pptx
-```
+1. **Content area:** outer margins and title/content zones follow the deck's guides.
+2. **Alignment:** related elements share visible edges, centers, baselines, or a deliberate visual axis.
+3. **Proximity:** inner gaps are smaller than outer gaps; equal hierarchy levels use equal spacing.
+4. **Hierarchy:** the intended focal point is visible within a three-second scan.
+5. **Typography:** body text is readable, titles do not wrap awkwardly, and no unwanted font substitution appears.
+6. **Text boxes:** no clipping, orphaned short tail, accidental center alignment, or inconsistent padding.
+7. **Images:** aspect ratio, crop, subject direction, negative space, and style are appropriate.
+8. **Portraits/logos:** eye lines, face sizes, perceived logo area, and supporting frames are consistent.
+9. **Charts/tables:** important data is emphasized, secondary structure is quiet, labels are legible, and alignment/decimals are consistent.
+10. **Contrast:** text, icons, lines, and data remain legible against the background.
+11. **Effects:** gradients, masks, shadows, reflections, and 3D treatments have a clear purpose and are consistent.
+12. **Navigation:** page numbers, section markers, logos, and footers match the controlling template or brief.
 
-Check for missing content, placeholder text, missing page number badge.
+## Deck-Wide QA
 
----
+Compare slides as a sequence:
 
-## Common Mistakes to Avoid
+- audience and purpose remain consistent;
+- story flow answers one question after another;
+- title, body, and data roles use the same typography;
+- palette roles remain stable;
+- recurring shapes, corners, lines, shadows, and image treatments form one visual language;
+- visual variety follows changes in content relationships rather than random decoration;
+- dividers, summaries, and closing slides feel related to the rest of the deck;
+- transitions and animation, when required, support sequence and do not become the focus.
 
-- **Don't repeat the same layout** — vary columns, cards, and callouts across slides
-- **Don't center body text** — left-align paragraphs and lists; center only titles
-- **Don't skimp on size contrast** — titles need 36pt+ to stand out from 14-16pt body
-- **Don't default to blue** — pick colors that reflect the specific topic
-- **Don't mix spacing randomly** — choose 0.3" or 0.5" gaps and use consistently
-- **Don't style one slide and leave the rest plain** — commit fully or keep it simple throughout
-- **Don't create text-only slides** — add images, icons, charts, or visual elements; avoid plain title + bullets
-- **Don't forget text box padding** — when aligning lines or shapes with text edges, set `margin: 0` on the text box or offset the shape to account for padding
-- **Don't use low-contrast elements** — icons AND text need strong contrast against the background
-- **NEVER use accent lines under titles** — these are a hallmark of AI-generated slides; use whitespace or background color instead
-- **NEVER use "#" with hex colors** — causes file corruption in PptxGenJS
-- **NEVER encode opacity in hex strings** — use the `opacity` property instead
-- **NEVER use async/await in createSlide()** — compile.js won't await
-- **NEVER reuse option objects across PptxGenJS calls** — PptxGenJS mutates objects in-place
+Use [`human-design-playbook.md`](human-design-playbook.md) as a lookup for the relevant content or layout type during this pass.
 
----
+## Template-Fidelity QA
 
-## Critical Pitfalls — PptxGenJS
+For template-preserving edits, compare changed slides with representative unchanged slides:
 
-### NEVER use async/await in createSlide()
+1. slide dimensions, masters, layouts, and theme remain intact;
+2. native placeholders and style inheritance remain usable;
+3. title and content-area positions match;
+4. fonts, colors, shape language, image crops, charts, and tables remain native to the template;
+5. navigation, footer, logo, and page-number behavior remains consistent;
+6. unnecessary template slots and their full visual groups are removed;
+7. no unrequested clean rebuild has flattened editable elements.
+
+## Package Integrity
+
+Stop and repair when:
+
+- PowerPoint reports that the file needs repair;
+- a slide, master, layout, notes page, media file, or relationship target is missing;
+- images or fonts resolve only through broken external links;
+- package XML is malformed or namespaces were rewritten incorrectly;
+- the deck opens but silently drops content.
+
+[FRAME] Retain the last known-good file while diagnosing corruption. Invalid Markdown compilation must not overwrite the last valid `outline.json`; stale build/render/review evidence remains present but ineligible.
+
+## PptxGenJS Pitfalls
+
+### Keep Slide Builders Synchronous When the Compiler Is Synchronous
 
 ```javascript
-// WRONG - compile.js won't await
-async function createSlide(pres, theme) { ... }
+// Wrong when compile.js does not await the result
+async function createSlide(pres, theme) { /* ... */ }
 
-// CORRECT
-function createSlide(pres, theme) { ... }
+// Correct for a synchronous compile loop
+function createSlide(pres, theme) { /* ... */ }
 ```
 
-### NEVER use "#" with hex colors
+### Use Six-Character Hex Colors without `#`
 
 ```javascript
-color: "FF0000"      // CORRECT
-color: "#FF0000"     // CORRUPTS FILE
+color: "FF0000"
 ```
 
-### NEVER encode opacity in hex strings
+Use the runtime's transparency/opacity option rather than appending alpha bytes to a hex color.
+
+### Do Not Reuse Mutable Option Objects
 
 ```javascript
-shadow: { color: "00000020" }              // CORRUPTS FILE
-shadow: { color: "000000", opacity: 0.12 } // CORRECT
-```
-
-### Prevent text wrapping in titles
-
-```javascript
-// Use fit:'shrink' for long titles
-slide.addText("Long Title Here", {
-  x: 0.5, y: 2, w: 9, h: 1,
-  fontSize: 48, fit: "shrink"
+const makeShadow = () => ({
+  type: "outer",
+  blur: 6,
+  offset: 2,
+  color: "000000",
+  opacity: 0.15
 });
+
+slide.addShape(pres.shapes.RECTANGLE, { shadow: makeShadow() });
+slide.addShape(pres.shapes.RECTANGLE, { shadow: makeShadow() });
 ```
 
-### NEVER reuse option objects across calls
+### Preserve Title Fit Deliberately
 
-```javascript
-// WRONG
-const shadow = { type: "outer", blur: 6, offset: 2, color: "000000", opacity: 0.15 };
-slide.addShape(pres.shapes.RECTANGLE, { shadow, ... });
-slide.addShape(pres.shapes.RECTANGLE, { shadow, ... });
+[FRAME] Use `fit: "resize"` for PptxGenJS text options to express shape-to-fit-text, then inspect the expanded final geometry. Do not use `fit: "shrink"` as a substitute for the accepted AutoFit policy or hide an overlong conclusion by making it unreadably small.
 
-// CORRECT - factory function
-const makeShadow = () => ({ type: "outer", blur: 6, offset: 2, color: "000000", opacity: 0.15 });
-slide.addShape(pres.shapes.RECTANGLE, { shadow: makeShadow(), ... });
-slide.addShape(pres.shapes.RECTANGLE, { shadow: makeShadow(), ... });
-```
+## Failure Outcomes
+
+- Corrupt or repair-prompting PPTX after one focused repair pass: `blocked`.
+- Missing registered renderer: full-workspace readiness is `blocked`; visual claims remain `Unverified`.
+- Missing animation-capable runtime: animation behavior remains `Unverified`.
+- Content cannot fit without deletion or a layout decision: `need-user`.
+- Required source content, chart data, citation, or asset is absent: `need-evidence`.
+- Current render without a reviewer/hash-bound finding disposition: delivery readiness is `blocked`.
+- Required build/render font unavailable: `need-user`; target-player font availability may remain named `Unverified`.

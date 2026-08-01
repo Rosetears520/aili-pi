@@ -61,7 +61,7 @@ If a pattern lacks evidence, label it `Unverified` instead of presenting it as a
 
 ## Evidence Strength and Claim Hygiene
 
-Use `CONFIDENCE: HIGH | MED | LOW | VERY LOW | UNKNOWN` for the overall internal report confidence. The labels below classify retrospective evidence strength, not the global confidence scale.
+Fixed-schema internal results may use `confidence: HIGH | MED | LOW | VERY LOW | UNKNOWN`. Persisted human-facing reports state evidence limits in ordinary prose without a confidence prefix. The labels below classify retrospective evidence strength, not the internal confidence scale.
 
 Use these labels consistently:
 
@@ -122,7 +122,8 @@ Return a report with these sections:
 Evidence Scope:
 - <what was inspected and what was not>
 
-CONFIDENCE: HIGH | MED | LOW | VERY LOW | UNKNOWN
+Evidence Limits:
+- <missing, partial, stale-risky, or excluded evidence>
 
 Safety Handling:
 - <redaction / non-commit / untrusted-transcript notes>

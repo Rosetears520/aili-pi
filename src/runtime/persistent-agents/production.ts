@@ -1,4 +1,6 @@
 import { createBashToolDefinition, getAgentDir, type AgentSession, type CreateAgentSessionOptions, type ExtensionAPI, type ExtensionContext, type SessionManager, type ToolDefinition } from "@earendil-works/pi-coding-agent";
+import { realpath } from "node:fs/promises";
+import { resolve } from "node:path";
 import { loadModeConfig } from "pi-permission-modes/src/config-load.ts";
 import type { ModeDef, PermissionModeConfig } from "pi-permission-modes/src/schema.ts";
 import { TASK_TOOL_SCHEMA } from "./task-schema.js";
@@ -21,15 +23,27 @@ import {
   GitIsolationAdapter,
   WorkspaceLeaseManager,
   createWorkspaceMutationGuard,
+  persistFormalWorkspaceLease,
   validateWorkspaceCwd,
   validateWriteScope,
+  type FormalWorkspaceLease,
   type IsolatedWorkspaceRecord,
   type WorkspaceLease,
 } from "./workspace.js";
 import { PersistentAgentRuntime, registerPersistentAgentTools, type PersistentRuntimeExecutorInput } from "./runtime.js";
 import { persistFullAgentOutput } from "./output-delivery.js";
-import { resolvePersistentAgentSandbox } from "./child-sandbox.js";
+import { formalChildHardDeniedTools, resolvePersistentAgentSandbox } from "./child-sandbox.js";
+import {
+  assertCurrentFormalRoleProfile,
+  appendFormalResultContract,
+  resolveFormalTaskProtection,
+  type FormalTaskProtection,
+  type FormalWorkspaceRequest,
+  type TaskExecutorInput,
+} from "./task-coordinator.js";
+import { normalizeFormalContinuationAudit, type FormalContinuationAudit } from "./task-schema.js";
 import { loadRoleProfiles, type RoleProfile } from "../roles.js";
+import { loadAgentCatalog } from "../agent-catalog.js";
 
 const BUILTIN_CHILD_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls"] as const;
 const DEFAULT_IDLE_TTL_MS = 420_000;
@@ -54,8 +68,85 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function assistantText(session: AgentSession): string {
-  for (const message of [...session.state.messages].reverse()) {
+function persistedFormalProtection(metadata: Record<string, unknown> | undefined): FormalTaskProtection | undefined {
+  const value = metadata?.formalProtection;
+  if (value === undefined) return undefined;
+  if (!isRecord(value) || typeof value.changeId !== "string" || !Array.isArray(value.protectedPaths)) {
+    throw new Error("persisted formal task-board protection is malformed");
+  }
+  const expected = [
+    `openspec/changes/${value.changeId}/formal-task-board.md`,
+    `openspec/changes/${value.changeId}/progress.txt`,
+  ] as const;
+  if (value.protectedPaths.length !== 2
+    || value.protectedPaths.some((path, index) => path !== expected[index])) {
+    throw new Error("persisted formal task-board protection does not match its exact change identity");
+  }
+  return { changeId: value.changeId, protectedPaths: expected };
+}
+
+function sameFormalProtection(left: FormalTaskProtection | undefined, right: FormalTaskProtection | undefined): boolean {
+  return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+}
+
+function sameIdentity(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function persistedFormalWorkspaceRequest(metadata: Record<string, unknown> | undefined): FormalWorkspaceRequest | undefined {
+  const value = metadata?.formalWorkspaceRequest;
+  if (value === undefined) return undefined;
+  if (!isRecord(value)
+    || !["auto", "shared", "isolated"].includes(String(value.mode))
+    || typeof value.cwd !== "string"
+    || typeof value.selector !== "string"
+    || !isRecord(value.writeScope)
+    || !Array.isArray(value.writeScope.paths)
+    || !value.writeScope.paths.every((path) => typeof path === "string")
+    || !Array.isArray(value.writeScope.resources)
+    || !value.writeScope.resources.every((resource) => typeof resource === "string")) {
+    throw new Error("persisted formal workspace request is malformed");
+  }
+  return value as unknown as FormalWorkspaceRequest;
+}
+
+function persistedFormalWorkspaceLease(raw: Record<string, unknown> | undefined, agentId: string): FormalWorkspaceLease | undefined {
+  if (raw === undefined) return undefined;
+  const formalProtection = persistedFormalProtection(raw);
+  const formalWorkspaceRequest = persistedFormalWorkspaceRequest(raw);
+  let formalContinuationIdentity: FormalContinuationAudit;
+  try {
+    formalContinuationIdentity = normalizeFormalContinuationAudit(raw.formalContinuationIdentity, `${agentId}.workspaceLease.formalContinuationIdentity`);
+  } catch (error) {
+    throw new Error(`${agentId}: persisted formal workspace lease continuation identity is malformed (${error instanceof Error ? error.message : String(error)})`);
+  }
+  if (raw.agentId !== agentId
+    || (raw.mode !== "shared" && raw.mode !== "isolated")
+    || !["auto", "shared", "isolated"].includes(String(raw.requestedMode))
+    || typeof raw.projectRoot !== "string"
+    || typeof raw.root !== "string"
+    || typeof raw.cwd !== "string"
+    || typeof raw.selector !== "string"
+    || typeof raw.jobId !== "string"
+    || typeof raw.initialTurnId !== "string"
+    || typeof raw.acquiredAt !== "string"
+    || !isRecord(raw.scope)
+    || !Array.isArray(raw.scope.paths)
+    || !raw.scope.paths.every((path) => typeof path === "string")
+    || !Array.isArray(raw.scope.resources)
+    || !raw.scope.resources.every((resource) => typeof resource === "string")
+    || typeof raw.scope.declared !== "boolean"
+    || !formalProtection
+    || !formalWorkspaceRequest
+    || !Array.isArray(raw.protectedPaths)
+    || !raw.protectedPaths.every((path) => typeof path === "string")) {
+    throw new Error(`${agentId}: persisted formal workspace lease is malformed`);
+  }
+  return { ...(raw as unknown as FormalWorkspaceLease), formalProtection, formalWorkspaceRequest, formalContinuationIdentity };
+}
+
+function assistantText(session: AgentSession, fromMessageIndex = 0): string {
+  for (const message of session.state.messages.slice(fromMessageIndex).reverse()) {
     if (message.role !== "assistant") continue;
     if (typeof message.content === "string") return message.content;
     return message.content
@@ -122,13 +213,14 @@ class ProductionAgentController implements LiveAgentAdapter {
 
   async runInitial(input: PersistentRuntimeExecutorInput): Promise<string> {
     const prepared = await this.prepare(input);
+    const promptStart = prepared.session.state.messages.length;
     const abort = () => { void this.abort("task cancellation"); };
     input.context.signal.addEventListener("abort", abort, { once: true });
     try {
       await prepared.session.prompt(prepared.initialMessage, { expandPromptTemplates: false, source: "extension" });
       await this.owner.finalizeWorkspace(this.state, this.agentId);
       this.owner.schedulePark(this.state, this.agentId);
-      return assistantText(prepared.session);
+      return assistantText(prepared.session, promptStart);
     } finally {
       input.context.signal.removeEventListener("abort", abort);
     }
@@ -166,8 +258,9 @@ class ProductionAgentController implements LiveAgentAdapter {
     let status: "completed" | "failed" = "completed";
     let error: string | undefined;
     try {
+      const turnStart = prepared.session.state.messages.length;
       await prepared.session.sendUserMessage(message);
-      await persistFullAgentOutput(this.state.runtime.layout, this.agentId, assistantText(prepared.session));
+      await persistFullAgentOutput(this.state.runtime.layout, this.agentId, assistantText(prepared.session, turnStart));
       await this.owner.finalizeWorkspace(this.state, this.agentId);
     } catch (failure) {
       status = "failed";
@@ -193,8 +286,13 @@ export class PersistentAgentProduction {
 
   constructor(private readonly pi: ExtensionAPI) {}
 
-  register(): void {
+  async register(): Promise<void> {
+    const catalog = await loadAgentCatalog();
+    if (!catalog.ok) {
+      throw new Error(`persistent task Agent Catalog is non-pass: ${catalog.diagnostics.map((diagnostic) => diagnostic.code).join(", ") || "UNKNOWN"}`);
+    }
     registerPersistentAgentTools(this.pi, {
+      catalog: catalog.value,
       runtimeForContext: async (context) => (await this.parent(context)).runtime,
       directModelCommand: async (args, context) => await this.directModel(args, context),
     });
@@ -226,12 +324,30 @@ export class PersistentAgentProduction {
     const roles = await loadRoleProfiles();
     const role = roles.find((candidate) => candidate.selector === agent.selector);
     if (!role) throw new Error(`${agent.selector}: role profile is unavailable`);
-    const workspace = input ? await this.ensureWorkspace(state, input) : state.workspaces.get(controller.agentId);
+    assertCurrentFormalRoleProfile(agent, role);
+    const storedProtection = persistedFormalProtection(agent.metadata);
+    if (input?.item.formalContext && !input.formalProtection) {
+      throw new Error(`${controller.agentId}: formal task-board protection was not resolved before allocation`);
+    }
+    if (input?.formalProtection && !sameFormalProtection(input.formalProtection, storedProtection)) {
+      throw new Error(`${controller.agentId}: formal task-board protection differs from the durable Agent record`);
+    }
+    const formalProtection = input?.formalProtection ?? storedProtection;
+    const workspace = input ? await this.ensureWorkspace(state, input, formalProtection) : state.workspaces.get(controller.agentId);
     if (!workspace) throw new Error(`${controller.agentId}: workspace record is unavailable for revive`);
+    if (!sameFormalProtection(
+      formalProtection,
+      workspace.protectedPaths ? { changeId: formalProtection?.changeId ?? "", protectedPaths: workspace.protectedPaths as [string, string] } : undefined,
+    )) {
+      throw new Error(`${controller.agentId}: revived workspace protection differs from the durable Agent record`);
+    }
+    if (formalProtection) await this.assertFormalExecutionIdentity(state, controller.agentId, input, role);
     const childCwd = state.childCwds.get(controller.agentId) ?? workspace.root;
     const modeConfig = loadModeConfig(workspace.root, getAgentDir(), (message) => context.ui.notify(message, "warning"));
     const mode = currentMode(modeConfig, context);
-    const sandbox = resolvePersistentAgentSandbox(mode.sandbox);
+    const protectedDenyWrite = (workspace.protectedPaths ?? []).map((path) => resolve(workspace.root, path));
+    const sandbox = resolvePersistentAgentSandbox(mode.sandbox, protectedDenyWrite);
+    const formalHardDenied = formalChildHardDeniedTools(protectedDenyWrite, sandbox);
     const sandboxedBash = sandbox.operations
       ? createBashToolDefinition(childCwd, { operations: sandbox.operations }) as unknown as ToolDefinition
       : undefined;
@@ -247,7 +363,7 @@ export class PersistentAgentProduction {
       childDefinitions: parent.definitions,
       role,
       callTools: input?.item.tools,
-      hardDenied: input ? [] : ["task"],
+      hardDenied: [...(input ? [] : ["task"]), ...formalHardDenied],
       currentDepth: input?.depth ?? Number(agent.metadata?.depth ?? 0),
     });
     const configs = await new ModelConfigStore({
@@ -307,6 +423,13 @@ export class PersistentAgentProduction {
       decide: permission.decide,
       requestApproval: permission.requestApproval,
     });
+    const assignment = input?.item.task ?? "Continue this persistent Agent from the explicit hub message.";
+    const formalIdentity = formalProtection
+      ? normalizeFormalContinuationAudit(
+        input?.item.continuationAudit ?? agent.metadata?.formalContinuationIdentity,
+        `${controller.agentId}.formalPromptIdentity`,
+      )
+      : undefined;
     const prompt = assembleChildPrompt({
       runtimeEnvelope: [
         "Official Pi persistent Agent runtime. The parent conversation is not copied.",
@@ -316,7 +439,9 @@ export class PersistentAgentProduction {
         `Child sandbox: ${mode.sandbox.enabled ? (sandbox.available ? "active" : `unavailable (${sandbox.reason ?? "unknown"})`) : "not required by active mode"}`,
       ].join("\n"),
       role,
-      task: input?.item.task ?? "Continue this persistent Agent from the explicit hub message.",
+      task: formalIdentity
+        ? appendFormalResultContract(assignment, { packageId: formalIdentity.packageId, roleId: role.selector })
+        : assignment,
       context: input?.item.context,
       cwd: childCwd,
       workspace: { mode: workspace.mode, root: workspace.root },
@@ -393,6 +518,12 @@ export class PersistentAgentProduction {
       parentSessionPath: parentPath,
       parentId,
       cwd: context.cwd,
+      preflight: async (input) => {
+        if (!input.formalProtection) return;
+        await this.ensureWorkspace(state, input, input.formalProtection);
+        await this.assertFormalExecutionIdentity(state, input.agentId, input);
+      },
+      preflightContinuation: async (agentId) => await this.assertFormalExecutionIdentity(state, agentId),
       execute: async (input) => {
         const controller = new ProductionAgentController(this, state, input.agentId, input.sessionManager);
         state.controllers.set(input.agentId, controller);
@@ -466,6 +597,7 @@ export class PersistentAgentProduction {
           parentSelector: role.selector,
           parentDepth: input.depth,
           inheritedPermit: input.context.permit,
+          ...(input.item.formalContext ? { formalChangeId: input.item.formalContext.changeId } : {}),
         });
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
       },
@@ -483,10 +615,158 @@ export class PersistentAgentProduction {
     return [task, hub, ...(sandboxedBash ? [sandboxedBash] : [])];
   }
 
-  private async ensureWorkspace(state: ParentState, input: PersistentRuntimeExecutorInput): Promise<WorkspaceLease> {
-    const existing = state.workspaces.get(input.agentId);
+  private async validateFormalWorkspaceLocation(state: ParentState, lease: FormalWorkspaceLease): Promise<string> {
+    const agentId = lease.agentId;
+    if (!sameIdentity(lease.protectedPaths, lease.formalProtection.protectedPaths)
+      || lease.selector !== lease.formalWorkspaceRequest.selector
+      || lease.formalContinuationIdentity.canonicalRole !== lease.selector
+      || lease.requestedMode !== lease.formalWorkspaceRequest.mode
+      || (lease.requestedMode === "shared" && lease.mode !== "shared")
+      || (lease.requestedMode === "isolated" && lease.mode !== "isolated")) {
+      throw new Error(`${agentId}: persisted formal workspace mode/protection/role identity is inconsistent`);
+    }
+    const canonicalProject = await realpath(state.context.cwd);
+    const storedProject = await realpath(lease.projectRoot).catch((error) => {
+      throw new Error(`${agentId}: persisted workspace project root is unavailable (${error instanceof Error ? error.message : String(error)})`);
+    });
+    if (storedProject !== lease.projectRoot || storedProject !== canonicalProject) {
+      throw new Error(`${agentId}: persisted workspace project root differs from the current exact root`);
+    }
+    if (lease.mode === "shared") {
+      const sharedRoot = await realpath(lease.root).catch((error) => {
+        throw new Error(`${agentId}: persisted shared workspace root is unavailable (${error instanceof Error ? error.message : String(error)})`);
+      });
+      if (sharedRoot !== canonicalProject || lease.root !== canonicalProject) {
+        throw new Error(`${agentId}: persisted shared workspace root differs from the current exact root`);
+      }
+    } else {
+      const isolated = await state.isolation.restore(agentId);
+      if (isolated.projectRoot !== lease.projectRoot || isolated.root !== lease.root) {
+        throw new Error(`${agentId}: isolated workspace mode/root differs from the durable lease; shared fallback is forbidden`);
+      }
+      state.isolated.set(agentId, isolated);
+    }
+    const expectedScope = await validateWriteScope(canonicalProject, lease.formalWorkspaceRequest.writeScope);
+    if (!sameIdentity(expectedScope, lease.scope)) {
+      throw new Error(`${agentId}: persisted formal workspace writeScope differs from the canonical scope`);
+    }
+    const canonicalCwd = await validateWorkspaceCwd(lease.root, lease.formalWorkspaceRequest.cwd);
+    if (canonicalCwd !== lease.cwd) throw new Error(`${agentId}: persisted formal workspace cwd differs from the current exact cwd`);
+    return canonicalCwd;
+  }
+
+  private async restoreFormalWorkspace(state: ParentState, agentId: string): Promise<WorkspaceLease | undefined> {
+    const existing = state.workspaces.get(agentId);
     if (existing) return existing;
-    const projectRoot = state.context.cwd;
+    const lease = persistedFormalWorkspaceLease(state.runtime.journal.getState().workspaceLeases[agentId], agentId);
+    if (!lease) return undefined;
+    const canonicalCwd = await this.validateFormalWorkspaceLocation(state, lease);
+    state.leases.acquire(lease);
+    state.workspaces.set(agentId, lease);
+    state.childCwds.set(agentId, canonicalCwd);
+    return lease;
+  }
+
+  private async assertFormalExecutionIdentity(
+    state: ParentState,
+    agentId: string,
+    input?: TaskExecutorInput,
+    knownRole?: RoleProfile,
+  ): Promise<void> {
+    const registry = state.runtime.journal.getState();
+    const agent = registry.agents[agentId];
+    if (!agent) throw new Error(`${agentId}: formal Agent registry record is missing`);
+    const protection = persistedFormalProtection(agent.metadata);
+    if (!protection) {
+      if (registry.workspaceLeases[agentId]) throw new Error(`${agentId}: ordinary Agent has an unexpected formal workspace lease`);
+      return;
+    }
+    const continuation = normalizeFormalContinuationAudit(agent.metadata?.formalContinuationIdentity, `${agentId}.formalContinuationIdentity`);
+    const request = persistedFormalWorkspaceRequest(agent.metadata);
+    if (!request || request.selector !== agent.selector || continuation.canonicalRole !== agent.selector) {
+      throw new Error(`${agentId}: persisted formal role/workspace continuation identity is inconsistent`);
+    }
+    const role = knownRole ?? (await loadRoleProfiles()).find((candidate) => candidate.selector === agent.selector);
+    if (!role) throw new Error(`${agent.selector}: role profile is unavailable`);
+    assertCurrentFormalRoleProfile(agent, role);
+    const currentProtection = await resolveFormalTaskProtection(
+      state.context.cwd,
+      protection.changeId,
+      continuation,
+      request.writeScope,
+    );
+    if (!sameFormalProtection(protection, currentProtection)) {
+      throw new Error(`${agentId}: formal change/protected paths differ from the current canonical board identity`);
+    }
+    const lease = await this.restoreFormalWorkspace(state, agentId);
+    if (!lease) throw new Error(`${agentId}: formal workspace lease is missing; continuation is refused`);
+    const durableLease = persistedFormalWorkspaceLease(registry.workspaceLeases[agentId], agentId);
+    if (!durableLease || !sameIdentity(lease, durableLease)) {
+      throw new Error(`${agentId}: active formal workspace lease differs from the durable journal identity`);
+    }
+    await this.validateFormalWorkspaceLocation(state, lease as FormalWorkspaceLease);
+    if (!sameFormalProtection(protection, lease.formalProtection)
+      || !sameIdentity(continuation, lease.formalContinuationIdentity)
+      || !sameIdentity(request, lease.formalWorkspaceRequest)
+      || lease.selector !== agent.selector
+      || !sameIdentity(lease.protectedPaths, protection.protectedPaths)) {
+      throw new Error(`${agentId}: formal change/protected paths/workspace/role continuation identity differs from the durable lease`);
+    }
+    const job = registry.jobs[lease.jobId!];
+    const turn = registry.turns[lease.initialTurnId!];
+    if (!job || job.agentId !== agentId || !turn || turn.agentId !== agentId || turn.jobId !== job.id) {
+      throw new Error(`${agentId}: formal workspace lease lost its exact initial job/turn ownership`);
+    }
+    for (const key of ["formalProtection", "formalContinuationIdentity", "formalWorkspaceRequest"] as const) {
+      const expected = lease[key];
+      if (!sameIdentity(agent.metadata?.[key], expected)
+        || !sameIdentity(job.metadata?.[key], expected)
+        || !sameIdentity(turn.metadata?.[key], expected)) {
+        throw new Error(`${agentId}: formal ${key} differs across Agent/job/initial turn/workspace lease`);
+      }
+    }
+    if (input) {
+      if (input.agentId !== agentId
+        || input.jobId !== lease.jobId
+        || input.turnId !== lease.initialTurnId
+        || input.role.selector !== agent.selector
+        || input.item.formalContext?.changeId !== protection.changeId
+        || !sameFormalProtection(input.formalProtection, protection)
+        || !sameIdentity(input.item.continuationAudit, continuation)
+        || input.item.workspace !== request.mode
+        || (input.item.cwd ?? ".") !== request.cwd
+        || !sameIdentity(input.item.writeScope, request.writeScope)) {
+        throw new Error(`${agentId}: initial formal task identity differs from the durable Agent/job/turn/workspace lease`);
+      }
+    }
+  }
+
+  private async ensureWorkspace(
+    state: ParentState,
+    input: TaskExecutorInput,
+    formalProtection?: FormalTaskProtection,
+  ): Promise<WorkspaceLease> {
+    const existing = state.workspaces.get(input.agentId);
+    if (existing) {
+      const current = existing.protectedPaths
+        ? { changeId: formalProtection?.changeId ?? "", protectedPaths: existing.protectedPaths as [string, string] }
+        : undefined;
+      if (!sameFormalProtection(formalProtection, current)) {
+        throw new Error(`${input.agentId}: workspace protection changed during the Agent lifecycle`);
+      }
+      if (formalProtection) {
+        const request = persistedFormalWorkspaceRequest(state.runtime.journal.getState().agents[input.agentId]?.metadata);
+        if (!request
+          || request.mode !== input.item.workspace
+          || request.cwd !== (input.item.cwd ?? ".")
+          || request.selector !== input.role.selector
+          || !sameIdentity(request.writeScope, input.item.writeScope)) {
+          throw new Error(`${input.agentId}: formal workspace mode, cwd, role, or writeScope changed during the Agent lifecycle`);
+        }
+      }
+      return existing;
+    }
+    const projectRoot = formalProtection ? await realpath(state.context.cwd) : state.context.cwd;
     const scope = await validateWriteScope(projectRoot, input.item.writeScope);
     const decision = state.leases.decide(input.agentId, input.item.workspace, projectRoot, scope);
     let root = projectRoot;
@@ -496,15 +776,47 @@ export class PersistentAgentProduction {
       root = record.root;
     }
     const cwd = await validateWorkspaceCwd(root, input.item.cwd);
+    const agent = state.runtime.journal.getState().agents[input.agentId];
+    if (!agent) throw new Error(`${input.agentId}: Agent record disappeared before workspace acquisition`);
+    const formalContinuationIdentity = formalProtection
+      ? normalizeFormalContinuationAudit(agent.metadata?.formalContinuationIdentity, `${input.agentId}.formalContinuationIdentity`)
+      : undefined;
+    const formalWorkspaceRequest = formalProtection ? persistedFormalWorkspaceRequest(agent.metadata) : undefined;
+    if (formalProtection && (!formalWorkspaceRequest
+      || formalWorkspaceRequest.mode !== input.item.workspace
+      || formalWorkspaceRequest.cwd !== (input.item.cwd ?? ".")
+      || formalWorkspaceRequest.selector !== input.role.selector
+      || !sameIdentity(formalWorkspaceRequest.writeScope, input.item.writeScope))) {
+      throw new Error(`${input.agentId}: formal workspace request differs from the durable Agent identity`);
+    }
     const lease: WorkspaceLease = {
       agentId: input.agentId,
       mode: decision.mode,
       projectRoot,
       root,
       scope,
+      ...(formalProtection ? { protectedPaths: [...formalProtection.protectedPaths] } : {}),
+      ...(formalProtection && formalContinuationIdentity && formalWorkspaceRequest ? {
+        requestedMode: input.item.workspace,
+        cwd,
+        selector: input.role.selector,
+        jobId: input.jobId,
+        initialTurnId: input.turnId,
+        formalProtection,
+        formalContinuationIdentity,
+        formalWorkspaceRequest,
+      } : {}),
       acquiredAt: new Date().toISOString(),
     };
     state.leases.acquire(lease);
+    if (formalProtection) {
+      try {
+        await persistFormalWorkspaceLease(state.runtime.journal, lease as FormalWorkspaceLease);
+      } catch (error) {
+        state.leases.release(input.agentId);
+        throw error;
+      }
+    }
     state.workspaces.set(input.agentId, lease);
     state.childCwds.set(input.agentId, cwd);
     return lease;
@@ -565,6 +877,6 @@ export class PersistentAgentProduction {
   }
 }
 
-export function registerPersistentAgentRuntime(pi: ExtensionAPI): void {
-  new PersistentAgentProduction(pi).register();
+export async function registerPersistentAgentRuntime(pi: ExtensionAPI): Promise<void> {
+  await new PersistentAgentProduction(pi).register();
 }

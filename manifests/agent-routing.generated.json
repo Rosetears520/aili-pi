@@ -1,0 +1,345 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "https://github.com/Rosetears520/aili-workflows.git",
+    "commit": "bb1fedacc46d71045daa6257d121f2b71ba29d54",
+    "protocol": "aili-agent-selection/v1",
+    "sourceSha256": "562951ec896b351983223a4a04833c260d9570307a1688dbaf7032055ee4161d"
+  },
+  "roles": [
+    {
+      "roleId": "code-scout",
+      "selector": "aili.code-scout",
+      "positiveTriggers": [
+        "Files, symbols, call paths, tests, schemas, configuration, or impact are unclear and need broad but bounded repository discovery."
+      ],
+      "nearMisses": [
+        "One known file only needs a simple read; implementation or final review is required."
+      ],
+      "expectedEvidence": [
+        "Exact files, symbols, call paths, constraints, and owning tests."
+      ],
+      "phaseAffinity": [
+        "IDEATE",
+        "DEFINE",
+        "BUILD"
+      ],
+      "executionGuidance": "Independent discovery may be async; use sync when later edits depend on the result."
+    },
+    {
+      "roleId": "doc-researcher",
+      "selector": "aili.doc-researcher",
+      "positiveTriggers": [
+        "Project-local rules, README, OpenSpec, design notes, or other repository documentation must be inspected."
+      ],
+      "nearMisses": [
+        "Public web research, code implementation, or a final decision is required."
+      ],
+      "expectedEvidence": [
+        "Document paths, sections, and the constraints they establish."
+      ],
+      "phaseAffinity": [
+        "IDEATE",
+        "DEFINE"
+      ],
+      "executionGuidance": "Usually sync; may run beside an independent code scout."
+    },
+    {
+      "roleId": "web-researcher",
+      "selector": "aili.web-researcher",
+      "positiveTriggers": [
+        "Current official documentation, versions, compatibility, deprecations, or other public evidence is required."
+      ],
+      "nearMisses": [
+        "The answer is repository-local or stable knowledge needs no current web evidence."
+      ],
+      "expectedEvidence": [
+        "URLs, versions, publication dates, conclusions, and limitations."
+      ],
+      "phaseAffinity": [
+        "IDEATE",
+        "DEFINE"
+      ],
+      "executionGuidance": "Independent research may be async; join before any dependent decision."
+    },
+    {
+      "roleId": "spec-miner",
+      "selector": "aili.spec-miner",
+      "positiveTriggers": [
+        "Candidate requirements and scenarios must be mined from existing code, tests, and documentation."
+      ],
+      "nearMisses": [
+        "Accepting the final specification, implementing it, or making product decisions."
+      ],
+      "expectedEvidence": [
+        "Candidate requirements, scenarios, and repository evidence anchors."
+      ],
+      "phaseAffinity": [
+        "IDEATE",
+        "DEFINE"
+      ],
+      "executionGuidance": "Usually sync."
+    },
+    {
+      "roleId": "plan-auditor",
+      "selector": "aili.plan-auditor",
+      "positiveTriggers": [
+        "A plan, specification, task list, acceptance contract, or test plan needs a pre-implementation gap and conflict audit."
+      ],
+      "nearMisses": [
+        "Implementation or accepting a plan on the user's behalf."
+      ],
+      "expectedEvidence": [
+        "Blockers, risks, missing verification, and proposed dispositions."
+      ],
+      "phaseAffinity": [
+        "DEFINE"
+      ],
+      "executionGuidance": "Sync; join before the dependent BUILD gate."
+    },
+    {
+      "roleId": "implementer",
+      "selector": "aili.implementer",
+      "positiveTriggers": [
+        "One complete bounded implementation package is authorized inside accepted scope."
+      ],
+      "nearMisses": [
+        "Architecture or product decisions, final verdicts, or unauthorized material changes."
+      ],
+      "expectedEvidence": [
+        "Changed files, implementation summary, focused verification, and blockers."
+      ],
+      "phaseAffinity": [
+        "BUILD"
+      ],
+      "executionGuidance": "Dependency-bound packages are sync; independent non-overlapping packages may be async."
+    },
+    {
+      "roleId": "test-engineer",
+      "selector": "aili.test-engineer",
+      "positiveTriggers": [
+        "Tests must be designed, added, or executed for one exact claim."
+      ],
+      "nearMisses": [
+        "General code review or replacing the verification owner."
+      ],
+      "expectedEvidence": [
+        "Test files, coverage target, commands, and results."
+      ],
+      "phaseAffinity": [
+        "BUILD"
+      ],
+      "executionGuidance": "Usually sync; independent test implementation may run beside non-conflicting work."
+    },
+    {
+      "roleId": "test-coverage-reviewer",
+      "selector": "aili.test-coverage-reviewer",
+      "positiveTriggers": [
+        "Coverage adequacy, untested branches, or verification evidence gaps need read-only analysis."
+      ],
+      "nearMisses": [
+        "Writing production code or conducting a general quality review."
+      ],
+      "expectedEvidence": [
+        "Uncovered paths, risks, and a coverage-adequacy assessment."
+      ],
+      "phaseAffinity": [
+        "DEFINE",
+        "SHIP"
+      ],
+      "executionGuidance": "Read-only and usually sync."
+    },
+    {
+      "roleId": "pr-test-analyzer",
+      "selector": "aili.pr-test-analyzer",
+      "positiveTriggers": [
+        "A PR or diff needs test-impact, CI-evidence, or focused-matrix analysis."
+      ],
+      "nearMisses": [
+        "General architecture review or implementation."
+      ],
+      "expectedEvidence": [
+        "Affected tests, CI evidence, and a recommended matrix."
+      ],
+      "phaseAffinity": [
+        "SHIP"
+      ],
+      "executionGuidance": "Read-only and usually sync."
+    },
+    {
+      "roleId": "code-reviewer",
+      "selector": "aili.code-reviewer",
+      "positiveTriggers": [
+        "Correctness, readability, architecture, security, and performance need a bounded integrated review."
+      ],
+      "nearMisses": [
+        "Implementation ownership or a security-only assignment."
+      ],
+      "expectedEvidence": [
+        "Precise findings ordered by severity."
+      ],
+      "phaseAffinity": [
+        "SHIP"
+      ],
+      "executionGuidance": "Read-only and usually sync."
+    },
+    {
+      "roleId": "security-auditor",
+      "selector": "aili.security-auditor",
+      "positiveTriggers": [
+        "Authentication, authorization, permissions, secrets, untrusted inputs, or another concrete security risk needs specialist analysis."
+      ],
+      "nearMisses": [
+        "Style-only review or a simple change with no security surface."
+      ],
+      "expectedEvidence": [
+        "Threats, vulnerability paths, evidence, and required remediation."
+      ],
+      "phaseAffinity": [
+        "DEFINE",
+        "SHIP"
+      ],
+      "executionGuidance": "Read-only and usually sync."
+    },
+    {
+      "roleId": "silent-failure-reviewer",
+      "selector": "aili.silent-failure-reviewer",
+      "positiveTriggers": [
+        "Swallowed errors, false success, skipped gates, stale evidence, or invalid status promotion needs focused review."
+      ],
+      "nearMisses": [
+        "General code review or implementation."
+      ],
+      "expectedEvidence": [
+        "Silent-failure paths and false-PASS evidence."
+      ],
+      "phaseAffinity": [
+        "SHIP"
+      ],
+      "executionGuidance": "Read-only and usually sync."
+    },
+    {
+      "roleId": "convergence-reviewer",
+      "selector": "aili.convergence-reviewer",
+      "positiveTriggers": [
+        "Contract, tasks, implementation, verification, and residual risk need a final consistency comparison."
+      ],
+      "nearMisses": [
+        "Initial discovery or replacing ROSE's verdict."
+      ],
+      "expectedEvidence": [
+        "Missing, partial, conflicting, and stale links."
+      ],
+      "phaseAffinity": [
+        "SHIP"
+      ],
+      "executionGuidance": "Read-only; join before the dependent final verdict."
+    },
+    {
+      "roleId": "browser-qa-runner",
+      "selector": "aili.browser-qa-runner",
+      "positiveTriggers": [
+        "A local browser flow, DOM, accessibility tree, console, network, or screenshot claim needs runtime verification."
+      ],
+      "nearMisses": [
+        "Non-browser unit tests or production-data operations."
+      ],
+      "expectedEvidence": [
+        "DOM, console, network, screenshot, and reproduction evidence."
+      ],
+      "phaseAffinity": [
+        "BUILD",
+        "SHIP"
+      ],
+      "executionGuidance": "Usually sync."
+    },
+    {
+      "roleId": "e2e-artifact-runner",
+      "selector": "aili.e2e-artifact-runner",
+      "positiveTriggers": [
+        "E2E traces, video, screenshots, reports, or failure bundles need bounded collection."
+      ],
+      "nearMisses": [
+        "General code review or unit tests with no artifact requirement."
+      ],
+      "expectedEvidence": [
+        "Trace, video, screenshot, or report paths and results."
+      ],
+      "phaseAffinity": [
+        "BUILD",
+        "SHIP"
+      ],
+      "executionGuidance": "May be async; join before the dependent verdict."
+    },
+    {
+      "roleId": "web-performance-auditor",
+      "selector": "aili.web-performance-auditor",
+      "positiveTriggers": [
+        "Web performance or Core Web Vitals needs measurement or bounded static analysis."
+      ],
+      "nearMisses": [
+        "Functional-correctness review or work with no web surface."
+      ],
+      "expectedEvidence": [
+        "Measurements, environment, limitations, and likely impact."
+      ],
+      "phaseAffinity": [
+        "SHIP"
+      ],
+      "executionGuidance": "Read-only and usually sync."
+    },
+    {
+      "roleId": "ai-regression-scout",
+      "selector": "aili.ai-regression-scout",
+      "positiveTriggers": [
+        "Agent, prompt, Skill, routing, workflow, or generated-output changes need regression scenarios."
+      ],
+      "nearMisses": [
+        "Ordinary business-feature implementation."
+      ],
+      "expectedEvidence": [
+        "Regression scenarios, fixture targets, and risks."
+      ],
+      "phaseAffinity": [
+        "DEFINE",
+        "SHIP"
+      ],
+      "executionGuidance": "Read-only and usually sync."
+    },
+    {
+      "roleId": "agent-evaluator",
+      "selector": "aili.agent-evaluator",
+      "positiveTriggers": [
+        "Another Agent result needs task-fit, evidence-quality, claim-hygiene, or omission evaluation."
+      ],
+      "nearMisses": [
+        "Re-performing the assignment or issuing the final verdict."
+      ],
+      "expectedEvidence": [
+        "Task-fit, evidence-quality, overclaiming, and missed-item findings."
+      ],
+      "phaseAffinity": [
+        "DEFINE",
+        "SHIP"
+      ],
+      "executionGuidance": "Read-only and usually sync."
+    },
+    {
+      "roleId": "opensource-sanitizer",
+      "selector": "aili.opensource-sanitizer",
+      "positiveTriggers": [
+        "Public, npm, or release exposure, private data, secrets, package inventory, or provenance needs inspection."
+      ],
+      "nearMisses": [
+        "General security architecture or ordinary code-quality review."
+      ],
+      "expectedEvidence": [
+        "Redacted exposure findings and packaging evidence."
+      ],
+      "phaseAffinity": [
+        "SHIP"
+      ],
+      "executionGuidance": "Read-only and usually sync."
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "sources": [
+    {
+      "id": "inspected-deck",
+      "role": "inspect-input",
+      "path": "",
+      "required": true,
+      "sha256": null
+    }
+  ]
+}

@@ -7,6 +7,7 @@ interface PackageManifest {
   name: string;
   version: string;
   license: string;
+  publishConfig?: { access?: string };
   bin?: unknown;
   engines?: { node?: string };
   files?: string[];
@@ -15,6 +16,7 @@ interface PackageManifest {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   overrides?: unknown;
+  scripts?: Record<string, string>;
 }
 
 async function readManifest(): Promise<PackageManifest> {
@@ -26,8 +28,9 @@ describe("Pi package baseline", () => {
     const manifest = await readManifest();
 
     expect(manifest.name).toBe("@rosetears/aili-pi");
-    expect(manifest.version).toBe("0.1.15");
+    expect(manifest.version).toBe("0.1.16");
     expect(manifest.license).toBe("AGPL-3.0-or-later");
+    expect(manifest.publishConfig).toEqual({ access: "public" });
     expect(manifest.bin).toBeUndefined();
     expect(manifest.engines?.node).toBe(">=22.19.0");
     expect(manifest.pi?.extensions).toEqual([
@@ -44,6 +47,17 @@ describe("Pi package baseline", () => {
     expect(manifest.dependencies).not.toHaveProperty("@agwab/pi-subagent");
     expect(manifest.devDependencies?.["@earendil-works/pi-coding-agent"]).toBe("0.82.1");
     expect(JSON.stringify(manifest.overrides ?? {})).not.toContain("372000");
+  });
+
+  it("keeps the 0.1.16 prepublish gate on current role, compatibility, provenance, bundle, and loaded-runtime checks", async () => {
+    const manifest = await readManifest();
+    expect(manifest.scripts?.prepublishOnly).toContain("validate:generated");
+    expect(manifest.scripts?.prepublishOnly).toContain("validate:compatibility");
+    expect(manifest.scripts?.prepublishOnly).toContain("validate:installed-runtime");
+    expect(manifest.scripts?.prepublishOnly).not.toContain("validate:interim-release");
+    expect(manifest.scripts?.["validate:generated"]).toContain("validate:roles");
+    expect(manifest.scripts?.["validate:installed-runtime"]).toContain("tests/integration/package-runtime.test.ts");
+    expect(manifest.scripts?.["validate:interim-release"]).toContain("validate-interim-release.ts");
   });
 
   it("references package resources that exist", async () => {
@@ -72,9 +86,9 @@ describe("Pi package baseline", () => {
     expect(contents.join("\n")).toContain("not a fifth lifecycle mode");
   });
 
-  it("keeps the AILI snapshot packaged but registers only the non-conflicting librarian skill", async () => {
+  it("keeps the repository snapshot out of the package and registers only the Pi-owned skill", async () => {
     const manifest = await readManifest();
-    expect(manifest.files).toContain("skills/");
+    expect(manifest.files).not.toContain("skills/");
     expect(manifest.pi?.skills).toEqual(["./node_modules/pi-web-access/skills"]);
   });
 
@@ -96,11 +110,19 @@ describe("Pi package baseline", () => {
     expect(readme).toContain("fixed-bottom editor");
     expect(readme).toContain("public `task`/`hub` persistent Agent framework");
     expect(readme).not.toContain("@agwab/pi-subagent");
+    expect(readme).toContain("npx -y rose-aili@0.4.2 install");
+    expect(readme).toContain("npx -y rose-aili@0.4.2 update");
+    expect(readme).toContain("A moving `rose-aili@latest`");
+    expect(readme).toContain("Pi alone installs, lists, updates, and removes the Package resources");
+    expect(readme).toContain("65-skill/588-file verification snapshot");
+    expect(readme).toContain("not included in the npm tarball");
+    expect(readme).not.toContain("During a Pi-managed npm install or update, the package replaces");
+    expect(readme).not.toContain("installed Package embeds the pinned skills");
     expect(readme).toContain("version 0.1.13 and later is licensed under `AGPL-3.0-or-later`");
     expect(packageLock).toMatchObject({
       name: "@rosetears/aili-pi",
-      version: "0.1.15",
-      packages: { "": { name: "@rosetears/aili-pi", version: "0.1.15", license: "AGPL-3.0-or-later" } },
+      version: "0.1.16",
+      packages: { "": { name: "@rosetears/aili-pi", version: "0.1.16", license: "AGPL-3.0-or-later" } },
     });
     expect(JSON.stringify(packageLock)).not.toContain("@agwab/pi-subagent");
     expect(createHash("sha256").update(licenseText).digest("hex")).toBe("0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0");

@@ -139,7 +139,7 @@ Apply the adapted upstream evidence gates only to the selected question:
 
 - inspect the relevant accepted artifacts and current implementation/test evidence before a definite finding;
 - require `Critical`/`Important` findings to include exact evidence, concrete failure mode, why existing guards do not catch it, and a concrete fix;
-- accept zero findings only when inspected scope, skipped checks, and confidence are recorded;
+- accept zero findings only when inspected scope, skipped checks, and evidence limits are recorded;
 - treat an empty/status-less auxiliary result as missing evidence, not as permission to resume or dispatch an automatic retry;
 - split reconciled findings into blocking and advisory buckets, with unverifiable high-risk findings blocking until checked or explicitly accepted.
 
@@ -176,7 +176,6 @@ Reject pseudo-completion when:
 
 ```text
 LOCAL REVIEW STATUS: BLOCKED | NEEDS_FIXES | NEEDS_REVIEW | PASS_WITH_UNVERIFIED | PASS | REPAIRING | REREVIEW_REQUIRED
-CONFIDENCE: HIGH | MED | LOW | VERY LOW | UNKNOWN
 
 TARGET:
 - Mode:
@@ -186,6 +185,9 @@ TARGET:
 SOURCE ARTIFACTS:
 - Reviewed:
 - Missing/stale/unavailable:
+
+EVIDENCE LIMITS:
+- <missing, partial, stale, or skipped evidence and its effect>
 
 LANES AND CHECKS:
 - Ran:

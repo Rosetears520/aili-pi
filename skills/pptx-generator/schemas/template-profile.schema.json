@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/template-profile.schema.json",
+  "title": "Hash-bound controlling-template visual and run-level profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_kind", "status", "source", "slide_size", "theme", "palette_usage", "masters", "layouts", "slides", "typography_summary"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "report_kind": {"const": "template-profile"},
+    "status": {"enum": ["pending", "profiled", "blocked"]},
+    "source": {
+      "type": ["object", "null"],
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "slide_size": {"type": "object"},
+    "theme": {"type": "object"},
+    "palette_usage": {"type": "array", "items": {"type": "object"}},
+    "masters": {"type": "array", "items": {"type": "object"}},
+    "layouts": {"type": "array", "items": {"type": "object"}},
+    "slides": {"type": "array", "items": {"$ref": "#/$defs/slide"}},
+    "typography_summary": {"type": "object"}
+  },
+  "$defs": {
+    "slide": {
+      "type": "object",
+      "required": ["slide_id", "source_part", "shapes"],
+      "properties": {
+        "slide_id": {"type": "string", "minLength": 1},
+        "source_part": {"type": "string", "minLength": 1},
+        "layout_id": {"type": ["string", "null"]},
+        "shapes": {"type": "array", "items": {"$ref": "#/$defs/shape"}}
+      }
+    },
+    "shape": {
+      "type": "object",
+      "required": ["shape_id", "name", "kind", "bounds", "paragraphs"],
+      "properties": {
+        "shape_id": {"type": "string", "minLength": 1},
+        "name": {"type": "string"},
+        "kind": {"type": "string"},
+        "bounds": {"type": "object"},
+        "placeholder": {"type": ["object", "null"]},
+        "image_frame": {"type": ["object", "null"]},
+        "paragraphs": {"type": "array", "items": {"$ref": "#/$defs/paragraph"}}
+      }
+    },
+    "paragraph": {
+      "type": "object",
+      "required": ["paragraph_id", "properties", "runs"],
+      "properties": {
+        "paragraph_id": {"type": "string", "minLength": 1},
+        "properties": {"type": "object"},
+        "runs": {"type": "array", "items": {"$ref": "#/$defs/run"}}
+      }
+    },
+    "run": {
+      "type": "object",
+      "required": ["run_id", "text", "raw", "inheritance_source", "effective"],
+      "properties": {
+        "run_id": {"type": "string", "minLength": 1},
+        "text": {"type": "string"},
+        "raw": {"type": "object"},
+        "inheritance_source": {"type": "string", "minLength": 1},
+        "effective": {"type": "object"}
+      }
+    }
+  }
+}

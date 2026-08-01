@@ -4,12 +4,39 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadRoleProfiles, type RoleProfile } from "../../src/runtime/roles.js";
 import { CoordinatorJournal, ensureSidecarLayout } from "../../src/runtime/persistent-agents/storage.js";
 import { FifoTurnScheduler } from "../../src/runtime/persistent-agents/scheduler.js";
-import { TaskCoordinator, truncateTaskOutput, type TaskExecutionOutput } from "../../src/runtime/persistent-agents/task-coordinator.js";
-import { TASK_TOOL_SCHEMA, validateTaskRequest } from "../../src/runtime/persistent-agents/task-schema.js";
+import { FORMAL_RESULT_MAX_BYTES, TaskCoordinator, assertCurrentFormalRoleProfile, parseCanonicalFormalResult, truncateTaskOutput, type TaskExecutionOutput } from "../../src/runtime/persistent-agents/task-coordinator.js";
+import { FORMAL_RUNTIME_LIMITS, TASK_TOOL_SCHEMA, validateTaskRequest } from "../../src/runtime/persistent-agents/task-schema.js";
+import type { AgentRecord } from "../../src/runtime/persistent-agents/types.js";
 
 let scratch = "";
 let sequence = 0;
 const schedulers: FifoTurnScheduler[] = [];
+
+function continuationAudit(overrides: Record<string, unknown> = {}) {
+  return {
+    packageId: "P-01",
+    canonicalRole: "aili.implementer",
+    scope: "Implement only the exact fixture behavior.",
+    forbiddenScope: "No unrelated changes.",
+    writeScope: { paths: ["src"], resources: [] },
+    acceptanceBoundary: "Focused verification passes.",
+    expectedEvidence: "Focused result and exact anchors.",
+    ...overrides,
+  };
+}
+
+function canonicalResult(status: "completed" | "partial" | "blocked" | "unverified" = "completed"): string {
+  return [
+    "CANONICAL RESULT:", "result_id: result-P-01", "trace_id: trace-P-01", "lane: implementation",
+    "owner: implementer", "package_id: P-01", "role_id: aili.implementer", `status: ${status}`,
+    "confidence: HIGH", "worktree_context_ref: N/A", "declared_repository: fixture", "cwd: .",
+    "target_rules_ref: AGENTS.md", "artifact_destination: N/A", "inspected_scope: fixture", "summary: result",
+    "evidence: artifact:result/P-01", "changed_files: []", "verification: verification:focused-P-01",
+    "checks: focused", "freshness: current", "skipped_checks: none", "soft_boundary_limitations: none",
+    "blockers: none", "risks: none", "unverified: none", "continuation_recommendation: none",
+    "findings: []", "convergence_links: N/A", "review_arbitration_ref: N/A",
+  ].join("\n");
+}
 
 function deferred<T>() {
   let resolvePromise!: (value: T) => void;
@@ -34,6 +61,7 @@ async function fixtureJournal(parentId = "parent-1") {
 async function fixtureCoordinator(options: {
   capacity?: number;
   profiles?: RoleProfile[];
+  repositoryRoot?: string;
   execute?: TaskCoordinator["submit"] extends never ? never : (input: Parameters<ConstructorParameters<typeof TaskCoordinator>[0]["execute"]>[0]) => Promise<TaskExecutionOutput>;
   onSettled?: ConstructorParameters<typeof TaskCoordinator>[0]["onSettled"];
   onAsyncSettled?: ConstructorParameters<typeof TaskCoordinator>[0]["onAsyncSettled"];
@@ -45,6 +73,7 @@ async function fixtureCoordinator(options: {
   const coordinator = new TaskCoordinator({
     journal,
     scheduler,
+    repositoryRoot: options.repositoryRoot,
     loadProfiles: async () => profiles,
     execute: options.execute ?? (async ({ item }) => ({ output: `done:${item.task}` })),
     onSettled: options.onSettled,
@@ -65,6 +94,29 @@ afterEach(async () => {
 });
 
 describe("task schema and coordinator", () => {
+  it("accepts only the exact bounded canonical formal terminal envelope", () => {
+    const expected = { packageId: "P-01", roleId: "aili.implementer" };
+    for (const status of ["completed", "partial", "blocked", "unverified"] as const) {
+      expect(parseCanonicalFormalResult(canonicalResult(status), expected)).toMatchObject({ ok: true, value: { status } });
+    }
+    const valid = canonicalResult();
+    const invalid = [
+      "",
+      "   ",
+      "ordinary response",
+      "[tool:read]",
+      valid.replace("CANONICAL RESULT:\n", ""),
+      valid.replace("package_id: P-01", "package_id: P-02"),
+      valid.replace("role_id: aili.implementer", "role_id: aili.code-scout"),
+      valid.replace("status: completed", "status: done"),
+      valid.replace("evidence: artifact:result/P-01", "evidence: []"),
+      valid.replace("verification: verification:focused-P-01", "verification: none"),
+      valid.replace("summary: result", "summary: result\nsummary: duplicate"),
+      valid.slice(0, valid.indexOf("verification:")),
+      `${valid}\n${"x".repeat(FORMAL_RESULT_MAX_BYTES)}`,
+    ];
+    for (const output of invalid) expect(parseCanonicalFormalResult(output, expected).ok, output.slice(0, 40)).toBe(false);
+  });
   it("strictly validates flat/batch inputs and canonical selectors before durable allocation", async () => {
     const { journal, profiles, coordinator } = await fixtureCoordinator();
     expect(validateTaskRequest({ task: "focused" }, profiles)).toMatchObject({
@@ -72,11 +124,36 @@ describe("task schema and coordinator", () => {
       items: [{ task: "focused", agent: "general", workspace: "auto", writeScope: { paths: [], resources: [] } }],
     });
     expect(validateTaskRequest({ context: "shared", tasks: [{ task: "one" }, { task: "two", context: "local" }] }, profiles).items[1]?.context).toBe("shared\n\nlocal");
+    expect(validateTaskRequest({ task: "formal", agent: "aili.implementer", async: false, writeScope: { paths: ["src"] }, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit() }, profiles).items[0]).toMatchObject({
+      agent: "aili.implementer",
+      async: false,
+      formalContext: { changeId: "exact-change" },
+      continuationAudit: continuationAudit(),
+    });
+    expect(() => validateTaskRequest({ task: "formal", formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/explicit Specialized agent selector/);
+    expect(() => validateTaskRequest({ task: "formal", agent: "general", async: false, formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/explicit Specialized agent selector/);
+    expect(() => validateTaskRequest({ task: "formal", agent: "aili.implementer", formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/explicit boolean async/);
+    expect(() => validateTaskRequest({ task: "formal", agent: " aili.implementer ", async: true, formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/exact agent value/);
     expect(() => validateTaskRequest({ task: "x", unexpected: true }, profiles)).toThrow(/unknown fields/);
+    expect(() => validateTaskRequest({ task: "x", formalContext: { changeId: "change", tasksPath: "tasks.md" } }, profiles)).toThrow(/formalContext contains unknown fields: tasksPath/);
+    expect(() => validateTaskRequest({ tasks: [{ task: "x", formalContext: { changeId: "change", phase: "BUILD" } }] }, profiles)).toThrow(/formalContext contains unknown fields: phase/);
+    expect(() => validateTaskRequest({ task: "x", formalContext: { changeId: " change " } }, profiles)).toThrow(/exact non-empty string/);
+    expect(() => validateTaskRequest({ task: "formal", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/requires an exact continuationAudit sibling/);
+    expect(() => validateTaskRequest({ task: "ordinary", continuationAudit: continuationAudit() }, profiles)).toThrow(/requires formalContext/);
+    expect(() => validateTaskRequest({ task: "formal", agent: "aili.implementer", async: false, writeScope: { paths: ["src"] }, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit({ canonicalRole: "aili.code-scout" }) }, profiles)).toThrow(/canonicalRole must equal/);
+    expect(() => validateTaskRequest({ task: "formal", agent: "aili.implementer", async: false, writeScope: { paths: ["src"] }, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit({ writeScope: { paths: [], resources: [] } }) }, profiles)).toThrow(/writeScope must equal/);
+    expect(() => validateTaskRequest({ task: "formal", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit({ writeScope: { paths: [], resources: [] } }) }, profiles)).toThrow(/non-empty normalized writeScope/);
     expect(() => validateTaskRequest({ task: "x", blocking: true }, profiles)).toThrow(/unknown fields: blocking/);
     const publicSchema = JSON.stringify(TASK_TOOL_SCHEMA);
     expect(publicSchema).toContain("Set false to wait synchronously");
     expect(publicSchema).toContain("Do not send blocking");
+    expect(publicSchema).toContain("Choose an exact Specialized selector from the active task catalog");
+    expect(publicSchema).toContain("Omit only for ordinary general compatibility");
+    expect(publicSchema).toContain("formalContext");
+    expect(publicSchema).toContain("changeId");
+    expect(publicSchema).toContain("continuationAudit");
+    expect(publicSchema).toContain("canonicalRole");
+    expect(publicSchema).not.toContain("tasksPath");
     expect(publicSchema).not.toContain("\"blocking\":");
     expect(() => validateTaskRequest({ tasks: [] }, profiles)).toThrow(/non-empty/);
     expect(() => validateTaskRequest({ task: "x", agent: "aili.general" }, profiles)).toThrow(/not canonical/);
@@ -89,6 +166,94 @@ describe("task schema and coordinator", () => {
     await expect(coordinator.submit({ task: "read ~/.ssh/id_ed25519" })).rejects.toThrow(/credential\/auth\/private-key/);
     expect(journal.getState().lastSequence).toBe(0);
     expect(journal.getState().agents).toEqual({});
+  });
+
+  it("rejects an invalid formal batch atomically before Agent, job, turn, or execution allocation", async () => {
+    let executions = 0;
+    const { coordinator, journal } = await fixtureCoordinator({
+      execute: async () => {
+        executions += 1;
+        return { output: "must not execute" };
+      },
+    });
+
+    await expect(coordinator.submit({
+      tasks: [
+        { task: "valid formal member", agent: "aili.implementer", async: false, writeScope: { paths: ["src"] }, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit() },
+        { task: "invalid formal member", agent: "aili.code-scout", formalContext: { changeId: "exact-change" } },
+      ],
+    })).rejects.toThrow(/explicit boolean async/);
+
+    expect(journal.getState()).toMatchObject({
+      lastSequence: 0,
+      agents: {},
+      jobs: {},
+      turns: {},
+    });
+    expect(executions).toBe(0);
+  });
+
+  it("enforces bounded exact continuation audits in runtime validation and TypeBox metadata", async () => {
+    const profiles = await loadRoleProfiles();
+    const formal = (audit: Record<string, unknown>) => ({
+      task: "formal",
+      agent: "aili.implementer",
+      async: false,
+      writeScope: (audit.writeScope as { paths?: string[]; resources?: string[] } | undefined) ?? { paths: ["src"], resources: [] },
+      formalContext: { changeId: "exact-change" },
+      continuationAudit: audit,
+    });
+    for (const [name, audit] of [
+      ["multiline", continuationAudit({ scope: "line one\nline two" })],
+      ["control", continuationAudit({ expectedEvidence: "bad\u0001evidence" })],
+      ["field", continuationAudit({ acceptanceBoundary: "x".repeat(FORMAL_RUNTIME_LIMITS.auditFieldChars + 1) })],
+      ["items", continuationAudit({ writeScope: { paths: Array.from({ length: FORMAL_RUNTIME_LIMITS.writeScopeItems + 1 }, (_, index) => `src/${index}`), resources: [] } })],
+      ["item-length", continuationAudit({ writeScope: { paths: ["x".repeat(FORMAL_RUNTIME_LIMITS.writeScopeItemChars + 1)], resources: [] } })],
+      ["total-size", continuationAudit({
+        writeScope: {
+          paths: [],
+          resources: Array.from({ length: FORMAL_RUNTIME_LIMITS.writeScopeItems }, (_, index) => `${index}-`.padEnd(FORMAL_RUNTIME_LIMITS.writeScopeItemChars, "x")),
+        },
+      })],
+    ] as const) {
+      expect(() => validateTaskRequest(formal(audit), profiles), name).toThrow(/single line|exceeds/);
+    }
+    const publicSchema = JSON.stringify(TASK_TOOL_SCHEMA);
+    expect(publicSchema).toContain(`\"maxItems\":${FORMAL_RUNTIME_LIMITS.writeScopeItems}`);
+    expect(publicSchema).toContain(`\"maxLength\":${FORMAL_RUNTIME_LIMITS.auditFieldChars}`);
+    expect(publicSchema).toContain("u001F");
+  });
+
+  it("requires a new formal Agent when any durable RoleProfile identity field drifts", async () => {
+    const role = (await loadRoleProfiles()).find((candidate) => candidate.selector === "aili.implementer")!;
+    const agent: AgentRecord = {
+      id: "implementer",
+      name: "implementer",
+      selector: role.selector,
+      state: "parked",
+      createdAt: "2026-08-01T00:00:00.000Z",
+      updatedAt: "2026-08-01T00:00:00.000Z",
+      metadata: {
+        formalContinuationIdentity: continuationAudit(),
+        selector: role.selector,
+        profileHash: role.profileHash,
+        sourceHash: role.sourceHash,
+        profileVersion: role.profileVersion,
+        runtimeAdapterVersion: role.runtimeAdapterVersion,
+      },
+    };
+    expect(() => assertCurrentFormalRoleProfile(agent, role)).not.toThrow();
+    for (const changed of [
+      { ...agent, selector: "aili.code-scout" },
+      { ...agent, metadata: { ...agent.metadata, selector: "aili.code-scout" } },
+      { ...agent, metadata: { ...agent.metadata, profileHash: "changed" } },
+      { ...agent, metadata: { ...agent.metadata, sourceHash: "changed" } },
+      { ...agent, metadata: { ...agent.metadata, profileVersion: 1 } },
+      { ...agent, metadata: { ...agent.metadata, runtimeAdapterVersion: 1 } },
+    ]) {
+      expect(() => assertCurrentFormalRoleProfile(changed, role)).toThrow(/create a new Agent/);
+    }
+    expect(() => assertCurrentFormalRoleProfile({ ...agent, metadata: { profileHash: "ordinary drift" } }, role)).not.toThrow();
   });
 
   it("creates a new stable Agent for every sync item and never requests async delivery", async () => {
@@ -285,6 +450,64 @@ describe("task schema and coordinator", () => {
       },
     )).rejects.toThrow(/active inherited ancestor permit/);
     expect(fixture.journal.getState().lastSequence).toBe(before);
+  });
+
+  it("preserves the specialized Agent non-nesting spawn policy", async () => {
+    let coordinator!: TaskCoordinator;
+    let denied = false;
+    const fixture = await fixtureCoordinator({
+      execute: async (input) => {
+        if (input.depth !== 0) return { output: "nested execution must not start" };
+        const before = fixture.journal.getState().lastSequence;
+        await expect(coordinator.submit(
+          { task: "forbidden specialized child", agent: "aili.implementer", async: false },
+          {
+            parentAgentId: input.agentId,
+            parentSelector: input.role.selector,
+            parentDepth: input.depth,
+            inheritedPermit: input.context.permit,
+          },
+        )).rejects.toThrow(/nested spawn denied/);
+        expect(fixture.journal.getState().lastSequence).toBe(before);
+        denied = true;
+        return { output: "non-nesting preserved" };
+      },
+    });
+    coordinator = fixture.coordinator;
+    await coordinator.submit({ task: "specialized parent", agent: "aili.code-scout", async: false });
+    expect(denied).toBe(true);
+  });
+
+  it("requires nested formal work to repeat the exact inherited formalContext before allocation", async () => {
+    let coordinator!: TaskCoordinator;
+    let checked = false;
+    const fixture = await fixtureCoordinator({
+      execute: async (input) => {
+        if (input.depth !== 0) return { output: "unexpected nested execution" };
+        const ancestry = {
+          parentAgentId: input.agentId,
+          parentSelector: input.role.selector,
+          parentDepth: input.depth,
+          inheritedPermit: input.context.permit,
+          formalChangeId: "exact-change",
+        };
+        const before = fixture.journal.getState().lastSequence;
+        await expect(coordinator.submit(
+          { task: "missing formal context", agent: "aili.code-scout", async: false },
+          ancestry,
+        )).rejects.toThrow(/must explicitly repeat the exact same formalContext\.changeId/);
+        await expect(coordinator.submit(
+          { task: "wrong formal context", agent: "aili.code-scout", async: false, formalContext: { changeId: "other-change" }, continuationAudit: continuationAudit({ canonicalRole: "aili.code-scout", writeScope: { paths: [], resources: [] } }) },
+          ancestry,
+        )).rejects.toThrow(/must explicitly repeat the exact same formalContext\.changeId/);
+        expect(fixture.journal.getState().lastSequence).toBe(before);
+        checked = true;
+        return { output: "formal ancestry checked" };
+      },
+    });
+    coordinator = fixture.coordinator;
+    await coordinator.submit({ task: "parent", async: false });
+    expect(checked).toBe(true);
   });
 
   it("does not impose request/runtime budgets and explicitly truncates oversized inline output", async () => {

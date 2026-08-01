@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "slide_size": "LAYOUT_16X9",
+  "content_area": {},
+  "typography_roles": {},
+  "palette_roles": {},
+  "shape_language": {},
+  "image_treatment": {},
+  "chart_table_treatment": {},
+  "navigation_footer": {},
+  "text_fit_policy": "shape-to-fit-text",
+  "template_profile_sha256": null,
+  "layout_constraints": {
+    "single_line_roles": ["title", "kpi", "percentage", "short-label"],
+    "minimum_font_size_pt": 12,
+    "alignment_tolerance_pt": 2,
+    "spacing_tolerance_pt": 2,
+    "image_fit_required": "contain"
+  }
+}

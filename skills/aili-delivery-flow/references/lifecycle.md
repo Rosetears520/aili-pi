@@ -10,6 +10,12 @@ Any explicit formal spec/change/plan or implementation DEFINE, material change l
 
 Record route, class, decisive evidence, active/resolved change identity, unresolved ambiguity, and next gate. Ask one decision-changing question only when one answer controls class or identity. On the first hard trigger in an ordinary thread, escalate exactly once and create/reuse one OpenSpec change; preserve history and reuse it for later material deltas.
 
+## Decision and implementation-authorization state
+
+Record a material decision as exactly one of `proposed`, `direction-recorded`, `conditional`, `awaiting-confirmation`, `accepted`, `rejected`, or `superseded`. The state reflects an explicit user event: direction is not acceptance, a request for rationale is not acceptance, and an Agent that supplies the requested rationale moves a conditional decision only to `awaiting-confirmation` until the user explicitly confirms it.
+
+Record implementation authorization separately as exactly `absent`, `granted`, `expired`, or `revoked`. Final test-plan acceptance satisfies only the lifecycle acceptance gate; it never starts BUILD. A document, checkbox, handoff, progress event, memory entry, Agent result, or ROSE judgment may record these states but cannot create either decision acceptance or authorization.
+
 ## Startup Git Host and Repository Targets
 
 For current A33 routing, the user selects the host by starting OpenCode in that Git repository. A non-Git startup root blocks. AILI never ranks, moves, broadly scans for, or auto-selects a host. Each lane targets exactly one declared repository/cwd under its current `WT-001` evidence; target rules may narrow but never broaden, a same-level conflict blocks, and user-visible artifacts remain in the owning target repository. Historical A30/A31 external-read routing remains history only.
@@ -29,6 +35,8 @@ Hydration is mode-, dependency-, and event-directed:
 - ordinary continuation reads the current request and directly relevant files; it performs no formal hydration unless formal work is explicitly resumed or changed.
 
 Re-read every file written by ROSE once before using it as durable evidence. A user correction, write, hook, content/config/dependency/toolchain/target event, or conflict invalidates that evidence and its dependents only. Phase movement, elapsed time, file presence, or generic `continue` never forces all artifacts to be re-read.
+
+For formal work after stable identity and package decomposition, the directed set also includes the one current `aili-task-board/v1` Board. Phase readiness consumes package kind, dependencies, exact owner, joins, portable evidence, ROSE inspection, disposition, and verification links. A worker return, task-call status, progress event, or checked box cannot independently satisfy a phase gate.
 
 When an A33 boundary is actually involved, revalidate the canonical user-selected Git startup host and current permissions. For every declared attachment, separately revalidate exact `repo_key`/`worktree_key`, current target canonical root/toplevel/private-dir/common-dir/HEAD/branch/membership, dirty and tracked/untracked/ignored/artifact/unknown file state, applicable target rules, owning-repository artifact destinations, and current applicable `WT-001` host/source/target identity evidence. Never require cross-repository common-dir equality or reuse one attachment's evidence for another. Idea capsules/inbox, legacy `implementation-notes.html`, packets, handoff, memory, checkpoints, stale chat summaries, old logs, DCP/compression state, and task checkboxes remain navigation or migration evidence only; none establishes contract, runtime binding, authorization, operation approval, completion, or freshness.
 
@@ -77,7 +85,7 @@ Use only on explicit command or equivalent natural-language implementation inten
 
 - Resume wording (`continue`, `继续`, `go ahead`, `继续做`) resumes exactly one active authorized envelope when target, exact phase, current acceptance/material gates, and remaining budget are unambiguous. Preserve consumed counters, token accounting state, overshoot, and stop state. Resume cannot broaden authorization, reset budget, change phase/target, or refresh acceptance; otherwise ask exactly one target/authorization question and do no loop/write/mutation.
 - A material acceptance/verification change returns to DEFINE, writes/re-reads/revalidates affected artifacts, and stales prior acceptance when the final acceptance contract changes. It never resumes BUILD.
-- Same-turn acceptance plus BUILD persists/classifies the answer in `interview.md`, updates the final test-plan gate/checklist, re-reads both, then runs strict validation and target/package/permission/verification/budget checks before any execution. No test execution-ledger row appears before BUILD actually starts.
+- Same-turn acceptance plus BUILD is valid only when the same user message explicitly accepts the exact current final test plan and explicitly requests immediate implementation of that exact scope. Persist and classify the acceptance in `interview.md`, update the final test-plan gate/checklist, re-read both, then record `implementation_authorization: granted` only after confirming both clauses have the same scope and run strict validation and target/package/permission/verification/budget checks before execution. No artifact text can substitute for either user event, and no test execution-ledger row appears before BUILD actually starts.
 - Explicit no-write/chat-only overrides formal writeback and both compounds for the current turn: return a blocked/`Unverified` preview; preserve pending state; perform zero persistence, acceptance, execution, mutation, ledger entry, or budget consumption.
 - “Implement and then ship” authorizes current-phase BUILD only. Later SHIP needs fresh evidence and new explicit intent.
 

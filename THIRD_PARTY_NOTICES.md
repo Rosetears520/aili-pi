@@ -6,12 +6,12 @@ This distribution is licensed under AGPL-3.0-or-later. The following adapted sou
 
 - Status: adapted
 - Source: https://github.com/Rosetears520/aili-workflows.git
-- Revision: 7eb35f357ad489f5841ee10dac1e44549c1bdb76
-- Version: 0.2.7
+- Revision: bb1fedacc46d71045daa6257d121f2b71ba29d54
+- Version: 0.4.2
 - License: MIT
-- Source files: upstream/aili-workflows.lock.json#files (471 exact skill files), manifests/roles.json#records[].sourcePath (19 exact role source files), upstream/opencode-global-agents.lock.json (pinned source template revision/hash)
-- Reused symbols/patterns: 64 canonical skill bodies and owned assets, 19 child-role prompt bodies
-- Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output; templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded
+- Source files: upstream/aili-workflows.lock.json#files (588 exact skill files), manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.2 source revision), upstream/opencode-global-agents.lock.json (pinned source template revision/hash)
+- Reused symbols/patterns: 65 canonical skill bodies and owned assets
+- Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; specialized role prompts preserve ordinary JSON output while the Pi Runtime supplies the exact canonical formal-result override; deterministic routing and role profiles remain manifest-hash bound to the exact 0.4.2 source revision; templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded
 
 ## pi-permission-modes
 
@@ -22,7 +22,7 @@ This distribution is licensed under AGPL-3.0-or-later. The following adapted sou
 - License: MIT
 - Source files: src/vendor/pi-permission-modes/index.ts, src/vendor/pi-permission-modes/resolve.ts, upstream/pi-permission-modes.lock.json, licenses/pi-permission-modes-MIT.txt
 - Reused symbols/patterns: Default/Plan/Build/YOLO, /perm, Alt+M, shared permission pattern matcher, sandbox degradation
-- Local changes: AILI's generated adapted entry redirects unchanged sibling modules to the exact 2.2.0 dependency; the owned resolve.ts compiles permission globs with RegExp dotAll so * and ? include ECMAScript line terminators; the exact upstream and adapted files are hash-locked and drift-checked
+- Local changes: AILI's generated adapted entry redirects unchanged sibling modules to the exact 2.2.0 dependency; the owned resolve.ts compiles permission globs with RegExp dotAll so * and ? include ECMAScript line terminators; the process-owned sandbox composes the exact formal Board denyWrite paths for persistent children; the exact upstream and adapted files are hash-locked and drift-checked
 
 ## pi-quota-status
 

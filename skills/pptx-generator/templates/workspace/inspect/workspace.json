@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "workspace_id": "{{DECK_NAME}}",
+  "deck_name": "{{DECK_NAME}}",
+  "profile": "inspect",
+  "paths": {
+    "render_manifest": "renders/final/manifest.json",
+    "visual_review": "reviews/visual-review-final.json"
+  },
+  "tool_policy": {
+    "officecli_adapter_reference": "references/officecli-adapter.md",
+    "allow_routable_officecli_skill": false
+  }
+}

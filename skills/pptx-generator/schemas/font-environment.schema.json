@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/font-environment.schema.json",
+  "title": "Observed font registration, source files, and renderer visibility",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_kind", "status", "platform", "wsl", "external_reads", "environments"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "report_kind": {"const": "font-environment"},
+    "status": {"enum": ["ready", "need-user", "unverified", "blocked"]},
+    "platform": {"type": "string", "minLength": 1},
+    "wsl": {"type": "boolean"},
+    "external_reads": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approval_state", "requested_paths", "observed_paths"],
+      "properties": {
+        "approval_state": {"enum": ["not-required", "required", "approved"]},
+        "requested_paths": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "observed_paths": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "environments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["build", "render", "target"],
+      "properties": {
+        "build": {"$ref": "#/$defs/environment"},
+        "render": {"$ref": "#/$defs/environment"},
+        "target": {"$ref": "#/$defs/environment"}
+      }
+    }
+  },
+  "$defs": {
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "renderer", "visible_fonts", "registered_fonts", "mounted_font_files", "observed_substitutions", "evidence"],
+      "properties": {
+        "status": {"enum": ["verified", "unverified"]},
+        "renderer": {"type": "string", "minLength": 1},
+        "visible_fonts": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "registered_fonts": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "mounted_font_files": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "observed_substitutions": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "sha256"],
+      "properties": {
+        "kind": {"enum": ["renderer-query", "windows-system-registration", "windows-user-registration", "fontconfig", "mounted-files", "target-user"]},
+        "path": {"type": "string"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

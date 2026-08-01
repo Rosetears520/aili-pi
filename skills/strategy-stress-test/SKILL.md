@@ -93,7 +93,16 @@ If the needed tool or skill is unavailable:
 
 Use evidence before confidence.
 
-Carry the global Evidence-Driven Claim Hygiene rule into the stress test: tag every claim in stress-test conclusions, use `CONFIDENCE: HIGH | MED | LOW | VERY LOW | UNKNOWN` for internal reports, localize user-facing tags/confidence labels when available, and treat anti-sycophancy red flags such as an unusually elegant explanation, one pattern explaining everything, agreement after pushback without evidence, or specifics for unearned authority as reasons to cut specifics, add `[GUESS]`, or say `I don't know.`
+Carry the global evidence boundary into the stress test. Fixed-schema internal
+results use separate claim/source/decision/authorization/verification fields
+and `confidence: HIGH | MED | LOW | VERY LOW | UNKNOWN` when applicable. Live
+conversation may group optional localized claim labels when evidence levels
+materially differ. Persisted human-facing reports use ordinary prose and state
+evidence limits directly rather than adding claim-tag or confidence prefixes.
+Treat anti-sycophancy red flags such as an unusually elegant explanation, one
+pattern explaining everything, agreement after pushback without evidence, or
+specifics for unearned authority as reasons to cut specifics, state the gap,
+or say `I don't know.`
 
 Valid evidence can include:
 
@@ -132,9 +141,10 @@ Fallback: downgrade confidence, mark the affected item `Open Question` or `Unver
 Return this structure when reporting the stress-test result:
 
 ```text
-CONFIDENCE: HIGH | MED | LOW | VERY LOW | UNKNOWN
-
 Current artifact / claim:
+- ...
+
+Evidence limits:
 - ...
 
 Material loopholes found:
@@ -178,7 +188,6 @@ Input artifact:
 
 Stress-test result:
 
-- CONFIDENCE: MED
 - Material loophole: Verification gap - plan does not name the callback error cases or tests.
 - Fix applied: add tasks for invalid state, expired code, provider error, and existing callback test file inspection.
 - Remaining unverified: exact test command until package scripts are inspected.

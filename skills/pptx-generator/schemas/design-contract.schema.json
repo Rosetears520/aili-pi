@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/design-contract.schema.json",
+  "title": "PPTX executable design contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "slide_size", "content_area", "typography_roles", "palette_roles", "shape_language", "image_treatment", "chart_table_treatment", "navigation_footer", "text_fit_policy", "layout_constraints"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "slide_size": {"type": "string", "minLength": 1},
+    "content_area": {"type": "object"},
+    "typography_roles": {"type": "object"},
+    "palette_roles": {"type": "object"},
+    "shape_language": {"type": "object"},
+    "image_treatment": {"type": "object"},
+    "chart_table_treatment": {"type": "object"},
+    "navigation_footer": {"type": "object"},
+    "text_fit_policy": {"const": "shape-to-fit-text"},
+    "template_profile_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "layout_constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["single_line_roles", "minimum_font_size_pt", "alignment_tolerance_pt", "spacing_tolerance_pt", "image_fit_required"],
+      "properties": {
+        "single_line_roles": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "minimum_font_size_pt": {"type": "number", "exclusiveMinimum": 0},
+        "alignment_tolerance_pt": {"type": "number", "minimum": 0},
+        "spacing_tolerance_pt": {"type": "number", "minimum": 0},
+        "image_fit_required": {"enum": ["contain", "cover", "crop", "template-declared"]}
+      }
+    }
+  }
+}

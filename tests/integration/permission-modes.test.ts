@@ -41,6 +41,8 @@ async function permissionHarness(options: {
   const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
   const previousMode = process.env.PI_PERMISSION_MODE;
   const previousHome = process.env.HOME;
+  const previousCwd = process.cwd();
+  process.chdir(cwd);
   process.env.PI_CODING_AGENT_DIR = agentDir;
   process.env.PI_PERMISSION_MODE = options.mode ?? "yolo";
   process.env.HOME = home;
@@ -118,6 +120,7 @@ async function permissionHarness(options: {
       else process.env.PI_PERMISSION_MODE = previousMode;
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
+      process.chdir(previousCwd);
       await rm(cwd, { recursive: true, force: true });
     },
   };

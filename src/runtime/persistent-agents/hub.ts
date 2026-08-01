@@ -3,10 +3,37 @@ import { Type } from "typebox";
 import type { CoordinatorJournal } from "./storage.js";
 import type { AgentRecord, CoordinatorState, TurnRecord } from "./types.js";
 import { assertNoCredentialMaterial } from "./permission.js";
+import {
+  FORMAL_CONTINUATION_AUDIT_SCHEMA,
+  FORMAL_RUNTIME_LIMITS,
+  normalizeFormalContinuationAudit,
+  sameFormalContinuationAudit,
+  type FormalContinuationAudit,
+} from "./task-schema.js";
+
+const OrdinaryHubSendSchema = Type.Object({
+  action: Type.Literal("send"),
+  agentId: Type.String({ minLength: 1 }),
+  message: Type.String({ minLength: 1 }),
+  messageId: Type.Optional(Type.String({ minLength: 1 })),
+}, { additionalProperties: false });
+
+const FormalHubSendSchema = Type.Object({
+  action: Type.Literal("send"),
+  agentId: Type.String({ minLength: 1 }),
+  message: Type.String({
+    minLength: 1,
+    maxLength: FORMAL_RUNTIME_LIMITS.hubMessageBytes,
+    pattern: "^(?!\\s)[^\\u0000-\\u001F\\u007F-\\u009F\\u2028\\u2029]*\\S$",
+  }),
+  messageId: Type.Optional(Type.String({ minLength: 1, maxLength: 160 })),
+  continuationAudit: FORMAL_CONTINUATION_AUDIT_SCHEMA,
+}, { additionalProperties: false });
 
 export const HUB_TOOL_SCHEMA = Type.Union([
   Type.Object({ action: Type.Literal("list"), includeReleased: Type.Optional(Type.Boolean()) }, { additionalProperties: false }),
-  Type.Object({ action: Type.Literal("send"), agentId: Type.String({ minLength: 1 }), message: Type.String({ minLength: 1 }), messageId: Type.Optional(Type.String({ minLength: 1 })) }, { additionalProperties: false }),
+  OrdinaryHubSendSchema,
+  FormalHubSendSchema,
   Type.Object({ action: Type.Literal("wait"), jobIds: Type.Optional(Type.Array(Type.String({ minLength: 1 }))), messageIds: Type.Optional(Type.Array(Type.String({ minLength: 1 }))), timeoutMs: Type.Optional(Type.Number({ minimum: 0 })), pollIntervalMs: Type.Optional(Type.Number({ minimum: 1 })) }, { additionalProperties: false }),
   Type.Object({ action: Type.Literal("inbox"), agentId: Type.String({ minLength: 1 }), mode: Type.Optional(Type.Union([Type.Literal("peek"), Type.Literal("drain")])) }, { additionalProperties: false }),
   Type.Object({ action: Type.Literal("output"), agentId: Type.String({ minLength: 1 }), offset: Type.Optional(Type.Number({ minimum: 0 })), limit: Type.Optional(Type.Number({ minimum: 1 })) }, { additionalProperties: false }),
@@ -14,6 +41,20 @@ export const HUB_TOOL_SCHEMA = Type.Union([
   Type.Object({ action: Type.Literal("jobs"), jobId: Type.Optional(Type.String({ minLength: 1 })) }, { additionalProperties: false }),
   Type.Object({ action: Type.Literal("cancel"), id: Type.String({ minLength: 1 }) }, { additionalProperties: false }),
   Type.Object({ action: Type.Literal("model"), operation: Type.Union([Type.Literal("query"), Type.Literal("request"), Type.Literal("clear")]), agentId: Type.Optional(Type.String({ minLength: 1 })), selector: Type.Optional(Type.String({ minLength: 1 })), model: Type.Optional(Type.String({ minLength: 1 })) }, { additionalProperties: false }),
+  Type.Object({
+    action: Type.Literal("formal-plan"),
+    changeId: Type.String({ minLength: 1 }),
+    packageId: Type.String({ minLength: 1 }),
+    writeScope: Type.Object({
+      paths: Type.Array(Type.String({ minLength: 1, maxLength: FORMAL_RUNTIME_LIMITS.writeScopeItemChars }), { maxItems: FORMAL_RUNTIME_LIMITS.writeScopeItems }),
+      resources: Type.Array(Type.String({ minLength: 1, maxLength: FORMAL_RUNTIME_LIMITS.writeScopeItemChars }), { maxItems: FORMAL_RUNTIME_LIMITS.writeScopeItems }),
+    }, { additionalProperties: false }),
+    operationGate: Type.Object({ state: Type.Union([Type.Literal("allowed"), Type.Literal("blocked")]), evidence: Type.String({ minLength: 1 }) }, { additionalProperties: false }),
+    ownership: Type.Object({ classification: Type.Union([Type.Literal("agent-execution"), Type.Literal("rose-direct"), Type.Literal("mixed")]), evidence: Type.String({ minLength: 1 }) }, { additionalProperties: false }),
+    asyncSafety: Type.Optional(Type.Object({ independent: Type.Boolean(), nonOverlapping: Type.Boolean(), safeToProceed: Type.Boolean(), evidence: Type.String({ minLength: 1 }) }, { additionalProperties: false })),
+    observations: Type.Optional(Type.Array(Type.Any(), { maxItems: 128 })),
+  }, { additionalProperties: false }),
+  Type.Object({ action: Type.Literal("formal-reconcile"), changeId: Type.String({ minLength: 1 }), timestamp: Type.String({ minLength: 1 }) }, { additionalProperties: false }),
 ]);
 
 export interface HubCaller {
@@ -37,6 +78,7 @@ export class PermanentReviveError extends Error {
 export interface HubServiceOptions {
   journal: CoordinatorJournal;
   revive: (agent: AgentRecord) => Promise<LiveAgentAdapter>;
+  preflightContinuation?: (agent: AgentRecord) => void | Promise<void>;
   cancelJob?: (jobId: string) => Promise<"queued" | "running" | "not-found">;
   output?: (agent: AgentRecord, offset: number, limit: number) => Promise<unknown>;
   history?: (agent: AgentRecord, offset: number, limit: number) => Promise<unknown>;
@@ -52,6 +94,7 @@ interface DurableMessage {
   senderAgentId?: string;
   content: string;
   createdAt: string;
+  formalContinuationIdentity?: FormalContinuationAudit;
 }
 
 function nextId(prefix: string, existing: Iterable<string>): string {
@@ -77,6 +120,23 @@ function strictKeys(value: Record<string, unknown>, allowed: string[]): void {
 function requiredString(value: unknown, label: string): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(`${label} must be a non-empty string`);
   return value.trim();
+}
+
+function formalHubMessage(value: unknown): string {
+  if (typeof value !== "string" || value.length === 0 || value !== value.trim()) {
+    throw new Error("hub.message for a formal Agent must be an exact non-empty string");
+  }
+  if (/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/.test(value)) {
+    throw new Error("hub.message for a formal Agent must be a single line without control characters");
+  }
+  if (Buffer.byteLength(value, "utf8") > FORMAL_RUNTIME_LIMITS.hubMessageBytes) {
+    throw new Error(`hub.message for a formal Agent exceeds ${FORMAL_RUNTIME_LIMITS.hubMessageBytes} UTF-8 bytes`);
+  }
+  return value;
+}
+
+function contentHash(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
 }
 
 function nonNegativeInteger(value: unknown, fallback: number, label: string, minimum = 0): number {
@@ -139,10 +199,16 @@ export class HubService {
         strictKeys(input, ["action", "includeReleased"]);
         return this.list(caller, input.includeReleased === true);
       case "send":
-        strictKeys(input, ["action", "agentId", "message", "messageId"]);
+        strictKeys(input, ["action", "agentId", "message", "messageId", "continuationAudit"]);
         {
           const agentId = requiredString(input.agentId, "hub.agentId");
-          return await this.withAgentOperation(agentId, async () => await this.send(agentId, requiredString(input.message, "hub.message"), caller, typeof input.messageId === "string" ? input.messageId : undefined));
+          return await this.withAgentOperation(agentId, async () => await this.send(
+            agentId,
+            input.message,
+            caller,
+            typeof input.messageId === "string" ? input.messageId : undefined,
+            input.continuationAudit,
+          ));
         }
       case "inbox":
         strictKeys(input, ["action", "agentId", "mode"]);
@@ -177,6 +243,9 @@ export class HubService {
         strictKeys(input, ["action", "operation", "agentId", "selector", "model"]);
         if (!this.options.model) throw new Error("hub model operations are unavailable");
         return await this.options.model(input, caller);
+      case "formal-plan":
+      case "formal-reconcile":
+        throw new Error(`hub ${action} is parent/ROSE-only and unavailable to child Agents`);
       default:
         throw new Error(`unknown hub action: ${action}`);
     }
@@ -239,45 +308,215 @@ export class HubService {
     return this.options.journal.getState().messages[messageId];
   }
 
+  private messageReceiptPayload(message: DurableMessage, status: string, details: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      status,
+      agentId: message.agentId,
+      senderAgentId: message.senderAgentId,
+      createdAt: message.createdAt,
+      contentHash: contentHash(message.content),
+      ...(message.formalContinuationIdentity ? { formalContinuationIdentity: message.formalContinuationIdentity } : {}),
+      ...details,
+    };
+  }
+
   private async putMessage(message: DurableMessage, status: string, details: Record<string, unknown> = {}): Promise<void> {
     await this.options.journal.append({
       kind: "message.put",
       agentId: message.agentId,
       messageId: message.id,
+      payload: this.messageReceiptPayload(message, status, details),
+    });
+  }
+
+  private continuationIdentity(agent: AgentRecord, supplied: unknown): FormalContinuationAudit | undefined {
+    const persisted = agent.metadata?.formalContinuationIdentity;
+    if (persisted === undefined) {
+      if (supplied !== undefined) throw new Error(`${agent.id}: ordinary Agent cannot accept a formal continuationAudit`);
+      return undefined;
+    }
+    const expected = normalizeFormalContinuationAudit(persisted, `${agent.id}.metadata.formalContinuationIdentity`);
+    if (expected.canonicalRole !== agent.selector) {
+      throw new Error(`${agent.id}: persisted formal continuation role does not match the exact Agent selector`);
+    }
+    if (supplied === undefined) {
+      throw new Error(`${agent.id}: formal continuation requires the complete unchanged continuationAudit; create a new bounded job/Agent`);
+    }
+    const actual = normalizeFormalContinuationAudit(supplied, "hub.continuationAudit");
+    if (!sameFormalContinuationAudit(expected, actual)) {
+      throw new Error(`${agent.id}: formal continuation identity changed; create a new bounded job/Agent`);
+    }
+    return expected;
+  }
+
+  private formalTurnWorkspaceMetadata(agent: AgentRecord): Record<string, unknown> {
+    const formalProtection = agent.metadata?.formalProtection;
+    if (formalProtection === undefined) return {};
+    const lease = this.options.journal.getState().workspaceLeases[agent.id];
+    if (!lease) {
+      if (this.options.preflightContinuation) {
+        throw new Error(`${agent.id}: formal workspace lease is unavailable; continuation is refused`);
+      }
+      return {
+        formalProtection: structuredClone(formalProtection),
+        formalWorkspaceRequest: structuredClone(agent.metadata?.formalWorkspaceRequest),
+      };
+    }
+    for (const key of ["formalProtection", "formalContinuationIdentity", "formalWorkspaceRequest"] as const) {
+      if (JSON.stringify(agent.metadata?.[key]) !== JSON.stringify(lease[key])) {
+        throw new Error(`${agent.id}: formal ${key} differs from the durable workspace lease; continuation is refused`);
+      }
+    }
+    return {
+      formalProtection: structuredClone(lease.formalProtection),
+      formalWorkspaceRequest: structuredClone(lease.formalWorkspaceRequest),
+      formalWorkspaceIdentity: {
+        mode: lease.mode,
+        requestedMode: lease.requestedMode,
+        projectRoot: lease.projectRoot,
+        root: lease.root,
+        cwd: lease.cwd,
+        scope: structuredClone(lease.scope),
+        selector: lease.selector,
+      },
+    };
+  }
+
+  private formalSteerPreflight(agent: AgentRecord, identity: FormalContinuationAudit): {
+    live: LiveAgentAdapter;
+    turnId: string;
+    auditCount: number;
+  } {
+    const state = this.options.journal.getState();
+    const currentAgent = state.agents[agent.id];
+    const turnId = currentAgent?.currentTurnId;
+    const turn = turnId ? state.turns[turnId] : undefined;
+    if (!currentAgent || currentAgent.state !== "running" || !turnId || !turn
+      || turn.agentId !== agent.id || turn.state !== "running") {
+      throw new Error(`${agent.id}: running formal Agent has no exact running turn for continuation audit`);
+    }
+    const existing = turn.metadata?.formalContinuationAudits;
+    if (existing !== undefined && !Array.isArray(existing)) {
+      throw new Error(`${agent.id}/${turnId}: formal continuation audit history is malformed`);
+    }
+    const seen = new Set<string>();
+    for (const [index, value] of (existing ?? []).entries()) {
+      const entry = record(value, `${agent.id}/${turnId}.formalContinuationAudits[${index}]`);
+      if (Object.keys(entry).length !== 3
+        || !Object.hasOwn(entry, "messageId")
+        || !Object.hasOwn(entry, "contentHash")
+        || !Object.hasOwn(entry, "unchangedIdentity")
+        || typeof entry.messageId !== "string"
+        || !/^[A-Za-z0-9._:-]{1,160}$/.test(entry.messageId)
+        || entry.messageId.includes("..")
+        || typeof entry.contentHash !== "string"
+        || !/^[0-9a-f]{64}$/.test(entry.contentHash)
+        || seen.has(entry.messageId)) {
+        throw new Error(`${agent.id}/${turnId}: formal continuation audit history is malformed`);
+      }
+      let priorIdentity: FormalContinuationAudit;
+      try {
+        priorIdentity = normalizeFormalContinuationAudit(entry.unchangedIdentity, `${agent.id}/${turnId}.formalContinuationAudits[${index}].unchangedIdentity`);
+      } catch {
+        throw new Error(`${agent.id}/${turnId}: formal continuation audit history is malformed`);
+      }
+      if (!sameFormalContinuationAudit(identity, priorIdentity)) {
+        throw new Error(`${agent.id}/${turnId}: formal continuation audit history changed identity`);
+      }
+      seen.add(entry.messageId);
+    }
+    const live = this.live.get(agent.id);
+    if (!live) throw new Error(`${agent.id}: running formal Agent live adapter is unavailable`);
+    return { live, turnId, auditCount: existing?.length ?? 0 };
+  }
+
+  private async prepareFormalSteer(
+    agent: AgentRecord,
+    message: DurableMessage,
+    identity: FormalContinuationAudit,
+    turnId: string,
+    auditCount: number,
+  ): Promise<void> {
+    const hash = contentHash(message.content);
+    await this.options.journal.append({
+      kind: "formal.message.prepared",
+      agentId: agent.id,
+      turnId,
+      messageId: message.id,
       payload: {
-        status,
-        agentId: message.agentId,
-        senderAgentId: message.senderAgentId,
-        createdAt: message.createdAt,
-        contentHash: createHash("sha256").update(message.content).digest("hex"),
-        ...details,
+        expectedAuditCount: auditCount,
+        audit: { messageId: message.id, contentHash: hash, unchangedIdentity: identity },
+        receipt: this.messageReceiptPayload(message, "pending"),
       },
     });
   }
 
-  private async send(agentId: string, content: string, caller: HubCaller, requestedMessageId?: string): Promise<Record<string, unknown>> {
-    await assertNoCredentialMaterial(content, "hub message");
+  private assertFormalDuplicate(
+    messageId: string,
+    existing: Record<string, unknown>,
+    message: DurableMessage,
+    identity: FormalContinuationAudit,
+  ): void {
+    let storedIdentity: FormalContinuationAudit;
+    try {
+      storedIdentity = normalizeFormalContinuationAudit(existing.formalContinuationIdentity, `${messageId}.formalContinuationIdentity`);
+    } catch {
+      throw new Error(`${messageId}: formal message ID collides with a different or malformed audit`);
+    }
+    if (existing.agentId !== message.agentId
+      || existing.senderAgentId !== message.senderAgentId
+      || existing.contentHash !== contentHash(message.content)
+      || !sameFormalContinuationAudit(storedIdentity, identity)) {
+      throw new Error(`${messageId}: formal message ID collides with different agent, sender, content, or continuation audit`);
+    }
+  }
+
+  private async send(
+    agentId: string,
+    rawContent: unknown,
+    caller: HubCaller,
+    requestedMessageId?: string,
+    suppliedContinuationAudit?: unknown,
+  ): Promise<Record<string, unknown>> {
     const agent = this.ownedAgent(agentId, caller);
     if (agent.state === "aborted") throw new Error(`${agentId}: Agent is terminal aborted`);
+    const continuationIdentity = this.continuationIdentity(agent, suppliedContinuationAudit);
+    const content = continuationIdentity ? formalHubMessage(rawContent) : requiredString(rawContent, "hub.message");
+    await assertNoCredentialMaterial(content, "hub message");
+    if (continuationIdentity) await this.options.preflightContinuation?.(agent);
+    const formalTurnMetadata = continuationIdentity ? this.formalTurnWorkspaceMetadata(agent) : {};
     const state = this.options.journal.getState();
     const messageId = requestedMessageId?.trim() || nextId("message", Object.keys(state.messages));
     if (!/^[A-Za-z0-9._:-]{1,160}$/.test(messageId) || messageId.includes("..")) throw new Error("messageId is unsafe");
-    const existing = this.messageReceipt(messageId);
-    if (existing) {
-      if (existing.agentId !== agentId) throw new Error(`${messageId}: message ID is owned by another Agent`);
-      const queued = this.options.journal.getState().mailboxes[agentId]?.messages.some((item) => item.id === messageId);
-      return { messageId, deduplicated: true, ...(queued && existing.status === "pending" ? { ...existing, status: "queued" } : existing) };
-    }
     const message: DurableMessage = {
       id: messageId,
       agentId,
       senderAgentId: caller.agentId,
       content,
       createdAt: this.clock().toISOString(),
+      formalContinuationIdentity: continuationIdentity,
     };
-    await this.putMessage(message, "pending");
+    const existing = this.messageReceipt(messageId);
+    if (existing) {
+      if (continuationIdentity) this.assertFormalDuplicate(messageId, existing, message, continuationIdentity);
+      else if (existing.agentId !== agentId) throw new Error(`${messageId}: message ID is owned by another Agent`);
+      const queued = this.options.journal.getState().mailboxes[agentId]?.messages.some((item) => item.id === messageId);
+      return { messageId, deduplicated: true, ...(queued && existing.status === "pending" ? { ...existing, status: "queued" } : existing) };
+    }
 
     if (agent.state === "running") {
+      if (continuationIdentity) {
+        const preflight = this.formalSteerPreflight(agent, continuationIdentity);
+        await this.prepareFormalSteer(agent, message, continuationIdentity, preflight.turnId, preflight.auditCount);
+        try {
+          await preflight.live.steer(content);
+        } catch (error) {
+          return await this.enqueueAfterLiveFailure(message, error instanceof Error ? error.message : String(error));
+        }
+        await this.putMessage(message, "delivered", { delivery: "steer-safe-boundary" });
+        return { messageId, status: "delivered", delivery: "steer-safe-boundary" };
+      }
+      await this.putMessage(message, "pending");
       const live = this.live.get(agentId);
       if (!live) return await this.enqueueAfterLiveFailure(message, "running Agent live adapter is unavailable");
       try {
@@ -289,6 +528,8 @@ export class HubService {
       }
     }
 
+    await this.putMessage(message, "pending");
+
     if (agent.state === "parked") {
       let revived: LiveAgentAdapter;
       try {
@@ -299,18 +540,25 @@ export class HubService {
         return { messageId, status: "failed", permanent: true, reason };
       }
       this.live.set(agentId, revived);
-      return await this.startMessageTurn(agent, message, revived, "parked");
+      return await this.startMessageTurn(agent, message, revived, "parked", continuationIdentity, formalTurnMetadata);
     }
 
     if (agent.state === "idle") {
       const live = this.live.get(agentId);
       if (!live) return await this.enqueueAfterLiveFailure(message, "idle Agent live adapter is unavailable");
-      return await this.startMessageTurn(agent, message, live, "idle");
+      return await this.startMessageTurn(agent, message, live, "idle", continuationIdentity, formalTurnMetadata);
     }
     throw new Error(`${agentId}: Agent state ${agent.state} cannot receive messages`);
   }
 
-  private async startMessageTurn(agent: AgentRecord, message: DurableMessage, live: LiveAgentAdapter, priorState: "idle" | "parked"): Promise<Record<string, unknown>> {
+  private async startMessageTurn(
+    agent: AgentRecord,
+    message: DurableMessage,
+    live: LiveAgentAdapter,
+    priorState: "idle" | "parked",
+    continuationIdentity?: FormalContinuationAudit,
+    formalTurnMetadata: Record<string, unknown> = {},
+  ): Promise<Record<string, unknown>> {
     const state = this.options.journal.getState();
     const turnId = nextId("turn", Object.keys(state.turns));
     const now = this.clock().toISOString();
@@ -320,7 +568,12 @@ export class HubService {
       state: "queued",
       createdAt: now,
       updatedAt: now,
-      metadata: { source: "hub.send", messageId: message.id },
+      metadata: {
+        source: "hub.send",
+        messageId: message.id,
+        ...(continuationIdentity ? { formalContinuationIdentity: continuationIdentity } : {}),
+        ...formalTurnMetadata,
+      },
     };
     await this.options.journal.append({ kind: "turn.created", agentId: agent.id, turnId, payload: { record: turn } });
     await this.options.journal.append({ kind: "agent.state", agentId: agent.id, payload: { from: priorState, to: "running", currentTurnId: turnId, currentJobId: null } });

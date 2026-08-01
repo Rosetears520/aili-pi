@@ -43,10 +43,12 @@ Do not use for:
 
 ```text
 STATUS: ANALYZED | PARTIAL | BLOCKED
-CONFIDENCE: high | medium | low
 
 DECISION QUESTION:
 - <question, owner, timing, constraints>
+
+EVIDENCE LIMITS:
+- <assumptions, missing sources, or conditions that would change the recommendation>
 
 ISSUE TREE / HYPOTHESES:
 - <driver or hypothesis> - Evidence/assumption:

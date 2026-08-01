@@ -1,5 +1,7 @@
 # Formula Validation & Recalculation Guide
 
+> Formula evidence reference for every tool path. OfficeCLI validate/issues/render may add package or visual evidence, but command success and screenshots do not replace formula readback and recalculation evidence.
+
 Ensure every formula in an xlsx file is provably correct before delivery. A file that opens without visible errors is not a passing file — only a file that has cleared both validation tiers is a passing file.
 
 ---

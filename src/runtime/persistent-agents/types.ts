@@ -5,6 +5,27 @@ export type AgentState = "queued" | "running" | "idle" | "parked" | "aborted";
 export type JobState = "queued" | "running" | "completed" | "failed" | "aborted" | "unexecuted";
 export type TurnState = "queued" | "running" | "completed" | "failed" | "aborted" | "interrupted";
 
+export type FormalResultEvidenceStatus = "completed" | "partial" | "blocked" | "unverified" | "malformed";
+
+export interface FormalResultEvidenceRecord {
+  version: 1;
+  eventId: string;
+  eventSequence: number;
+  agentId: string;
+  jobId: string;
+  turnId: string;
+  changeId: string;
+  packageId: string;
+  roleId: string;
+  canonicalStatus: FormalResultEvidenceStatus;
+  outputPath: string;
+  outputSha256: string;
+  outputBytes: number;
+  historyPath: string;
+  historyPrefixSha256: string;
+  historyPrefixBytes: number;
+}
+
 export interface AgentRecord {
   id: string;
   name: string;
@@ -58,7 +79,9 @@ export interface CoordinatorState {
   deliveries: Record<string, Record<string, unknown>>;
   models: Record<string, Record<string, unknown>>;
   workspaces: Record<string, Record<string, unknown>>;
+  workspaceLeases: Record<string, Record<string, unknown>>;
   messages: Record<string, Record<string, unknown>>;
+  formalResultEvidence: Record<string, FormalResultEvidenceRecord>;
 }
 
 export type CoordinatorEventKind =
@@ -71,11 +94,14 @@ export type CoordinatorEventKind =
   | "turn.created"
   | "turn.state"
   | "turn.audit"
+  | "formal.result.evidence"
+  | "formal.message.prepared"
   | "mailbox.put"
   | "message.put"
   | "delivery.put"
   | "model.put"
   | "model.clear"
+  | "workspace.lease"
   | "workspace.put";
 
 export interface CoordinatorEvent {
@@ -130,5 +156,6 @@ export interface SidecarLayout {
   snapshotPath: string;
   agentsDir: string;
   patchesDir: string;
+  resultsDir: string;
   workspacesPath: string;
 }

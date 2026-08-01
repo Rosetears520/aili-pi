@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/asset-manifest.schema.json",
+  "title": "Prepared PPTX asset manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "assets"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path", "sha256", "slide_ids", "attribution_status"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "slide_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "attribution_status": {"enum": ["complete", "not-required", "blocked"]}
+        }
+      }
+    }
+  }
+}
