@@ -3,7 +3,7 @@
 - Change: `integrate-upstream-formal-agent-protocols`
 - Backend: OpenSpec
 - BUILD status: `complete`
-- Current package: BUILD packages `1.1` through `6.5` remain complete; SHIP reconstruction targets `0.1.16`; exact operations in `7.3` remain pending ROSE
+- Current package: BUILD packages `1.1` through `6.5`, SHIP repair packages `8.1` through `8.6`, and exact release/install operations in `7.3` are complete; this local closeout record is not yet committed or pushed
 - Decision owner: ROSE
 - Verification owner: ROSE
 
@@ -348,3 +348,13 @@
 - verification=`npm test -- tests/unit/formal-orchestration.test.ts tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-workspace.test.ts tests/unit/package.test.ts tests/unit/roles.test.ts tests/unit/generated.test.ts tests/unit/agent-routing-generated.test.ts tests/unit/provenance.test.ts tests/integration/formal-orchestration-runtime.test.ts tests/integration/persistent-agent-runtime.test.ts tests/integration/package-runtime.test.ts` PASS (11 files, 88/88); the suite directly executed role/routing/Skill/permission/compatibility/provenance verifiers; `npm run typecheck` PASS.
 - command_limit=Aggregate npm validator commands and `openspec validate integrate-upstream-formal-agent-protocols --strict --no-interactive` were not run because the active runtime command policy denies those command forms. Underlying generator and owning Runtime tests pass, but final command gate 8.6 remains open for ROSE.
 - operation_boundary=Task 7.3 remains unchecked. No commit, push, merge, publish, release or install completion is claimed.
+
+## 2026-08-01 — RELEASE_AND_CURRENT_USER_INSTALL_COMPLETE_0_1_16
+
+- scope=Record separately approved Git, npm, GitHub release, exact shared-Skills installation and exact Pi Package installation operations after the clean 0.1.16 gate passed.
+- git_release=PR #1 merged as `d27da7cd251614c47c2485c1660d7b36fa252a11`; bounded cold-package-load follow-up PR #2 merged with final release commit `e8a8f77f84a1dc608da7ce0c0f047f5c552b0546`; tag `v0.1.16` targets that final commit; GitHub Release is `https://github.com/Rosetears520/aili-pi/releases/tag/v0.1.16`.
+- npm_release=`@rosetears/aili-pi@0.1.16` is the public `latest`; registry integrity is `sha512-E9P8IiNVHYZRCvFZE/p7OjifDIzjmXP7YkWb8MJv5TT74XVurpuW5i5tGAKaQ8dTbsZIZWADH9JKglypnu5HJA==` and shasum is `05acae8dc4ba912c018f1d03644ef4da598bca8e`.
+- install=The current Linux user received the default shared-Skills-only installation from exact `rose-aili@0.4.2`; optional OpenCode integration, CodeGraph, Graphify, OpenSpec and OfficeCLI mutation were not requested by this operation. The existing pinned Pi setting remained on `0.1.15` after an unqualified update, so the exact authorized command `pi install npm:@rosetears/aili-pi@0.1.16` replaced it.
+- verification=`pi list` reports only `npm:@rosetears/aili-pi@0.1.16`; the installed package manifests report `rose-aili@0.4.2` and `@rosetears/aili-pi@0.1.16`; `/home/rosetears/.pi/agent/settings.json` contains only the exact `0.1.16` package source; Pi reports host version `0.82.1`. `rose-aili@0.4.2 doctor --json` reports top-level `ok=true`, all required installation entries present, and no manifest drift.
+- limitation=The shared-workflow doctor source subsection remains `ok=false` because the globally installed `rose-aili` package root lacks its optional source-tree `AGENTS.md`, although its template exists and the installed target/global AGENTS check passes. A fresh interactive `/aili-doctor --json` command was not run in an already-open Pi session; restart Pi before relying on newly installed Extension code in that session.
+- task_7_3=done. The approved release and current-user installation operations are complete. This closeout edit itself remains local and requires a fresh exact commit/push approval before publication.
