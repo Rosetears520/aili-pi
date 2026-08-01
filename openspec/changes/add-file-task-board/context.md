@@ -1,8 +1,10 @@
 # DEFINE Context — add-file-task-board
 
+> **Historical/superseded status (2026-08-01):** `openspec/changes/integrate-upstream-formal-agent-protocols` is the sole future BUILD and release owner for overlapping scope. This artifact preserves prior decisions and capability requirements only; it grants no current authority to dispatch, advance, accept, close, publish, or release overlapping packages. Readiness, completion, test-count, snapshot, runtime, acceptance, and opaque session-reference statements below are historical assertions not independently reverified during this reconciliation.
+
 ## Route and authority
 
-- Lifecycle mode: `DEFINE`
+- Lifecycle mode: historical record (originally `DEFINE`; no current execution mode)
 - Backend: OpenSpec (`spec-driven`)
 - Class: formal Agent-orchestration and task-artifact contract
 - Change identity: `add-file-task-board`
@@ -96,7 +98,7 @@ Decision-shaping repository and official Pi research is closed. The user supplie
 - Prior final test-plan draft: stale because formal scope and verification strategy changed materially.
 - Round-1 regenerated final `test-plan.md`: explicitly accepted by the user with “接受，你直接做”；packages 1.0–2.3 were implemented under that contract.
 - Round-2 material decision: user selected the bounded bootstrap bridge; this closes D-020 but does not itself accept the Round-2 final test plan.
-- Round-2 regenerated final `test-plan.md`: explicitly accepted by the user in the current session.
+- Round-2 regenerated final `test-plan.md`: this artifact records a 2026-07-30 acceptance; that acceptance was not independently reverified during this reconciliation.
 - Round-3 material discovery: package 2.4 stopped before edits because no exact formal-root input reached production child mutation protection; the user selected `formalContext: { changeId }` as the bounded schema revision.
-- Round-3 regenerated final `test-plan.md`: explicitly accepted when the user selected “Accept and continue (Recommended)” in the current session.
-- BUILD readiness: `ACTIVE`; packages 2.4 and 4.1 are dependency-ready, and their declared sync execution selects package 2.4 first. Dependency, Git, publish and release operations remain independently gated.
+- Round-3 regenerated final `test-plan.md`: this artifact records a 2026-07-30 selection of “Accept and continue (Recommended)”; that acceptance was not independently reverified during this reconciliation.
+- BUILD readiness: `SUPERSEDED / NOT ACTIVE`. The former package-readiness statement is retained as history only. Overlapping future BUILD and release work belongs exclusively to `integrate-upstream-formal-agent-protocols`.

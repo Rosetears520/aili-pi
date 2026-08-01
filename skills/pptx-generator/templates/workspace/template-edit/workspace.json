@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "workspace_id": "{{DECK_NAME}}",
+  "deck_name": "{{DECK_NAME}}",
+  "profile": "template-edit",
+  "text_fit_policy": "shape-to-fit-text",
+  "paths": {
+    "plan": "per-slide-content-plan.md",
+    "outline": "outline.json",
+    "design_brief": "design-brief.json",
+    "design_contract": "design-contract.json",
+    "font_contract": "font-contract.json",
+    "font_environment": "font-environment.json",
+    "template_profile": "template-profile.json",
+    "evidence_plan": "evidence-plan.json",
+    "asset_plan": "asset-plan.json",
+    "font_audit": "build/font-audit.json",
+    "style_proof_build_report": "build/style-proof-build-report.json",
+    "style_proof_pptx": "build/style-proof.pptx",
+    "style_proof_render_manifest": "renders/style-proof/manifest.json",
+    "style_proof_baseline_render_manifest": "renders/style-proof/baseline/manifest.json",
+    "style_proof_review": "reviews/style-proof-review.json",
+    "style_proof_layout_preflight": "build/style-proof-layout-preflight.json",
+    "style_proof_layout_evidence": "build/style-proof-layout-evidence.json",
+    "style_proof_officecli_issues": "build/style-proof-officecli-issues.json",
+    "build_report": "build/build-report.json",
+    "render_manifest": "renders/final/manifest.json",
+    "visual_review": "reviews/visual-review-final.json",
+    "layout_preflight": "build/layout-preflight.json",
+    "layout_evidence": "build/layout-evidence.json",
+    "autofit_evidence": "build/autofit-evidence.json",
+    "officecli_issues": "build/officecli-issues.json",
+    "template_style_confirmation": "reviews/template-style-confirmation.json"
+  },
+  "renderer": {
+    "kind": "pptxgenjs",
+    "entrypoint": "src/deck.js"
+  },
+  "tool_policy": {
+    "officecli_adapter_reference": "references/officecli-adapter.md",
+    "allow_routable_officecli_skill": false
+  }
+}

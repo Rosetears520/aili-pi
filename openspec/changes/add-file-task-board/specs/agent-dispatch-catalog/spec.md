@@ -1,5 +1,7 @@
 ## ADDED Requirements
 
+> **Historical capability-source status (2026-08-01):** These requirements are retained for source material. `openspec/changes/integrate-upstream-formal-agent-protocols` is the sole future BUILD and release owner for overlapping scope. This specification does not independently authorize package dispatch, advancement, acceptance, closure, publication, or release, and historical completion/runtime claims elsewhere in this change were not reverified here.
+
 ### Requirement: Agent Catalog is derived from canonical RoleProfiles
 AILI SHALL derive every catalog entry from the same validated `RoleProfile` records that authorize `task.agent`. Each entry SHALL contain the canonical selector, normalized one-line description, role status, and bounded tool/capability posture. Every current selector SHALL appear exactly once in canonical order in the underlying catalog. AILI MUST NOT maintain a separate hand-authored selector-description, prompt, tool, capability, model, or spawn mapping.
 

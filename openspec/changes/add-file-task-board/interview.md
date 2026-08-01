@@ -1,5 +1,7 @@
 # Requirements Clarification — add-file-task-board
 
+> **Historical/superseded status (2026-08-01):** These dated decisions remain capability-source history, but `openspec/changes/integrate-upstream-formal-agent-protocols` is the sole future BUILD and release owner for overlapping scope. This interview does not independently authorize dispatch, advancement, acceptance, closure, publication, or release. Any acceptance or runtime statement below is a historical assertion not independently reverified during this reconciliation.
+
 ## Round 1 — Formal-only scope and lifecycle orchestration
 
 - Recorded: 2026-07-28

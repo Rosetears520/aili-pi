@@ -1,7 +1,7 @@
 # Public PR Sanitization Note
 
-[已知|用户] 用户选择在提交到公开仓库前制作脱敏副本。
+The user chose to prepare a sanitized copy before publication to the public repository.
 
-[工具结果] 本公开副本省略仅用于本地连续性的 `progress.txt` 与 `handoffs/**`，将 `tasks.md` 中的内部 Agent session references 替换为保持协议形状的脱敏占位符，并移除本机 canonical-source 绝对路径。
+This public copy omits `progress.txt` and `handoffs/**`, which exist only for local continuity. Internal Agent session references in `tasks.md` are replaced with redacted placeholders that preserve the protocol shape, and the local canonical-source absolute path is removed.
 
-[框架内] 这些占位符不提供 Runtime evidence、resume authority、verification 或 completion proof；实现与接受状态必须由当前受信环境中的 fresh evidence 重新确认。
+These placeholders provide no Runtime evidence, resume authority, verification, or completion proof. Current implementation and acceptance status require independently reviewable evidence.

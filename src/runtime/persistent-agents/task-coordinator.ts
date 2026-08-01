@@ -1,7 +1,10 @@
+import { relative, sep } from "node:path";
 import type { RoleProfile } from "../roles.js";
 import { loadRoleProfiles } from "../roles.js";
+import { resolveFormalTaskBoardRoot } from "../formal-task-board-root.js";
+import { parseFormalTaskBoard } from "../formal-task-board.js";
 import { allocateAgentId, type CoordinatorJournal } from "./storage.js";
-import type { AgentRecord, JobRecord, TurnRecord } from "./types.js";
+import type { AgentRecord, FormalResultEvidenceStatus, JobRecord, TurnRecord } from "./types.js";
 import { evaluateSpawn } from "./policy.js";
 import { assertNoCredentialMaterial } from "./permission.js";
 import {
@@ -13,16 +16,114 @@ import {
   type ScheduledHandle,
   type SchedulerPermit,
 } from "./scheduler.js";
-import { validateTaskRequest, type NormalizedTaskItem } from "./task-schema.js";
+import {
+  sameFormalContinuationAudit,
+  validateTaskRequest,
+  type FormalContinuationAudit,
+  type NormalizedTaskItem,
+} from "./task-schema.js";
 
 export interface TaskExecutionOutput {
   status?: "completed" | "failed";
+  result?: "completed" | "partial";
   output: string;
   error?: string;
   evidence?: unknown;
   model?: { provider?: string; model?: string; thinking?: string; layer?: string };
   profile?: { profileHash?: string; sourceHash?: string; version?: number };
   workspace?: Record<string, unknown>;
+}
+
+export const FORMAL_RESULT_MAX_BYTES = 256_000;
+export const FORMAL_RESULT_MAX_LINES = 1_000;
+const FORMAL_RESULT_FIELDS = [
+  "result_id", "trace_id", "lane", "owner", "package_id", "role_id", "status", "confidence",
+  "worktree_context_ref", "declared_repository", "cwd", "target_rules_ref", "artifact_destination",
+  "inspected_scope", "summary", "evidence", "changed_files", "verification", "checks", "freshness",
+  "skipped_checks", "soft_boundary_limitations", "blockers", "risks", "unverified",
+  "continuation_recommendation", "findings", "convergence_links", "review_arbitration_ref",
+] as const;
+
+export function renderFormalResultContract(expected: { packageId: string; roleId: string }): string {
+  const values: Record<(typeof FORMAL_RESULT_FIELDS)[number], string> = Object.fromEntries(
+    FORMAL_RESULT_FIELDS.map((field) => [field, `<${field}>`]),
+  ) as Record<(typeof FORMAL_RESULT_FIELDS)[number], string>;
+  values.package_id = expected.packageId;
+  values.role_id = expected.roleId;
+  values.status = "<completed|partial|blocked|unverified>";
+  return [
+    "FORMAL ASSIGNMENT OUTPUT OVERRIDE:",
+    "This formal assignment overrides the role's ordinary JSON output contract. Return only the exact line-oriented envelope below, in this exact field order, with every placeholder replaced by one non-empty single-line value. Do not add Markdown fences, prose, fields, or a second marker.",
+    "CANONICAL RESULT:",
+    ...FORMAL_RESULT_FIELDS.map((field) => `${field}: ${values[field]}`),
+  ].join("\n");
+}
+
+export function appendFormalResultContract(task: string, expected: { packageId: string; roleId: string }): string {
+  return `${task.trim()}\n\n${renderFormalResultContract(expected)}`;
+}
+
+export interface CanonicalFormalResult {
+  status: "completed" | "partial" | "blocked" | "unverified";
+  fields: Readonly<Record<(typeof FORMAL_RESULT_FIELDS)[number], string>>;
+}
+
+export type CanonicalFormalResultParse =
+  | { ok: true; value: CanonicalFormalResult }
+  | { ok: false; error: string };
+
+/** Strict parser for the one formal terminal envelope. Ordinary output never passes through it. */
+export function parseCanonicalFormalResult(
+  output: string,
+  expected: { packageId: string; roleId: string },
+): CanonicalFormalResultParse {
+  const bytes = Buffer.byteLength(output);
+  if (bytes === 0 || output.trim().length === 0) return { ok: false, error: "formal result is empty" };
+  if (bytes > FORMAL_RESULT_MAX_BYTES) return { ok: false, error: "formal result exceeds the byte bound" };
+  if (output.includes("\r") || output.includes("\0")) return { ok: false, error: "formal result contains forbidden control bytes" };
+  const lines = output.endsWith("\n") ? output.slice(0, -1).split("\n") : output.split("\n");
+  if (lines.length > FORMAL_RESULT_MAX_LINES) return { ok: false, error: "formal result exceeds the line bound" };
+  if (lines[0] !== "CANONICAL RESULT:") return { ok: false, error: "formal result must start with exact CANONICAL RESULT:" };
+  if (lines.slice(1).includes("CANONICAL RESULT:")) return { ok: false, error: "formal result contains a duplicate terminal marker" };
+  if (lines.length !== FORMAL_RESULT_FIELDS.length + 1) return { ok: false, error: "formal result has missing, extra, or multiline fields" };
+  const required = new Set<string>(FORMAL_RESULT_FIELDS);
+  const fields = {} as Record<(typeof FORMAL_RESULT_FIELDS)[number], string>;
+  for (const line of lines.slice(1)) {
+    const separator = line.indexOf(":");
+    if (separator <= 0) return { ok: false, error: "formal result contains a malformed field" };
+    const key = line.slice(0, separator);
+    const rawValue = line.slice(separator + 1);
+    const value = rawValue.startsWith(" ") ? rawValue.slice(1) : rawValue;
+    if (!required.has(key)) return { ok: false, error: `formal result contains unknown or duplicate field '${key}'` };
+    if (value.length === 0 || value !== value.trim() || /[\u0000-\u001f\u007f]/.test(value)) {
+      return { ok: false, error: `formal result field '${key}' must be one exact non-empty line` };
+    }
+    fields[key as (typeof FORMAL_RESULT_FIELDS)[number]] = value;
+    required.delete(key);
+  }
+  if (required.size > 0) return { ok: false, error: `formal result is missing required field '${[...required][0]}'` };
+  if (fields.package_id !== expected.packageId) return { ok: false, error: "formal result package_id does not match the continuation audit" };
+  if (fields.role_id !== expected.roleId) return { ok: false, error: "formal result role_id does not match the exact selector" };
+  if (!["completed", "partial", "blocked", "unverified"].includes(fields.status)) {
+    return { ok: false, error: "formal result status is not canonical" };
+  }
+  const semanticallyEmpty = new Set(["n/a", "none", "[]", "-"]);
+  if (semanticallyEmpty.has(fields.evidence.toLowerCase()) || semanticallyEmpty.has(fields.verification.toLowerCase())) {
+    return { ok: false, error: "formal result evidence and verification must be non-empty portable evidence" };
+  }
+  return { ok: true, value: { status: fields.status as CanonicalFormalResult["status"], fields } };
+}
+
+export interface FormalTaskProtection {
+  changeId: string;
+  protectedPaths: readonly [string, string];
+}
+
+export interface FormalWorkspaceRequest {
+  mode: NormalizedTaskItem["workspace"];
+  writeScope: NormalizedTaskItem["writeScope"];
+  cwd: string;
+  selector: string;
 }
 
 export interface TaskExecutorInput {
@@ -33,6 +134,7 @@ export interface TaskExecutorInput {
   role: RoleProfile;
   depth: number;
   context: ScheduledExecutionContext;
+  formalProtection?: FormalTaskProtection;
 }
 
 export interface OutputTruncation {
@@ -65,6 +167,7 @@ export interface NormalizedTaskSettlement {
   workspace: { requested: NormalizedTaskItem["workspace"]; writeScope: NormalizedTaskItem["writeScope"] } & Record<string, unknown>;
   deliveryRequired: boolean;
   limits: { maxRuntimeMs: 0; softRequestBudget: 0 };
+  formalResultStatus?: FormalResultEvidenceStatus;
 }
 
 export interface TaskAcceptedResult {
@@ -96,14 +199,17 @@ export interface TaskAncestry {
   parentDepth: number;
   inheritedPermit: SchedulerPermit;
   configuredMaxDepth?: number;
+  formalChangeId?: string;
 }
 
 export interface TaskCoordinatorOptions {
   journal: CoordinatorJournal;
+  repositoryRoot?: string;
   scheduler?: FifoTurnScheduler;
   loadProfiles?: () => Promise<RoleProfile[]>;
   execute: (input: TaskExecutorInput) => Promise<TaskExecutionOutput>;
   onSettled?: (settlement: NormalizedTaskSettlement, fullOutput: string) => void | Promise<void>;
+  onFormalSettled?: (settlement: NormalizedTaskSettlement, fullOutput: string) => void | Promise<void>;
   onAsyncSettled?: (settlement: NormalizedTaskSettlement, fullOutput: string) => void | Promise<void>;
   clock?: () => Date;
 }
@@ -117,7 +223,22 @@ interface CreatedTask {
   depth: number;
   effectiveAsync: boolean;
   reason: TaskAcceptedResult["effectiveModeReason"] | "requested-sync" | "role-blocking" | "nested-sync";
+  formalProtection?: FormalTaskProtection;
   handle: ScheduledHandle<NormalizedTaskSettlement>;
+}
+
+export function assertCurrentFormalRoleProfile(agent: AgentRecord, role: RoleProfile): void {
+  const metadata = agent.metadata;
+  if (metadata?.formalContinuationIdentity === undefined && metadata?.formalProtection === undefined) return;
+  const unchanged = agent.selector === role.selector
+    && metadata.selector === role.selector
+    && metadata.profileHash === role.profileHash
+    && metadata.sourceHash === role.sourceHash
+    && metadata.profileVersion === role.profileVersion
+    && metadata.runtimeAdapterVersion === role.runtimeAdapterVersion;
+  if (!unchanged) {
+    throw new Error(`${agent.id}: formal Agent RoleProfile identity drifted; create a new Agent`);
+  }
 }
 
 function nextNumericId(prefix: string, existing: Iterable<string>): string {
@@ -128,6 +249,49 @@ function nextNumericId(prefix: string, existing: Iterable<string>): string {
     if (match) max = Math.max(max, Number(match[1]));
   }
   return `${prefix}-${max + 1}`;
+}
+
+export async function resolveFormalTaskProtection(
+  repositoryRoot: string,
+  changeId: string,
+  continuationAudit: FormalContinuationAudit,
+  writeScope: NormalizedTaskItem["writeScope"],
+): Promise<FormalTaskProtection> {
+  const resolution = await resolveFormalTaskBoardRoot({
+    repositoryRoot,
+    identity: { state: "resolved", changeId },
+  });
+  if (resolution.status !== "resolved") {
+    const codes = resolution.diagnostics.map((entry) => entry.code).join(", ") || "UNKNOWN";
+    throw new Error(`formalContext '${changeId}' failed exact v1 root validation: ${codes}`);
+  }
+  if (resolution.pairState !== "present") {
+    throw new Error(`formalContext '${changeId}' requires an existing valid v1 formal-task-board.md/progress.txt pair`);
+  }
+  const parsed = parseFormalTaskBoard(resolution.tasksSource);
+  const taskPackage = parsed.board?.packages.find((candidate) => candidate.id === continuationAudit.packageId);
+  if (parsed.classification !== "v1" || !taskPackage) {
+    throw new Error("formal continuationAudit must identify one exact package on the validated board before Agent allocation");
+  }
+  const field = (name: keyof typeof taskPackage.fields) => taskPackage.fields[name]?.value ?? "";
+  const owner = field("Owner");
+  const expectedAudit: FormalContinuationAudit = {
+    packageId: taskPackage.id,
+    canonicalRole: owner.startsWith("agent:") ? owner.slice("agent:".length) : "",
+    scope: field("Scope"),
+    forbiddenScope: field("Forbidden scope"),
+    writeScope,
+    acceptanceBoundary: field("Acceptance"),
+    expectedEvidence: field("Expected evidence"),
+  };
+  if (!sameFormalContinuationAudit(continuationAudit, expectedAudit)) {
+    throw new Error("formal continuationAudit does not match the exact board package, canonical role, scope, permission, acceptance, or evidence contract; create a new bounded job/Agent");
+  }
+  const projectRelative = (path: string) => relative(resolution.repositoryRoot, path).replaceAll(sep, "/");
+  return {
+    changeId,
+    protectedPaths: [projectRelative(resolution.tasksPath), projectRelative(resolution.progressPath)],
+  };
 }
 
 function tailByUtf8Bytes(value: string, maxBytes: number): string {
@@ -183,6 +347,13 @@ export class TaskCoordinator {
       if (ancestry && !this.scheduler.isPermitActive(ancestry.inheritedPermit)) {
         throw new Error("nested task requires an active inherited ancestor permit");
       }
+      if (ancestry?.formalChangeId) {
+        for (const item of request.items) {
+          if (item.formalContext?.changeId !== ancestry.formalChangeId) {
+            throw new Error(`nested task under formalContext '${ancestry.formalChangeId}' must explicitly repeat the exact same formalContext.changeId`);
+          }
+        }
+      }
 
       // Resolve every role/spawn decision before the first durable allocation.
       for (const item of request.items) {
@@ -195,8 +366,14 @@ export class TaskCoordinator {
         }
       }
 
+      // Resolve every exact formal root before the first durable Agent/job/turn
+      // allocation. A malformed batch therefore cannot partially allocate.
+      const protections = await Promise.all(request.items.map((item) => this.resolveFormalProtection(item)));
       const created: CreatedTask[] = [];
-      for (const item of request.items) created.push(await this.createAndSchedule(item, bySelector.get(item.agent)!, ancestry));
+      for (let index = 0; index < request.items.length; index += 1) {
+        const item = request.items[index]!;
+        created.push(await this.createAndSchedule(item, bySelector.get(item.agent)!, ancestry, protections[index]));
+      }
       return { request, created };
     });
 
@@ -258,13 +435,45 @@ export class TaskCoordinator {
     return await this.scheduler.cancel(jobId);
   }
 
-  private async createAndSchedule(item: NormalizedTaskItem, role: RoleProfile, ancestry?: TaskAncestry): Promise<CreatedTask> {
+  private async resolveFormalProtection(item: NormalizedTaskItem): Promise<FormalTaskProtection | undefined> {
+    if (!item.formalContext) return undefined;
+    if (!this.options.repositoryRoot) {
+      throw new Error("formalContext requires the current project root before Agent allocation");
+    }
+    if (!item.continuationAudit) {
+      throw new Error("formal continuationAudit must identify one exact package on the validated board before Agent allocation");
+    }
+    return await resolveFormalTaskProtection(
+      this.options.repositoryRoot,
+      item.formalContext.changeId,
+      item.continuationAudit,
+      item.writeScope,
+    );
+  }
+
+  private async createAndSchedule(
+    item: NormalizedTaskItem,
+    role: RoleProfile,
+    ancestry?: TaskAncestry,
+    formalProtection?: FormalTaskProtection,
+  ): Promise<CreatedTask> {
     const before = this.options.journal.getState();
     const agentId = allocateAgentId(item.name ?? role.name, [...Object.keys(before.agents), ...Object.keys(before.releasedAgents)], ancestry?.parentAgentId);
     const jobId = nextNumericId("job", Object.keys(before.jobs));
     const turnId = nextNumericId("turn", Object.keys(before.turns));
     const depth = ancestry ? ancestry.parentDepth + 1 : 0;
     const now = this.clock().toISOString();
+    const formalWorkspaceRequest: FormalWorkspaceRequest | undefined = formalProtection ? {
+      mode: item.workspace,
+      writeScope: item.writeScope,
+      cwd: item.cwd ?? ".",
+      selector: role.selector,
+    } : undefined;
+    const formalMetadata = formalProtection ? {
+      formalProtection,
+      formalContinuationIdentity: item.continuationAudit,
+      formalWorkspaceRequest,
+    } : {};
     const agent: AgentRecord = {
       id: agentId,
       name: item.name ?? role.name,
@@ -277,9 +486,12 @@ export class TaskCoordinator {
       updatedAt: now,
       metadata: {
         depth,
+        selector: role.selector,
         profileHash: role.profileHash,
         sourceHash: role.sourceHash,
         profileVersion: role.profileVersion,
+        runtimeAdapterVersion: role.runtimeAdapterVersion,
+        ...formalMetadata,
       },
     };
     const job: JobRecord = {
@@ -288,7 +500,13 @@ export class TaskCoordinator {
       state: "queued",
       createdAt: now,
       updatedAt: now,
-      metadata: { requestedModel: item.model, requestedAsync: item.async, workspace: item.workspace, writeScope: item.writeScope },
+      metadata: {
+        requestedModel: item.model,
+        requestedAsync: item.async,
+        workspace: item.workspace,
+        writeScope: item.writeScope,
+        ...formalMetadata,
+      },
     };
     const turn: TurnRecord = {
       id: turnId,
@@ -303,6 +521,7 @@ export class TaskCoordinator {
         sourceHash: role.sourceHash,
         maxRuntimeMs: DEFAULT_AGENT_MAX_RUNTIME_MS,
         softRequestBudget: DEFAULT_AGENT_SOFT_REQUEST_BUDGET,
+        ...formalMetadata,
       },
     };
     await this.options.journal.append({ kind: "agent.created", agentId, payload: { record: agent } });
@@ -319,7 +538,7 @@ export class TaskCoordinator {
           : item.async === true
             ? "requested-async"
             : "default-async";
-    const run = (context: ScheduledExecutionContext) => this.runLifecycle({ item, role, agentId, jobId, turnId, depth, effectiveAsync, reason, context });
+    const run = (context: ScheduledExecutionContext) => this.runLifecycle({ item, role, agentId, jobId, turnId, depth, effectiveAsync, reason, formalProtection, context });
     const onCancelBeforeStart = () => this.cancelBeforeStart(agentId, jobId, turnId, role, item, effectiveAsync, reason);
     const handle = ancestry
       ? this.scheduler.runNested(jobId, ancestry.inheritedPermit, run)
@@ -340,7 +559,7 @@ export class TaskCoordinator {
     void settlement.catch(() => undefined);
     const normalizedHandle: ScheduledHandle<NormalizedTaskSettlement> = { ...handle, result: settlement };
     this.handles.set(jobId, normalizedHandle);
-    return { item, role, agentId, jobId, turnId, depth, effectiveAsync, reason, handle: normalizedHandle };
+    return { item, role, agentId, jobId, turnId, depth, effectiveAsync, reason, formalProtection, handle: normalizedHandle };
   }
 
   private async begin(agentId: string, jobId: string, turnId: string): Promise<void> {
@@ -350,12 +569,12 @@ export class TaskCoordinator {
   }
 
   private async runLifecycle(args: Omit<CreatedTask, "handle"> & { context: ScheduledExecutionContext }): Promise<NormalizedTaskSettlement> {
-    const { agentId, jobId, turnId, role, item, effectiveAsync, reason, context, depth } = args;
+    const { agentId, jobId, turnId, role, item, effectiveAsync, reason, formalProtection, context, depth } = args;
     await this.begin(agentId, jobId, turnId);
     let status: NormalizedTaskSettlement["status"] = "completed";
     let output: TaskExecutionOutput;
     try {
-      output = await this.options.execute({ agentId, jobId, turnId, item, role, depth, context });
+      output = await this.options.execute({ agentId, jobId, turnId, item, role, depth, context, formalProtection });
       if (context.signal.aborted) throw context.signal.reason ?? new ScheduledTaskCancelledError(jobId, false);
       if (output.status === "failed") status = "failed";
     } catch (error) {
@@ -364,31 +583,60 @@ export class TaskCoordinator {
       output = { output: "", error: message };
     }
 
-    let result = this.settlement(status, agentId, jobId, turnId, role, item, effectiveAsync, reason, output);
+    let formalResultStatus: FormalResultEvidenceStatus | undefined;
+    if (formalProtection) {
+      const parsed = parseCanonicalFormalResult(output.output, {
+        packageId: item.continuationAudit!.packageId,
+        roleId: role.selector,
+      });
+      formalResultStatus = parsed.ok ? parsed.value.status : "malformed";
+      if (status === "completed" && (!parsed.ok || parsed.value.status === "blocked" || parsed.value.status === "unverified")) {
+        status = "failed";
+        output = {
+          ...output,
+          error: parsed.ok
+            ? `formal canonical result reported ${parsed.value.status}`
+            : `malformed formal canonical result: ${parsed.error}`,
+        };
+      }
+    }
+
+    let result = this.settlement(status, agentId, jobId, turnId, role, item, effectiveAsync, reason, output, formalResultStatus);
     try {
       await this.options.onSettled?.(result, output.output);
+      if (formalProtection) {
+        if (!this.options.onFormalSettled) throw new Error("formal result evidence persistence is unavailable");
+        await this.options.onFormalSettled(result, output.output);
+      }
     } catch (error) {
       const message = `output persistence failed: ${error instanceof Error ? error.message : String(error)}`;
       status = status === "aborted" ? "aborted" : "failed";
       output = { output: "", error: message };
-      result = this.settlement(status, agentId, jobId, turnId, role, item, effectiveAsync, reason, output);
+      formalResultStatus ??= formalProtection ? "malformed" : undefined;
+      result = this.settlement(status, agentId, jobId, turnId, role, item, effectiveAsync, reason, output, formalResultStatus);
     }
 
-    if (status === "completed") await this.finishCompleted(agentId, jobId, turnId);
+    if (status === "completed") await this.finishCompleted(agentId, jobId, turnId, formalResultStatus === "partial" ? "partial" : "completed");
     else if (status === "aborted") await this.finishAborted(agentId, jobId, turnId, output.error ?? "aborted");
-    else await this.finishFailed(agentId, jobId, turnId, output.error ?? "Agent execution reported failure");
+    else await this.finishFailed(
+      agentId,
+      jobId,
+      turnId,
+      output.error ?? "Agent execution reported failure",
+      formalResultStatus === "blocked" || formalResultStatus === "unverified" ? "blocked" : formalResultStatus ? "failed" : undefined,
+    );
     return result;
   }
 
-  private async finishCompleted(agentId: string, jobId: string, turnId: string): Promise<void> {
+  private async finishCompleted(agentId: string, jobId: string, turnId: string, result: "completed" | "partial"): Promise<void> {
     await this.options.journal.append({ kind: "turn.state", agentId, jobId, turnId, payload: { from: "running", to: "completed", outcome: "completed" } });
-    await this.options.journal.append({ kind: "job.state", agentId, jobId, payload: { from: "running", to: "completed" } });
+    await this.options.journal.append({ kind: "job.state", agentId, jobId, payload: { from: "running", to: "completed", result } });
     await this.options.journal.append({ kind: "agent.state", agentId, payload: { from: "running", to: "idle" } });
   }
 
-  private async finishFailed(agentId: string, jobId: string, turnId: string, error: string): Promise<void> {
+  private async finishFailed(agentId: string, jobId: string, turnId: string, error: string, formalResult?: "blocked" | "failed"): Promise<void> {
     await this.options.journal.append({ kind: "turn.state", agentId, jobId, turnId, payload: { from: "running", to: "failed", outcome: error } });
-    await this.options.journal.append({ kind: "job.state", agentId, jobId, payload: { from: "running", to: "failed", error } });
+    await this.options.journal.append({ kind: "job.state", agentId, jobId, payload: { from: "running", to: "failed", error, ...(formalResult ? { result: formalResult } : {}) } });
     await this.options.journal.append({ kind: "agent.state", agentId, payload: { from: "running", to: "idle" } });
   }
 
@@ -422,6 +670,7 @@ export class TaskCoordinator {
     effectiveAsync: boolean,
     reason: CreatedTask["reason"],
     execution: TaskExecutionOutput,
+    formalResultStatus?: FormalResultEvidenceStatus,
   ): NormalizedTaskSettlement {
     this.fullOutputs.set(jobId, execution.output);
     const truncated = truncateTaskOutput(execution.output);
@@ -455,6 +704,7 @@ export class TaskCoordinator {
       workspace: { requested: item.workspace, writeScope: item.writeScope, ...(execution.workspace ?? {}) },
       deliveryRequired: effectiveAsync,
       limits: { maxRuntimeMs: 0, softRequestBudget: 0 },
+      ...(formalResultStatus ? { formalResultStatus } : {}),
     };
   }
 }

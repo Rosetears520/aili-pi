@@ -1,11 +1,13 @@
 # 测试文档：add-file-task-board
 
+> **Historical/superseded status (2026-08-01):** This test plan is retained as capability and verification-source material only. `openspec/changes/integrate-upstream-formal-agent-protocols` is the sole future BUILD and release owner for overlapping scope. This plan cannot independently authorize dispatch, advancement, acceptance, closure, publication, or release. Any completion, test-count, snapshot, runtime, acceptance, or opaque session-reference claim below is historical and was not independently reverified during this reconciliation.
+
 ## 0. 文档元信息
 
 - 来源：`proposal.md`、`design.md`、`context.md`、`interview.md`、`tasks.md` 和三个 capability specs；current `task`/`hub` runtime、RoleProfiles/manifest、workspace mutation guard、process-owned permission sandbox/custom config、canonical embedded delivery references、official Pi 0.82.1 extension docs；bounded Agent evidence reports与Round-3 production-locality inspection。
 - 初始生成：2026-07-28；Round-3 material revision：2026-07-30。
-- 适用 change：`add-file-task-board`；实际 BUILD target/branch 必须在开始时重新确认。
-- 状态：`accepted — 用户已显式接受Round-3 formalContext/public task schema final test plan并要求继续BUILD`。
+- 适用 change：`add-file-task-board` 的历史能力与验证来源；不得作为新的 BUILD target。
+- 状态：`HISTORICAL_SUPERSEDED`。本文保留先前记录的 acceptance，但本次 reconciliation 未独立重新验证该 acceptance。
 - 前一版状态：Round-2 accepted plan已支持packages through 3.3；package 2.4 production-locality discovery使其public-schema/write-protection边界失效并触发本Round-3 reacceptance。
 - Research closure：formal placement、delegation/runtime/catalog seams、exact formal-root input、write/edit guard、sandbox custom deny和fail-closed bash boundary均已由current source关闭；无待补材料研究问题。
 
@@ -257,4 +259,4 @@
 - [x] 用户已选择“Add formal task context (Recommended)”作为package 2.4材料合同；该回答关闭schema/protection决策但不替代Round-3 final test-plan acceptance。
 - [x] 用户已选择“Accept and continue (Recommended)”显式接受本Round-3 regenerated final test plan并恢复BUILD；该接受不授权dependency、Git、publish或release操作。
 
-当前 BUILD readiness：`ACTIVE — packages 1.0–2.3a and 3.1–3.3 done；packages 2.4 and 4.1 dependency-ready；selected sync order starts with 2.4`。
+当前 BUILD readiness：`NOT ACTIVE / SUPERSEDED`。先前的 done、dependency-ready 和 sync-order 记录仅作历史参考；重叠工作的未来 BUILD 与 release 只由 `integrate-upstream-formal-agent-protocols` 管理。

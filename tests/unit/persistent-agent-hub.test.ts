@@ -1,8 +1,10 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HubService, type LiveAgentAdapter } from "../../src/runtime/persistent-agents/hub.js";
 import { CoordinatorJournal, ensureSidecarLayout } from "../../src/runtime/persistent-agents/storage.js";
+import { FORMAL_RUNTIME_LIMITS } from "../../src/runtime/persistent-agents/task-schema.js";
 import type { AgentRecord, JobRecord, SidecarLayout } from "../../src/runtime/persistent-agents/types.js";
 
 let scratch = "";
@@ -18,7 +20,7 @@ function options() {
   };
 }
 
-async function createAgent(id: string, target: AgentRecord["state"], parentAgentId?: string, currentJobId?: string): Promise<void> {
+async function createAgent(id: string, target: AgentRecord["state"], parentAgentId?: string, currentJobId?: string, metadata?: AgentRecord["metadata"]): Promise<void> {
   const now = "2026-07-25T02:00:00.000Z";
   const record: AgentRecord = {
     id,
@@ -29,6 +31,7 @@ async function createAgent(id: string, target: AgentRecord["state"], parentAgent
     currentJobId,
     createdAt: now,
     updatedAt: now,
+    metadata,
   };
   await journal.append({ kind: "agent.created", agentId: id, payload: { record } });
   if (target === "aborted") {
@@ -61,6 +64,19 @@ function liveFixture(overrides: Partial<LiveAgentAdapter> = {}) {
     ...overrides,
   };
   return { state, adapter };
+}
+
+function continuationAudit(overrides: Record<string, unknown> = {}) {
+  return {
+    packageId: "P-01",
+    canonicalRole: "aili.code-scout",
+    scope: "Inspect only the bounded package.",
+    forbiddenScope: "Do not write or expand the claim.",
+    writeScope: { paths: [], resources: [] },
+    acceptanceBoundary: "Return evidence for ROSE inspection.",
+    expectedEvidence: "Exact source anchors and focused checks.",
+    ...overrides,
+  };
 }
 
 beforeEach(async () => {
@@ -133,6 +149,225 @@ describe("hub lifecycle and messaging", () => {
     await hub.settleMessageTurn("Parked", parkedReceipt.turnId, "failed", "fixture turn failure");
     expect(journal.getState().agents.Parked.state).toBe("idle");
     expect(journal.getState().turns[parkedReceipt.turnId].state).toBe("failed");
+  });
+
+  it("allows only an unchanged formal identity and audits both revived-turn and running-steer continuation", async () => {
+    const identity = continuationAudit();
+    await createAgent("FormalScout", "parked", undefined, undefined, { formalContinuationIdentity: identity });
+    const live = liveFixture();
+    const hub = new HubService({ journal, revive: async () => live.adapter });
+
+    const revived = await hub.execute({
+      action: "send",
+      agentId: "FormalScout",
+      message: "Clarify the same evidence.",
+      messageId: "formal-revive",
+      continuationAudit: identity,
+    }) as { turnId: string };
+    expect(live.state.messages).toEqual(["Clarify the same evidence."]);
+    expect(journal.getState().turns[revived.turnId]?.metadata?.formalContinuationIdentity).toEqual(identity);
+    expect(journal.getState().messages["formal-revive"]?.formalContinuationIdentity).toEqual(identity);
+
+    await expect(hub.execute({
+      action: "send",
+      agentId: "FormalScout",
+      message: "Supplement unchanged evidence.",
+      messageId: "formal-steer",
+      continuationAudit: identity,
+    })).resolves.toMatchObject({ delivery: "steer-safe-boundary" });
+    expect(live.state.steered).toEqual(["Supplement unchanged evidence."]);
+    expect(journal.getState().turns[revived.turnId]?.metadata?.formalContinuationAudits).toEqual([
+      {
+        messageId: "formal-steer",
+        contentHash: createHash("sha256").update("Supplement unchanged evidence.").digest("hex"),
+        unchangedIdentity: identity,
+      },
+    ]);
+    await journal.flush();
+    const replayed = (await CoordinatorJournal.open(layout, "parent-1", options())).journal.getState();
+    expect(replayed.turns[revived.turnId]?.metadata?.formalContinuationAudits).toEqual(
+      journal.getState().turns[revived.turnId]?.metadata?.formalContinuationAudits,
+    );
+    expect(replayed.messages["formal-steer"]).toMatchObject({
+      status: "delivered",
+      contentHash: createHash("sha256").update("Supplement unchanged evidence.").digest("hex"),
+      formalContinuationIdentity: identity,
+    });
+  });
+
+  it("preflights the exact running turn and leaves all durable state unchanged when formal audit append fails", async () => {
+    const identity = continuationAudit();
+    await createAgent("FormalScout", "running", undefined, undefined, { formalContinuationIdentity: identity });
+    const live = liveFixture();
+    const hub = new HubService({ journal, revive: async () => live.adapter });
+    hub.registerLive("FormalScout", live.adapter);
+
+    const beforeMissingTurn = journal.getState();
+    await expect(hub.execute({
+      action: "send",
+      agentId: "FormalScout",
+      message: "Must not steer without a running turn.",
+      messageId: "formal-no-turn",
+      continuationAudit: identity,
+    })).rejects.toThrow(/no exact running turn/);
+    expect(journal.getState()).toEqual(beforeMissingTurn);
+    expect(live.state.steered).toEqual([]);
+
+    await createAgent("FormalScoutReady", "parked", undefined, undefined, { formalContinuationIdentity: identity });
+    const ready = await hub.execute({
+      action: "send",
+      agentId: "FormalScoutReady",
+      message: "Create the exact running turn.",
+      messageId: "formal-ready",
+      continuationAudit: identity,
+    }) as { turnId: string };
+    const beforeAppendFailure = journal.getState();
+    const append = vi.spyOn(journal, "append").mockRejectedValueOnce(new Error("injected formal audit append failure"));
+    await expect(hub.execute({
+      action: "send",
+      agentId: "FormalScoutReady",
+      message: "Must not steer or enqueue after audit failure.",
+      messageId: "formal-audit-failure",
+      continuationAudit: identity,
+    })).rejects.toThrow(/injected formal audit append failure/);
+    append.mockRestore();
+    expect(journal.getState()).toEqual(beforeAppendFailure);
+    expect(journal.getState().turns[ready.turnId]?.metadata?.formalContinuationAudits).toBeUndefined();
+    expect(journal.getState().messages["formal-audit-failure"]).toBeUndefined();
+    expect(journal.getState().mailboxes.FormalScoutReady).toBeUndefined();
+    expect(live.state.steered).toEqual([]);
+  });
+
+  it("deduplicates formal message IDs only for the exact agent, sender, content hash, and continuation identity", async () => {
+    const identity = continuationAudit();
+    await createAgent("FormalScout", "parked", undefined, undefined, { formalContinuationIdentity: identity });
+    await createAgent("OtherFormalScout", "parked", undefined, undefined, { formalContinuationIdentity: identity });
+    const live = liveFixture();
+    const hub = new HubService({ journal, revive: async () => live.adapter });
+    await hub.execute({
+      action: "send",
+      agentId: "FormalScout",
+      message: "Open the running turn.",
+      messageId: "formal-open",
+      continuationAudit: identity,
+    });
+    await hub.execute({
+      action: "send",
+      agentId: "FormalScout",
+      message: "Exact dedupe body.",
+      messageId: "formal-dedupe",
+      continuationAudit: identity,
+    });
+    const executionCount = live.state.steered.length;
+    expect(await hub.execute({
+      action: "send",
+      agentId: "FormalScout",
+      message: "Exact dedupe body.",
+      messageId: "formal-dedupe",
+      continuationAudit: identity,
+    })).toMatchObject({ deduplicated: true, status: "delivered" });
+
+    for (const [label, request] of [
+      ["content", { agentId: "FormalScout", message: "Different body.", continuationAudit: identity }],
+      ["sender", { agentId: "FormalScout", message: "Exact dedupe body.", continuationAudit: identity, caller: { agentId: "FormalScout" } }],
+      ["audit", { agentId: "FormalScout", message: "Exact dedupe body.", continuationAudit: continuationAudit({ expectedEvidence: "Different evidence." }) }],
+      ["agent", { agentId: "OtherFormalScout", message: "Exact dedupe body.", continuationAudit: identity }],
+    ] as const) {
+      const before = journal.getState();
+      await expect(hub.execute({
+        action: "send",
+        agentId: request.agentId,
+        message: request.message,
+        messageId: "formal-dedupe",
+        continuationAudit: request.continuationAudit,
+      }, "caller" in request ? request.caller : {}), label).rejects.toThrow(/collides|continuation identity changed/);
+      expect(journal.getState(), label).toEqual(before);
+      expect(live.state.steered, label).toHaveLength(executionCount);
+    }
+  });
+
+  it("enforces exact bounded formal hub messages without changing ordinary message trimming", async () => {
+    const identity = continuationAudit();
+    await createAgent("FormalScout", "idle", undefined, undefined, { formalContinuationIdentity: identity });
+    await createAgent("Ordinary", "running");
+    const live = liveFixture();
+    const hub = new HubService({ journal, revive: async () => live.adapter });
+    hub.registerLive("FormalScout", live.adapter);
+    hub.registerLive("Ordinary", live.adapter);
+    for (const [name, message] of [
+      ["padded", " padded"],
+      ["newline", "line one\nline two"],
+      ["control", "bad\u0001message"],
+      ["oversized", "x".repeat(FORMAL_RUNTIME_LIMITS.hubMessageBytes + 1)],
+    ]) {
+      const before = journal.getState();
+      await expect(hub.execute({
+        action: "send",
+        agentId: "FormalScout",
+        message,
+        messageId: `formal-${name}`,
+        continuationAudit: identity,
+      }), name).rejects.toThrow(/exact|single line|exceeds/);
+      expect(journal.getState(), name).toEqual(before);
+    }
+    await expect(hub.execute({ action: "send", agentId: "Ordinary", message: " ordinary " })).resolves.toMatchObject({ status: "delivered" });
+    expect(live.state.steered).toEqual(["ordinary"]);
+  });
+
+  it("rejects every omitted or changed formal identity field before message, mailbox, turn, or execution", async () => {
+    const identity = continuationAudit();
+    const without = (key: string) => Object.fromEntries(Object.entries(identity).filter(([candidate]) => candidate !== key));
+    await createAgent("FormalScout", "idle", undefined, undefined, { formalContinuationIdentity: identity });
+    const live = liveFixture();
+    const hub = new HubService({ journal, revive: async () => live.adapter });
+    hub.registerLive("FormalScout", live.adapter);
+    const variants: Array<[string, unknown]> = [
+      ["omitted", undefined],
+      ["package", { ...identity, packageId: "P-02" }],
+      ["role", { ...identity, canonicalRole: "aili.implementer" }],
+      ["scope", { ...identity, scope: "Changed scope." }],
+      ["forbidden", { ...identity, forbiddenScope: "Changed forbidden scope." }],
+      ["write", { ...identity, writeScope: { paths: ["src"], resources: [] } }],
+      ["acceptance", { ...identity, acceptanceBoundary: "Changed acceptance claim." }],
+      ["evidence", { ...identity, expectedEvidence: "Changed evidence claim." }],
+      ["missing-package", without("packageId")],
+      ["missing-role", without("canonicalRole")],
+      ["missing-scope", without("scope")],
+      ["missing-forbidden", without("forbiddenScope")],
+      ["missing-write", without("writeScope")],
+      ["missing-acceptance", without("acceptanceBoundary")],
+      ["missing-evidence", without("expectedEvidence")],
+    ];
+    for (const [name, candidate] of variants) {
+      const before = journal.getState().lastSequence;
+      await expect(hub.execute({
+        action: "send",
+        agentId: "FormalScout",
+        message: `rejected-${name}`,
+        messageId: `rejected-${name}`,
+        ...(candidate === undefined ? {} : { continuationAudit: candidate }),
+      }), name).rejects.toThrow(/continuationAudit|new bounded job\/Agent|continuation identity changed|must be/);
+      expect(journal.getState().lastSequence, name).toBe(before);
+    }
+    expect(journal.getState().messages).toEqual({});
+    expect(journal.getState().mailboxes.FormalScout).toBeUndefined();
+    expect(Object.values(journal.getState().turns).filter((turn) => turn.agentId === "FormalScout")).toEqual([]);
+    expect(live.state.messages).toEqual([]);
+    expect(live.state.steered).toEqual([]);
+  });
+
+  it("does not reuse aborted or released formal Agents", async () => {
+    const identity = continuationAudit();
+    await createAgent("DeadScout", "aborted", undefined, undefined, { formalContinuationIdentity: identity });
+    await createAgent("ReleasedScout", "idle", undefined, undefined, { formalContinuationIdentity: identity });
+    const hub = new HubService({ journal, revive: async () => { throw new Error("must not revive"); } });
+    await hub.execute({ action: "cancel", id: "ReleasedScout" });
+    const beforeMessages = Object.keys(journal.getState().messages).length;
+    const beforeTurns = Object.keys(journal.getState().turns).length;
+    await expect(hub.execute({ action: "send", agentId: "DeadScout", message: "no", continuationAudit: identity })).rejects.toThrow(/terminal aborted/);
+    await expect(hub.execute({ action: "send", agentId: "ReleasedScout", message: "no", continuationAudit: identity })).rejects.toThrow(/unknown Agent/);
+    expect(Object.keys(journal.getState().messages)).toHaveLength(beforeMessages);
+    expect(Object.keys(journal.getState().turns)).toHaveLength(beforeTurns);
   });
 
   it("serializes concurrent sends so one idle identity never starts two turns", async () => {

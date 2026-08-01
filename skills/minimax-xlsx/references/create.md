@@ -1,5 +1,7 @@
 # Build New xlsx from Scratch
 
+> XML fallback reference. Use it after `SKILL.md` determines that installed OfficeCLI help does not confirm the complete simple `.xlsx` create operation or the workbook needs complex/high-fidelity XML control. This reference is not the default path for a supported simple create.
+
 Create new, production-quality xlsx files using the XML approach. NEVER use openpyxl
 for writing. NEVER hardcode Python-computed values — every derived number must be a
 live Excel formula.
@@ -8,7 +10,7 @@ live Excel formula.
 
 ## When to Use This Path
 
-Use this document when the user wants:
+Use this document when the fallback has been selected and the user wants:
 - A brand-new Excel file that does not yet exist
 - A generated report, financial model, or data table
 - Any "create / build / generate / make" request

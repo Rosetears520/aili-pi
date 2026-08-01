@@ -18,6 +18,7 @@ import {
   type SidecarLayout,
   type TurnRecord,
   type TurnState,
+  type FormalResultEvidenceRecord,
 } from "./types.js";
 
 const AGENT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
@@ -30,7 +31,7 @@ const AGENT_TRANSITIONS: Record<AgentState, ReadonlySet<AgentState>> = {
 };
 const JOB_TRANSITIONS: Record<JobState, ReadonlySet<JobState>> = {
   queued: new Set(["running", "aborted", "unexecuted"]),
-  running: new Set(["completed", "failed", "aborted"]),
+  running: new Set(["completed", "failed", "aborted", "unexecuted"]),
   completed: new Set(),
   failed: new Set(),
   aborted: new Set(),
@@ -120,6 +121,7 @@ export function sidecarLayoutForParent(parentSessionPath: string): SidecarLayout
     snapshotPath: resolve(root, "snapshot.json"),
     agentsDir: resolve(root, "agents"),
     patchesDir: resolve(root, "patches"),
+    resultsDir: resolve(root, "results"),
     workspacesPath: resolve(root, "workspaces.jsonl"),
   };
 }
@@ -139,9 +141,11 @@ export async function ensureSidecarLayout(parentSessionPath: string): Promise<Si
   if (existingRoot && !existingRoot.isDirectory()) throw new Error(`sidecar root is not a directory: ${layout.root}`);
   await mkdir(layout.agentsDir, { recursive: true, mode: 0o700 });
   await mkdir(layout.patchesDir, { recursive: true, mode: 0o700 });
+  await mkdir(layout.resultsDir, { recursive: true, mode: 0o700 });
   await requireRealPath(layout.root, "directory");
   await requireRealPath(layout.agentsDir, "directory");
   await requireRealPath(layout.patchesDir, "directory");
+  await requireRealPath(layout.resultsDir, "directory");
   return layout;
 }
 
@@ -160,7 +164,9 @@ export function createInitialCoordinatorState(parentId: string): CoordinatorStat
     deliveries: {},
     models: {},
     workspaces: {},
+    workspaceLeases: {},
     messages: {},
+    formalResultEvidence: {},
   };
 }
 
@@ -266,6 +272,10 @@ export function applyCoordinatorEvent(current: CoordinatorState, event: Coordina
       record.state = applyStateTransition(`Job ${id}`, record.state, event.payload, JOB_TRANSITIONS);
       record.updatedAt = now;
       if (typeof event.payload.error === "string") record.error = event.payload.error;
+      if (event.payload.result === "completed" || event.payload.result === "partial"
+        || event.payload.result === "blocked" || event.payload.result === "failed") {
+        record.metadata = { ...(record.metadata ?? {}), formalWorkerResult: event.payload.result };
+      }
       break;
     }
     case "turn.created": {
@@ -294,6 +304,87 @@ export function applyCoordinatorEvent(current: CoordinatorState, event: Coordina
       if (record.state !== "running") throw new Error(`${id}: turn audit is accepted only while running`);
       record.metadata = { ...(record.metadata ?? {}), ...structuredClone(event.payload) };
       record.updatedAt = now;
+      break;
+    }
+    case "formal.result.evidence": {
+      const agentId = requireString(event.agentId, "agentId");
+      const jobId = requireString(event.jobId, "jobId");
+      const turnId = requireString(event.turnId, "turnId");
+      const agent = state.agents[agentId];
+      const job = state.jobs[jobId];
+      const turn = state.turns[turnId];
+      if (!agent || agent.state !== "running"
+        || !job || job.agentId !== agentId || job.state !== "running"
+        || !turn || turn.agentId !== agentId || turn.jobId !== jobId || turn.state !== "running") {
+        throw new Error(`${agentId}/${jobId}/${turnId}: formal result evidence requires the exact running Agent/job/turn`);
+      }
+      if (state.formalResultEvidence[jobId]) throw new Error(`${jobId}: formal result evidence is immutable`);
+      const raw = clone(requireRecord(event.payload.record, "formal.result.evidence.record"));
+      const status = requireString(raw.canonicalStatus, "formal result canonicalStatus");
+      if (!["completed", "partial", "blocked", "unverified", "malformed"].includes(status)) {
+        throw new Error(`${jobId}: invalid formal result canonical status`);
+      }
+      const protection = requireRecord(job.metadata?.formalProtection, `${jobId}.formalProtection`);
+      const identity = requireRecord(job.metadata?.formalContinuationIdentity, `${jobId}.formalContinuationIdentity`);
+      const roleId = requireString(raw.roleId, "formal result roleId");
+      if (raw.version !== 1 || raw.agentId !== agentId || raw.jobId !== jobId || raw.turnId !== turnId
+        || raw.changeId !== protection.changeId || raw.packageId !== identity.packageId
+        || roleId !== identity.canonicalRole || roleId !== agent.selector
+        || raw.outputBytes === undefined || !Number.isSafeInteger(raw.outputBytes) || Number(raw.outputBytes) < 0
+        || raw.historyPrefixBytes === undefined || !Number.isSafeInteger(raw.historyPrefixBytes) || Number(raw.historyPrefixBytes) < 0) {
+        throw new Error(`${jobId}: formal result evidence identity is inconsistent`);
+      }
+      for (const field of ["outputPath", "outputSha256", "historyPath", "historyPrefixSha256"] as const) {
+        requireString(raw[field], `formal result ${field}`);
+      }
+      if (!/^[0-9a-f]{64}$/.test(String(raw.outputSha256)) || !/^[0-9a-f]{64}$/.test(String(raw.historyPrefixSha256))) {
+        throw new Error(`${jobId}: formal result evidence hash is invalid`);
+      }
+      state.formalResultEvidence[jobId] = {
+        ...(raw as unknown as FormalResultEvidenceRecord),
+        eventId: event.eventId,
+        eventSequence: event.sequence,
+      };
+      break;
+    }
+    case "formal.message.prepared": {
+      const agentId = requireString(event.agentId, "agentId");
+      const turnId = requireString(event.turnId, "turnId");
+      const messageId = requireString(event.messageId, "messageId");
+      const agent = state.agents[agentId];
+      const turn = state.turns[turnId];
+      if (!agent || agent.state !== "running" || agent.currentTurnId !== turnId
+        || !turn || turn.agentId !== agentId || turn.state !== "running") {
+        throw new Error(`${agentId}/${turnId}: formal message requires the exact current running turn`);
+      }
+      if (state.messages[messageId]) throw new Error(`${messageId}: duplicate formal message preparation`);
+      const existingAudits = turn.metadata?.formalContinuationAudits;
+      if (existingAudits !== undefined && !Array.isArray(existingAudits)) {
+        throw new Error(`${agentId}/${turnId}: formal continuation audit history is malformed`);
+      }
+      const expectedAuditCount = event.payload.expectedAuditCount;
+      if (!Number.isSafeInteger(expectedAuditCount) || expectedAuditCount !== (existingAudits?.length ?? 0)) {
+        throw new Error(`${agentId}/${turnId}: formal continuation audit history changed before append`);
+      }
+      const audit = clone(requireRecord(event.payload.audit, "formal.message.prepared.audit"));
+      if (requireString(audit.messageId, "formal audit messageId") !== messageId) {
+        throw new Error(`${messageId}: formal audit message ID mismatch`);
+      }
+      const auditContentHash = requireString(audit.contentHash, "formal audit contentHash");
+      if (!/^[0-9a-f]{64}$/.test(auditContentHash)) throw new Error(`${messageId}: invalid formal audit content hash`);
+      const auditIdentity = requireRecord(audit.unchangedIdentity, "formal audit unchangedIdentity");
+      const receipt = clone(requireRecord(event.payload.receipt, "formal.message.prepared.receipt"));
+      if (receipt.status !== "pending" || receipt.agentId !== agentId
+        || receipt.contentHash !== auditContentHash
+        || JSON.stringify(receipt.formalContinuationIdentity) !== JSON.stringify(auditIdentity)) {
+        throw new Error(`${messageId}: invalid formal pending receipt`);
+      }
+      turn.metadata = {
+        ...(turn.metadata ?? {}),
+        formalContinuationAudits: [...(existingAudits ?? []), audit],
+      };
+      turn.updatedAt = now;
+      state.messages[messageId] = receipt;
       break;
     }
     case "mailbox.put": {
@@ -345,6 +436,32 @@ export function applyCoordinatorEvent(current: CoordinatorState, event: Coordina
       const id = requireString(event.agentId, "agentId");
       if (!state.agents[id]) throw new Error(`${id}: unknown Agent model override`);
       delete state.models[id];
+      break;
+    }
+    case "workspace.lease": {
+      const id = requireString(event.agentId, "agentId");
+      const agent = state.agents[id];
+      if (!agent) throw new Error(`${id}: unknown active Agent workspace lease`);
+      const record = clone(requireRecord(event.payload.record, "workspace.lease.record"));
+      if (record.agentId !== id || record.jobId !== event.jobId || record.initialTurnId !== event.turnId) {
+        throw new Error(`${id}: workspace lease Agent/job/turn ownership mismatch`);
+      }
+      const job = event.jobId ? state.jobs[event.jobId] : undefined;
+      const turn = event.turnId ? state.turns[event.turnId] : undefined;
+      if (!job || job.agentId !== id || !turn || turn.agentId !== id || turn.jobId !== job.id) {
+        throw new Error(`${id}: workspace lease references unknown Agent/job/turn ownership`);
+      }
+      for (const key of ["formalProtection", "formalContinuationIdentity", "formalWorkspaceRequest"] as const) {
+        const expected = JSON.stringify(record[key]);
+        if (expected === undefined
+          || JSON.stringify(agent.metadata?.[key]) !== expected
+          || JSON.stringify(job.metadata?.[key]) !== expected
+          || JSON.stringify(turn.metadata?.[key]) !== expected) {
+          throw new Error(`${id}: workspace lease ${key} differs from Agent/job/turn identity`);
+        }
+      }
+      if (state.workspaceLeases[id]) throw new Error(`${id}: durable workspace lease is immutable`);
+      state.workspaceLeases[id] = record;
       break;
     }
     case "workspace.put": {
@@ -415,8 +532,11 @@ function validateSnapshot(snapshot: CoordinatorSnapshot, parentId: string): Coor
   if (!Number.isSafeInteger(snapshot.checkpointSequence) || snapshot.checkpointSequence < 0) throw new Error("snapshot sequence is invalid");
   if (!Array.isArray(snapshot.state.appliedEventIds) || snapshot.state.appliedEventIds.length !== snapshot.state.lastSequence) throw new Error("snapshot event index is invalid");
   if (new Set(snapshot.state.appliedEventIds).size !== snapshot.state.appliedEventIds.length) throw new Error("snapshot contains duplicate event IDs");
-  const activeAgents = snapshot.state.agents ?? {};
-  const releasedAgents = snapshot.state.releasedAgents ?? {};
+  const state = clone(snapshot.state);
+  state.workspaceLeases ??= {};
+  state.formalResultEvidence ??= {};
+  const activeAgents = state.agents ?? {};
+  const releasedAgents = state.releasedAgents ?? {};
   for (const id of Object.keys(activeAgents)) if (releasedAgents[id]) throw new Error(`${id}: snapshot Agent is both active and released`);
   const sessionOwners = new Map<string, string>();
   for (const [id, agent] of [...Object.entries(activeAgents), ...Object.entries(releasedAgents)]) {
@@ -429,16 +549,56 @@ function validateSnapshot(snapshot: CoordinatorSnapshot, parentId: string): Coor
       sessionOwners.set(agent.sessionPath, id);
     }
   }
-  for (const [id, job] of Object.entries(snapshot.state.jobs ?? {})) {
+  for (const [id, job] of Object.entries(state.jobs ?? {})) {
     if (job.id !== id || (!activeAgents[job.agentId] && !releasedAgents[job.agentId])) throw new Error(`${id}: snapshot job ownership mismatch`);
     if (!(job.state in JOB_TRANSITIONS)) throw new Error(`${id}: snapshot job state is invalid`);
   }
-  for (const [id, turn] of Object.entries(snapshot.state.turns ?? {})) {
+  for (const [id, turn] of Object.entries(state.turns ?? {})) {
     if (turn.id !== id || (!activeAgents[turn.agentId] && !releasedAgents[turn.agentId])) throw new Error(`${id}: snapshot turn ownership mismatch`);
-    if (turn.jobId && !snapshot.state.jobs[turn.jobId]) throw new Error(`${id}: snapshot turn job mismatch`);
+    if (turn.jobId && !state.jobs[turn.jobId]) throw new Error(`${id}: snapshot turn job mismatch`);
     if (!(turn.state in TURN_TRANSITIONS)) throw new Error(`${id}: snapshot turn state is invalid`);
   }
-  return clone(snapshot.state);
+  for (const [jobId, evidence] of Object.entries(state.formalResultEvidence)) {
+    const agent = activeAgents[evidence.agentId] ?? releasedAgents[evidence.agentId];
+    const job = state.jobs[jobId];
+    const turn = state.turns[evidence.turnId];
+    const protection = job?.metadata?.formalProtection as { changeId?: unknown } | undefined;
+    const identity = job?.metadata?.formalContinuationIdentity as { packageId?: unknown; canonicalRole?: unknown } | undefined;
+    if (evidence.version !== 1 || evidence.jobId !== jobId || !agent || !job || job.agentId !== evidence.agentId
+      || !turn || turn.agentId !== evidence.agentId || turn.jobId !== jobId
+      || evidence.changeId !== protection?.changeId || evidence.packageId !== identity?.packageId
+      || evidence.roleId !== identity?.canonicalRole || evidence.roleId !== agent.selector
+      || !["completed", "partial", "blocked", "unverified", "malformed"].includes(evidence.canonicalStatus)
+      || !Number.isSafeInteger(evidence.eventSequence) || evidence.eventSequence <= 0
+      || state.appliedEventIds[evidence.eventSequence - 1] !== evidence.eventId
+      || !Number.isSafeInteger(evidence.outputBytes) || evidence.outputBytes < 0
+      || !Number.isSafeInteger(evidence.historyPrefixBytes) || evidence.historyPrefixBytes < 0
+      || !/^[0-9a-f]{64}$/.test(evidence.outputSha256)
+      || !/^[0-9a-f]{64}$/.test(evidence.historyPrefixSha256)) {
+      throw new Error(`${jobId}: snapshot formal result evidence is invalid`);
+    }
+  }
+  for (const [id, lease] of Object.entries(state.workspaceLeases)) {
+    const owner = activeAgents[id] ?? releasedAgents[id];
+    if (!owner || lease.agentId !== id) throw new Error(`${id}: snapshot workspace lease ownership mismatch`);
+    const jobId = requireString(lease.jobId, `${id}.workspaceLease.jobId`);
+    const turnId = requireString(lease.initialTurnId, `${id}.workspaceLease.initialTurnId`);
+    const job = state.jobs[jobId];
+    const turn = state.turns[turnId];
+    if (!job || job.agentId !== id || !turn || turn.agentId !== id || turn.jobId !== jobId) {
+      throw new Error(`${id}: snapshot workspace lease Agent/job/turn mismatch`);
+    }
+    for (const key of ["formalProtection", "formalContinuationIdentity", "formalWorkspaceRequest"] as const) {
+      const expected = JSON.stringify(lease[key]);
+      if (expected === undefined
+        || JSON.stringify(owner.metadata?.[key]) !== expected
+        || JSON.stringify(job.metadata?.[key]) !== expected
+        || JSON.stringify(turn.metadata?.[key]) !== expected) {
+        throw new Error(`${id}: snapshot workspace lease ${key} mismatch`);
+      }
+    }
+  }
+  return state;
 }
 
 async function loadSnapshot(path: string, parentId: string): Promise<CoordinatorState | undefined> {
@@ -621,12 +781,6 @@ export interface ResumeCoordinatorResult {
   reconciled: Array<{ type: "interrupted" | "unexecuted"; agentId: string; id: string }>;
 }
 
-async function validateRegisteredSessions(layout: SidecarLayout, state: CoordinatorState): Promise<void> {
-  for (const agent of [...Object.values(state.agents), ...Object.values(state.releasedAgents)]) {
-    if (agent.sessionPath) await validateExactChildSessionPath(layout, agent.sessionPath);
-  }
-}
-
 export async function reconcileUnfinishedCoordinator(
   journal: CoordinatorJournal,
   reason: "process-loss" | "graceful-shutdown" = "process-loss",
@@ -663,8 +817,9 @@ export async function reconcileUnfinishedCoordinator(
           kind: "job.state",
           agentId: agent.id,
           jobId: job.id,
-          payload: { from: "running", to: "failed", error: `${reason}:interrupted` },
+          payload: { from: "running", to: "unexecuted", error: `${reason}:no-auto-replay` },
         });
+        reconciled.push({ type: "unexecuted", agentId: agent.id, id: job.id });
       }
     }
     await journal.append({
@@ -683,8 +838,16 @@ export async function resumeCoordinator(
 ): Promise<ResumeCoordinatorResult> {
   const opened = await CoordinatorJournal.open(layout, parentId, options);
   const { journal, replay } = opened;
-  await validateRegisteredSessions(layout, journal.getState());
   const reconciled = await reconcileUnfinishedCoordinator(journal, "process-loss");
+  for (const agent of Object.values(journal.getState().agents)) {
+    if (agent.state === "idle" && agent.metadata?.formalProtection !== undefined) {
+      await journal.append({
+        kind: "agent.state",
+        agentId: agent.id,
+        payload: { from: "idle", to: "parked", currentJobId: null, currentTurnId: null, reason: "process-loss:formal-revive-required" },
+      });
+    }
+  }
   return { journal, replay, reconciled };
 }
 

@@ -8,6 +8,8 @@ import {
   registerPersistentAgentTools,
   type PersistentRuntimeExecutorInput,
 } from "../../src/runtime/persistent-agents/runtime.js";
+import { TASK_TOOL_SCHEMA } from "../../src/runtime/persistent-agents/task-schema.js";
+import { loadAgentCatalog } from "../../src/runtime/agent-catalog.js";
 
 let scratch = "";
 
@@ -118,10 +120,13 @@ describe("internal persistent Agent runtime wiring", () => {
     const tools = new Map<string, any>();
     const commands = new Map<string, any>();
     const directCalls: string[] = [];
+    const catalog = await loadAgentCatalog();
+    if (!catalog.ok) throw new Error(catalog.diagnostics.map((diagnostic) => diagnostic.code).join(", "));
     registerPersistentAgentTools({
       registerTool(tool: { name: string }) { tools.set(tool.name, tool); },
       registerCommand(name: string, command: unknown) { commands.set(name, command); },
     } as never, {
+      catalog: catalog.value,
       runtimeForContext: async () => runtime,
       directModelCommand: async (args) => {
         directCalls.push(args);
@@ -133,11 +138,40 @@ describe("internal persistent Agent runtime wiring", () => {
     expect([...tools.keys()]).not.toContain("aili_task");
     expect(commands.has("aili-agent-model")).toBe(true);
 
+    const taskTool = tools.get("task");
+    expect(taskTool.description).toContain("Ordinary Pi remains benefit-based");
+    expect(taskTool.description).toContain("omitted agent retains general compatibility");
+    expect(taskTool.description).toContain("ROSE owns decomposition, decisions, integration, and final verification");
+    expect(taskTool.description).toContain("exact Specialized selector before duplicate direct work");
+    expect(taskTool.description).toContain("async:false for prerequisites with an immediate join");
+    expect(taskTool.description).toContain("async:true only for independent packages with a named join");
+    expect(taskTool.description).toContain("inspect output/history before dependents");
+    expect(taskTool.description).toContain("valid pre-recorded waiver");
+    expect(taskTool.description).toContain("never write the owning formal-task-board.md/progress.txt or decide phase/verdict");
+    expect(taskTool.promptSnippet).toContain("benefit-based direct work");
+    expect(taskTool.promptSnippet).toContain("omitted agent remains general-compatible");
+    expect(taskTool.promptSnippet).toContain("exact Specialized selector with explicit async before duplicate direct work");
+    expect(taskTool.promptGuidelines).toEqual([
+      expect.stringMatching(/^Ordinary routing:/),
+      expect.stringMatching(/^ROSE authority:/),
+      expect.stringMatching(/^Formal dispatch:/),
+      expect.stringMatching(/^Prerequisite execution:/),
+      expect.stringMatching(/^Independent async execution:/),
+      expect.stringMatching(/^Direct exception:/),
+      expect.stringMatching(/^Worker boundary:/),
+      expect.stringContaining("Specialized Agent catalog (generated routing cues"),
+    ]);
+    expect(taskTool.promptGuidelines.at(-1)).toContain("aili.code-scout — Read-only code scouting subagent.");
+    expect(taskTool.promptGuidelines.at(-1)).toContain("phases(advisory)=IDEATE/DEFINE/BUILD");
+    expect(taskTool.promptGuidelines.at(-1)).not.toContain("toolPolicy");
+    expect(taskTool.parameters).toBe(TASK_TOOL_SCHEMA);
+
     const context = { ui: { notify() {} } } as never;
-    const taskResult = await tools.get("task").execute("call-1", { task: "internal", async: false }, new AbortController().signal, undefined, context);
+    const taskResult = await taskTool.execute("call-1", { task: "internal", async: false }, new AbortController().signal, undefined, context);
     expect(JSON.parse(taskResult.content[0].text)).toMatchObject({ results: [expect.objectContaining({ status: "completed" })] });
     await commands.get("aili-agent-model").handler("global general provider/model", context);
     expect(directCalls).toEqual(["global general provider/model"]);
+    await expect(runtime.hub.execute({ action: "formal-plan" }, { agentId: "general" })).rejects.toThrow(/parent\/ROSE-only/);
     await runtime.shutdown();
   });
 

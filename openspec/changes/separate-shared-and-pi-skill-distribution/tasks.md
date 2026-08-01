@@ -1,3 +1,5 @@
+> **Historical/superseded task list (2026-08-01):** `openspec/changes/integrate-upstream-formal-agent-protocols` is the sole future BUILD and release owner for overlapping scope. Every unchecked item below is retained only as capability-source history; none may be dispatched, advanced, accepted, closed, published, or released from this change. Any readiness, blocker, verification, snapshot, runtime, or acceptance statement is historical and was not independently reverified during this reconciliation.
+
 ## 1. Readiness and upstream prerequisite
 
 - [ ] 1.1 Record explicit acceptance of the final `test-plan.md` and fresh BUILD intent before package/install changes.

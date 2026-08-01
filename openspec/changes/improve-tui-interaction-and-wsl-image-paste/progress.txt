@@ -1,68 +1,17 @@
-[2026-07-29T16:33:33+08:00] DEFINE CREATED
-[FRAME] change=improve-tui-interaction-and-wsl-image-paste
-[KNOWN|USER] source=user-requested scrollbar; cross-viewport selection; independent Rain switch; WSL2 Alt+V image paste
-[KNOWN|USER] identity=user approved a new independent OpenSpec change in this session
-[COMPUTED] artifacts=.openspec.yaml; proposal.md; context.md; design.md; specs/zentui-fixed-editor-interaction/spec.md; specs/rose-working-animation/spec.md; specs/wsl-image-paste/spec.md; tasks.md; test-plan.md
-[COMPUTED] research=current repository source/tests; installed official Pi 0.82.1 public/current package surface; released Theme/Quota closeouts; current Rose contract
-[FRAME] phase=DEFINE
-[FRAME] board_status=blocked
-[FRAME] acceptance=final test-plan.md pending explicit user acceptance
-[FRAME] operation_gates=real HOME/clipboard/terminal/provider; dependency/lockfile; Git; install; publish; release remain separately gated
-[FRAME] next_action=run current strict OpenSpec validation, repair only planning-artifact defects, then present the final test-plan acceptance decision; no production implementation
+# Progress: improve-tui-interaction-and-wsl-image-paste
 
-[2026-07-29T16:33:33+08:00] DEFINE VALIDATED
-[COMPUTED] validation=`openspec validate improve-tui-interaction-and-wsl-image-paste --strict` PASS
-[COMPUTED] scope=3 capability deltas; 19 implementation/verification tasks; 16 automated evidence rows; 6 manual WSL2/TUI rows
-[FRAME] phase=DEFINE
-[FRAME] board_status=blocked
-[FRAME] acceptance=final test-plan.md pending explicit user acceptance
-[FRAME] next_action=present final test-plan acceptance after the coordinated emergency-checkpoint architecture decision is resolved; no production implementation
+## Current reconciled status
 
-[2026-07-29T16:39:36+08:00] DEFINE RECONCILED
-[KNOWN|USER] reason=emergency-checkpoint was deferred by user pending an official Pi public runtime seam; TUI test-plan acceptance remains independent
-[FRAME] acceptance_semantics=final test-plan acceptance does not grant BUILD intent or any operation approval
-[COMPUTED] validation=`openspec validate improve-tui-interaction-and-wsl-image-paste --strict` fresh PASS after acceptance-semantics correction
-[FRAME] phase=DEFINE
-[FRAME] board_status=blocked
-[FRAME] next_action=user accepts or requests revision of final test-plan.md; no production implementation
+This change remains independent from `integrate-upstream-formal-agent-protocols`. It does not inherit acceptance, completion, release readiness, or operation authority from the umbrella change.
 
-[2026-07-29T16:42:23+08:00] DEFINE ACCEPTED
-[KNOWN|USER] acceptance=user selected “接受测试计划（推荐）” for the exact final test-plan.md in this session
-[COMPUTED] accepted_artifact=openspec/changes/improve-tui-interaction-and-wsl-image-paste/test-plan.md
-[FRAME] acceptance_semantics=scope and verification contract accepted; acceptance starts no implementation and grants no operation approval
-[FRAME] phase=DEFINE
-[FRAME] define_status=complete
-[FRAME] build_intent=absent
-[FRAME] board_status=ready
-[FRAME] next_action=wait for a fresh explicit BUILD request; real HOME/clipboard/terminal/provider, dependency/lockfile, Git, install, publish and release remain separately gated
+Repository artifacts record historical DEFINE and implementation activity from 2026-07-29, but `tasks.md` and the final acceptance checklist in `test-plan.md` remain unchecked. Those historical notes are therefore candidate evidence, not current lifecycle authority. The change must be reconciled separately before anyone marks its tasks, BUILD, SHIP, or release state complete.
 
-[2026-07-29T17:17:43+08:00] BUILD STARTED
-[KNOWN|USER] build_intent=user requested all three confirmed functional domains be completed and approved task-scoped production writes in the current dirty worktree
-[COMPUTED] locality=official Pi 0.82.1; fixed editor in extensions/zentui/fixed-editor; Matrix in extensions/matrix/index.ts; wrapped image callback in extensions/zentui/ui.ts; bootstrap in scripts/bootstrap.sh; focused tests under tests/unit and tests/bootstrap
-[FRAME] scope=this change implements scrollbar, cross-viewport selection, independent Rain control and WSL2 Alt+V keybinding integration
-[FRAME] worktree_rule=preserve all unrelated dirty/untracked content; no clean/stash/stage/commit
-[FRAME] operation_gates=real HOME/clipboard/manual terminal/provider, dependency/lockfile, Git, install, publish and release remain separately gated
-[FRAME] phase=BUILD
-[FRAME] board_status=in-progress
-[FRAME] next_package=fixed-editor scrollbar/selection, Matrix Rain control and WSL keybinding integration
+## Historical candidate evidence
 
-[2026-07-29T17:29:52+08:00] BUILD PACKAGE UI-WSL IMPLEMENTED
-[COMPUTED] scope=tasks 2.1-5.4; Zentui scrollbar and cross-viewport selection; Matrix v3 Rain preference; WSL keybinding merger/bootstrap; README
-[COMPUTED] files=extensions/zentui/config.ts; extensions/zentui/fixed-editor/types.ts; extensions/zentui/fixed-editor/index.ts; extensions/zentui/fixed-editor/compositor.ts; extensions/zentui/settings-command.ts; extensions/matrix/index.ts; scripts/merge-global-keybindings.mjs; scripts/bootstrap.sh; README.md; focused tests
-[COMPUTED] focused_evidence=5 unit files PASS with 37 tests; bootstrap PASS with 24 tests; npm run typecheck PASS
-[COMPUTED] safety=no real HOME/clipboard/PowerShell/provider access; no dependency/lockfile/node_modules/Git/install/publish/release operation
-[UNVERIFIED] live WSL2 scrollbar/selection/Alt+V/drag-in and restarted active Matrix rendering require the separately gated manual matrix
-[FRAME] phase=BUILD
-[FRAME] board_status=in-progress
-[FRAME] next_package=full test/package/OpenSpec/diff verification and scoped final inspection
+The recorded implementation scope covered the Zentui scrollbar and cross-viewport selection, independent Matrix Rain preference, WSL2 Alt+V keybinding integration, bootstrap wiring, README guidance, and focused tests. The cited files were `extensions/zentui/config.ts`, `extensions/zentui/fixed-editor/types.ts`, `extensions/zentui/fixed-editor/index.ts`, `extensions/zentui/fixed-editor/compositor.ts`, `extensions/zentui/settings-command.ts`, `extensions/matrix/index.ts`, `scripts/merge-global-keybindings.mjs`, `scripts/bootstrap.sh`, `README.md`, and directly related tests.
 
-[2026-07-29T17:42:35+08:00] BUILD DETERMINISTIC COMPLETE
-[COMPUTED] focused=Zentui/Matrix 5 files 37 tests PASS; bootstrap 24 tests PASS; typecheck PASS
-[COMPUTED] full_suite=initial 120s run timed out after two contention-sensitive persistent-Agent tests exceeded their 5s case timeout; both focused files then PASS with 19 tests; fresh 300s full rerun PASS with 85 files passed, 2 skipped, 564 tests passed, 2 skipped
-[COMPUTED] package=`npm run validate:package` PASS with 6 tests; `npm pack --dry-run --json` PASS with 6214 entries, required TUI/keybinding files present and zero openspec/tests/.pi/graphify-out entries
-[COMPUTED] validation=`openspec validate improve-tui-interaction-and-wsl-image-paste --strict` PASS; scoped tracked and new-file whitespace checks PASS; final post-format Matrix lifecycle 8 tests and typecheck PASS
-[COMPUTED] mutation_inspection=no task-owned dependency/lockfile/node_modules/generated/provenance/Git/install/publish/release mutation; pre-existing dirty changes outside this task remain untouched
-[UNVERIFIED] all six manual WSL2/restarted-TUI rows remain unrun because no exact real HOME/clipboard/terminal operation approval was requested or used
-[FRAME] phase=BUILD
-[FRAME] board_status=deterministic-complete-live-unverified
-[FRAME] next_action=retain manual rows as Unverified until a separately authorized installed/restarted WSL2 check; no automatic SHIP, Git, install or release
+Historical command records reported 37 focused Zentui/Matrix tests, 24 bootstrap tests, typecheck, a later 564-test full-suite rerun, package validation, npm dry-run inventory, strict OpenSpec validation, and scoped whitespace checks as passing at that time. These results are not fresh evidence for the current candidate tree and do not update the unchecked task or acceptance artifacts by themselves.
+
+## Remaining limitations and gates
+
+All six real WSL2/restarted-TUI manual rows remain unverified. No exact real HOME, clipboard, PowerShell, terminal, provider, dependency, lockfile, Git, install, publish, or release operation is authorized by this file. A separate resume must establish the current contract, acceptance, task state, current candidate diff, and fresh verification before changing this proposal's lifecycle status.

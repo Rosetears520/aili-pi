@@ -2,7 +2,7 @@
 
 ## Acceptance state
 
-[FRAME] This is the final DEFINE verification contract. BUILD remains blocked until the user explicitly accepts this file and later supplies fresh BUILD intent. Acceptance alone executes and authorizes no implementation. Any later BUILD authorization is limited to repository-local implementation and disposable fixtures; real HOME/clipboard/terminal/provider, dependency/lockfile, Git, install, publish, and release operations remain separately gated.
+This file proposes the DEFINE verification contract. BUILD remains blocked until durable change evidence records explicit acceptance and a separate BUILD authorization. Acceptance alone executes and authorizes no implementation. Any later BUILD authorization is limited to repository-local implementation and disposable fixtures unless it explicitly says otherwise; real HOME/clipboard/terminal/provider, dependency/lockfile, Git, install, publish, and release operations remain separately gated.
 
 ## Automated matrix
 
@@ -27,7 +27,7 @@
 
 ## Manual WSL2 terminal matrix
 
-[FRAME] These rows require a restarted real Pi session under WSL2 and are not satisfied by headless/unit tests.
+These rows require a restarted real Pi session under WSL2 and are not satisfied by headless/unit tests.
 
 | ID | Procedure | Pass condition |
 |---|---|---|
@@ -40,13 +40,13 @@
 
 ## Stop and failure rules
 
-[FRAME] Any scrollbar width corruption, stuck drag/timer, duplicate copy, broken editor input, lost explicit keybinding, real-HOME access in automation, duplicate clipboard implementation, Matrix timer duplication, unsafe config overwrite, dependency/lockfile drift, or strict-spec conflict is blocking. One focused repair/recheck is allowed during BUILD; unresolved failure returns control without claiming completion.
+Any scrollbar width corruption, stuck drag/timer, duplicate copy, broken editor input, lost explicit keybinding, real-HOME access in automation, duplicate clipboard implementation, Matrix timer duplication, unsafe config overwrite, dependency/lockfile drift, or strict-spec conflict is blocking. One focused repair/recheck is allowed during BUILD; unresolved failure returns control without claiming completion.
 
 ## Final acceptance gate
 
-- [x] User explicitly accepted this final `test-plan.md` on 2026-07-29; acceptance alone starts no implementation.
+- [ ] Durable change evidence records explicit acceptance of this `test-plan.md`; acceptance alone starts no implementation.
 - [ ] A later fresh BUILD request authorizes repository-local implementation and disposable fixtures only.
 - [ ] Real HOME/clipboard/manual WSL2 terminal operations remain separately authorized when requested.
 - [ ] Dependency/lockfile, Git, install, publish, and release remain separately authorized.
 
-Current BUILD readiness: `READY FOR FRESH BUILD INTENT — no implementation is authorized by acceptance alone`.
+Proposal status: `INDEPENDENT PROPOSAL — acceptance and BUILD authorization are not established by this artifact`.

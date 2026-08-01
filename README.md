@@ -1,6 +1,6 @@
 # AILI for Pi
 
-`@rosetears/aili-pi` is a Pi Package that adds ROSE delivery routing, five workflow prompts, a pinned AILI skill snapshot, native Pi integrations, and diagnostics to the official `pi` CLI. It does not replace or fork Pi.
+`@rosetears/aili-pi` is a Pi Package that adds ROSE delivery routing, five workflow prompts, native Pi integrations, and diagnostics to the official `pi` CLI. It does not replace or fork Pi.
 
 ## Requirements
 
@@ -30,7 +30,20 @@ To request Pi's own self-update first:
 ./install.sh --update-pi
 ```
 
-Equivalent package lifecycle commands:
+The bootstrap installs or updates only official Pi and the Pi Package. It does not run `npm`, `npx`, or `rose-aili`, and it does not write `~/.agents/skills/`.
+
+Shared Skills/workflows and the Pi Package have two independent lifecycle owners; neither owner replaces the other.
+
+**Shared Skills/workflows — explicit user-owned lifecycle.** Install or update them only by explicitly running `npx -y rose-aili@<exact-or-user-selected-version> install` or `npx -y rose-aili@<exact-or-user-selected-version> update`. The accepted exact baseline is:
+
+```sh
+npx -y rose-aili@0.4.2 install
+npx -y rose-aili@0.4.2 update
+```
+
+Choose a different version deliberately when needed. A moving `rose-aili@latest` may be a convenience command, but it is not valid doctor or release evidence; those claims require an exact version.
+
+**Pi Package — Pi-owned lifecycle.** Pi alone installs, lists, updates, and removes the Package resources: Extensions, prompts, theme, roles, and the Pi-owned package skill.
 
 ```sh
 pi install npm:@rosetears/aili-pi@latest
@@ -39,7 +52,7 @@ pi update npm:@rosetears/aili-pi
 pi remove npm:@rosetears/aili-pi
 ```
 
-During a Pi-managed npm install or update, the package replaces only existing same-name directories in `~/.agents/skills/` with its pinned AILI skill snapshot. It does not create package-only skills, alter differently named skills, retain backups, or load its embedded AILI snapshot as a second Pi skill source. The package remains installed for its Extensions, prompts, theme, and bundled `librarian` skill.
+The repository `skills/**` tree is only an exact verification baseline for the shared upstream release. It is not included in the npm tarball, is not registered as a Pi skill, and is never written to `~/.agents/skills/` by the Package, its npm lifecycle, Pi, or the bootstrap.
 
 Removal is destructive for this Package. It does not remove Pi and must not be presented as rollback when replacing a pre-existing AILI installation.
 
@@ -94,7 +107,7 @@ The `pi-permission-modes@2.2.0` baseline owns mode persistence, prompts, and san
 - `pi-web-access@0.13.0` provides its complete upstream web-search, content-fetch, curator, clone/PDF/video, and bundled-skill surface. Its provider fallback, network traffic, config/credential paths, clone cache, temporary curator service, downloads, and optional browser-cookie access are upstream behavior; inspect its tool requests and configuration before use.
 - `pi-quota-status@0.3.0` is enabled by default. It may maintain `~/.pi/agent/pi-quota-status/state.json`; `/quota config` creates its configuration template. Zentui displays exactly one weekly value as `codex <percent> <reset>`, preferring explicit `Wk` data and treating the dependency's current `5h`-labeled primary value only as a compatibility fallback when weekly is absent.
 - `pi-permission-modes@2.2.0` provides the permission UI and process-owned sandbox lifecycle above through AILI's exact-source adaptation. The semantic adaptations are line-terminator-safe shared glob matching, Pi session-environment forwarding, and the fail-closed persistent-child sandbox bridge; `upstream/pi-permission-modes.lock.json` records the baseline and adapted hashes. AILI does not retain `/aili-mode` or `Ctrl+Shift+Alt+A` as competing controls.
-- AILI owns the public `task`/`hub` persistent Agent framework. `task` creates parent-scoped official Pi child sessions using 19 specialized `aili.*` selectors or `general`; top-level work is async by default, supports bounded batch scheduling, and returns stable Agent/job/turn IDs plus `agent://` and `history://` references. `hub` provides list/send/wait/inbox/output/history/jobs/cancel/model operations, park/revive, durable delivery, and owner/descendant scoping. No `subagent` compatibility alias or run/attempt backend selector remains. See [`docs/persistent-agents.md`](docs/persistent-agents.md).
+- AILI owns the public `task`/`hub` persistent Agent framework. `task` creates parent-scoped official Pi child sessions using 19 specialized `aili.*` selectors or `general`; top-level work is async by default, supports bounded batch scheduling, and returns stable Agent/job/turn IDs plus `agent://` and `history://` references. `hub` provides list/send/wait/inbox/output/history/jobs/cancel/model operations, park/revive, durable delivery, and owner/descendant scoping. Its top-level parent/ROSE-only `formal-plan` action resolves one exact ready Board package from explicit operation, ownership, and write-scope evidence; `formal-reconcile` explicitly reconciles restart evidence. Child Agents cannot invoke either formal action, and neither action automatically replays work, accepts evidence, closes a join, marks done, or advances phase. No `subagent` compatibility alias or run/attempt backend selector remains. See [`docs/persistent-agents.md`](docs/persistent-agents.md).
 - `pi-cache-optimizer@2.6.18` provides `/cache-optimizer`, provider cache diagnostics, cache statistics, and prompt-cache optimization. It may maintain `~/.pi/agent/pi-cache-optimizer-stats.json`; `/cache-optimizer fix` is interactive and is the only command that may propose editing `models.json`.
 - `pi-markdown-preview@0.10.1` provides `/preview`, `/preview-browser`, `/preview-pdf`, `/preview-clear-cache`, and the `preview_export` tool. Terminal/browser previews require a Chromium executable; PDF export additionally requires Pandoc and a LaTeX engine.
 - `@narumitw/pi-lsp@0.25.0` provides language-agnostic `lsp_diagnostics`, `lsp_fix`, and `/lsp`. It supports routes for C/C++, Python, CSS/SCSS, JavaScript/TypeScript, Go, Rust, Java, Kotlin, Bash, YAML, Terraform, and other languages. It does not download language servers; install the required commands separately and configure project routes in `.pi/pi-lsp.json` or user routes in `~/.pi/agent/pi-lsp.json`.
@@ -122,20 +135,22 @@ Use `hub jobs`, `hub wait`, `hub output`, and `hub history` to inspect durable a
 
 ## Provenance and reproducibility
 
-- `upstream/aili-workflows.lock.json` pins the exact canonical 64-skill/471-file snapshot.
+- `upstream/aili-workflows.lock.json` pins the exact canonical 65-skill/588-file verification snapshot from `rose-aili@0.4.2` commit `bb1fedacc46d71045daa6257d121f2b71ba29d54`.
 - `upstream/opencode-global-agents.lock.json` pins the global AGENTS source revision/hash and documents its Pi-native derivation.
 - `upstream/pi-permission-modes.lock.json` pins the exact upstream and adapted permission runtime files and semantic diff.
 - `manifests/skill-compatibility.json` records one compatibility state per skill.
 - `manifests/roles.json` records 19 generated specialized profiles plus the AILI-owned `general` profile.
 - `manifests/provenance.json`, `manifests/sbom.json`, and `THIRD_PARTY_NOTICES.md` record adapted/reference sources and the exact npm lock inventory.
 
-Verify generated artifacts with:
+Repository contributors can verify the repository-only generated baseline from a complete source checkout with:
 
 ```sh
 npm run validate:generated
 npm run validate:provenance
 npm run validate:release
 ```
+
+The repository-only Skill snapshot, `package-lock.json`, and test sources are intentionally absent from the npm tarball. Therefore `validate:generated`, `validate:compatibility`, `validate:provenance`, `validate:package`, and `validate:release` are source-checkout/prepublish contributor gates, not installed-package commands. In particular, provenance validation needs the repository lock inventory and is not self-contained after installation. Release preparation separately loads the packed Extension/catalog through the focused installed-runtime test; the packaged bundle-declaration validator remains self-contained.
 
 ## Troubleshooting
 
@@ -147,7 +162,7 @@ npm run validate:release
 - **Persistent task says the parent Session is not durable:** start/save a normal Pi session first; Agents require a parent JSONL so their sidecar can be scoped exactly.
 - **Child Bash is denied in a sandbox-required mode:** inspect `/sandbox` and the active profile. Persistent children require the process-owned sandbox to be ready with an exact matching profile; disabled/degraded state and Git-worktree `.git` files remain fail closed and approval cannot downgrade them to unsandboxed execution.
 - **Global resources are non-pass:** run `/aili-install-global-resources` only after reviewing the exact `~/.pi/agent/` targets. A malformed marker or an unowned role collision intentionally leaves files unchanged.
-- **Offline use:** the installed Package embeds the pinned skills and does not fetch `aili-workflows` at runtime. Its Pi-managed npm lifecycle synchronizes only pre-existing same-name global skills from that embedded fixed snapshot. First-time Pi/package installation still requires the relevant package sources.
+- **Offline use:** the installed Package does not embed the generic shared-Skill snapshot and does not fetch or synchronize `aili-workflows` at runtime. Shared workflow installation/update remains an explicit user-run `rose-aili` operation; Pi Package installation/update remains a separate Pi operation. First-time installation still requires the relevant package sources.
 
 ## License
 

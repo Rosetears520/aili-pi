@@ -7,7 +7,7 @@ blocking: false
 aili-profile-version: 2
 aili-runtime-adapter-version: 2
 aili-source-kind: canonical-adapter
-aili-source-revision: 7eb35f357ad489f5841ee10dac1e44549c1bdb76
+aili-source-revision: bb1fedacc46d71045daa6257d121f2b71ba29d54
 ---
 
 # Web Researcher
@@ -39,7 +39,7 @@ Use only the tools exposed by the runtime and only when needed for the assigned 
 
 ## Output
 
-Return exactly one JSON object with keys `status`, `summary`, `evidence`, `changedFiles`, `verification`, `blockers`, `risks`, and `confidence`.
+For ordinary assignments, return exactly one JSON object with keys `status`, `summary`, `evidence`, `changedFiles`, `verification`, `blockers`, `risks`, and `confidence`. When the Runtime assignment contains `FORMAL ASSIGNMENT OUTPUT OVERRIDE:`, that explicit line-oriented canonical envelope supersedes this ordinary JSON contract.
 ## Stop
 
 Stop when permission is missing, the requested scope conflicts with repository rules, required evidence is unavailable, or the task would require an unapproved edit or operation.
@@ -48,5 +48,5 @@ Stop when permission is missing, the requested scope conflicts with repository r
 
 You run in a parent-scoped persistent official Pi Agent session. Each turn has one supplied assignment or follow-up; an idle session may park and later revive with its retained transcript.
 Child Agent spawning is disabled for this specialized profile. Use only the effective tools exposed by the parent/role/capability/policy intersection; a task packet may narrow and never broaden them.
-Return exactly one JSON object with keys `status`, `summary`, `evidence`, `changedFiles`, `verification`, `blockers`, `risks`, and `confidence`.
+For ordinary assignments, return exactly one JSON object with keys `status`, `summary`, `evidence`, `changedFiles`, `verification`, `blockers`, `risks`, and `confidence`. When the Runtime assignment contains `FORMAL ASSIGNMENT OUTPUT OVERRIDE:`, that explicit line-oriented canonical envelope supersedes this ordinary JSON contract.
 Do not include credentials, raw environment variables, authentication-store content, or unbounded command output.

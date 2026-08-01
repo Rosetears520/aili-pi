@@ -69,8 +69,8 @@ import type { PermState } from "pi-permission-modes/src/modes.ts";
 import { type NetAskResult, NetworkSession, isHostAllowed, normalizeDomain } from "pi-permission-modes/src/network.ts";
 import { isOutside, isProtectedWrite } from "pi-permission-modes/src/paths.ts";
 import { decide, decideBashCommand, mostRestrictive } from "./resolve.ts";
-import { SandboxController } from "pi-permission-modes/src/sandbox.ts";
-import { installPersistentAgentSandboxProvider } from "../../runtime/persistent-agents/child-sandbox.js";
+import { createSandboxedBashOps, SandboxController } from "pi-permission-modes/src/sandbox.ts";
+import { composePersistentAgentSandboxConfig, installPersistentAgentSandboxProvider } from "../../runtime/persistent-agents/child-sandbox.js";
 import {
   type Action,
   type ModeDef,
@@ -141,7 +141,13 @@ export default async function (pi: ExtensionAPI) {
   const sandbox = new SandboxController();
   installPersistentAgentSandboxProvider({
     currentProfile: () => currentMode().sandbox,
-    operations: ({ readOnly }) => sandbox.ready && !sandbox.disabled ? sandbox.bashOps({ readOnly }) : null,
+    operations: ({ readOnly, denyWrite }) => {
+      if (denyWrite.length === 0) return sandbox.ready && !sandbox.disabled ? sandbox.bashOps({ readOnly }) : null;
+      const manager = sandbox.sandboxManager;
+      if (!sandbox.ready || sandbox.disabled || !manager) return null;
+      const customConfig = composePersistentAgentSandboxConfig(currentMode().sandbox, readOnly, denyWrite);
+      return createSandboxedBashOps(manager, customConfig, () => net.drainBlocked());
+    },
     diagnostic: () => sandbox.disabled ? "sandbox disabled by host flag" : sandbox.warn,
   });
   // toolCallIds the user explicitly approved to run OUTSIDE the sandbox.

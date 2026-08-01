@@ -1,10 +1,13 @@
-import { resolve } from "node:path";
+import { lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   assessAiliCompactHealth,
   assessPiCompactionSettings,
   collectLocalAiliCompactHealthEvidence,
   formatDoctorReport,
+  inspectSharedWorkflows,
   runBoundedProbe,
   runDoctor,
   type AiliCompactHealthEvidence,
@@ -22,6 +25,71 @@ import {
 import { LIFECYCLE_PROMPTS } from "../../src/runtime/lifecycle.js";
 
 const DOCTOR_HOME = resolve(".tmp/doctor-home");
+const AGENT_REFERENCE = ".agents/skills/parallel-subagent-dispatch/references/agent-selection-matrix.md";
+const BOARD_REFERENCE = ".agents/skills/aili-delivery-flow/references/formal-task-board.md";
+const AGENT_SOURCE = new URL("../../skills/parallel-subagent-dispatch/references/agent-selection-matrix.md", import.meta.url);
+const BOARD_SOURCE = new URL("../../skills/aili-delivery-flow/references/formal-task-board.md", import.meta.url);
+
+interface SharedFixture {
+  root: string;
+  home: string;
+  agentPath: string;
+  boardPath: string;
+  sourceBytes: Map<string, Buffer>;
+  entries: string[];
+}
+
+async function createSharedFixture(options: {
+  agent?: Buffer | string | "missing";
+  board?: Buffer | string | "missing";
+  agentSymlink?: boolean;
+} = {}): Promise<SharedFixture> {
+  const root = await mkdtemp(join(tmpdir(), "aili-pi-doctor-"));
+  const home = join(root, "home");
+  const agentPath = join(home, AGENT_REFERENCE);
+  const boardPath = join(home, BOARD_REFERENCE);
+  const canonicalAgent = await readFile(AGENT_SOURCE);
+  const canonicalBoard = await readFile(BOARD_SOURCE);
+  const agent = options.agent ?? canonicalAgent;
+  const board = options.board ?? canonicalBoard;
+  await mkdir(home, { recursive: true });
+  if (agent !== "missing") {
+    await mkdir(dirname(agentPath), { recursive: true });
+    if (options.agentSymlink) {
+      const target = join(root, "agent-target.md");
+      await writeFile(target, agent);
+      await symlink(target, agentPath);
+    } else {
+      await writeFile(agentPath, agent);
+    }
+  }
+  if (board !== "missing") {
+    await mkdir(dirname(boardPath), { recursive: true });
+    await writeFile(boardPath, board);
+  }
+  const sourceBytes = new Map<string, Buffer>();
+  for (const path of [agentPath, boardPath]) {
+    try {
+      sourceBytes.set(path, await readFile(path));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  return { root, home, agentPath, boardPath, sourceBytes, entries: await fixtureEntries(home) };
+}
+
+async function fixtureEntries(home: string): Promise<string[]> {
+  return (await readdir(home, { recursive: true, encoding: "utf8" })).sort();
+}
+
+async function expectFixtureUnchanged(fixture: SharedFixture): Promise<void> {
+  expect(await fixtureEntries(fixture.home)).toEqual(fixture.entries);
+  for (const [path, bytes] of fixture.sourceBytes) expect(await readFile(path)).toEqual(bytes);
+}
+
+async function disposeFixture(fixture: SharedFixture): Promise<void> {
+  await rm(fixture.root, { recursive: true, force: true });
+}
 
 const commands: Array<{
   name: string;
@@ -51,30 +119,33 @@ describe("capability registry", () => {
       "artifact.store", "artifact.transform", "browser.qa", "memory.project",
       "repo.read", "repo.write", "subagent.dispatch", "web.fetch",
     ]);
-    expect(compatibility.records).toHaveLength(64);
-    expect(new Set(compatibility.records.map((record) => record.status))).toEqual(new Set(["native", "optional", "adapted"]));
+    expect(compatibility.records).toHaveLength(65);
+    expect(new Set(compatibility.records.map((record) => record.status))).toEqual(new Set(["native", "optional", "adapted", "blocked"]));
     expect(compatibility.records.filter((record) => record.requiredCapabilities.includes("subagent.dispatch")).every((record) => record.status === "adapted" && record.unverified.length === 0)).toBe(true);
   });
 
-  it("binds release evidence to the exact adapted permission entry and hashes", async () => {
+  it("accepts current permission and dispatch evidence while retaining independent non-pass gates", async () => {
     expect(await validatePermissionModeAdaptation()).toEqual([]);
     expect(await validatePiHostInstallation()).toEqual([]);
     const errors = await validateStableRelease();
     expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("permission adaptation:")]));
+    expect(errors).toEqual(expect.arrayContaining([
+      expect.stringContaining("live verification: implementation drift"),
+      expect.stringContaining("i-have-adhd: blocked"),
+    ]));
     expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("native integration evidence")]));
-    expect(errors).toEqual([]);
     expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("separate AGPL/MIT license disposition")]));
     expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("dependency/lockfile approval")]));
   });
 
   it("validates the package-wide AGPL disposition and rejects stale generated metadata", () => {
     const valid = {
-      packageManifest: { name: "@rosetears/aili-pi", version: "0.1.15", license: "AGPL-3.0-or-later" },
-      packageLockRoot: { name: "@rosetears/aili-pi", version: "0.1.15", license: "AGPL-3.0-or-later" },
+      packageManifest: { name: "@rosetears/aili-pi", version: "0.1.16", license: "AGPL-3.0-or-later" },
+      packageLockRoot: { name: "@rosetears/aili-pi", version: "0.1.16", license: "AGPL-3.0-or-later" },
       licenseSha256: "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
       readme: "version 0.1.13 and later is licensed under `AGPL-3.0-or-later`. Corresponding source is available from the repository declared in `package.json`.",
       notices: "This distribution is AGPL-3.0-or-later licensed. Adapted sources retain their own license terms.",
-      sbomRoot: { name: "@rosetears/aili-pi", versionInfo: "0.1.15", licenseConcluded: "AGPL-3.0-or-later", licenseDeclared: "AGPL-3.0-or-later" },
+      sbomRoot: { name: "@rosetears/aili-pi", versionInfo: "0.1.16", licenseConcluded: "AGPL-3.0-or-later", licenseDeclared: "AGPL-3.0-or-later" },
     };
     expect(validateLicenseDispositionData(valid)).toEqual([]);
     expect(validateLicenseDispositionData({
@@ -117,6 +188,136 @@ describe("capability registry", () => {
   });
 });
 
+describe("shared workflow doctor compatibility", () => {
+  it("accepts the exact pinned protocol references without mutating the fixture", async () => {
+    const fixture = await createSharedFixture();
+    try {
+      expect(await inspectSharedWorkflows(fixture.home)).toEqual({
+        compatibility: "present-compatible",
+        sourceMatch: "exact",
+        references: { readable: 2, required: 2 },
+        protocols: { compatible: 2, required: 2 },
+        roles: { observed: 19, required: 19 },
+        reasons: ["compatible"],
+      });
+      const report = await runDoctor({ getCommands: () => commands }, { home: fixture.home });
+      expect(report.results).toContainEqual(expect.objectContaining({
+        id: "shared.workflows",
+        status: "PASS",
+        evidence: expect.stringContaining("compatibility=present-compatible; source_match=exact"),
+      }));
+      await expectFixtureUnchanged(fixture);
+    } finally {
+      await disposeFixture(fixture);
+    }
+  });
+
+  it("keeps structurally compatible hash drift compatible and non-exact", async () => {
+    const board = `${await readFile(BOARD_SOURCE, "utf8")}\n<!-- locally retained note -->\n`;
+    const fixture = await createSharedFixture({ board });
+    try {
+      const inspection = await inspectSharedWorkflows(fixture.home);
+      expect(inspection).toEqual(expect.objectContaining({
+        compatibility: "present-compatible",
+        sourceMatch: "modified",
+        protocols: { compatible: 2, required: 2 },
+        roles: { observed: 19, required: 19 },
+      }));
+      expect(inspection.sourceMatch).not.toBe("compatible-newer");
+      await expectFixtureUnchanged(fixture);
+    } finally {
+      await disposeFixture(fixture);
+    }
+  });
+
+  it("reports a required missing reference as an error with install guidance", async () => {
+    const fixture = await createSharedFixture({ board: "missing" });
+    try {
+      expect(await inspectSharedWorkflows(fixture.home)).toEqual(expect.objectContaining({
+        compatibility: "missing",
+        sourceMatch: "unknown",
+        references: { readable: 1, required: 2 },
+      }));
+      const report = await runDoctor({ getCommands: () => commands }, { home: fixture.home });
+      expect(report.status).toBe("NON_PASS");
+      expect(report.results).toContainEqual(expect.objectContaining({
+        id: "shared.workflows",
+        status: "ERROR",
+        evidence: expect.stringMatching(/compatibility=missing; source_match=unknown;.*remediation=npx -y rose-aili@0\.4\.2 install/),
+      }));
+      await expectFixtureUnchanged(fixture);
+    } finally {
+      await disposeFixture(fixture);
+    }
+  });
+
+  it("rejects unsupported protocols, invalid role inventories, and invalid board cores", async () => {
+    const canonicalAgent = await readFile(AGENT_SOURCE, "utf8");
+    const canonicalBoard = await readFile(BOARD_SOURCE, "utf8");
+    const cases = [
+      canonicalAgent.replaceAll("aili-agent-selection/v1", "aili-agent-selection/v2"),
+      canonicalAgent.replace("| `opensource-sanitizer` |", "| `unknown-specialist` |"),
+      canonicalAgent.replace(/^\| `opensource-sanitizer` \|.*\n/m, ""),
+      canonicalAgent.replace("| `opensource-sanitizer` |", "| `code-scout` |"),
+    ];
+    for (const agent of cases) {
+      const fixture = await createSharedFixture({ agent });
+      try {
+        expect(await inspectSharedWorkflows(fixture.home)).toEqual(expect.objectContaining({
+          compatibility: "incompatible",
+          sourceMatch: "modified",
+        }));
+        await expectFixtureUnchanged(fixture);
+      } finally {
+        await disposeFixture(fixture);
+      }
+    }
+
+    for (const board of [
+      canonicalBoard.replaceAll("aili-task-board/v1", "aili-task-board/v2"),
+      canonicalBoard.replace("  - Next action: `<next action>`\n", ""),
+      canonicalBoard.replace("RECONCILED\n", ""),
+    ]) {
+      const fixture = await createSharedFixture({ board });
+      try {
+        const inspection = await inspectSharedWorkflows(fixture.home);
+        expect(inspection.compatibility).toBe("incompatible");
+        expect(inspection.sourceMatch).toBe("modified");
+        await expectFixtureUnchanged(fixture);
+      } finally {
+        await disposeFixture(fixture);
+      }
+    }
+  });
+
+  it("treats a reference symlink as unverified without disclosing its path", async () => {
+    const fixture = await createSharedFixture({ agentSymlink: true });
+    try {
+      const inspection = await inspectSharedWorkflows(fixture.home);
+      expect(inspection).toEqual(expect.objectContaining({
+        compatibility: "unverified",
+        sourceMatch: "unknown",
+        reasons: ["reference-symlink"],
+      }));
+      expect((await lstat(fixture.agentPath)).isSymbolicLink()).toBe(true);
+      const report = await runDoctor({ getCommands: () => commands }, { home: fixture.home });
+      const result = report.results.find((item) => item.id === "shared.workflows")!;
+      expect(result.status).toBe("UNVERIFIED");
+      expect(result.evidence).toContain("remediation=npx -y rose-aili@0.4.2 update");
+      expect(result.evidence).not.toContain(fixture.home);
+      await expectFixtureUnchanged(fixture);
+    } finally {
+      await disposeFixture(fixture);
+    }
+  });
+
+  it("has no child-process, network, or filesystem-write execution path in the doctor owner", async () => {
+    const source = await readFile(new URL("../../src/runtime/doctor.ts", import.meta.url), "utf8");
+    expect(source).not.toMatch(/node:child_process|child_process|\bspawn(?:Sync)?\s*\(|\bexecFile(?:Sync)?\s*\(|\bfetch\s*\(/);
+    expect(source).not.toMatch(/import\s*\{[^}]*\b(?:mkdir|writeFile|rename|copyFile)\b[^}]*\}\s*from\s*["']node:fs\/promises["']/s);
+  });
+});
+
 describe("doctor", () => {
   it("reports both JSON evidence and a human non-pass without swallowing missing work", async () => {
     const report = await runDoctor({ getCommands: () => commands }, { home: DOCTOR_HOME });
@@ -127,9 +328,10 @@ describe("doctor", () => {
       expect.objectContaining({ id: "aili.compact", status: "UNVERIFIED", evidence: expect.stringContaining("reducer=pass") }),
       expect.objectContaining({ id: "optional.packs", status: "SKIP" }),
       expect.objectContaining({ id: "roles.agents", status: "PASS", evidence: expect.stringContaining("profiles=20") }),
-      expect.objectContaining({ id: "agent.framework", status: "PASS", evidence: expect.stringContaining("public tools=task,hub") }),
+      expect.objectContaining({ id: "agent.framework", status: "UNVERIFIED", evidence: expect.stringContaining("public tools=task,hub") }),
       expect.objectContaining({ id: "permission.native", status: "PASS" }),
       expect.objectContaining({ id: "global.resources", status: expect.stringMatching(/^(PASS|UNVERIFIED)$/) }),
+      expect.objectContaining({ id: "shared.workflows", status: "ERROR", evidence: expect.stringContaining("compatibility=missing") }),
       expect.objectContaining({ id: "provenance", status: "PASS" }),
     ]));
     expect(formatDoctorReport(report)).toContain("AILI doctor: NON_PASS");

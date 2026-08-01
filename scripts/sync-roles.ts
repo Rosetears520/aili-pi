@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 const ROOT = resolve(import.meta.dirname, "..");
 const ROLES_DIR = join(ROOT, "roles");
 const MANIFEST_PATH = join(ROOT, "manifests", "roles.json");
-const SOURCE_COMMIT = "7eb35f357ad489f5841ee10dac1e44549c1bdb76";
+const SOURCE_COMMIT = "bb1fedacc46d71045daa6257d121f2b71ba29d54";
 const SOURCE_REPOSITORY = "https://github.com/Rosetears520/aili-workflows.git";
 const PROFILE_VERSION = 2;
 const RUNTIME_ADAPTER_VERSION = 2;
@@ -23,6 +23,13 @@ const SPECIALIZED_ROLE_NAMES = [
 const SPECIALIZED_SELECTORS = SPECIALIZED_ROLE_NAMES.map((name) => `aili.${name}`);
 const BUNDLED_NAMES = [...SPECIALIZED_ROLE_NAMES, "general"] as const;
 const BUNDLED_SELECTORS = [...SPECIALIZED_SELECTORS, "general"];
+const FORMAL_OUTPUT_FIELDS = [
+  "result_id", "trace_id", "lane", "owner", "package_id", "role_id", "status", "confidence",
+  "worktree_context_ref", "declared_repository", "cwd", "target_rules_ref", "artifact_destination",
+  "inspected_scope", "summary", "evidence", "changed_files", "verification", "checks", "freshness",
+  "skipped_checks", "soft_boundary_limitations", "blockers", "risks", "unverified",
+  "continuation_recommendation", "findings", "convergence_links", "review_arbitration_ref",
+] as const;
 
 const OPTIONAL: Record<string, string[]> = {
   "browser-qa-runner": ["browser.qa"],
@@ -141,7 +148,7 @@ function specializedProfileContent(name: string, description: string, tools: str
       "You are a bounded, single-use Pi child role. Complete the supplied assignment once, return one terminal result or failure, and never resume this context.",
       "You are a bounded persistent Pi Agent role. Work only on the supplied assignment or follow-up turn within the same stable Agent identity.",
     )
-    .replace(/## Output\n[\s\S]*?(?=\n## Stop)/, "## Output\n\nReturn exactly one JSON object with keys `status`, `summary`, `evidence`, `changedFiles`, `verification`, `blockers`, `risks`, and `confidence`.");
+    .replace(/## Output\n[\s\S]*?(?=\n## Stop)/, "## Output\n\nFor ordinary assignments, return exactly one JSON object with keys `status`, `summary`, `evidence`, `changedFiles`, `verification`, `blockers`, `risks`, and `confidence`. When the Runtime assignment contains `FORMAL ASSIGNMENT OUTPUT OVERRIDE:`, that explicit line-oriented canonical envelope supersedes this ordinary JSON contract.\n");
   return [
     ...profileFrontmatter({
       name,
@@ -158,7 +165,7 @@ function specializedProfileContent(name: string, description: string, tools: str
     "",
     "You run in a parent-scoped persistent official Pi Agent session. Each turn has one supplied assignment or follow-up; an idle session may park and later revive with its retained transcript.",
     "Child Agent spawning is disabled for this specialized profile. Use only the effective tools exposed by the parent/role/capability/policy intersection; a task packet may narrow and never broaden them.",
-    "Return exactly one JSON object with keys `status`, `summary`, `evidence`, `changedFiles`, `verification`, `blockers`, `risks`, and `confidence`.",
+    "For ordinary assignments, return exactly one JSON object with keys `status`, `summary`, `evidence`, `changedFiles`, `verification`, `blockers`, `risks`, and `confidence`. When the Runtime assignment contains `FORMAL ASSIGNMENT OUTPUT OVERRIDE:`, that explicit line-oriented canonical envelope supersedes this ordinary JSON contract.",
     "Do not include credentials, raw environment variables, authentication-store content, or unbounded command output.",
     "",
   ].join("\n");
@@ -202,7 +209,7 @@ function generalProfileContent(): string {
     "",
     "## Output",
     "",
-    "Return exactly one JSON object with keys `status`, `summary`, `evidence`, `changedFiles`, `verification`, `blockers`, `risks`, and `confidence`.",
+    "For ordinary assignments, return exactly one JSON object with keys `status`, `summary`, `evidence`, `changedFiles`, `verification`, `blockers`, `risks`, and `confidence`. When the Runtime assignment contains `FORMAL ASSIGNMENT OUTPUT OVERRIDE:`, that explicit line-oriented canonical envelope supersedes this ordinary JSON contract.",
     "",
     "## Stop",
     "",
@@ -300,6 +307,8 @@ async function generate(sourceRoot: string): Promise<void> {
     source: { repository: SOURCE_REPOSITORY, commit: SOURCE_COMMIT },
     bundledSelectors: BUNDLED_SELECTORS,
     outputContract: ["status", "summary", "evidence", "changedFiles", "verification", "blockers", "risks", "confidence"],
+    outputContractScope: "ordinary",
+    formalOutputOverride: { marker: "CANONICAL RESULT:", fields: FORMAL_OUTPUT_FIELDS },
     turnAuditFields: ["selector", "profileHash", "sourceHash", "profileVersion", "runtimeAdapterVersion", "effectiveTools", "provider", "model", "thinking"],
     records,
   }, null, 2)}\n`, "utf8");
@@ -311,6 +320,8 @@ async function verify(): Promise<void> {
     runtimeAdapterVersion: number;
     source: { repository: string; commit: string };
     bundledSelectors: string[];
+    outputContractScope: string;
+    formalOutputOverride: { marker: string; fields: string[] };
     turnAuditFields: string[];
     records: RoleRecord[];
   };
@@ -319,6 +330,9 @@ async function verify(): Promise<void> {
   if (manifest.runtimeAdapterVersion !== RUNTIME_ADAPTER_VERSION) errors.push("roles runtimeAdapterVersion mismatch");
   if (manifest.source?.repository !== SOURCE_REPOSITORY || manifest.source?.commit !== SOURCE_COMMIT) errors.push("roles source provenance mismatch");
   if (JSON.stringify(manifest.bundledSelectors) !== JSON.stringify(BUNDLED_SELECTORS)) errors.push("bundled selector inventory mismatch");
+  if (manifest.outputContractScope !== "ordinary") errors.push("roles ordinary output contract scope mismatch");
+  if (manifest.formalOutputOverride?.marker !== "CANONICAL RESULT:"
+    || JSON.stringify(manifest.formalOutputOverride.fields) !== JSON.stringify(FORMAL_OUTPUT_FIELDS)) errors.push("roles formal output override mismatch");
   if (JSON.stringify(manifest.turnAuditFields) !== JSON.stringify(["selector", "profileHash", "sourceHash", "profileVersion", "runtimeAdapterVersion", "effectiveTools", "provider", "model", "thinking"])) errors.push("turn audit field inventory mismatch");
   const expected = new Set(BUNDLED_NAMES);
   const seen = new Set<string>();
@@ -336,7 +350,7 @@ async function verify(): Promise<void> {
       if (hash(content) !== role.profileHash) errors.push(`${role.name}: profile hash drift`);
       if (content.includes("OpenCode subagent") || content.includes("single-use") || content.includes("--no-session") || content.includes("Recursive AILI task dispatch is unavailable")) errors.push(`${role.name}: obsolete runtime adapter wording remains`);
       if (!content.includes("parent-scoped persistent official Pi Agent session")) errors.push(`${role.name}: persistent adapter contract missing`);
-      if (!content.includes("Return exactly one JSON object")) errors.push(`${role.name}: output contract missing`);
+      if (!content.includes("For ordinary assignments, return exactly one JSON object") || !content.includes("FORMAL ASSIGNMENT OUTPUT OVERRIDE:")) errors.push(`${role.name}: ordinary/formal output contract missing`);
     }
     if (role.profileVersion !== PROFILE_VERSION || role.runtimeAdapterVersion !== RUNTIME_ADAPTER_VERSION) errors.push(`${role.name}: profile/runtime version mismatch`);
     if (!Array.isArray(role.tools) || !Array.isArray(role.capabilities) || !Array.isArray(role.spawns)) errors.push(`${role.name}: invalid policy arrays`);

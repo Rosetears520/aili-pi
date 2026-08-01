@@ -1,10 +1,20 @@
 # Direct vs Delegated Work
 
-ROSE retains integration and final-verdict ownership. Delegation is the proactive execution path whenever an existing trigger is met; direct work is the fallback when no trigger applies or delegation is concretely blocked.
+ROSE retains scope, decision, integration, inspection, verification selection, disposition, and final-verdict ownership. Ordinary delegation and formal package dispatch are separate lanes.
+
+## Ordinary lane
+
+Ordinary work uses the proactive trigger-and-benefit scan: a qualifying trigger plus concrete benefit dispatches the narrowest matching canonical role; no trigger or a concrete overlap, dependency, permission, ownership, or negative-benefit blocker permits direct ROSE fallback. Multi-file or complex work alone does not require delegation.
+
+## Formal lane
+
+A ready `aili-task-board/v1` package with `Owner: agent:<canonical-role-id>` requires dispatch to that exact role. Do not rerun the ordinary benefit judgment or substitute another role. `Owner: ROSE` uses `Dispatch: forbidden` and direct execution. Direct ROSE execution of an Agent-owned package is legal only through a valid waiver recorded before work under the bounded reasons in `formal-task-board.md`; a post-hoc waiver or an invalid role is not a fallback.
+
+Formal hard dispatch does not extend to ordinary conversation or bounded ordinary tasks.
 
 ## Proactive scan
 
-Run a proactive delegation scan at the start of every non-trivial intent and whenever changed evidence exposes a new work split. Evaluate the triggers before ROSE performs the same evidence gathering or implementation directly. A user request for frequent or aggressive subagent use remains a routing preference across the current intent, but every `subagent.dispatch` operation still needs one bounded eligible assignment and current permission.
+Run a proactive delegation scan at the start of every non-trivial ordinary intent and whenever changed evidence exposes a new ordinary work split. Evaluate the triggers before ROSE performs the same evidence gathering or implementation directly. First classify assignment shape, then select the narrowest matching role from `../../parallel-subagent-dispatch/references/agent-selection-matrix.md`. A user request for frequent or aggressive subagent use remains a routing preference across the current intent, but every ordinary `subagent.dispatch` operation still needs one bounded eligible assignment and current permission.
 
 ## Use `subagent.dispatch` only when
 
@@ -15,7 +25,7 @@ At least one condition is true:
 - broad search or noisy output would materially pollute the main context;
 - at least two independent units can run concurrently with clear wall-clock or context benefit.
 
-When any condition is true, dispatch is the default action unless units overlap, have an unresolved dependency, lack permission or ownership, or cost more than their concrete wall-clock/context benefit. Record the reason internally when an eligible-looking task stays direct. Otherwise ROSE reads, edits, and verifies directly. A non-trivial or multi-file task does not by itself require delegation.
+When any condition is true, dispatch is the ordinary default action unless units overlap, have an unresolved dependency, lack permission or ownership, or cost more than their concrete wall-clock/context benefit. Record the reason internally when an eligible-looking ordinary task stays direct. Otherwise ROSE reads, edits, and verifies directly. This judgment cannot override a ready formal Agent owner.
 
 ## Dispatch shape
 
@@ -27,7 +37,7 @@ When any condition is true, dispatch is the default action unless units overlap,
 - Subagents never delegate and never own the final verdict.
 - A skill or subagent returns its bounded result/need to ROSE and cannot invoke another process skill or continue through a prior context.
 
-Use the compact packet and result contracts in `protocols/subagent-task-packet.md` and `protocols/subagent-result.md`. A packet narrows scope but never expands effective permissions.
+Use the compact packet and result contracts in `protocols/subagent-task-packet.md` and `protocols/subagent-result.md`. Formal packets preserve Package ID and exact canonical Role ID. A packet narrows scope but never expands effective permissions.
 
 ## Separate gates
 

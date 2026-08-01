@@ -8,7 +8,11 @@ license: MIT
 
 ## Goal
 
-Dispatch early when an existing trigger is met, using fresh single-use `subagent.dispatch` contexts without turning ordinary work into orchestration overhead. ROSE retains integration and final-verdict ownership.
+Dispatch early when an ordinary trigger is met or a ready formal Agent-owned package requires its exact owner, without turning ordinary work into orchestration overhead. ROSE retains integration and final-verdict ownership.
+
+## Reference
+
+Use `references/agent-selection-matrix.md` as the single shared `aili-agent-selection/v1` source for assignment-shape classification and canonical role selection. Adapters own the mapping from a canonical Role ID to a runtime selector.
 
 ## Trigger
 
@@ -23,6 +27,8 @@ Run this proactive delegation scan at the start of each non-trivial intent and a
 
 Every dispatch operation must pass this benefit decision independently. A prior failure, partial result, empty result, or desire to continue is not by itself a reason to dispatch another operation.
 
+For ordinary work, first classify the assignment shape and required capability, then select the narrowest matching canonical role from the matrix. Complexity, file count, and lifecycle phase alone neither require dispatch nor justify a broader role. A ready formal Agent-owned package is different: its declared canonical role is exact and does not pass through a new ordinary benefit decision.
+
 ## Parallelism
 
 - Default to at most two concurrent subagents; this is not a hard cap. ROSE may select a larger bounded fan-out when every lane is independent and non-overlapping, has concrete benefit and a suitable owner, and participates in an explicit join plan.
@@ -31,12 +37,13 @@ Every dispatch operation must pass this benefit decision independently. A prior 
 - If work overlaps or has a dependency, run it sequentially or keep it direct.
 - Do not automatically add review, test, security, or coverage agents after implementation.
 
-## Single-use sessions
+## Work-package lifecycle
 
-- Each dispatch context receives one bounded assignment and ends permanently with one terminal result or failure.
-- Never resume an old `task_id` for follow-up, clarification, continuation, repair, recheck, or additional work.
-- Do not automatically retry in a fresh session after a failed, empty, blocked, or partial result; ROSE handles the bounded gap directly or reports the blocker.
-- The same subagent role may be selected later only in a fresh dispatch invocation with no resumed context, after a fresh trigger-and-benefit decision for an independently justified assignment or changed evidence.
+- One bounded work package has one declared canonical role, assignment, scope, forbidden scope, permission boundary, acceptance boundary, write scope, expected result, expected evidence, and terminal disposition.
+- An adapter may realize a package with a fresh one-shot task or a persistent Agent identity. A persistent adapter may continue only while every package-defining field remains unchanged.
+- A new requirement or package, expanded scope, material correction, different role or permissions, different write scope, changed acceptance boundary, or different verification claim requires a new dispatch or job.
+- The current OpenCode Task adapter remains one-shot: each Task context is fresh and terminal, and an old `task_id` is never resumed. This adapter behavior is not a universal shared-session requirement.
+- Do not automatically retry after a failed, empty, blocked, or partial result; ROSE handles the bounded gap directly or reports the blocker.
 - Subagents never nest or delegate. ROSE retains lifecycle, approval, integration, reconciliation, and final-verdict ownership.
 
 ## Canonical packet protocol
@@ -44,6 +51,8 @@ Every dispatch operation must pass this benefit decision independently. A prior 
 Use `.agents/skills/aili-delivery-flow/references/protocols/subagent-task-packet.md` as the single source for exact packet fields and rules. Do not restate or maintain a local field schema in this skill.
 
 Keep each packet bounded to the independently justified assignment. A packet narrows scope; it never expands effective permissions. Every subagent remains non-delegating.
+
+For a formal package, copy its Package ID and exact canonical Role ID into the packet. `general` is not a canonical specialist and cannot own a formal package.
 
 For A33, a packet/result carries one compact `WT-001` reference for one declared repository/cwd. It never duplicates or rebinds root, key, identity, Git, approval, operation, risk, delta, rule, command/cwd, or containment authority. Target rules are re-read at dispatch, can only narrow, and same-level conflicts block. Artifacts stay with the owning target repository.
 

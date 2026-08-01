@@ -31,7 +31,7 @@ Slide dimensions (coordinates in inches):
 ```javascript
 // Basic text
 slide.addText("Simple Text", {
-  x: 1, y: 1, w: 8, h: 2, fontSize: 24, fontFace: "Arial",
+  x: 1, y: 1, w: 8, h: 2, fontSize: 24, fontFace: theme.bodyFont,
   color: "363636", bold: true, align: "center", valign: "middle"
 });
 
@@ -56,9 +56,19 @@ slide.addText("Title", {
   x: 0.5, y: 0.3, w: 9, h: 0.6,
   margin: 0  // Use 0 when aligning text with other elements like shapes or icons
 });
+
+// Accepted editable-text policy: PowerPoint resizes the shape to fit text.
+slide.addText("Resizable text", {
+  x: 0.5, y: 1.0, w: 4, h: 0.5,
+  fit: "resize"
+});
 ```
 
 **Tip:** Text boxes have internal margin by default. Set `margin: 0` when you need text to align precisely with shapes, lines, or icons at the same x-position.
+
+[KNOWN|EXTERNAL] PptxGenJS exposes text fitting through the `fit` option; `resize` expresses resize-shape-to-fit-text while `shrink` reduces text to remain inside fixed geometry. Source: PptxGenJS TextProps type/documentation, `/gitbrent/pptxgenjs`, queried 2026-07-30.
+
+[FRAME] This Skill requires `fit: "resize"` for supported editable text shapes. Final geometry still needs boundary, overlap, spacing, single-line, font-size, alignment, and rendered visual checks.
 
 ---
 

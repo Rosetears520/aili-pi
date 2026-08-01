@@ -32,7 +32,7 @@ Do not use for:
 3. Screen sources with explicit inclusion/exclusion reasons. Keep a concise matrix even if the final output is chat-only.
 4. Extract comparable fields: question, method, data/sample, baseline, metric, key finding, limitation, venue/date, and relevance.
 5. Cluster sources by theme, method, evidence quality, and disagreement. Prefer synthesis, trends, and gaps over chronological listing.
-6. Mark evidence strength: replicated finding, single-study signal, conflicting evidence, weak/indirect evidence, or `[UNVERIFIED]`.
+6. Mark evidence strength: replicated finding, single-study signal, conflicting evidence, weak/indirect evidence, or not verified.
 7. Produce implications for the user's goal plus open questions that require more search or expert review.
 
 ## Authenticity and Citation Rules
@@ -46,10 +46,12 @@ Do not use for:
 
 ```text
 STATUS: SYNTHESIZED | PARTIAL | BLOCKED
-CONFIDENCE: high | medium | low
 
 REVIEW QUESTION:
 - <question and scope>
+
+EVIDENCE LIMITS:
+- <abstract-only, missing, conflicting, or excluded evidence>
 
 SEARCH STRATEGY:
 - Sources searched:

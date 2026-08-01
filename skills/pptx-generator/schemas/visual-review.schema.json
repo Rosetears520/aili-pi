@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/visual-review.schema.json",
+  "title": "Human or image-capable-agent visual review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "review_scope", "reviewer", "pptx_sha256", "render_sha256", "slide_ids", "pages", "findings", "disposition"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "report_kind": {"const": "visual-review"},
+    "review_scope": {"enum": ["style-proof", "final"]},
+    "status": {"enum": ["awaiting-host-image-inspection", "reviewed"]},
+    "reviewer": {"type": ["string", "null"]},
+    "pptx_sha256": {"$ref": "#/$defs/hash"},
+    "render_sha256": {"$ref": "#/$defs/hash"},
+    "slide_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "slide_id", "severity", "disposition"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "slide_id": {"type": "string", "minLength": 1},
+          "severity": {"enum": ["critical", "major", "minor"]},
+          "description": {"type": "string", "minLength": 1},
+          "observation": {"type": "string", "minLength": 1},
+          "disposition": {"enum": ["open", "resolved"]}
+        },
+        "anyOf": [{"required": ["description"]}, {"required": ["observation"]}]
+      }
+    },
+    "disposition": {"enum": ["unreviewed", "pass", "changes-required", "blocked", "unverified"]},
+    "auto_pass": {"const": false},
+    "pptx_path": {"type": "string"},
+    "render_manifest_path": {"type": "string"},
+    "render_manifest_sha256": {"$ref": "#/$defs/hash"},
+    "render_files": {"type": "array", "items": {"type": "object"}},
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slide_id", "page_id", "render_path", "render_sha256", "inspection_status", "checks", "observations"],
+        "properties": {
+          "slide_id": {"type": "string", "minLength": 1},
+          "page_id": {"type": "string", "minLength": 1},
+          "render_path": {"type": "string", "minLength": 1},
+          "render_sha256": {"$ref": "#/$defs/hash"},
+          "inspection_status": {"enum": ["not-inspected", "inspected"]},
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["alignment", "spacing", "text_wrap", "overflow", "image_aspect", "font_rendering", "reference_fidelity"],
+            "properties": {
+              "alignment": {"enum": ["not-inspected", "pass", "fail", "not-applicable"]},
+              "spacing": {"enum": ["not-inspected", "pass", "fail", "not-applicable"]},
+              "text_wrap": {"enum": ["not-inspected", "pass", "fail", "not-applicable"]},
+              "overflow": {"enum": ["not-inspected", "pass", "fail", "not-applicable"]},
+              "image_aspect": {"enum": ["not-inspected", "pass", "fail", "not-applicable"]},
+              "font_rendering": {"enum": ["not-inspected", "pass", "fail", "not-applicable"]},
+              "reference_fidelity": {"enum": ["not-inspected", "pass", "fail", "not-applicable"]}
+            }
+          },
+          "observations": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    },
+    "checklist": {"type": "array", "items": {"type": "string"}},
+    "review_output_path": {"type": "string"},
+    "host_action_required": {"type": "string"},
+    "file_existence_is_review": {"const": false},
+    "watch_is_visual_review_proof": {"const": false}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"disposition": {"const": "pass"}}},
+      "then": {
+        "properties": {
+          "reviewer": {"type": "string", "minLength": 1},
+          "pages": {
+            "items": {
+              "properties": {
+                "inspection_status": {"const": "inspected"},
+                "checks": {
+                  "properties": {
+                    "alignment": {"enum": ["pass", "not-applicable"]},
+                    "spacing": {"enum": ["pass", "not-applicable"]},
+                    "text_wrap": {"enum": ["pass", "not-applicable"]},
+                    "overflow": {"enum": ["pass", "not-applicable"]},
+                    "image_aspect": {"enum": ["pass", "not-applicable"]},
+                    "font_rendering": {"enum": ["pass", "not-applicable"]},
+                    "reference_fidelity": {"enum": ["pass", "not-applicable"]}
+                  }
+                },
+                "observations": {"minItems": 1}
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {"hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+}

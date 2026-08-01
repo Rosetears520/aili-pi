@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "audience": "",
+  "purpose": "",
+  "setting": "",
+  "language": "",
+  "output_path": "",
+  "visual_references": [
+    {
+      "id": "controlling-deck",
+      "path": "",
+      "sha256": null,
+      "role": "controlling-template",
+      "allowed_uses": ["layout", "palette", "fonts", "images", "charts", "shape-language"],
+      "fidelity_mode": "preserve",
+      "user_decision": "pending"
+    }
+  ],
+  "blockers": []
+}

@@ -1,11 +1,13 @@
 import { execFile as execFileCallback } from "node:child_process";
-import { copyFile, lstat, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { copyFile, lstat, mkdir, readFile, readlink, realpath, rm, writeFile } from "node:fs/promises";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import type { CoordinatorJournal } from "./storage.js";
 import { assertSafeAgentId } from "./storage.js";
 import type { SidecarLayout } from "./types.js";
 import type { TaskWorkspaceMode, TaskWriteScope } from "./task-schema.js";
+import type { FormalContinuationAudit } from "./task-schema.js";
+import type { FormalTaskProtection, FormalWorkspaceRequest } from "./task-coordinator.js";
 import { assertNoCredentialMaterial } from "./permission.js";
 import type { ExtensionAPI, ExtensionFactory } from "@earendil-works/pi-coding-agent";
 
@@ -30,8 +32,29 @@ export interface WorkspaceLease {
   projectRoot: string;
   root: string;
   scope: ValidatedWriteScope;
+  protectedPaths?: string[];
+  requestedMode?: TaskWorkspaceMode;
+  cwd?: string;
+  selector?: string;
+  jobId?: string;
+  initialTurnId?: string;
+  formalProtection?: FormalTaskProtection;
+  formalContinuationIdentity?: FormalContinuationAudit;
+  formalWorkspaceRequest?: FormalWorkspaceRequest;
   acquiredAt: string;
 }
+
+export type FormalWorkspaceLease = WorkspaceLease & {
+  requestedMode: TaskWorkspaceMode;
+  cwd: string;
+  selector: string;
+  jobId: string;
+  initialTurnId: string;
+  formalProtection: FormalTaskProtection;
+  formalContinuationIdentity: FormalContinuationAudit;
+  formalWorkspaceRequest: FormalWorkspaceRequest;
+  protectedPaths: string[];
+};
 
 function isInside(root: string, candidate: string): boolean {
   const rel = relative(root, candidate);
@@ -93,6 +116,70 @@ function scopeConflicts(left: ValidatedWriteScope, right: ValidatedWriteScope): 
   return [...new Set(conflicts)];
 }
 
+async function canonicalMutationTarget(path: string, followedLinks = new Set<string>()): Promise<string> {
+  const missingSegments: string[] = [];
+  let current = path;
+  while (true) {
+    try {
+      const stat = await lstat(current);
+      if (stat.isSymbolicLink()) {
+        if (followedLinks.has(current)) throw new Error(`workspace mutation symlink cycle at ${current}`);
+        followedLinks.add(current);
+        const target = resolve(dirname(current), await readlink(current), ...missingSegments.reverse());
+        return await canonicalMutationTarget(target, followedLinks);
+      }
+      return resolve(await realpath(current), ...missingSegments.reverse());
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      const parent = dirname(current);
+      if (parent === current) throw error;
+      missingSegments.push(basename(current));
+      current = parent;
+    }
+  }
+}
+
+function assertCompleteFormalLease(lease: WorkspaceLease): void {
+  const hasFormalState = lease.protectedPaths !== undefined
+    || lease.formalProtection !== undefined
+    || lease.formalContinuationIdentity !== undefined
+    || lease.formalWorkspaceRequest !== undefined
+    || lease.requestedMode !== undefined
+    || lease.cwd !== undefined
+    || lease.selector !== undefined
+    || lease.jobId !== undefined
+    || lease.initialTurnId !== undefined;
+  if (!hasFormalState) return;
+  const protection = lease.formalProtection;
+  const continuation = lease.formalContinuationIdentity;
+  const request = lease.formalWorkspaceRequest;
+  if (!protection || !continuation || !request || !lease.protectedPaths
+    || !lease.requestedMode || !lease.cwd || !lease.selector || !lease.jobId || !lease.initialTurnId) {
+    throw new Error(`${lease.agentId}: formal workspace lease protection is incomplete`);
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(protection.changeId)
+    || protection.changeId === "." || protection.changeId === "..") {
+    throw new Error(`${lease.agentId}: formal workspace lease change identity is invalid`);
+  }
+  const expected = [
+    `openspec/changes/${protection.changeId}/formal-task-board.md`,
+    `openspec/changes/${protection.changeId}/progress.txt`,
+  ];
+  if (lease.protectedPaths.length !== 2
+    || protection.protectedPaths.length !== 2
+    || expected.some((path, index) => lease.protectedPaths![index] !== path || protection.protectedPaths[index] !== path)) {
+    throw new Error(`${lease.agentId}: formal workspace lease protected paths are inconsistent`);
+  }
+  if (lease.selector !== request.selector
+    || lease.selector !== continuation.canonicalRole
+    || lease.requestedMode !== request.mode
+    || (lease.requestedMode === "shared" && lease.mode !== "shared")
+    || (lease.requestedMode === "isolated" && lease.mode !== "isolated")
+    || JSON.stringify(request.writeScope) !== JSON.stringify(continuation.writeScope)) {
+    throw new Error(`${lease.agentId}: formal workspace lease role, mode, or write scope is inconsistent`);
+  }
+}
+
 export class WorkspaceLeaseManager {
   private readonly leases = new Map<string, WorkspaceLease>();
   private readonly observedMutations = new Map<string, string>();
@@ -125,6 +212,13 @@ export class WorkspaceLeaseManager {
 
   acquire(lease: WorkspaceLease): void {
     if (this.leases.has(lease.agentId)) throw new Error(`${lease.agentId}: workspace lease already active`);
+    assertCompleteFormalLease(lease);
+    for (const protectedPath of lease.protectedPaths ?? []) {
+      if (!protectedPath || protectedPath !== protectedPath.trim() || isAbsolute(protectedPath)
+        || !isInside(lease.root, resolve(lease.root, protectedPath))) {
+        throw new Error(`${lease.agentId}: protected workspace path is invalid`);
+      }
+    }
     const decision = this.decide(lease.agentId, lease.mode, lease.projectRoot, lease.scope);
     if (decision.mode !== lease.mode) throw new Error(`${lease.agentId}: lease mode does not match conflict decision`);
     this.leases.set(lease.agentId, structuredClone(lease));
@@ -139,6 +233,11 @@ export class WorkspaceLeaseManager {
     return [...this.leases.values()].map((lease) => structuredClone(lease));
   }
 
+  get(agentId: string): WorkspaceLease | undefined {
+    const lease = this.leases.get(agentId);
+    return lease ? structuredClone(lease) : undefined;
+  }
+
   async assertFileMutation(agentId: string, path: string): Promise<{ allowed: true; diagnostic?: string }> {
     const lease = this.leases.get(agentId);
     if (!lease) throw new Error(`${agentId}: no active workspace lease`);
@@ -146,7 +245,19 @@ export class WorkspaceLeaseManager {
     const absolute = resolve(lease.root, path);
     if (!isInside(lease.root, absolute)) throw new Error(`${agentId}: mutation escapes workspace root`);
     const relativePath = relative(lease.root, absolute).replaceAll(sep, "/") || ".";
-    if (lease.scope.declared && lease.scope.paths.length > 0 && !lease.scope.paths.some((declared) => pathsOverlap(declared, relativePath))) {
+    const canonicalRoot = await realpath(lease.root);
+    const canonicalTarget = await canonicalMutationTarget(absolute);
+    if (!isInside(canonicalRoot, canonicalTarget)) throw new Error(`${agentId}: mutation symlink escapes workspace root`);
+    const canonicalRelativePath = relative(canonicalRoot, canonicalTarget).replaceAll(sep, "/") || ".";
+    const protectedTargets = await Promise.all((lease.protectedPaths ?? [])
+      .map(async (protectedPath) => await canonicalMutationTarget(resolve(lease.root, protectedPath))));
+    if ((lease.protectedPaths ?? []).includes(relativePath) || protectedTargets.includes(canonicalTarget)) {
+      throw new Error(`${agentId}: mutation of the formal task-board owning file is denied`);
+    }
+    if (lease.formalProtection && lease.scope.paths.length === 0) {
+      throw new Error(`${agentId}: formal file mutation requires an explicit path writeScope`);
+    }
+    if (lease.scope.declared && lease.scope.paths.length > 0 && !lease.scope.paths.some((declared) => pathsOverlap(declared, canonicalRelativePath))) {
       throw new Error(`${agentId}: mutation is outside declared writeScope; retry with corrected scope`);
     }
     if (lease.mode === "isolated") return { allowed: true };
@@ -167,6 +278,9 @@ export class WorkspaceLeaseManager {
     const lease = this.leases.get(agentId);
     if (!lease) throw new Error(`${agentId}: no active workspace lease`);
     const normalized = normalizeResource(resource);
+    if (lease.formalProtection && lease.scope.resources.length === 0) {
+      throw new Error(`${agentId}: formal resource mutation requires an explicit resource writeScope`);
+    }
     if (lease.scope.declared && lease.scope.resources.length > 0 && !lease.scope.resources.includes(normalized)) {
       throw new Error(`${agentId}: resource is outside declared writeScope`);
     }
@@ -176,6 +290,16 @@ export class WorkspaceLeaseManager {
     this.observedMutations.set(key, agentId);
     return { allowed: true };
   }
+}
+
+export async function persistFormalWorkspaceLease(journal: CoordinatorJournal, lease: FormalWorkspaceLease): Promise<void> {
+  await journal.append({
+    kind: "workspace.lease",
+    agentId: lease.agentId,
+    jobId: lease.jobId,
+    turnId: lease.initialTurnId,
+    payload: { record: lease as unknown as Record<string, unknown> },
+  });
 }
 
 export function createWorkspaceMutationGuard(manager: WorkspaceLeaseManager, agentId: string): ExtensionFactory {
@@ -327,6 +451,40 @@ export class GitIsolationAdapter {
     if (record.status === "cleaned") throw new Error(`${agentId}: isolated workspace was cleaned; transcript/output remain readable but Agent cannot revive`);
     if (record.status === "cleanup-failed") throw new Error(`${agentId}: isolated workspace cleanup failed; resolve retained artifact before revive`);
     return structuredClone(record);
+  }
+
+  async restore(agentId: string): Promise<IsolatedWorkspaceRecord> {
+    const record = this.assertResumable(agentId);
+    if (!record) throw new Error(`${agentId}: isolated workspace journal record is missing; shared fallback is forbidden`);
+    if (record.status !== "active" && record.status !== "finalized") {
+      throw new Error(`${agentId}: isolated workspace cannot revive from ${record.status}; shared fallback is forbidden`);
+    }
+    const [projectRoot, workspaceRoot] = await Promise.all([realpath(record.projectRoot), realpath(record.root)]).catch((error) => {
+      throw new Error(`${agentId}: isolated workspace paths are unavailable; shared fallback is forbidden (${error instanceof Error ? error.message : String(error)})`);
+    });
+    if (projectRoot !== record.projectRoot || workspaceRoot !== record.root) {
+      throw new Error(`${agentId}: isolated workspace canonical root changed; shared fallback is forbidden`);
+    }
+    const [projectTop, workspaceTop, branch, head] = await Promise.all([
+      git(projectRoot, ["rev-parse", "--show-toplevel"]),
+      git(workspaceRoot, ["rev-parse", "--show-toplevel"]),
+      git(workspaceRoot, ["rev-parse", "--abbrev-ref", "HEAD"]),
+      git(workspaceRoot, ["rev-parse", "HEAD"]),
+    ]).catch((error) => {
+      throw new Error(`${agentId}: isolated workspace Git identity cannot be verified; shared fallback is forbidden (${error instanceof Error ? error.message : String(error)})`);
+    });
+    if (await realpath(projectTop.stdout.trim()) !== projectRoot
+      || await realpath(workspaceTop.stdout.trim()) !== workspaceRoot
+      || branch.stdout.trim() !== record.branch) {
+      throw new Error(`${agentId}: isolated workspace Git root or branch identity changed; shared fallback is forbidden`);
+    }
+    const expectedHead = record.status === "finalized" ? record.resultCommit : undefined;
+    if (expectedHead && head.stdout.trim() !== expectedHead) {
+      throw new Error(`${agentId}: finalized isolated workspace result commit changed; shared fallback is forbidden`);
+    }
+    const ancestor = await git(workspaceRoot, ["merge-base", "--is-ancestor", record.baselineCommit, "HEAD"], true);
+    if (ancestor.code !== 0) throw new Error(`${agentId}: isolated workspace baseline is not an ancestor; shared fallback is forbidden`);
+    return record;
   }
 
   private async put(record: IsolatedWorkspaceRecord): Promise<void> {

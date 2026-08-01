@@ -1,162 +1,138 @@
 # Editing Existing Presentations
 
-## Template-Based Workflow
+## Fidelity Contract
 
-When using an existing presentation as a template:
+[FRAME] “Keep the original format/style” means preserving the controlling deck's visual grammar unless the user names a specific exception. It does not mean freezing every line break or preventing necessary overflow repair.
 
-1. **Copy and analyze**:
-   ```bash
-   cp /path/to/user-provided.pptx template.pptx
-   python -m markitdown template.pptx > template.md
-   ```
-   Review `template.md` to see placeholder text and slide structure.
+Preserve by default:
 
-2. **Plan slide mapping**: For each content section, choose a template slide.
+- slide size and orientation;
+- masters, layouts, themes, and placeholders;
+- recurring title, footer, navigation, and page-number behavior;
+- font roles, palette roles, shape language, image treatment, and chart/table treatment;
+- content-area boundaries, alignment lines, spacing rhythm, and section structure.
 
-   **USE VARIED LAYOUTS** — monotonous presentations are a common failure mode. Don't default to basic title + bullet slides. Actively seek out:
-   - Multi-column layouts (2-column, 3-column)
-   - Image + text combinations
-   - Full-bleed images with text overlay
-   - Quote or callout slides
-   - Section dividers
-   - Stat/number callouts
-   - Icon grids or icon + text rows
+Write to an edited copy unless the user explicitly asks to replace the original.
 
-   **Avoid:** Repeating the same text-heavy layout for every slide.
+## Template-Preserving Workflow
 
-   Match content type to layout style (e.g., key points -> bullet slide, team info -> multi-column, testimonials -> quote slide).
+### 1. Protect the Baseline
 
-3. **Unpack**: Extract the PPTX into an editable XML tree using Python's `zipfile` module. Pretty-print the XML for readability.
+1. Keep the supplied deck unchanged.
+2. Create one task-scoped working copy inside the approved artifact location.
+3. Record the original workspace-relative path and SHA-256 in `sources/manifest.json`, together with slide count, dimensions, and output target.
+4. Put the page mapping, final order, title, Layout, and Content in the canonical per-slide Markdown rather than a second editable mapping file.
 
-4. **Build presentation** (do this yourself, not with subagents):
-   - Delete unwanted slides (remove from `<p:sldIdLst>`)
-   - Duplicate slides you want to reuse (copy slide XML, relationships, and update `Content_Types.xml` and `presentation.xml`)
-   - Reorder slides in `<p:sldIdLst>`
-   - **Complete all structural changes before step 5**
+Completion criterion: the original remains recoverable and the working target is explicit.
 
-5. **Edit content**: Update text in each `slide{N}.xml`.
-   **Use subagents here if available** — slides are separate XML files, so subagents can edit in parallel.
+### 2. Inventory the Visual Grammar
 
-6. **Clean**: Remove orphaned files — slides not in `<p:sldIdLst>`, unreferenced media, orphaned rels.
+Inspect at least:
 
-7. **Pack**: Repack the XML tree into a PPTX file. Validate, repair, condense XML, re-encode smart quotes.
+1. slide masters and layouts;
+2. theme colors and fonts;
+3. title and content-area positions;
+4. repeated guides, margins, and gaps;
+5. background and image treatments;
+6. shape corner, line, shadow, and material styles;
+7. chart and table styling;
+8. recurring headers, footers, logos, navigation, and page numbers;
+9. representative slides for every section or layout family.
 
-   Always write to `/tmp/` first, then copy to the final path. Python's `zipfile` module uses `seek` internally, which fails on some volume mounts (e.g. Docker bind mounts). Writing to a local temp path avoids this.
+Use the style and layout observations in [`human-design-playbook.md`](human-design-playbook.md) to name the patterns without imposing unrelated defaults.
 
-## Output Structure
+Completion criterion: the deck's reusable grammar is written down before content is remapped.
 
-Copy the user-provided file to `template.pptx` in cwd. This preserves the original and gives a predictable name for all downstream operations.
+[FRAME] `template-profile.json` is the executable record for this step. It binds the controlling-template hash and records master/layout/shape identity, palette/layout capacity, image frames, alignment/spacing groups, paragraph properties, and each text run's raw direct formatting, inheritance source, and resolved effective font/size/color/style. Role-level typography summaries are navigation only and must not overwrite local run differences.
 
-```bash
-cp /path/to/user-provided.pptx template.pptx
-```
+### 3. Map Content to Native Layouts
 
-```text
-./
-├── template.pptx               # Copy of user-provided file (never modified)
-├── template.md                 # markitdown extraction
-├── unpacked/                   # Editable XML tree
-└── edited.pptx                 # Final repacked deck
-```
+For every source section:
 
-Minimum expected deliverable: `edited.pptx`.
+1. identify the audience question and conclusion-style title;
+2. choose an existing slide/layout whose information relationship fits;
+3. map every text, image, chart, table, icon, label, and citation slot;
+4. note slots that must be deleted, duplicated, or changed;
+5. choose a different native layout only when the content relationship changes.
 
-## Slide Operations
+Prefer reusing or duplicating a native slide over reconstructing its appearance from scratch.
 
-Slide order is in `ppt/presentation.xml` -> `<p:sldIdLst>`.
+Completion criterion: every source item has a destination and every template placeholder has a disposition.
 
-**Reorder**: Rearrange `<p:sldId>` elements.
+### 4. Complete Structural Changes First
 
-**Delete**: Remove `<p:sldId>`, then clean orphaned files.
+Before editing final copy:
 
-**Add**: Copy the source slide's XML file, its `.rels` file, and update `Content_Types.xml` and `presentation.xml`. Never manually copy slide files without updating all references — this causes broken notes references and missing relationship IDs.
+1. remove unwanted slides;
+2. duplicate needed slides with all relationships intact;
+3. reorder slides;
+4. update section/navigation structure;
+5. confirm the final slide count and mapping.
 
-## Editing Content
+[FRAME] Express rebuildable OfficeCLI mutations in `patches/officecli-postbuild.batch.json` and replay them from the current base deck. Direct edits to a derived final PPTX are not the normal source of truth.
 
-**Subagents:** If available, use them here (after completing step 4). Each slide is a separate XML file, so subagents can edit in parallel. In your prompt to subagents, include:
-- The slide file path(s) to edit
-- **"Use the Edit tool for all changes"**
-- The formatting rules and common pitfalls below
+For package-level XML work, keep `presentation.xml`, slide XML, relationship files, `[Content_Types].xml`, notes, comments, and media references consistent. Do not copy a slide XML file without its required relationship and content-type updates.
+
+Completion criterion: the package structure is coherent before detailed text replacement begins.
+
+### 5. Replace Content without Flattening the Design
 
 For each slide:
-1. Read the slide's XML
-2. Identify ALL placeholder content — text, images, charts, icons, captions
-3. Replace each placeholder with final content
 
-**Use the Edit tool, not sed or Python scripts.** The Edit tool forces specificity about what to replace and where, yielding better reliability.
+1. replace all placeholder copy and media;
+2. retain paragraph, run, placeholder, and theme formatting where possible;
+3. keep separate list items in separate paragraphs;
+4. remove an unused visual group instead of only clearing its text;
+5. retain the original alignment and spacing tokens unless the new content requires a bounded repair;
+6. preserve native chart/table editability when the user needs editable data;
+7. preserve image aspect ratio and reposition the crop inside the established frame.
+8. apply `shape-to-fit-text` to every supported editable text-bearing shape after paragraph/run formatting, then reread its final geometry.
 
-## Formatting Rules
+When replacement text is longer, repair in this order:
 
-- **Bold all headers, subheadings, and inline labels**: Use `b="1"` on `<a:rPr>`. This includes:
-  - Slide titles
-  - Section headers within a slide
-  - Inline labels like (e.g.: "Status:", "Description:") at the start of a line
-- **Never use unicode bullets**: Use proper list formatting with `<a:buChar>` or `<a:buAutoNum>`
-- **Bullet consistency**: Let bullets inherit from the layout. Only specify `<a:buChar>` or `<a:buNone>`.
+1. shorten or restructure the copy without changing its meaning;
+2. use another native layout with more capacity;
+3. split the content across slides;
+4. reduce type size only within the deck's established readable range.
 
-## Common Pitfalls — Template Editing
+Ask before cutting user-required content. Do not solve overflow by silently shrinking text below a readable size.
 
-### Template Adaptation
+Completion criterion: every placeholder is resolved and the new content still follows the template's visual grammar.
 
-When source content has fewer items than the template:
-- **Remove excess elements entirely** (images, shapes, text boxes), don't just clear text
-- Check for orphaned visuals after clearing text content
-- Run content QA with `markitdown` to catch mismatched counts
+[FRAME] AutoFit is not an overflow verdict. If expansion causes overlap, off-slide geometry, broken equal-size groups, spacing drift, or unwanted wrapping, select a better native layout, repair neighboring layout, split the slide, or request a content decision. Do not disable AutoFit or silently normalize run-level formatting to hide the defect.
 
-When replacing text with different length content:
-- **Shorter replacements**: Usually safe
-- **Longer replacements**: May overflow or wrap unexpectedly
-- Verify with `markitdown` after text changes
-- Consider truncating or splitting content to fit the template's design constraints
+### 6. Clean and Repack
 
-**Template slots != Source items**: If template has 4 team members but source has 3 users, delete the 4th member's entire group (image + text boxes), not just the text.
+1. Remove orphaned slides, relationships, notes, comments, and media introduced by the edit.
+2. Repack through a local scratch path when the selected PPTX library needs seekable storage.
+3. Copy the final package only to the approved artifact target.
+4. Preserve valid XML namespaces and character encoding.
 
-### Multi-Item Content
+Completion criterion: the PPTX opens without repair warnings and contains no orphaned task-created package parts.
 
-If source has multiple items (numbered lists, multiple sections), create separate `<a:p>` elements for each — **never concatenate into one string**.
+### 7. Compare Before and After
 
-**WRONG** — all items in one paragraph:
-```xml
-<a:p>
-  <a:r><a:rPr .../><a:t>Step 1: Do the first thing. Step 2: Do the second thing.</a:t></a:r>
-</a:p>
-```
+Run three comparisons:
 
-**CORRECT** — separate paragraphs with bold headers:
-```xml
-<a:p>
-  <a:pPr algn="l"><a:lnSpc><a:spcPts val="3919"/></a:lnSpc></a:pPr>
-  <a:r><a:rPr lang="en-US" sz="2799" b="1" .../><a:t>Step 1</a:t></a:r>
-</a:p>
-<a:p>
-  <a:pPr algn="l"><a:lnSpc><a:spcPts val="3919"/></a:lnSpc></a:pPr>
-  <a:r><a:rPr lang="en-US" sz="2799" .../><a:t>Do the first thing.</a:t></a:r>
-</a:p>
-<a:p>
-  <a:pPr algn="l"><a:lnSpc><a:spcPts val="3919"/></a:lnSpc></a:pPr>
-  <a:r><a:rPr lang="en-US" sz="2799" b="1" .../><a:t>Step 2</a:t></a:r>
-</a:p>
-<!-- continue pattern -->
-```
+1. **Content:** slide order, title, body, labels, citations, and missing/extra items.
+2. **Visual:** content area, alignment, spacing, font substitution, image crop, chart/table style, and recurring navigation.
+3. **Package:** relationships, media, masters/layouts, notes, and corruption/repair warnings.
 
-Copy `<a:pPr>` from the original paragraph to preserve line spacing. Use `b="1"` on headers.
+Render every changed slide and at least one unchanged neighboring slide so style drift is visible.
 
-### Smart Quotes
+Completion criterion: all changed slides are checked against the baseline and every remaining fidelity limitation is reported.
 
-The Edit tool converts smart quotes to ASCII. **When adding new text with quotes, use XML entities:**
+## XML-Specific Notes
 
-```xml
-<a:t>the &#x201C;Agreement&#x201D;</a:t>
-```
+- Copy the original paragraph properties when inserting new paragraphs so line spacing and bullet behavior survive.
+- Use native bullet or numbering properties instead of Unicode bullet characters.
+- Preserve `xml:space="preserve"` where leading or trailing spaces are meaningful.
+- Use a namespace-safe parser for structural operations.
+- Keep smart punctuation encoded correctly when a text-edit path normalizes characters.
 
-| Character | Name | Unicode | XML Entity |
-|-----------|------|---------|------------|
-| \u201c | Left double quote | U+201C | `&#x201C;` |
-| \u201d | Right double quote | U+201D | `&#x201D;` |
-| \u2018 | Left single quote | U+2018 | `&#x2018;` |
-| \u2019 | Right single quote | U+2019 | `&#x2019;` |
+## Failure Behavior
 
-### Other
-
-- **Whitespace**: Use `xml:space="preserve"` on `<a:t>` with leading/trailing spaces
-- **XML parsing**: Use `defusedxml.minidom`, not `xml.etree.ElementTree` (corrupts namespaces)
+- Missing required source deck or read capability: `need-evidence` or `blocked`.
+- Unresolved master/layout relationship or corrupt package: `blocked`; retain the last known-good copy.
+- Visual rendering unavailable: deliver only with visual fidelity marked `Unverified`.
+- Requested content cannot fit without cutting or changing the template: `need-user` with the smallest decision required.

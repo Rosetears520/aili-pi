@@ -2,8 +2,8 @@
   "spdxVersion": "SPDX-2.3",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "name": "@rosetears/aili-pi-0.1.15",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/fc42ccac6303edb780b0538ea715c77b",
+  "name": "@rosetears/aili-pi-0.1.16",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/46b78a33eb6e34e68be204dbf68017f1",
   "creationInfo": {
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
@@ -13,7 +13,7 @@
     {
       "SPDXID": "SPDXRef-Package-aili-pi",
       "name": "@rosetears/aili-pi",
-      "versionInfo": "0.1.15",
+      "versionInfo": "0.1.16",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "AGPL-3.0-or-later",
@@ -24,14 +24,14 @@
     {
       "SPDXID": "SPDXRef-source-aili-workflows-ad83a8f0ba",
       "name": "aili-workflows",
-      "versionInfo": "0.2.7",
-      "downloadLocation": "https://github.com/Rosetears520/aili-workflows/commit/7eb35f357ad489f5841ee10dac1e44549c1bdb76",
+      "versionInfo": "0.4.2",
+      "downloadLocation": "https://github.com/Rosetears520/aili-workflows/commit/bb1fedacc46d71045daa6257d121f2b71ba29d54",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=7eb35f357ad489f5841ee10dac1e44549c1bdb76; files=upstream/aili-workflows.lock.json#files (471 exact skill files), manifests/roles.json#records[].sourcePath (19 exact role source files), upstream/opencode-global-agents.lock.json (pinned source template revision/hash); symbols=64 canonical skill bodies and owned assets, 19 child-role prompt bodies; local changes=skills/** is an exact byte-for-byte snapshot with no semantic overlay | role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output | templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded"
+      "comment": "revision=bb1fedacc46d71045daa6257d121f2b71ba29d54; files=upstream/aili-workflows.lock.json#files (588 exact skill files), manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.2 source revision), upstream/opencode-global-agents.lock.json (pinned source template revision/hash); symbols=65 canonical skill bodies and owned assets; local changes=skills/** is an exact byte-for-byte snapshot with no semantic overlay | specialized role prompts preserve ordinary JSON output while the Pi Runtime supplies the exact canonical formal-result override; deterministic routing and role profiles remain manifest-hash bound to the exact 0.4.2 source revision | templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded"
     },
     {
       "SPDXID": "SPDXRef-source-pi-permission-modes-9b38b384cd",
@@ -43,7 +43,7 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=23d65d10a53b67043cae42322acf9044d6edb196; files=src/vendor/pi-permission-modes/index.ts, src/vendor/pi-permission-modes/resolve.ts, upstream/pi-permission-modes.lock.json, licenses/pi-permission-modes-MIT.txt; symbols=Default/Plan/Build/YOLO, /perm, Alt+M, shared permission pattern matcher, sandbox degradation; local changes=AILI's generated adapted entry redirects unchanged sibling modules to the exact 2.2.0 dependency | the owned resolve.ts compiles permission globs with RegExp dotAll so * and ? include ECMAScript line terminators | the exact upstream and adapted files are hash-locked and drift-checked"
+      "comment": "revision=23d65d10a53b67043cae42322acf9044d6edb196; files=src/vendor/pi-permission-modes/index.ts, src/vendor/pi-permission-modes/resolve.ts, upstream/pi-permission-modes.lock.json, licenses/pi-permission-modes-MIT.txt; symbols=Default/Plan/Build/YOLO, /perm, Alt+M, shared permission pattern matcher, sandbox degradation; local changes=AILI's generated adapted entry redirects unchanged sibling modules to the exact 2.2.0 dependency | the owned resolve.ts compiles permission globs with RegExp dotAll so * and ? include ECMAScript line terminators | the process-owned sandbox composes the exact formal Board denyWrite paths for persistent children | the exact upstream and adapted files are hash-locked and drift-checked"
     },
     {
       "SPDXID": "SPDXRef-source-pi-quota-status-63ccce8956",

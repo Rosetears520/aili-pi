@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/design-brief.schema.json",
+  "title": "PPTX design brief",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "audience_need", "communication_goal", "tone", "controlling_brand_or_template", "material_decisions"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "audience_need": {"type": "string"},
+    "communication_goal": {"type": "string"},
+    "tone": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "controlling_brand_or_template": {"type": ["string", "null"]},
+    "material_decisions": {"type": "array", "items": {"type": "string"}}
+  }
+}

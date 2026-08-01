@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/font-contract.schema.json",
+  "title": "PPTX intended font requirements",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "selection_basis", "template_profile_sha256", "fonts"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "selection_basis": {"type": "string", "minLength": 1},
+    "template_profile_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "fonts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+          "required": ["role", "family", "required", "fallback_allowed", "source"],
+        "properties": {
+          "role": {"type": "string", "minLength": 1},
+          "family": {"type": "string", "minLength": 1},
+          "required": {"type": "boolean"},
+          "fallback_allowed": {"type": "boolean"},
+          "approved_fallbacks": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "source": {"enum": ["controlling-template", "brand", "user", "project", "fallback"]},
+          "template_run_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+        }
+      }
+    }
+  }
+}

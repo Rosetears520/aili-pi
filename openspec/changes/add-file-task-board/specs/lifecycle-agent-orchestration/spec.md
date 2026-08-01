@@ -1,5 +1,7 @@
 ## ADDED Requirements
 
+> **Historical capability-source status (2026-08-01):** These requirements are retained for source material. `openspec/changes/integrate-upstream-formal-agent-protocols` is the sole future BUILD and release owner for overlapping scope. This specification does not independently authorize package dispatch, advancement, acceptance, closure, publication, or release, and historical completion/runtime claims elsewhere in this change were not reverified here.
+
 ### Requirement: Ordinary Pi and active AILI lifecycle use explicit delegation precedence
 Outside a resolved IDEATE, DEFINE, BUILD, or SHIP formal lifecycle, ordinary Pi SHALL retain benefit-based delegation and direct parent work MAY remain valid. Inside an active formal lifecycle, accepted work-package ownership SHALL control execution: an Agent-owned ready package MUST dispatch before ROSE performs the same scope, while ROSE-owned packages remain direct. This override MUST NOT imply that every lifecycle package is Agent-owned.
 

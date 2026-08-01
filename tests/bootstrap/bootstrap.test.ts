@@ -126,6 +126,9 @@ describe("thin Unix bootstrap", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("pi_state=installed aili_state=installed");
     expect(result.stdout).toContain("platform=linux architecture=x86_64");
+    expect(result.stdout).toContain("shared_workflows_status=not-run owner=explicit-user-command");
+    expect(result.stdout).toContain("shared_workflows_install_command=npx -y rose-aili@0.4.2 install");
+    expect(result.stdout).toContain("shared_workflows_update_command=npx -y rose-aili@0.4.2 update");
     const log = await readFile(fx.log, "utf8");
     expect(log).toContain("official-installer");
     expect(log).toContain("--proto =https --proto-redir =https");

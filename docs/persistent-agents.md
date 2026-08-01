@@ -59,6 +59,8 @@ A batch validates every item before creating any Agent:
 
 Per-item fields are `task`, `context`, `agent`, `name`, `model`, `async`, `tools`, `workspace`, `writeScope`, and `cwd`. Unknown fields fail validation. `blocking` is profile-only internal metadata, not a `task` field; callers must use `async:false` to wait synchronously.
 
+Formal calls additionally use the public v1 `formalContext: { "changeId": "..." }` plus the exact sibling `continuationAudit`. A mutation-capable formal role must declare at least one normalized `writeScope.paths` or `writeScope.resources` entry; empty scope fails before allocation. Read-only roles may use an empty scope. The scope never authorizes either owning `formal-task-board.md` or `progress.txt`; those files remain hard-denied to children even when a broader parent directory is declared.
+
 Every item creates a new Agent. Reusing `name: "Scout"` allocates `Scout`, `Scout-2`, and so on; it never resumes the first Agent. Follow-up work uses `hub send` with the allocated Agent ID. Nested IDs are parent-prefixed, such as `general.code-scout`.
 
 Top-level non-blocking roles default to async. `async:false`, an internally blocking role profile, and all child-to-grandchild calls are synchronous. One parent allows at most 32 active turns; excess jobs remain in durable FIFO order. AILI sets no Agent-turn wall-clock or assistant-request budget (`0`/unlimited), but provider watchdogs, tool timeouts, permissions, the 32-turn semaphore, process shutdown, and manual cancellation still apply. Background work does not survive the Pi process.
@@ -75,6 +77,10 @@ Top-level non-blocking roles default to async. `async:false`, an internally bloc
 - `jobs` — owned job state
 - `cancel` — hard-cancel a job or release an idle/parked identity without deleting history
 - `model` — query or request model override operations
+- `formal-plan` — top-level parent/ROSE only; resolve and plan one exact ready formal package from explicit current operation-gate, ownership, async-safety when needed, and write-scope evidence
+- `formal-reconcile` — top-level parent/ROSE only; explicitly inspect same-identity initial and continuation turns and apply only the bounded returned/blocked restart mapping
+
+Child Agents cannot invoke either formal action. Planning returns an exact `taskRequest` but does not submit it. Reconciliation is never automatic and never replays or redispatches work, accepts evidence, closes a join, marks a package done, or advances phase. A queued/running same-identity follow-up preserves the running package; failed, aborted, or interrupted follow-ups block it. A completed follow-up without fresh immutable canonical result evidence cannot reuse the initial result.
 
 Only failed live handoff enters the durable mailbox. Each Agent keeps at most 100 messages; the 101st is rejected while the existing 100 remain. Successful messages have durable receipts for de-duplication.
 
@@ -83,6 +89,8 @@ Running, idle, parked, and aborted Agents never run two concurrent turns under o
 ## Output, history, and retention
 
 Complete raw output is stored at the parent-owned `<agent-id>.md`; the official Pi child conversation remains an independent Session JSONL. Tool results return at most 500,000 bytes and 5,000 lines, while parent completion previews are capped at 5,000 characters with explicit truncation metadata.
+
+Generated roles request the ordinary JSON result object for ordinary assignments. A formal Runtime assignment includes `FORMAL ASSIGNMENT OUTPUT OVERRIDE:` followed by the exact line-oriented `CANONICAL RESULT:` envelope and field order; that assignment-level contract supersedes ordinary JSON. Missing, extra, reordered, multiline, wrong-package, or wrong-role fields fail canonical parsing.
 
 Use `agent://<agent-id>` and `history://<agent-id>` as stable references. `hub output/history` resolves them with `offset` and `limit`, including after an Agent is released.
 

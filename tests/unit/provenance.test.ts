@@ -1,9 +1,21 @@
 import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import { validateProvenance } from "../../src/runtime/registry.js";
 import { renderSourceNotice } from "../../scripts/generate-provenance.js";
 
+const execFileAsync = promisify(execFile);
+
 describe("provenance and SBOM", () => {
+  it("passes deterministic compatibility and provenance artifact verification", async () => {
+    const root = new URL("../../", import.meta.url);
+    const compatibility = await execFileAsync(process.execPath, ["--experimental-strip-types", "scripts/apply-adapter-evidence.ts", "--verify"], { cwd: root });
+    const provenance = await execFileAsync(process.execPath, ["--experimental-strip-types", "scripts/generate-provenance.ts", "--verify"], { cwd: root });
+    expect(compatibility.stdout).toContain("Adapter evidence verified");
+    expect(provenance.stdout).toContain("Provenance verified");
+  });
+
   it("renders optional upstream attribution without claiming copied files", () => {
     const notice = renderSourceNotice({
       name: "opencode-acp",
@@ -68,13 +80,28 @@ describe("provenance and SBOM", () => {
     }));
   });
 
+  it("binds aili-workflows provenance to the exact rose-aili release", async () => {
+    const [provenance, notices] = await Promise.all([
+      readFile(new URL("../../manifests/provenance.json", import.meta.url), "utf8").then(JSON.parse),
+      readFile(new URL("../../THIRD_PARTY_NOTICES.md", import.meta.url), "utf8"),
+    ]);
+    expect(provenance.sources.find((item: { name: string }) => item.name === "aili-workflows")).toMatchObject({
+      repository: "https://github.com/Rosetears520/aili-workflows.git",
+      revision: "bb1fedacc46d71045daa6257d121f2b71ba29d54",
+      version: "0.4.2",
+      status: "adapted",
+    });
+    expect(notices).toContain("Revision: bb1fedacc46d71045daa6257d121f2b71ba29d54");
+    expect(notices).toContain("Version: 0.4.2");
+  });
+
   it("emits a deterministic SPDX 2.3 inventory with locked package integrity", async () => {
     const sbom = JSON.parse(await readFile(new URL("../../manifests/sbom.json", import.meta.url), "utf8"));
     expect(sbom.spdxVersion).toBe("SPDX-2.3");
-    expect(sbom.name).toBe("@rosetears/aili-pi-0.1.15");
+    expect(sbom.name).toBe("@rosetears/aili-pi-0.1.16");
     expect(sbom.packages[0]).toMatchObject({
       name: "@rosetears/aili-pi",
-      versionInfo: "0.1.15",
+      versionInfo: "0.1.16",
       licenseConcluded: "AGPL-3.0-or-later",
       licenseDeclared: "AGPL-3.0-or-later",
     });

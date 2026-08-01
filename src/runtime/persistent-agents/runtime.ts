@@ -18,12 +18,38 @@ import {
 } from "./storage.js";
 import {
   AsyncDeliveryService,
+  persistFormalResultEvidence,
   persistFullAgentOutput,
   readAgentHistory,
   readAgentOutput,
+  verifyFormalResultEvidence,
   type ParentDeliveryAdapter,
 } from "./output-delivery.js";
-import type { SidecarLayout } from "./types.js";
+import type { FormalResultEvidenceRecord, SidecarLayout } from "./types.js";
+import {
+  renderCompactAgentCatalog,
+  type AgentCatalog,
+} from "../agent-catalog.js";
+import { resolveFormalTaskBoardRoot } from "../formal-task-board-root.js";
+import { applyFormalTaskBoardUpdate, type FormalTaskBoardApplyResult, type FormalTaskBoardUpdateHooks } from "../formal-task-board-update.js";
+import { validateFormalTaskBoard, type FormalTaskPackage } from "../formal-task-board.js";
+import {
+  planFormalPackageExecution,
+  planFormalRuntimeReconciliation,
+  type FormalAsyncSafetyEvidence,
+  type FormalLifecycleSnapshot,
+  type FormalOperationGateEvidence,
+  type FormalOwnershipEvidence,
+  type FormalPackageExecutionObservation,
+  type FormalPackageExecutionPlan,
+  type FormalRuntimeReconciliationObservation,
+  type FormalRuntimeReconciliationPlan,
+} from "../formal-orchestration.js";
+import { loadRoleProfiles } from "../roles.js";
+import type { FormalContinuationAudit } from "./task-schema.js";
+import type { TaskWriteScope } from "./task-schema.js";
+import { assertNoCredentialMaterial } from "./permission.js";
+import { validateWriteScope } from "./workspace.js";
 
 export interface PersistentRuntimeExecutorInput extends TaskExecutorInput {
   sessionManager: SessionManager;
@@ -34,10 +60,88 @@ export interface PersistentAgentRuntimeOptions {
   parentId: string;
   cwd: string;
   execute: (input: PersistentRuntimeExecutorInput) => Promise<TaskExecutionOutput>;
+  preflight?: (input: TaskExecutorInput) => void | Promise<void>;
+  preflightContinuation?: (agentId: string) => void | Promise<void>;
   parentDelivery: ParentDeliveryAdapter;
   revive: (agentId: string, sessionManager: SessionManager) => Promise<LiveAgentAdapter>;
   modelHubOperation?: (request: Record<string, unknown>, caller: HubCaller) => Promise<unknown>;
   onRelease?: (agentId: string) => void | Promise<void>;
+}
+
+export interface FormalRuntimeReconciliationRequest {
+  actor: "ROSE";
+  changeId: string;
+  timestamp: string;
+  hooks?: FormalTaskBoardUpdateHooks;
+}
+
+export interface FormalRuntimePackagePlanRequest {
+  actor: "ROSE";
+  changeId: string;
+  packageId: string;
+  writeScope: TaskWriteScope;
+  operationGate: FormalOperationGateEvidence;
+  ownership: FormalOwnershipEvidence;
+  asyncSafety?: FormalAsyncSafetyEvidence;
+  observations?: readonly FormalPackageExecutionObservation[];
+}
+
+export type FormalRuntimeReconciliationApplyResult =
+  | {
+      status: "applied" | "preserved";
+      plan: FormalRuntimeReconciliationPlan;
+      updates: readonly FormalTaskBoardApplyResult[];
+    }
+  | {
+      status: "blocked";
+      diagnostics: readonly string[];
+      plan?: FormalRuntimeReconciliationPlan;
+      updates: readonly FormalTaskBoardApplyResult[];
+    };
+
+function packageField(taskPackage: FormalTaskPackage, name: keyof FormalTaskPackage["fields"]): string {
+  return taskPackage.fields[name]?.value ?? "";
+}
+
+function formalMetadata(record: { metadata?: Record<string, unknown> } | undefined): {
+  protection?: { changeId: string };
+  identity?: FormalContinuationAudit;
+} {
+  const protection = record?.metadata?.formalProtection;
+  const identity = record?.metadata?.formalContinuationIdentity;
+  return {
+    protection: protection && typeof protection === "object" && !Array.isArray(protection)
+      && typeof (protection as { changeId?: unknown }).changeId === "string"
+      ? protection as { changeId: string }
+      : undefined,
+    identity: identity && typeof identity === "object" && !Array.isArray(identity)
+      ? identity as FormalContinuationAudit
+      : undefined,
+  };
+}
+
+function sameValue(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function evidenceState(error: unknown): "missing" | "unreadable" {
+  return error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT"
+    ? "missing"
+    : "unreadable";
+}
+
+interface FormalReconciliationCheckpointEntry {
+  agentId: string;
+  jobId: string;
+  turnId: string;
+  agentState: string;
+  turns: Array<{ turnId: string; state: string }>;
+  evidence?: FormalResultEvidenceRecord;
+}
+
+interface FormalReconciliationCheckpoint {
+  sequence: number;
+  entries: FormalReconciliationCheckpointEntry[];
 }
 
 export class PersistentAgentRuntime {
@@ -57,12 +161,17 @@ export class PersistentAgentRuntime {
     this.delivery = new AsyncDeliveryService(this.layout, this.journal, options.parentDelivery);
     this.task = new TaskCoordinator({
       journal: this.journal,
+      repositoryRoot: options.cwd,
       execute: async (input) => {
+        await options.preflight?.(input);
         const manager = await this.childManager(input.agentId);
         return await options.execute({ ...input, sessionManager: manager });
       },
       onSettled: async (settlement, fullOutput) => {
         await persistFullAgentOutput(this.layout, settlement.agentId, fullOutput);
+      },
+      onFormalSettled: async (settlement, fullOutput) => {
+        await persistFormalResultEvidence(this.layout, this.journal, settlement, fullOutput);
       },
       onAsyncSettled: async (settlement, fullOutput) => {
         await this.delivery.complete(settlement, fullOutput);
@@ -70,7 +179,11 @@ export class PersistentAgentRuntime {
     });
     this.hub = new HubService({
       journal: this.journal,
+      ...(options.preflightContinuation ? {
+        preflightContinuation: async (agent) => await options.preflightContinuation!(agent.id),
+      } : {}),
       revive: async (agent) => {
+        await options.preflightContinuation?.(agent.id);
         if (!agent.sessionPath) throw new Error(`${agent.id}: no registered child session`);
         const manager = await openChildSessionManager(this.layout, agent.sessionPath);
         this.childManagers.set(agent.id, manager);
@@ -99,6 +212,265 @@ export class PersistentAgentRuntime {
     this.childManagers.clear();
   }
 
+  async planFormalTaskPackage(request: FormalRuntimePackagePlanRequest): Promise<FormalPackageExecutionPlan> {
+    await assertNoCredentialMaterial(request, "formal plan input");
+    if (!request || request.actor !== "ROSE" || typeof request.changeId !== "string" || typeof request.packageId !== "string") {
+      return { status: "blocked", diagnostics: [{ code: "FORMAL_PLAN_IDENTITY_INVALID", message: "Formal planning requires one exact parent/ROSE change and package identity." }] };
+    }
+    if (!request.writeScope || !Array.isArray(request.writeScope.paths) || !Array.isArray(request.writeScope.resources)
+      || request.writeScope.paths.length > 64 || request.writeScope.resources.length > 64
+      || [...request.writeScope.paths, ...request.writeScope.resources].some((value) => typeof value !== "string" || value.length === 0 || value.length > 300)) {
+      return { status: "blocked", taskIdentity: request.changeId, packageId: request.packageId, diagnostics: [{ code: "WRITE_SCOPE_INVALID", message: "Formal planning requires an explicit writeScope." }] };
+    }
+    const validated = await validateWriteScope(this.options.cwd, request.writeScope);
+    const writeScope: TaskWriteScope = { paths: validated.paths, resources: validated.resources };
+    const root = await resolveFormalTaskBoardRoot({
+      repositoryRoot: this.options.cwd,
+      identity: { state: "resolved", changeId: request.changeId },
+    });
+    if (root.status !== "resolved" || root.pairState !== "present") {
+      return { status: "blocked", taskIdentity: request.changeId, packageId: request.packageId, diagnostics: root.diagnostics.map((entry) => ({ code: entry.code, message: entry.message })) };
+    }
+    const validation = validateFormalTaskBoard(root.tasksSource, root.progressSource);
+    const phase = validation.board?.headers.Phase?.value;
+    if (!validation.valid || !validation.board || (phase !== "IDEATE" && phase !== "DEFINE" && phase !== "BUILD" && phase !== "SHIP")) {
+      return { status: "blocked", taskIdentity: request.changeId, packageId: request.packageId, diagnostics: validation.diagnostics.map((entry) => ({ code: entry.code, message: entry.message, packageId: entry.packageId, field: entry.field })) };
+    }
+    return planFormalPackageExecution({
+      lifecycle: {
+        kind: "formal",
+        taskIdentity: request.changeId,
+        phase,
+        tasksSource: root.tasksSource,
+        progressSource: root.progressSource,
+        profiles: await loadRoleProfiles(),
+      },
+      packageId: request.packageId,
+      operationGate: request.operationGate,
+      ownership: request.ownership,
+      writeScope,
+      ...(request.asyncSafety ? { asyncSafety: request.asyncSafety } : {}),
+      ...(request.observations ? { observations: request.observations } : {}),
+    });
+  }
+
+  /**
+   * Explicit ROSE-owned restart reconciliation. Runtime creation never invokes
+   * this entry: it performs no model call, replay, redispatch, selector fallback,
+   * inspection, acceptance, join closure, done transition, or phase advance.
+   */
+  async reconcileFormalTaskBoard(request: FormalRuntimeReconciliationRequest): Promise<FormalRuntimeReconciliationApplyResult> {
+    if (!request || request.actor !== "ROSE" || typeof request.changeId !== "string" || request.changeId.length === 0) {
+      return { status: "blocked", diagnostics: ["Formal reconciliation requires one exact ROSE-owned change identity."], updates: [] };
+    }
+    const collected = await this.collectFormalRuntimeReconciliation(request.changeId);
+    if (!collected.lifecycle) return { status: "blocked", diagnostics: collected.diagnostics, updates: [] };
+    if (collected.diagnostics.length > 0) return { status: "blocked", diagnostics: collected.diagnostics, updates: [] };
+    const plan = planFormalRuntimeReconciliation(collected.lifecycle, collected.observations);
+    if (plan.status === "blocked") {
+      return { status: "blocked", diagnostics: plan.diagnostics.map((entry) => entry.code), plan, updates: [] };
+    }
+    const operations = plan.decisions.filter((decision) => decision.operation !== undefined);
+    if (operations.length === 0) return { status: "preserved", plan, updates: [] };
+    const updates: FormalTaskBoardApplyResult[] = [];
+    const hooks: FormalTaskBoardUpdateHooks = {
+      ...(request.hooks ?? {}),
+      beforeCommitValidation: async () => {
+        await request.hooks?.beforeCommitValidation?.();
+        await this.revalidateFormalRuntimeReconciliation(collected.checkpoint);
+      },
+      commitEvidenceValidation: async () => {
+        await this.revalidateFormalRuntimeReconciliation(collected.checkpoint);
+      },
+    };
+    for (const decision of operations) {
+      const current = await resolveFormalTaskBoardRoot({
+        repositoryRoot: this.options.cwd,
+        identity: { state: "resolved", changeId: request.changeId },
+      });
+      if (current.status !== "resolved" || current.pairState !== "present") {
+        return { status: "blocked", diagnostics: current.diagnostics.map((entry) => entry.code), plan, updates };
+      }
+      const update = await applyFormalTaskBoardUpdate(current, {
+        actor: "ROSE",
+        tasksSource: current.tasksSource,
+        progressSource: current.progressSource,
+        packageId: decision.packageId,
+        timestamp: request.timestamp,
+        operation: decision.operation!,
+      }, hooks);
+      updates.push(update);
+      if (update.status === "blocked") {
+        return { status: "blocked", diagnostics: update.diagnostics.map((entry) => entry.code), plan, updates };
+      }
+    }
+    return { status: "applied", plan, updates };
+  }
+
+  private async collectFormalRuntimeReconciliation(changeId: string): Promise<{
+    lifecycle?: FormalLifecycleSnapshot;
+    observations: FormalRuntimeReconciliationObservation[];
+    diagnostics: string[];
+    checkpoint: FormalReconciliationCheckpoint;
+  }> {
+    const root = await resolveFormalTaskBoardRoot({
+      repositoryRoot: this.options.cwd,
+      identity: { state: "resolved", changeId },
+    });
+    if (root.status !== "resolved" || root.pairState !== "present") {
+      return { observations: [], diagnostics: root.diagnostics.map((entry) => entry.code), checkpoint: { sequence: this.journal.getState().lastSequence, entries: [] } };
+    }
+    const validation = validateFormalTaskBoard(root.tasksSource, root.progressSource);
+    if (!validation.valid || !validation.board) {
+      return { observations: [], diagnostics: validation.diagnostics.map((entry) => entry.code), checkpoint: { sequence: this.journal.getState().lastSequence, entries: [] } };
+    }
+    const phase = validation.board.headers.Phase?.value;
+    if (phase !== "IDEATE" && phase !== "DEFINE" && phase !== "BUILD" && phase !== "SHIP") {
+      return { observations: [], diagnostics: ["PHASE_INVALID"], checkpoint: { sequence: this.journal.getState().lastSequence, entries: [] } };
+    }
+    const lifecycle: FormalLifecycleSnapshot = {
+      kind: "formal",
+      taskIdentity: changeId,
+      phase,
+      tasksSource: root.tasksSource,
+      progressSource: root.progressSource,
+      profiles: await loadRoleProfiles(),
+    };
+    const state = this.journal.getState();
+    const observations: FormalRuntimeReconciliationObservation[] = [];
+    const diagnostics: string[] = [];
+    const checkpoint: FormalReconciliationCheckpoint = { sequence: state.lastSequence, entries: [] };
+    for (const taskPackage of validation.board.packages) {
+      if (packageField(taskPackage, "Status") !== "running") continue;
+      const expectedRole = packageField(taskPackage, "Owner").replace(/^agent:/, "");
+      const currentCandidates = Object.values(state.jobs).filter((job) => {
+        const metadata = formalMetadata(job);
+        const identity = metadata.identity;
+        if (!(metadata.protection?.changeId === changeId
+          && identity?.packageId === taskPackage.id
+          && identity.canonicalRole === expectedRole
+          && identity.scope === packageField(taskPackage, "Scope")
+          && identity.forbiddenScope === packageField(taskPackage, "Forbidden scope")
+          && identity.acceptanceBoundary === packageField(taskPackage, "Acceptance")
+          && identity.expectedEvidence === packageField(taskPackage, "Expected evidence"))) return false;
+        const candidateAgent = state.agents[job.agentId] ?? state.releasedAgents[job.agentId];
+        const candidateTurns = Object.values(state.turns).filter((turn) => turn.jobId === job.id && turn.agentId === job.agentId);
+        if (!candidateAgent || candidateAgent.selector !== expectedRole || candidateTurns.length !== 1) return false;
+        const agentIdentity = formalMetadata(candidateAgent);
+        const turnIdentity = formalMetadata(candidateTurns[0]);
+        return sameValue(metadata.protection, agentIdentity.protection)
+          && sameValue(metadata.protection, turnIdentity.protection)
+          && sameValue(identity, agentIdentity.identity)
+          && sameValue(identity, turnIdentity.identity);
+      });
+      if (currentCandidates.length > 1) {
+        diagnostics.push(`RECONCILIATION_CANDIDATE_AMBIGUOUS:${taskPackage.id}`);
+        continue;
+      }
+      const job = currentCandidates[0];
+      if (!job) continue;
+      const activeAgent = state.agents[job.agentId];
+      const releasedAgent = state.releasedAgents[job.agentId];
+      const agent = activeAgent ?? releasedAgent;
+      const turns = Object.values(state.turns).filter((turn) => turn.jobId === job.id && turn.agentId === job.agentId);
+      if (turns.length > 1) {
+        diagnostics.push(`RECONCILIATION_CANDIDATE_AMBIGUOUS:${taskPackage.id}`);
+        continue;
+      }
+      const turn = turns[0];
+      const jobMetadata = formalMetadata(job);
+      const agentMetadata = formalMetadata(agent);
+      const turnMetadata = formalMetadata(turn);
+      const continuationTurns = Object.values(state.turns).filter((candidate) => {
+        if (candidate.agentId !== job.agentId || candidate.id === turn?.id || candidate.jobId !== undefined) return false;
+        return sameValue(formalMetadata(candidate).identity, jobMetadata.identity);
+      });
+      const continuationIdentityConflict = continuationTurns.some((candidate) => {
+        const metadata = formalMetadata(candidate);
+        return !sameValue(metadata.protection, jobMetadata.protection)
+          || !sameValue(metadata.identity, jobMetadata.identity);
+      });
+      const identityConflict = !agent || !turn
+        || !sameValue(jobMetadata.protection, agentMetadata.protection)
+        || !sameValue(jobMetadata.protection, turnMetadata.protection)
+        || !sameValue(jobMetadata.identity, agentMetadata.identity)
+        || !sameValue(jobMetadata.identity, turnMetadata.identity)
+        || continuationIdentityConflict;
+      const resultEvidence = state.formalResultEvidence[job.id];
+      let outputState: "readable" | "missing" | "stale" | "unreadable" = identityConflict ? "stale" : resultEvidence ? "readable" : "missing";
+      let historyState: "readable" | "missing" | "stale" | "unreadable" = identityConflict ? "stale" : resultEvidence ? "readable" : "missing";
+      if (agent && !identityConflict && resultEvidence) {
+        try {
+          await verifyFormalResultEvidence(this.layout, state, resultEvidence);
+        } catch (error) {
+          outputState = evidenceState(error);
+          historyState = evidenceState(error);
+        }
+      }
+      const result = job.metadata?.formalWorkerResult;
+      const workerResult = result === "completed" || result === "partial" || result === "blocked" || result === "failed"
+        ? result
+        : undefined;
+      if (agent && turn) {
+        checkpoint.entries.push({
+          agentId: agent.id,
+          jobId: job.id,
+          turnId: turn.id,
+          agentState: agent.state,
+          turns: [turn, ...continuationTurns].map((candidate) => ({ turnId: candidate.id, state: candidate.state })),
+          ...(resultEvidence ? { evidence: resultEvidence } : {}),
+        });
+      }
+      observations.push({
+        packageId: taskPackage.id,
+        formalProtection: jobMetadata.protection ?? { changeId: "missing" },
+        formalContinuationIdentity: jobMetadata.identity ?? {
+          packageId: "missing",
+          canonicalRole: "missing",
+          scope: "missing",
+          forbiddenScope: "missing",
+          writeScope: { paths: [], resources: [] },
+          acceptanceBoundary: "missing",
+          expectedEvidence: "missing",
+        },
+        ...(agent ? { agent: { id: agent.id, state: agent.state, released: releasedAgent !== undefined } } : {}),
+        job: { id: job.id, agentId: job.agentId, state: job.state },
+        ...(turn ? { turn: { id: turn.id, agentId: turn.agentId, jobId: turn.jobId!, state: turn.state } } : {}),
+        ...(continuationTurns.length > 0 ? { continuationTurns: continuationTurns.map((candidate) => ({ id: candidate.id, state: candidate.state })) } : {}),
+        output: {
+          state: outputState,
+          ...(workerResult ? { result: workerResult } : {}),
+          ...(resultEvidence ? { digest: resultEvidence.outputSha256 } : {}),
+        },
+        history: { state: historyState },
+      });
+    }
+    return { lifecycle, observations, diagnostics, checkpoint };
+  }
+
+  private async revalidateFormalRuntimeReconciliation(checkpoint: FormalReconciliationCheckpoint): Promise<void> {
+    const state = this.journal.getState();
+    if (state.lastSequence !== checkpoint.sequence) throw new Error("formal reconciliation Journal sequence changed after collection");
+    for (const expected of checkpoint.entries) {
+      const agent = state.agents[expected.agentId];
+      const job = state.jobs[expected.jobId];
+      const turn = state.turns[expected.turnId];
+      if (!agent || state.releasedAgents[expected.agentId] || agent.state !== expected.agentState
+        || !job || job.agentId !== agent.id || !turn || turn.agentId !== agent.id || turn.jobId !== job.id) {
+        throw new Error("formal reconciliation Agent/job/turn identity changed after collection");
+      }
+      for (const expectedTurn of expected.turns) {
+        const currentTurn = state.turns[expectedTurn.turnId];
+        if (!currentTurn || currentTurn.agentId !== agent.id || currentTurn.state !== expectedTurn.state) {
+          throw new Error("formal reconciliation continuation turn identity changed after collection");
+        }
+      }
+      const currentEvidence = state.formalResultEvidence[expected.jobId];
+      if (!sameValue(currentEvidence, expected.evidence)) throw new Error("formal reconciliation result evidence changed after collection");
+      if (expected.evidence) await verifyFormalResultEvidence(this.layout, state, expected.evidence);
+    }
+  }
+
   private async childManager(agentId: string): Promise<SessionManager> {
     const existing = this.childManagers.get(agentId);
     if (existing) return existing;
@@ -118,8 +490,23 @@ export class PersistentAgentRuntime {
 
 export interface InternalPersistentToolRegistrationOptions {
   runtimeForContext: (context: ExtensionContext) => Promise<PersistentAgentRuntime>;
+  catalog: AgentCatalog;
   directModelCommand?: (args: string, context: ExtensionContext) => Promise<string>;
 }
+
+const TASK_DESCRIPTION = "Delegate bounded work to parent-scoped persistent AILI Agents. Ordinary Pi remains benefit-based: direct work is valid when delegation adds no concrete benefit, and omitted agent retains general compatibility. In an active formal lifecycle, ROSE owns decomposition, decisions, integration, and final verification; dispatch each ready Agent-owned package to its exact Specialized selector before duplicate direct work. Formal calls explicitly set agent and async: use async:false for prerequisites with an immediate join, and async:true only for independent packages with a named join, then inspect output/history before dependents. Direct execution requires a valid pre-recorded waiver. Workers never write the owning formal-task-board.md/progress.txt or decide phase/verdict. Never send blocking: it is profile-only internal metadata.";
+
+const TASK_PROMPT_SNIPPET = "Ordinary Pi keeps benefit-based direct work and omitted agent remains general-compatible. In a formal lifecycle, dispatch the ready package's exact Specialized selector with explicit async before duplicate direct work.";
+
+const TASK_PROMPT_GUIDELINES = [
+  "Ordinary routing: outside a formal lifecycle, delegate only for concrete benefit; direct work remains valid and omitted agent retains general compatibility.",
+  "ROSE authority: ROSE owns formal decomposition, material decisions, result disposition, integration, final verification, phase advancement, and verdict.",
+  "Formal dispatch: ready Agent-owned packages use the exact Specialized selector in agent and explicitly set async; omitted agent/general is ordinary compatibility, not formal ownership.",
+  "Prerequisite execution: use async:false with Join: immediate whenever the result is needed by the next decision or package.",
+  "Independent async execution: use async:true only for independent packages with a stable named Join; collect terminal state and inspect output/history before dependents or phase gates.",
+  "Direct exception: perform Agent-owned scope directly only after a valid waiver is recorded before the work.",
+  "Worker boundary: workers return evidence only; they never write the owning formal-task-board.md/progress.txt or decide lifecycle phase, acceptance, or final verdict.",
+];
 
 /**
  * Canonical registration surface shared by production and deterministic tests.
@@ -127,10 +514,16 @@ export interface InternalPersistentToolRegistrationOptions {
  * no legacy compatibility alias is created.
  */
 export function registerPersistentAgentTools(pi: ExtensionAPI, options: InternalPersistentToolRegistrationOptions): void {
+  const compactCatalog = renderCompactAgentCatalog(options.catalog);
+  if (!compactCatalog.ok) {
+    throw new Error(`task Agent Catalog metadata is non-pass: ${compactCatalog.diagnostics.map((diagnostic) => diagnostic.code).join(", ") || "UNKNOWN"}`);
+  }
   pi.registerTool({
     name: "task",
     label: "Task",
-    description: "Create one or more parent-scoped persistent AILI Agents; omitted agent defaults to general. Use async:false to wait synchronously or async:true for background execution. Never send blocking: it is profile-only internal metadata.",
+    description: TASK_DESCRIPTION,
+    promptSnippet: TASK_PROMPT_SNIPPET,
+    promptGuidelines: [...TASK_PROMPT_GUIDELINES, compactCatalog.value],
     parameters: TASK_TOOL_SCHEMA,
     async execute(_toolCallId, params, signal, _onUpdate, context) {
       const runtime = await options.runtimeForContext(context);
@@ -141,11 +534,21 @@ export function registerPersistentAgentTools(pi: ExtensionAPI, options: Internal
   pi.registerTool({
     name: "hub",
     label: "Hub",
-    description: "Inspect and control persistent Agents, jobs, messages, output, history, cancellation, and model requests.",
+    description: "Inspect and control persistent Agents, jobs, messages, output, history, cancellation, and model requests. At the top-level parent only, ROSE may use formal-plan with explicit operation/ownership/write-scope evidence to plan one ready package, or formal-reconcile to explicitly reconcile restart evidence. Child Agents cannot invoke either action. Neither action automatically accepts evidence, closes joins, advances phase, redispatches, or replays work.",
+    promptGuidelines: [
+      "Formal planning: parent/ROSE calls hub formal-plan only for one exact change/package with current operation-gate evidence, ownership evidence, and explicit validated writeScope; submit only the returned exact taskRequest.",
+      "Formal restart: parent/ROSE calls hub formal-reconcile explicitly after inspecting the exact change identity; reconciliation is never automatic and never grants inspection, acceptance, done, join closure, replay, redispatch, or phase advancement.",
+    ],
     parameters: HUB_TOOL_SCHEMA,
     async execute(_toolCallId, params, _signal, _onUpdate, context) {
       const runtime = await options.runtimeForContext(context);
-      const result = await runtime.hub.execute(params);
+      const input = params as Record<string, unknown>;
+      const action = input.action;
+      const result = action === "formal-plan"
+        ? await runtime.planFormalTaskPackage({ ...input, actor: "ROSE" } as unknown as FormalRuntimePackagePlanRequest)
+        : action === "formal-reconcile"
+          ? await runtime.reconcileFormalTaskBoard({ actor: "ROSE", changeId: String(input.changeId ?? ""), timestamp: String(input.timestamp ?? "") })
+          : await runtime.hub.execute(params);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
     },
   });

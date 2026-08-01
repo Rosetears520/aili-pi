@@ -70,7 +70,7 @@ Assess maturity with visible, source-backed signals such as:
 - stability: documented compatibility, deprecation policy, semantic versioning, migration guides, or long-lived APIs
 - quality discipline: tests, CI, docs quality, examples, review practices, and security handling
 
-Mark any unavailable signal as `[UNVERIFIED]`; do not infer maturity from popularity alone.
+Record any unavailable signal as unverified; do not infer maturity from popularity alone.
 
 ## Workflow
 
@@ -89,20 +89,20 @@ See `references/research-rubric.md` for the compact scoring rubric and delegatio
 
 ## Research Synthesis Discipline
 
-- Internal research packets and results must use English claim tags and `CONFIDENCE: HIGH | MED | LOW | VERY LOW | UNKNOWN`; keep unsupported source or fit claims marked `[UNVERIFIED]` instead of smoothing them into facts.
+- Internal research packets and results use separate structured English fields for claim status, source kind/reference, decision status when applicable, verification status, and `confidence: HIGH | MED | LOW | VERY LOW | UNKNOWN`; keep unsupported source or fit claims in an `unverified` field instead of smoothing them into facts.
 
 - Start from the decision the research should change; do not collect links without a decision target.
 - Prefer a small comparison set with strong evidence over a broad list of weak sources.
 - Synthesize recurring patterns, disagreements, and fit constraints; do not report one source summary after another unless the user asked for an annotated bibliography.
 - Treat source freshness, license, maintenance, and security posture as part of the evidence, not afterthoughts.
-- If sources are inaccessible, secondary-only, stale, or contradictory, keep the recommendation conditional and mark the exact gap `[UNVERIFIED]`.
+- If sources are inaccessible, secondary-only, stale, or contradictory, keep the recommendation conditional and record the exact gap as unverified.
 
 ## Source Failure Fallbacks
 
 | Trigger | First action | If still unresolved |
 |---|---|---|
 | No credible mature sources found | Return `STATUS: NOT_FOUND` with searched source types and queries | Ask the user to broaden scope or accept a hypothesis-only exploration |
-| Only one credible example found | Return `STATUS: PARTIAL`; separate supported pattern from `[UNVERIFIED]` fit claims | Do not generalize it as an industry pattern |
+| Only one credible example found | Return `STATUS: PARTIAL`; separate supported pattern from unverified fit claims | Do not generalize it as an industry pattern |
 | Sources conflict | Return `STATUS: PARTIAL`; list the conflict, source dates, and maturity signals | Ask for a decision criterion before recommending |
 | User scope is ambiguous | Return the focused scope decision to ROSE before research | If unresolved, stop `need-user`; do not dispatch or invent a scope |
 
@@ -110,7 +110,7 @@ See `references/research-rubric.md` for the compact scoring rubric and delegatio
 
 ```text
 STATUS: FOUND | PARTIAL | NOT_FOUND | BLOCKED
-CONFIDENCE: HIGH | MED | LOW | VERY LOW | UNKNOWN
+confidence: HIGH | MED | LOW | VERY LOW | UNKNOWN
 
 QUESTION:
 - <research question and decision context>
@@ -119,13 +119,13 @@ SOURCES:
 - <URL/title/project> - why relevant - maturity signal - evidence anchor
 
 MATURITY SIGNALS:
-- <project>: <supported signal>; <unsupported signal marked [UNVERIFIED]>
+- <project>: <supported signal>; <unsupported signal recorded as unverified>
 
 APPLICABLE PATTERNS:
 - <pattern>: <why it fits> - Evidence: <source anchor>
 
 NOT-RECOMMENDED PATTERNS:
-- <pattern>: <why not> - Evidence/Risk: <source anchor or [UNVERIFIED]>
+- <pattern>: <why not> - Evidence/Risk: <source anchor or unverified>
 
 FIT RATIONALE:
 - <how these patterns map to the user's current project, phase, constraints, and non-goals>
@@ -149,7 +149,7 @@ RECOMMENDED NEXT DECISION:
 Before presenting the result:
 
 - every source-backed claim has a URL, title, release/date, issue/PR, or repository anchor
-- maturity signals are evidence-backed or marked `[UNVERIFIED]`
+- maturity signals are evidence-backed or recorded as unverified
 - recommended and not-recommended patterns are separated
 - no upstream text, code, assets, or prompts were copied into the output
 - no write GitHub/API actions, MCP setup, dependency additions, commands, or agents were introduced

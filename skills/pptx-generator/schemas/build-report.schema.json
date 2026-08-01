@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/build-report.schema.json",
+  "title": "Current PPTX build hash chain",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_kind", "status", "build_kind", "source_plan_sha256", "outline_sha256", "source_fingerprint", "renderer_source_sha256", "renderer", "officecli", "base_pptx", "postbuild", "style_lock", "autofit", "final_pptx", "validation", "build_fingerprint"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "report_kind": {"const": "build-report"},
+    "status": {"enum": ["succeeded", "failed"]},
+    "build_kind": {"enum": ["full", "style-proof"]},
+    "source_plan_sha256": {"$ref": "#/$defs/hash"},
+    "outline_sha256": {"$ref": "#/$defs/hash"},
+    "source_fingerprint": {"$ref": "#/$defs/hash"},
+    "renderer_source_sha256": {"$ref": "#/$defs/hash"},
+    "renderer": {
+      "type": "object",
+      "required": ["kind", "entrypoint", "entrypoint_sha256", "argv"],
+      "properties": {
+        "kind": {"const": "pptxgenjs"},
+        "entrypoint": {"type": "string", "minLength": 1},
+        "entrypoint_sha256": {"$ref": "#/$defs/hash"},
+        "argv": {"type": "array", "minItems": 4, "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "officecli": {"type": "object"},
+    "base_pptx": {"$ref": "#/$defs/file"},
+    "final_pptx": {"$ref": "#/$defs/file"},
+    "postbuild": {
+      "type": "object",
+      "required": ["applied", "batch_path", "batch_sha256", "operation_order"],
+      "properties": {
+        "applied": {"type": "boolean"},
+        "batch_path": {"type": ["string", "null"]},
+        "batch_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "operation_order": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "style_lock": {"type": ["object", "null"]},
+    "autofit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "evidence_path", "evidence_sha256", "pptx_sha256"],
+      "properties": {
+        "status": {"enum": ["applied-awaiting-geometry-recalculation", "verified"]},
+        "evidence_path": {"type": "string", "minLength": 1},
+        "evidence_sha256": {"$ref": "#/$defs/hash"},
+        "pptx_sha256": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "path", "report_sha256", "pptx_sha256"],
+      "properties": {
+        "status": {"enum": ["passed", "failed"]},
+        "path": {"type": "string", "minLength": 1},
+        "report_sha256": {"$ref": "#/$defs/hash"},
+        "pptx_sha256": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "build_fingerprint": {"$ref": "#/$defs/hash"}
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+        "sha256": {"$ref": "#/$defs/hash"},
+        "size": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

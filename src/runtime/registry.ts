@@ -6,7 +6,7 @@ import { resolvePermissionModesPackageRoot } from "./package-resolution.ts";
 const ROOT = new URL("../../", import.meta.url);
 const SUPPORTED_PI_VERSION = "0.82.1";
 const PACKAGE_NAME = "@rosetears/aili-pi";
-const PACKAGE_VERSION = "0.1.15";
+const PACKAGE_VERSION = "0.1.16";
 const PACKAGE_AGPL_START_VERSION = "0.1.13";
 const PACKAGE_LICENSE = "AGPL-3.0-or-later";
 const PACKAGE_LICENSE_SHA256 = "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0";
@@ -318,6 +318,7 @@ export async function validatePermissionModeAdaptation(): Promise<string[]> {
       "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.82.1 can derive current PI_* session environment values.",
       "The adapted sandbox BashOperations wrapper injects Pi's resolved five-variable session environment as a shell-safe prelude because pi-permission-modes@2.2.0 ignores BashOperations.options.env.",
       "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime.",
+      "Formal persistent children compose their exact two owning-file denyWrite paths into each sandboxed command while preserving the active profile, network rules, and blocked-host diagnostics.",
     ];
     const expectedVerification = [
       "npm run verify:permission-modes",
@@ -350,7 +351,7 @@ export async function validatePermissionModeAdaptation(): Promise<string[]> {
       errors.push("permission adaptation: upstream baseline hashes do not match the accepted 2.2.0 revision");
     }
     const expectedAdapted = {
-      "src/vendor/pi-permission-modes/index.ts": "5ca8743e55776e3d0bd1f8c2daef40f55a7ac6009306bc66398a9753105ed848",
+      "src/vendor/pi-permission-modes/index.ts": "dbf32a96e2d8273568996c5ed7726333a076d6f3148745e091626a06f08d037b",
       "src/vendor/pi-permission-modes/resolve.ts": "f71688f847495da5122724f75c5ebe3b41066b3d3cac74cbe99f66b9906404f6",
       "licenses/pi-permission-modes-MIT.txt": "d87cb99b43f6bf8771e57be83485db11b977b9dfa21b6bd201b8d3d370bdce43",
     };

@@ -1,5 +1,7 @@
 ## Why
 
+> **Historical/superseded status (2026-08-01):** `openspec/changes/integrate-upstream-formal-agent-protocols` is the sole future BUILD and release owner for overlapping scope. This change is retained only as a historical and capability-source reference; it must not independently dispatch, advance, accept, close, publish, or release overlapping packages. Any readiness, completion, test-count, snapshot, runtime, acceptance, or opaque session-reference statement below is a historical assertion and was not independently reverified during this reconciliation.
+
 AILI 已经具备可审计的 persistent `task`/`hub` Agent runtime、20 个 canonical selectors 和正式 OpenSpec lifecycle，但当前上层合同仍把委派描述为 benefit-based 可选优化。即使正式 BUILD 已有 package queue，主 Agent 仍可选择直接完成侦察、实现和测试，而不产生 Agent Owner、dispatch、join、结果证据或 disposition。结果是 Runtime 已经支持多 Agent，工作流却保留了一条更便宜但不透明的“主 Agent 全部自己做”路径。
 
 需要把正式 AILI lifecycle 改成一张可见的 Agent Evidence Graph：ROSE 负责策划、决策、整合和最终验证；有边界的材料执行包默认交给匹配的 Specialized Agent；任务板记录 Owner、依赖、派发、join、实际证据和 ROSE disposition。普通 Pi 工作仍保持直接、轻量和 benefit-based，不因安装 AILI 而被强制多 Agent 化。

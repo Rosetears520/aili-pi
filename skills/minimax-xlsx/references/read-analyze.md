@@ -1,7 +1,6 @@
 # Data Reading & Analysis Guide
 
-> Reference for the READ path. Use `xlsx_reader.py` for structure discovery and data quality auditing,
-> then pandas for custom analysis. **Never modify the source file.**
+> Reference for CSV/TSV and deeper dataframe analysis. A simple `.xlsx` read/get/query is OfficeCLI-first when installed help confirms it; use `xlsx_reader.py` and pandas when the requested analysis needs this fallback. **Never modify the source file.**
 
 ---
 
@@ -16,7 +15,7 @@ without requiring file modification. If modification is needed, hand off to `edi
 
 ### Step 1 — Structure Discovery
 
-Run `xlsx_reader.py` first. It handles format detection, encoding fallback, structure exploration, and data quality audit:
+In this analysis fallback, run `xlsx_reader.py` first. It handles format detection, encoding fallback, structure exploration, and data quality audit:
 
 ```bash
 python3 SKILL_DIR/scripts/xlsx_reader.py input.xlsx                 # full report

@@ -132,6 +132,19 @@ describe("persistent child prompt and policy assembly", () => {
     });
     expect(withoutParentBash.effectiveTools).toEqual(["read"]);
     expect(withoutParentBash.customTools).toEqual([]);
+
+    const formallyDenied = computeEffectiveTools({
+      parent: parent(["read", "bash"]),
+      childLoadable: ["read", "bash"],
+      childDefinitions: new Map([["bash", sandboxedBash]]),
+      role: general,
+      callTools: ["bash"],
+      hardDenied: ["bash"],
+      currentDepth: 0,
+    });
+    expect(formallyDenied.effectiveTools).toEqual([]);
+    expect(formallyDenied.customTools).toEqual([]);
+    expect(formallyDenied.unavailable).toContainEqual({ name: "bash", reason: "hard-guard" });
   });
 
   it("enforces explicit non-self spawn allowlists, the depth cap, and synchronous nesting", async () => {

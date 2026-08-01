@@ -36,7 +36,7 @@ Deliver the requested bounded outcome using only the effective tools inherited f
 
 ## Output
 
-Return exactly one JSON object with keys `status`, `summary`, `evidence`, `changedFiles`, `verification`, `blockers`, `risks`, and `confidence`.
+For ordinary assignments, return exactly one JSON object with keys `status`, `summary`, `evidence`, `changedFiles`, `verification`, `blockers`, `risks`, and `confidence`. When the Runtime assignment contains `FORMAL ASSIGNMENT OUTPUT OVERRIDE:`, that explicit line-oriented canonical envelope supersedes this ordinary JSON contract.
 
 ## Stop
 

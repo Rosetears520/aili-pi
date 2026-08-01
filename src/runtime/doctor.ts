@@ -1,7 +1,16 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { createHash } from "node:crypto";
+import { constants } from "node:fs";
+import { lstat, open, readFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { isAbsolute, join } from "node:path";
 import { detectLifecycleConflicts } from "./conflicts.js";
+import {
+  FORMAL_TASK_BOARD_HEADERS,
+  FORMAL_TASK_BOARD_PROTOCOL,
+  FORMAL_TASK_PACKAGE_FIELDS,
+  FORMAL_TASK_PROGRESS_EVENT_TYPES,
+} from "./formal-task-board.js";
 import { loadRegistry, validateLiveVerification, validateProvenance, validateRegistry } from "./registry.js";
 import { inspectGlobalResources } from "./global-resources.js";
 import { nativeIntegrationDiagnostics } from "./native-integrations.js";
@@ -32,6 +41,41 @@ export interface DoctorReport {
 
 const ROOT = new URL("../../", import.meta.url);
 
+export type SharedWorkflowCompatibility = "present-compatible" | "missing" | "incompatible" | "unverified";
+export type SharedWorkflowSourceMatch = "exact" | "compatible-newer" | "modified" | "unknown";
+
+export interface SharedWorkflowInspection {
+  compatibility: SharedWorkflowCompatibility;
+  sourceMatch: SharedWorkflowSourceMatch;
+  references: { readable: number; required: 2 };
+  protocols: { compatible: number; required: 2 };
+  roles: { observed: number; required: 19 };
+  reasons: string[];
+}
+
+const AGENT_SELECTION_PROTOCOL = "aili-agent-selection/v1";
+const SHARED_WORKFLOW_RELEASE = "0.4.2";
+const SHARED_REFERENCE_MAX_BYTES = 256 * 1024;
+const AGENT_SELECTION_PATH = ".agents/skills/parallel-subagent-dispatch/references/agent-selection-matrix.md";
+const FORMAL_TASK_BOARD_PATH = ".agents/skills/aili-delivery-flow/references/formal-task-board.md";
+
+interface SharedProtocolRecord {
+  protocol: string;
+  path: string;
+  sha256: string;
+}
+
+interface SharedWorkflowContract {
+  agentSelection: SharedProtocolRecord;
+  formalTaskBoard: SharedProtocolRecord;
+  canonicalSpecialists: string[];
+}
+
+type SharedReferenceRead =
+  | { state: "readable"; bytes: Buffer; text: string }
+  | { state: "missing"; reason: string }
+  | { state: "unverified"; reason: string };
+
 export type AiliHealthEvidenceStatus = "pass" | "fail" | "unverified";
 export interface AiliHealthInvariantEvidence {
   status: AiliHealthEvidenceStatus;
@@ -54,6 +98,250 @@ export interface AiliCompactHealthEvidence {
   cache?: AiliHealthInvariantEvidence;
   live?: AiliHealthInvariantEvidence;
   hostOrdering?: AiliHealthInvariantEvidence;
+}
+
+/** Read-only compatibility inspection for the two shared workflow protocol references. */
+export async function inspectSharedWorkflows(home = homedir()): Promise<SharedWorkflowInspection> {
+  if (!home || !isAbsolute(home)) return sharedWorkflowInspection("unverified", "unknown", 0, 0, 0, ["home-unavailable"]);
+  const contract = await loadSharedWorkflowContract();
+  if (!contract) return sharedWorkflowInspection("unverified", "unknown", 0, 0, 0, ["contract-unavailable"]);
+
+  const records = [contract.agentSelection, contract.formalTaskBoard] as const;
+  const reads = await Promise.all(records.map((record) => readSharedReference(join(home, record.path))));
+  const readable = reads.filter((item): item is Extract<SharedReferenceRead, { state: "readable" }> => item.state === "readable");
+  const sourceMatch: SharedWorkflowSourceMatch = readable.length !== records.length
+    ? "unknown"
+    : readable.every((item, index) => sha256(item.bytes) === records[index]!.sha256)
+      ? "exact"
+      : "modified";
+  const agent = reads[0]!.state === "readable" ? inspectAgentSelection(reads[0]!.text, contract.canonicalSpecialists) : undefined;
+  const board = reads[1]!.state === "readable" ? inspectFormalTaskBoardReference(reads[1]!.text) : undefined;
+  const protocols = Number(agent?.protocolCompatible ?? false) + Number(board?.protocolCompatible ?? false);
+  const observedRoles = agent?.observedRoles ?? 0;
+
+  const missing = reads.filter((item) => item.state === "missing");
+  if (missing.length > 0) {
+    return sharedWorkflowInspection("missing", "unknown", readable.length, protocols, observedRoles, ["required-reference-missing"]);
+  }
+  const ambiguous = reads.filter((item): item is Extract<SharedReferenceRead, { state: "unverified" }> => item.state === "unverified");
+  if (ambiguous.length > 0) {
+    return sharedWorkflowInspection("unverified", "unknown", readable.length, protocols, observedRoles, uniqueReasons(ambiguous.map((item) => item.reason)));
+  }
+
+  const reasons = uniqueReasons([...agent!.reasons, ...board!.reasons]);
+  return sharedWorkflowInspection(
+    reasons.length === 0 ? "present-compatible" : "incompatible",
+    sourceMatch,
+    2,
+    protocols,
+    observedRoles,
+    reasons.length === 0 ? ["compatible"] : reasons,
+  );
+}
+
+function sharedWorkflowInspection(
+  compatibility: SharedWorkflowCompatibility,
+  sourceMatch: SharedWorkflowSourceMatch,
+  readable: number,
+  protocols: number,
+  observedRoles: number,
+  reasons: string[],
+): SharedWorkflowInspection {
+  return {
+    compatibility,
+    sourceMatch,
+    references: { readable: Math.min(2, Math.max(0, readable)), required: 2 },
+    protocols: { compatible: Math.min(2, Math.max(0, protocols)), required: 2 },
+    roles: { observed: Math.min(99, Math.max(0, observedRoles)), required: 19 },
+    reasons: uniqueReasons(reasons).slice(0, 4),
+  };
+}
+
+async function loadSharedWorkflowContract(): Promise<SharedWorkflowContract | undefined> {
+  try {
+    const value = JSON.parse(await readFile(new URL("upstream/aili-workflows.lock.json", ROOT), "utf8")) as {
+      release?: {
+        version?: unknown;
+        protocols?: { agentSelection?: Partial<SharedProtocolRecord>; formalTaskBoard?: Partial<SharedProtocolRecord> };
+        canonicalSpecialists?: unknown;
+      };
+    };
+    const agentSelection = value.release?.protocols?.agentSelection;
+    const formalTaskBoard = value.release?.protocols?.formalTaskBoard;
+    const roles = value.release?.canonicalSpecialists;
+    if (value.release?.version !== SHARED_WORKFLOW_RELEASE
+      || !validProtocolRecord(agentSelection, AGENT_SELECTION_PROTOCOL, AGENT_SELECTION_PATH)
+      || !validProtocolRecord(formalTaskBoard, FORMAL_TASK_BOARD_PROTOCOL, FORMAL_TASK_BOARD_PATH)
+      || !Array.isArray(roles)
+      || roles.length !== 19
+      || roles.some((role) => typeof role !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(role))
+      || new Set(roles).size !== roles.length) {
+      return undefined;
+    }
+    return {
+      agentSelection: agentSelection as SharedProtocolRecord,
+      formalTaskBoard: formalTaskBoard as SharedProtocolRecord,
+      canonicalSpecialists: [...roles] as string[],
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function validProtocolRecord(
+  record: Partial<SharedProtocolRecord> | undefined,
+  protocol: string,
+  path: string,
+): record is SharedProtocolRecord {
+  return record?.protocol === protocol && record.path === path && typeof record.sha256 === "string" && /^[a-f0-9]{64}$/.test(record.sha256);
+}
+
+async function readSharedReference(path: string): Promise<SharedReferenceRead> {
+  let handle: Awaited<ReturnType<typeof open>> | undefined;
+  try {
+    const initial = await lstat(path);
+    if (initial.isSymbolicLink()) return { state: "unverified", reason: "reference-symlink" };
+    if (!initial.isFile()) return { state: "unverified", reason: "reference-not-regular" };
+    if (initial.size > SHARED_REFERENCE_MAX_BYTES) return { state: "unverified", reason: "reference-size-limit" };
+
+    handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    const before = await handle.stat();
+    if (!before.isFile()) return { state: "unverified", reason: "reference-not-regular" };
+    if (before.size > SHARED_REFERENCE_MAX_BYTES) return { state: "unverified", reason: "reference-size-limit" };
+    const bytes = await handle.readFile();
+    const after = await handle.stat();
+    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size
+      || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs || bytes.byteLength !== before.size) {
+      return { state: "unverified", reason: "reference-read-ambiguous" };
+    }
+    try {
+      return { state: "readable", bytes, text: new TextDecoder("utf-8", { fatal: true }).decode(bytes) };
+    } catch {
+      return { state: "unverified", reason: "reference-encoding-invalid" };
+    }
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "ENOENT"
+      ? { state: "missing", reason: "required-reference-missing" }
+      : { state: "unverified", reason: "reference-io-unverified" };
+  } finally {
+    await handle?.close().catch(() => undefined);
+  }
+}
+
+function inspectAgentSelection(text: string, requiredRoles: readonly string[]): {
+  protocolCompatible: boolean;
+  observedRoles: number;
+  reasons: string[];
+} {
+  const protocolCompatible = hasOnlyProtocolMarkers(text, AGENT_SELECTION_PROTOCOL, "## Selection matrix");
+  const reasons: string[] = protocolCompatible ? [] : ["agent-protocol-invalid"];
+  const section = markdownSection(text, "## Selection matrix", "## Selection algorithm");
+  const lines = section?.split(/\r?\n/) ?? [];
+  const header = "| Role ID | Use when | Do not use when | Expected evidence | Phase affinity | Execution guidance |";
+  const headerIndex = lines.indexOf(header);
+  if (headerIndex < 0 || !/^\|(?:\s*:?-{3,}:?\s*\|){6}$/.test(lines[headerIndex + 1] ?? "")) {
+    reasons.push("agent-structure-invalid");
+    return { protocolCompatible, observedRoles: 0, reasons };
+  }
+  const rows: string[][] = [];
+  for (const line of lines.slice(headerIndex + 2)) {
+    if (!line.startsWith("|")) break;
+    if (!line.endsWith("|")) {
+      reasons.push("agent-structure-invalid");
+      break;
+    }
+    rows.push(line.slice(1, -1).split("|").map((cell) => cell.trim()));
+  }
+  const roleIds = rows.map((cells) => /^`([a-z0-9]+(?:-[a-z0-9]+)*)`$/.exec(cells[0] ?? "")?.[1]);
+  if (rows.some((cells) => cells.length !== 6 || cells.some((cell) => cell.length === 0) || !/^`[a-z0-9]+(?:-[a-z0-9]+)*`$/.test(cells[0] ?? ""))) {
+    reasons.push("agent-structure-invalid");
+  }
+  const observed = roleIds.filter((role): role is string => role !== undefined);
+  const expected = new Set(requiredRoles);
+  if (observed.length !== requiredRoles.length
+    || new Set(observed).size !== observed.length
+    || observed.some((role) => !expected.has(role))
+    || requiredRoles.some((role) => !observed.includes(role))) {
+    reasons.push("agent-role-inventory-invalid");
+  }
+  return { protocolCompatible, observedRoles: observed.length, reasons: uniqueReasons(reasons) };
+}
+
+function inspectFormalTaskBoardReference(text: string): { protocolCompatible: boolean; reasons: string[] } {
+  const protocolCompatible = hasOnlyProtocolMarkers(text, FORMAL_TASK_BOARD_PROTOCOL, "## Creation and placement");
+  const reasons: string[] = protocolCompatible ? [] : ["board-protocol-invalid"];
+  const header = firstMarkdownFence(markdownSection(text, "## Board header", "## Package contract"));
+  const taskPackage = firstMarkdownFence(markdownSection(text, "## Package contract", "## Package kinds and source references"));
+  const progress = firstMarkdownFence(markdownSection(text, "## Progress events"));
+  if (!header || !taskPackage || !progress
+    || !hasRequiredFields(header, FORMAL_TASK_BOARD_HEADERS, "- ")
+    || !taskPackage.split(/\r?\n/).includes("- [ ] <package-id> — <title>")
+    || !hasRequiredFields(taskPackage, FORMAL_TASK_PACKAGE_FIELDS, "  - ")
+    || !hasExactUniqueLines(progress, FORMAL_TASK_PROGRESS_EVENT_TYPES)) {
+    reasons.push("board-structure-invalid");
+  }
+  return { protocolCompatible, reasons: uniqueReasons(reasons) };
+}
+
+function hasOnlyProtocolMarkers(text: string, expected: string, preambleEnd: string): boolean {
+  const markers = [...text.matchAll(/^- Protocol: `([^`]+)`\s*$/gm)].map((match) => match[1]);
+  const preamble = text.slice(0, text.indexOf(preambleEnd) < 0 ? 0 : text.indexOf(preambleEnd));
+  return markers.length > 0 && markers.every((marker) => marker === expected)
+    && preamble.split(/\r?\n/).includes(`- Protocol: \`${expected}\``);
+}
+
+function markdownSection(text: string, start: string, end?: string): string | undefined {
+  const startIndex = text.indexOf(start);
+  if (startIndex < 0) return undefined;
+  const contentStart = startIndex + start.length;
+  const endIndex = end ? text.indexOf(end, contentStart) : text.length;
+  return endIndex < 0 ? undefined : text.slice(contentStart, endIndex);
+}
+
+function firstMarkdownFence(section: string | undefined): string | undefined {
+  return section?.match(/```(?:markdown|text)\r?\n([\s\S]*?)\r?\n```/)?.[1];
+}
+
+function hasRequiredFields(text: string, fields: readonly string[], prefix: string): boolean {
+  const lines = text.split(/\r?\n/);
+  return fields.every((field) => lines.filter((line) => line.startsWith(`${prefix}${field}: \``) && line.endsWith("`")).length === 1);
+}
+
+function hasExactUniqueLines(text: string, values: readonly string[]): boolean {
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  return lines.length === values.length && values.every((value) => lines.filter((line) => line === value).length === 1);
+}
+
+function uniqueReasons(reasons: readonly string[]): string[] {
+  return [...new Set(reasons)];
+}
+
+function sha256(bytes: Buffer): string {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+function sharedWorkflowDoctorResult(inspection: SharedWorkflowInspection): DoctorResult {
+  const remediation = inspection.compatibility === "missing"
+    ? `npx -y rose-aili@${SHARED_WORKFLOW_RELEASE} install`
+    : inspection.compatibility === "present-compatible"
+      ? "none"
+      : `npx -y rose-aili@${SHARED_WORKFLOW_RELEASE} update`;
+  const status: DoctorStatus = inspection.compatibility === "present-compatible"
+    ? "PASS"
+    : inspection.compatibility === "unverified" ? "UNVERIFIED" : "ERROR";
+  return {
+    id: "shared.workflows",
+    status,
+    evidence: [
+      `compatibility=${inspection.compatibility}`,
+      `source_match=${inspection.sourceMatch}`,
+      `references=${inspection.references.readable}/${inspection.references.required}`,
+      `protocols=${inspection.protocols.compatible}/${inspection.protocols.required}`,
+      `roles=${inspection.roles.observed}/${inspection.roles.required}`,
+      `reason=${inspection.reasons.join(",") || "unknown"}`,
+      `remediation=${remediation}`,
+    ].join("; ").slice(0, 360),
+  };
 }
 
 export async function runDoctor(
@@ -91,6 +379,12 @@ export async function runDoctor(
     results.push({ id: "skill.snapshot", status: lock.commit && lock.contentHash ? "PASS" : "ERROR", evidence: `commit=${lock.commit ?? "missing"}; hash=${lock.contentHash ?? "missing"}; skills=${lock.skillCount ?? "missing"}; files=${lock.fileCount ?? "missing"}` });
   } catch (error) {
     results.push({ id: "skill.snapshot", status: "ERROR", evidence: boundedError(error) });
+  }
+
+  try {
+    results.push(sharedWorkflowDoctorResult(await inspectSharedWorkflows(options.home)));
+  } catch {
+    results.push(sharedWorkflowDoctorResult(sharedWorkflowInspection("unverified", "unknown", 0, 0, 0, ["inspection-failed"])));
   }
 
   const commands = pi.getCommands();

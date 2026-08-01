@@ -1,0 +1,350 @@
+# BUILD Progress
+
+- Change: `integrate-upstream-formal-agent-protocols`
+- Backend: OpenSpec
+- BUILD status: `complete`
+- Current package: BUILD packages `1.1` through `6.5` remain complete; SHIP reconstruction targets `0.1.16`; exact operations in `7.3` remain pending ROSE
+- Decision owner: ROSE
+- Verification owner: ROSE
+
+## 2026-08-01T08:02:53+08:00 — BUILD_STARTED
+
+- objective=Persist final test-plan acceptance, confirm the exact Git/source baseline, and evaluate the first dependency gates without performing external, dependency, deletion, Git publication, release, or real-install operations.
+- scope=OpenSpec acceptance/status artifacts and read-only local evidence for tasks 1.1-1.2.
+- files_changed=test-plan.md; context.md; tasks.md; progress.txt
+- evidence_state=Final test plan explicitly accepted with fresh BUILD intent. Current host branch is `fix/quota-animation-subagent-label` at `227d9dc9392a83748ac4cf77f5c386cbacf7957c`; the worktree contains extensive pre-existing modified/untracked implementation. Historical commits `ff2e32f27a7ca1d213311abeba6ef402468696e8` and `ca326d3d4e827ed1c3905b24a82a65479e07aef6` are locally available; their diff contains exactly 34 files, all under `openspec/changes/**`, confirming the source brief's docs-only PR baseline without describing the current tree.
+- package_1_1=partial. The historical PR baseline is locally reproducible and the umbrella is the accepted sole future BUILD/release owner, but the older `add-file-task-board` board still declares active/done state and public-artifact claim cleanup remains unfinished.
+- package_1_2=blocked. Local evidence provides workflow commit `d08b343ac45e4f90510a7af6b76f95d38d9e0cb1`, task-board reference hash `5559504127f640d4349df8d675f7e1af02997bc85807482197a8b26171ab6562`, and a 19-role inventory, but npm `gitHead`, exact release tarball SHA-256, `aili-agent-selection/v1` reference/hash, and a role inventory tied to the same release are missing. `manifests/roles.json` still points at `7eb35f357ad489f5841ee10dac1e44549c1bdb76`.
+- unresolved_items=Exact upstream release tuple; old-board historical reconciliation; public-artifact unsupported status cleanup; separately gated external lookup, lockfile/deletion, Git, publish, release, and real-install operations.
+- rose_decision=BUILD entry is recorded, but no dependent implementation package may begin by accepting or waiving missing release evidence.
+- next_package=Finish task 1.1 locally where possible, then obtain exact approval for a bounded read-only external release lookup needed by task 1.2.
+
+## 2026-08-01T08:20:01+08:00 — PACKAGE_1_1_PARTIAL_RECONCILIATION
+
+- scope=Historical ownership/status reconciliation for `add-file-task-board` and `separate-shared-and-pi-skill-distribution` only.
+- files_changed=Existing human-facing OpenSpec artifacts, capability specs, progress history, and the existing add-file-task-board handoff within those two change roots; no production code, dependencies, lockfiles, independent proposals, Git operations, or umbrella ownership files outside this progress/test evidence update.
+- evidence_state=Both old changes now state that the umbrella is the sole future BUILD/release owner. The old v1 board is `cancelled`; the distribution task list is explicitly historical. Internal human-artifact claim-tag prefixes were removed in the two roots, opaque Runtime refs remain only as qualified historical/protocol evidence, and strict OpenSpec validation passes independently for both old changes and the umbrella.
+- verification=`openspec validate add-file-task-board --strict --no-interactive` PASS; `openspec validate separate-shared-and-pi-skill-distribution --strict --no-interactive` PASS; `openspec validate integrate-upstream-formal-agent-protocols --strict --no-interactive` PASS; scoped claim-tag searches returned no matches.
+- package_1_1=partial. The two overlapping old changes are reconciled and the historical 34-file docs-only PR boundary is proven locally. Cleanup of other public PR artifacts remains outside this completed slice, so task 1.1 stays unchecked.
+- unresolved_items=Exact upstream release tuple remains the next hard dependency; independent public-artifact cleanup is still pending; existing historical session refs are non-authoritative and must not be promoted into umbrella evidence.
+- rose_decision=Accept the bounded reconciliation slice. Do not start package 2 or claim inherited implementation completion. Request exact approval for read-only external release evidence required by package 1.2.
+- next_package=1.2 after approved external evidence lookup; otherwise BUILD remains blocked.
+
+## 2026-08-01T09:59:48+08:00 — PACKAGE_1_2_DONE
+
+- scope=Approved read-only public npm/GitHub lookup, exact tarball download to `/tmp/opencode/`, local hash/integrity computation, protocol inspection, and 19-role inventory comparison.
+- files_changed=Source brief placeholders; tasks.md; test-plan.md; context.md; progress.txt. Temporary evidence remains outside the repository at `/tmp/opencode/aili-pi-upstream-0.4.2/`.
+- evidence_state=Exact release is `rose-aili@0.4.2`. npm `gitHead`, annotated `v0.4.2` target, and Git commit all resolve to `bb1fedacc46d71045daa6257d121f2b71ba29d54`. Downloaded tarball registry SHA-512 matches the computed value. Tarball SHA-256 is `df7c67af6acaa7e5080e81f5c7fab6b9dc77b5a24397a26240a527370cad206f`. The tarball contains `aili-agent-selection/v1` with reference SHA-256 `562951ec896b351983223a4a04833c260d9570307a1688dbaf7032055ee4161d`, `aili-task-board/v1` with reference SHA-256 `04343832b5cdfbde65f53f0a981a5f0e7c6e1b3507e65e5fdfbf2b3f696af58b`, exactly 19 matrix specialist roles with matching `agents/<role>.md` files, plus the separate `rose` control-plane role.
+- verification=Registry metadata and computed SHA-512 are byte-identical; both protocol markers were read from the extracted exact tarball; matrix role count=19; published specialist file count=19; inventories match.
+- package_1_2=done. The prior local `d08b343ac45e4f90510a7af6b76f95d38d9e0cb1` snapshot is not the released `0.4.2` identity and must be replaced only through package 2.1.
+- unresolved_items=Task 1.1 remaining public-artifact cleanup; package 2.1 repository lock/snapshot/provenance mutation approval; later deletion, lockfile, Git, publish, release, real HOME/WSL operations.
+- rose_decision=Accept package 1.2 evidence. Do not mutate `upstream/aili-workflows.lock.json`, generated snapshot, role manifests, package lock, or dependencies without the next exact approval.
+- next_package=Finish remaining safe task 1.1 cleanup or request exact package 2.1 lock/snapshot mutation approval.
+
+## 2026-08-01T10:07:20+08:00 — PACKAGE_1_1_DONE
+
+- scope=Complete public-artifact source/status cleanup across the four historical PR change roots while preserving the independent status of TUI/image-paste and emergency-checkpoint proposals.
+- files_changed=Human-facing OpenSpec artifacts and capability specs under `add-file-task-board`, `separate-shared-and-pi-skill-distribution`, and `improve-tui-interaction-and-wsl-image-paste`; the independent emergency-checkpoint proposal; associated historical progress/handoff integrity updates where an existing artifact was edited.
+- evidence_state=The two overlapping old changes are non-active historical/capability sources; TUI/image-paste and emergency-checkpoint remain independent. Prohibited human-artifact claim-tag prefixes and current-session/current-conversation authority patterns are absent from all four current change roots. Unsupported historical completion/runtime/test claims are either qualified as historical/not independently reverified or removed from current acceptance state.
+- verification=`openspec validate add-file-task-board --strict --no-interactive` PASS; `openspec validate separate-shared-and-pi-skill-distribution --strict --no-interactive` PASS; `openspec validate improve-tui-interaction-and-wsl-image-paste --strict --no-interactive` PASS; umbrella strict validation PASS; scoped forbidden-pattern scans returned no matches. `replace-pi-native-fallback-with-aili-emergency-checkpoint` remains intentionally proposal-only and strict validation reports its pre-existing absence of capability deltas, consistent with its upstream-blocked independent status.
+- package_1_1=done. The public-document correction requirement is satisfied without treating independent proposal work as implemented or release-blocking.
+- unresolved_items=Package 2.1 requires exact approval to replace the repository workflow lock/snapshot/provenance from `d08b343...`/mixed role revision to released `rose-aili@0.4.2` commit `bb1fed...`; later deletion, package-lock, Git, publish, release, and real-install operations remain separate.
+- rose_decision=Close task 1.1. Proceed only after the package 2.1 operation approval; no lock/snapshot mutation has been performed yet.
+- next_package=2.1 exact upstream lock/snapshot/provenance synchronization.
+
+## 2026-08-01T10:19:52+08:00 — PACKAGE_2_1_DONE
+
+- scope=Approved exact replacement of the repository-only shared Skill snapshot and synchronization of release-bound lock, compatibility, adapter-evidence, provenance, notices, and generated SBOM evidence.
+- files_changed=`scripts/sync-skills.ts`; `skills/**`; `upstream/aili-workflows.lock.json`; `manifests/skill-compatibility.json`; `manifests/adapter-evidence.json`; `manifests/provenance.json`; generated `THIRD_PARTY_NOTICES.md` and `manifests/sbom.json`; focused generated/provenance tests.
+- evidence_state=The repository now contains the exact 65-skill/588-file `.agents/skills` snapshot from `rose-aili@0.4.2` commit `bb1fedacc46d71045daa6257d121f2b71ba29d54`. The lock and compatibility manifest bind version, npm gitHead, tarball SHA-256, both protocol paths/hashes, and the exact 19-specialist matrix. Replacement requires `--replace-existing`; default synchronization refuses an existing snapshot. Local role adapters remain on their prior revision and subagent-dispatch adapter evidence is intentionally `unverified` until package 2.3 rather than falsely promoted.
+- verification=`npm run verify:skills` PASS (65/588); `npm run validate:compatibility` PASS (45 records applied/verified); `npm run validate:provenance` PASS; generated test 7/7 PASS; exact-release provenance test PASS; `npm run typecheck` PASS; strict umbrella OpenSpec PASS; scoped diff check PASS. At this package savepoint the full provenance unit file exposed a permission-adaptation validator mismatch; final Package 6.5 reconciliation superseded that limitation after aligning the validator and passing the full file.
+- package_2_1=done. Snapshot, release identity, compatibility, and provenance claims are fresh and reproducible; no package dependency/lockfile, HOME, Git, publish, or release operation occurred.
+- unresolved_items=At this savepoint: Package 2.2 routing projection, package 2.3 role adapter/source revision reconciliation, the then-open permission validator mismatch, and later distribution/release gates. The validator mismatch is closed by the final reconciliation entry.
+- rose_decision=Accept package 2.1 with subagent-dispatch compatibility blocked rather than overclaimed. Continue to package 2.2.
+- next_package=2.2 deterministic Pi agent-routing projection.
+
+## 2026-08-01T10:29:38+08:00 — PACKAGE_2_2_DONE
+
+- scope=Implement deterministic repository-local projection of the exact upstream Agent-selection matrix into a Pi-owned routing manifest, including focused drift and invalid-input checks.
+- files_changed=`scripts/sync-agent-routing.ts`; `manifests/agent-routing.generated.json`; `tests/unit/agent-routing-generated.test.ts`; npm script entries in `package.json`; umbrella task/test/context/progress state.
+- evidence_state=The generated schema records exact repository, commit, protocol and source SHA-256 plus routing-only rows for all 19 canonical specialists in lock order. Each row maps to the validated `aili.<role-id>` selector and contains triggers, near misses, expected evidence, advisory phase affinity and execution guidance. It emits no RoleProfile description, tools or permission authority. Generation rejects unsupported source identity/protocol/path, source hash/byte drift, malformed tables, `general`, duplicate/unknown/missing specialists and missing/duplicate/mismatched role selectors.
+- verification=`npm run verify:agent-routing` PASS (19 specialists); `npx vitest run tests/unit/agent-routing-generated.test.ts` PASS (5/5); `npm run typecheck` PASS; scoped diff check PASS.
+- package_2_2=done. The routing projection is deterministic and generated; package 2.3 still owns source-commit/hash reconciliation and integration into broader generated validation.
+- unresolved_items=Package 2.3 exact role/routing/source reconciliation; subagent-dispatch adapter evidence remains unverified; pre-existing permission-adaptation unit-test mismatch; later deletion/package-lock/release gates.
+- rose_decision=Accept package 2.2. Do not claim INT-04 fully closed until package 2.3 reconciles role source identities and validation.
+- next_package=2.3 role/routing/source commit and hash reconciliation.
+
+## 2026-08-01T10:37:30+08:00 — PACKAGE_2_3_DONE
+
+- scope=Reconcile role generator, Runtime role validation, exact-release generated profiles, role/routing manifests and generated checks to one accepted upstream identity.
+- files_changed=`scripts/sync-roles.ts`; `scripts/sync-agent-routing.ts`; `src/runtime/roles.ts`; exact-source-generated `roles/*.md` and `manifests/roles.json`; `manifests/agent-routing.generated.json`; focused role/routing tests; generated-validation npm scripts.
+- evidence_state=The approved read-only source checkout was confirmed clean, detached at `bb1fedacc46d71045daa6257d121f2b71ba29d54`, with the expected GitHub origin. All 19 specialized profiles were regenerated from that exact source; `general` remains AILI-owned. Role and routing manifests now share the lock repository/commit, routing generation rejects role-source mismatch, all specialized frontmatter records the exact commit, and the generated routing remains routing-only with no duplicate description/tool/permission authority.
+- verification=`npm run sync:roles -- --source /tmp/opencode/aili-workflows-0.4.2` PASS (20 profiles); `npm run sync:agent-routing` PASS (19 specialists); `npm run validate:roles` PASS; focused role+routing tests PASS (11/11); `npm run validate:generated` PASS (7/7 after role/routing verifiers); `npm run typecheck` PASS; scoped diff check PASS; scoped old-role-commit searches returned no matches.
+- package_2_3=done. INT-04 exact generated routing is closed with fresh source, role, hash, selector and drift evidence. The external checkout was not modified; no dependency, package-lock, HOME, Git publication or release operation occurred.
+- unresolved_items=Package 3.1 model-facing ordinary/formal routing rules; packages 3.2-3.4 Runtime catalog/formal/continuation behavior; subagent-dispatch adapter status remains unverified; pre-existing permission-adaptation unit-test mismatch; later deletion/package-lock/release gates.
+- rose_decision=Accept package 2.3 and close the generated-routing requirement. Continue to package 3.1 without promoting Runtime adapter status early.
+- next_package=3.1 align `rose-context.ts` and `templates/APPEND_SYSTEM.md`.
+
+## 2026-08-01T10:43:02+08:00 — PACKAGE_3_1_DONE
+
+- scope=Align the concise always-present Runtime governance summary with the full static APPEND_SYSTEM adapter contract without implementing catalog metadata or enforcement owned by later packages.
+- files_changed=`src/runtime/rose-context.ts`; `templates/APPEND_SYSTEM.md`; focused Runtime/global-resource tests; umbrella task/test/context/progress state.
+- evidence_state=Both surfaces now state the ordinary discovery scan and exact-specialist preference, formal ROSE authority/exact owner/general exclusion, same-identity continuation boundary, async evidence inspection, ordinary human-artifact prose, artifact non-authority, test-plan acceptance separation, and YOLO permission-only boundary. The Extension still injects only its concise summary, not the full static marker resource; inactive `task` omits task/catalog guidance while retaining core governance.
+- verification=`tests/unit/runtime.test.ts` PASS (9/9 in the combined run); `tests/unit/global-resources.test.ts` PASS (4/4 after updating stale old-wording assertions); `npm run typecheck` PASS; scoped diff check PASS.
+- package_3_1=done. The two model-facing governance surfaces are semantically aligned; packages 3.2-3.4 still own active-tool catalog metadata and executable formal/continuation rules.
+- unresolved_items=Packages 3.2-3.4; subagent-dispatch adapter remains unverified; pre-existing permission-adaptation unit-test mismatch; later board/distribution/deletion/package-lock/release gates.
+- rose_decision=Accept package 3.1. The stale global-resource test asserted replaced wording rather than behavior and was repaired to the accepted contract; no production behavior was weakened.
+- next_package=3.2 generated compact catalog in persistent `task` metadata only while active.
+
+## 2026-08-01T11:12:05+08:00 — PACKAGE_3_2_DONE
+
+- scope=Join exact generated routing rows to validated RoleProfile descriptions and expose one bounded Specialist catalog through active persistent `task` metadata and formal lifecycle guidance.
+- files_changed=`src/runtime/agent-catalog.ts`; `src/runtime/rose-context.ts`; `src/runtime/persistent-agents/runtime.ts`; `src/runtime/persistent-agents/production.ts`; `src/runtime/persistent-agents/task-schema.ts`; focused unit/integration tests; umbrella task/test/context/progress state.
+- evidence_state=Production registration loads `manifests/agent-routing.generated.json` and validated RoleProfiles, rejects malformed/missing/duplicate/noncanonical routing or descriptions, and fails non-pass rather than falling back. The compact catalog contains 19 Specialized selectors with RoleProfile-owned descriptions plus generated triggers, near misses, expected evidence, advisory phase affinity and execution guidance; it contains no `general`, tool, capability, tool-policy, blocking or permission authority. Catalog metadata exists only on the registered `task` tool, while inactive-task Runtime context still omits task/catalog guidance.
+- verification=`npm test -- tests/unit/agent-catalog.test.ts tests/unit/runtime.test.ts tests/unit/persistent-agent-task.test.ts tests/integration/persistent-agent-runtime.test.ts` PASS (32/32); `npm test -- tests/unit/agent-routing-generated.test.ts` PASS (6/6 including drift verification); `npm run typecheck` PASS; scoped diff check PASS.
+- package_3_2=done. The active-tool catalog and prompt metadata contract are executable and fail-visible; no live provider/model session was used or claimed.
+- unresolved_items=Package 3.3 formal explicit selector/async enforcement; package 3.4 continuation identity/audit enforcement; later board/distribution/deletion/package-lock/release gates; pre-existing permission-adaptation provenance unit-test mismatch.
+- rose_decision=Accept package 3.2. Preserve ordinary omitted-agent compatibility and keep phase affinity advisory rather than treating catalog metadata as permission authority.
+- next_package=3.3 formal pre-allocation selector/async enforcement.
+
+## 2026-08-01T11:16:13+08:00 — PACKAGE_3_3_DONE
+
+- scope=Enforce formal task selector and execution-mode explicitness before persistent Agent/job/turn allocation while preserving ordinary compatibility behavior.
+- files_changed=`src/runtime/persistent-agents/task-schema.ts`; focused persistent-task and formal-orchestration Runtime tests; umbrella task/test/context/progress state.
+- evidence_state=Any task item with `formalContext` must carry an exact untrimmed canonical Specialized selector and explicit boolean `async`. Omitted selector, `general`, non-exact selector text and omitted/non-boolean async fail during request normalization before role resolution, formal-root resolution or durable allocation. Mixed batches fail atomically at validation. Ordinary calls still normalize omitted agent to `general`, retain default async, respect blocking profiles and preserve nested synchronous execution.
+- verification=`npm test -- tests/unit/persistent-agent-task.test.ts tests/integration/formal-orchestration-runtime.test.ts` PASS (16/16); `npm run typecheck` PASS; scoped diff check PASS.
+- package_3_3=done. MODE-01 through MODE-04 now have executable focused evidence; later board/package/permission gates remain independent.
+- unresolved_items=Package 3.4 continuation identity and audit fields; later formal board/distribution/deletion/package-lock/release gates; pre-existing permission-adaptation provenance unit-test mismatch.
+- rose_decision=Accept package 3.3. Do not change ordinary omitted-agent/default-mode semantics while adding fail-closed formal pre-allocation validation.
+- next_package=3.4 continuation audit identity and same-envelope reuse enforcement.
+
+## 2026-08-01T11:47:47+08:00 — PACKAGE_3_4_DONE
+
+- scope=Persist and enforce the formal continuation identity envelope across initial task allocation and same-Agent hub continuation without extending public `formalContext` or changing ordinary behavior.
+- files_changed=`src/runtime/formal-orchestration.ts`; persistent task schema/coordinator/hub/storage/types/production modules; focused formal-orchestration, task, hub, storage and Runtime tests; umbrella task/test/context/progress state.
+- evidence_state=Formal dispatch now carries a separate bounded `continuationAudit` containing exact package ID, canonical selector, scope, forbidden scope, normalized write scope, acceptance boundary and expected evidence while `formalContext` remains exactly `{ changeId }`. Initial allocation re-reads the exact board package, binds the audit to the actual selector/write scope, persists the identity on Agent/job/turn records and stores immutable RoleProfile identity. Hub continuation requires the complete unchanged identity, rejects omissions or any field drift, validates current durable role-profile identity before child-session reuse, and records formal message identity plus content hash before `steer`. Formal duplicate IDs require exact agent/sender/content/audit equality; malformed or oversized formal identity/message input fails visibly. Ordinary task normalization, hub sends and specialized non-nesting remain unchanged.
+- verification=`npm test -- tests/unit/formal-orchestration.test.ts tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-storage.test.ts tests/integration/formal-orchestration-runtime.test.ts tests/integration/persistent-agent-runtime.test.ts` PASS (60/60); `npm run typecheck` PASS; scoped diff check PASS.
+- review_disposition=A focused read-only review found pre-steer audit, formal duplicate-ID, input-bound and RoleProfile-drift defects; those defects were repaired and reverified. Suggested one-time semantic grants and initial write authorization are not created by the continuation audit: ROSE remains the trusted classifier/operation-gate owner under the accepted design. Current-board/workspace recovery across process restart is not claimed here and remains assigned to packages 4.4/4.6.
+- package_3_4=done. INT-06 identity-field preservation has fresh focused evidence; live provider behavior and process-restart continuation remain unverified until their owning later packages/checks.
+- unresolved_items=Packages 4.1-4.6 formal board adapter/protection/restart reconciliation; adapter-evidence promotion and package/doctor integration gate; later distribution/deletion/package-lock/release gates; pre-existing permission-adaptation provenance unit-test mismatch.
+- rose_decision=Accept package 3.4 within the accepted identity-audit boundary, with deterministic packet equality enforced and semantic classification retained by ROSE rather than inventing an unaccepted one-time authorization protocol.
+- next_package=4.1 canonical `aili-task-board/v1` parser/validator reconciliation.
+
+## 2026-08-01T12:03:02+08:00 — PACKAGE_4_1_DONE
+
+- scope=Reconcile the Pi parser/validator to the exact generated snapshot of canonical `aili-task-board/v1` without carrying adapter-private Runtime mappings into the portable Board or progress contract.
+- files_changed=`src/runtime/formal-task-board.ts`; `tests/unit/formal-task-board.test.ts`; umbrella task/test/context/progress state.
+- evidence_state=The parser recognizes the exact 10 headers, 27 required package fields, seven package states and 12 portable progress event types. It validates Phase/Package kind/typed Source refs/exact accepted-task ownership, dependencies/cycles/readiness gates, canonical Specialist ownership, dispatch/waiver/execution/join combinations, portable evidence/disposition, checkbox/done equivalence, event order and terminal non-reopening. Runtime-private Agent/Job/Turn/URI mappings are rejected from Board and progress, diagnostics are deterministic and bounded, and legacy/unmanaged input is classified read-only without migration.
+- verification=`npm test -- tests/unit/formal-task-board.test.ts` PASS (28/28); `npm run typecheck` PASS; scoped diff check PASS.
+- package_4_1=done. Canonical semantics are consumed from the exact repository snapshot; temporary compatibility types remain only so later updater/bootstrap owners can be reconciled in their packages.
+- unresolved_items=Package 4.2 root identity/path/symlink/collision handling; package 4.3 portable updater/bootstrap reconciliation; packages 4.4-4.6 protection/restart behavior; later distribution and release gates.
+- rose_decision=Accept package 4.1 and explicitly reject adapter Runtime fields from the canonical portable Board rather than redefining upstream protocol semantics.
+- next_package=4.2 exact OpenSpec root resolution and fail-closed path identity.
+
+## 2026-08-01T12:25:23+08:00 — PACKAGE_4_2_DONE
+
+- scope=Resolve one exact repository-contained OpenSpec formal Board root and reject unsafe identity/path/topology before creation, allocation or later mutation.
+- files_changed=`src/runtime/formal-task-board-root.ts`; affected formal-orchestration/Runtime/protection filename consumers; root and allocation-focused tests; umbrella task/test/context/progress state.
+- evidence_state=Resolved identity maps only to `openspec/changes/<changeId>/formal-task-board.md` plus `progress.txt`; legacy `tasks.md` is left byte-identical and is not auto-migrated. Missing/ambiguous/unsafe IDs, non-exact repository root, traversal/separators/dot segments, repository/change/file symlinks, canonical escape, type mismatch, pair collision, half-pair, legacy/invalid pair and task-identity mismatch fail closed. Present-pair source bytes are returned from the validated inode-bound read, and TaskCoordinator consumes those bytes instead of re-reading a mutable path. Optional initialization validates both sources before exclusive `0600` creation, detects races and performs inode-aware rollback.
+- verification=`npm test -- tests/unit/formal-task-board-root.test.ts tests/unit/persistent-agent-task.test.ts tests/integration/persistent-agent-runtime.test.ts` PASS (55/55); `npm run typecheck` PASS; scoped diff check PASS. Full `tests/integration/formal-orchestration-runtime.test.ts` currently has 3 expected failures in restart-reconciliation fixtures that still encode the pre-4.1 Board/Progress contract; its 2 allocation/root scenarios pass and the stale reconciliation rows remain owned by package 4.6.
+- package_4_2=done. INT-07 exact identity/path handling is closed; no old file was deleted or migrated.
+- unresolved_items=Package 4.3 updater/bootstrap path and portable-state reconciliation; packages 4.4-4.6 protection/restart behavior including the three stale reconciliation fixtures; later distribution/release gates.
+- rose_decision=Accept package 4.2 on the focused root/allocation claim. Do not treat later reconciliation-fixture failures as root-resolution failures or silently rewrite them outside package 4.6.
+- next_package=4.3 canonical Board state/update and append-only progress behavior.
+
+## 2026-08-01T12:56:38+08:00 — PACKAGE_4_3_DONE
+
+- scope=Implement canonical ROSE-owned Board transition planning/bootstrap and guarded portable Board/progress persistence after packages 4.1-4.2 changed the protocol fields and owning path.
+- files_changed=`src/runtime/formal-task-board-update.ts`; `src/runtime/formal-task-board-bootstrap.ts`; direct canonical parser/migration type compatibility; focused updater/bootstrap tests; umbrella task/context/progress state.
+- evidence_state=Updates require actor `ROSE`, validate the exact old pair and legal seven-state transition, enforce dependencies/readiness evidence/waiver prework/dispatch/result readability/inspection/disposition/verification/join/cancellation gates, keep checkbox equivalent to `done`, and emit only portable progress vocabulary. Guarded apply fixes the owning path at `formal-task-board.md`, verifies exact bytes/inodes and canonical containment, stages and fsyncs candidates, serializes through an exclusive lock, checks races before rename, validates the final pair and performs bounded rollback without writing Runtime-private refs. Bootstrap composes only canonical update operations and preserves the exact progress prefix.
+- verification=`npm test -- tests/unit/formal-task-board-update.test.ts tests/unit/formal-task-board-bootstrap.test.ts` PASS (36/36); parser+root tests PASS (65/65); `npm run typecheck` PASS; scoped diff check PASS.
+- package_4_3=done. Portable state/update behavior is closed. At this savepoint the separate legacy-migration file still encoded retired fixtures; Package 4.6 later reconciled it to canonical `formal-task-board.md` behavior, and the final focused rerun passes 10/10.
+- unresolved_items=Package 4.4 protection lifecycle; package 4.5 child deny; package 4.6 restart reconciliation plus stale reconciliation/migration compatibility fixtures; later distribution/release gates.
+- rose_decision=Accept package 4.3 on canonical update and guarded-persistence evidence. Do not restore Runtime-private Board fields merely to satisfy historical migration fixtures.
+- next_package=4.4 bind formalContext protection to workspace leases and revived turns.
+
+## 2026-08-01T13:16:31+08:00 — PACKAGE_4_4_DONE
+
+- scope=Bind exact canonical formal change/protected-path identity to the durable Agent workspace lifecycle and revalidate it before initial or revived child execution.
+- files_changed=`src/runtime/persistent-agents/{types,task-coordinator,storage,workspace,hub,runtime,production}.ts`; focused workspace/storage/child-sandbox/hub/runtime/host/formal-revive tests; umbrella task/test/context/progress state.
+- evidence_state=Formal allocation now persists an immutable `workspace.lease` identity across Agent, job, initial turn and workspace state: exact change/protected paths, continuation audit, canonical role, requested/effective workspace mode, canonical project/root, normalized write scope and cwd. Initial execution preflights the durable lease before child-session/model creation. Revive reconstructs only a validated shared root or exact persisted isolated workspace, re-resolves the current canonical Board, and rejects missing/drifted protection, role, mode/root/scope/cwd, profile or job/turn ownership without falling back to shared. Formal idle Agents become revivable parked Agents after restart; ordinary lease-optional behavior remains unchanged.
+- verification=`npm test -- tests/unit/persistent-agent-workspace.test.ts tests/unit/persistent-agent-storage.test.ts tests/unit/persistent-agent-child-sandbox.test.ts tests/unit/persistent-agent-hub.test.ts tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-host-seams.test.ts` PASS (41/41); focused formal workspace/revive cases PASS (2/2); `npm run typecheck` PASS; scoped diff check PASS. Full formal reconciliation still has three package-4.6-owned stale restart fixtures; full package-runtime also has an unrelated existing 65-versus-64 Skill snapshot-count expectation.
+- package_4_4=done. INT-08 is complete; INT-09 is partial until package 4.5 enforces actual child write/edit/bash mutation denial.
+- unresolved_items=Package 4.5 pre-mutation child gates and ordinary/YOLO regressions; package 4.6 restart-to-Board reconciliation and stale compatibility fixtures; later distribution/release gates.
+- rose_decision=Accept package 4.4 on durable exact workspace/protection binding and pre-execution revive checks. Do not claim write-tool denial or Board terminal-state reconciliation before their owning packages.
+- next_package=4.5 formal child write/edit and exact-deny-or-no-bash enforcement.
+
+## 2026-08-01T13:29:22+08:00 — PACKAGE_4_5_DONE
+
+- scope=Enforce formal owning-file denial at the child write/edit and bash seams before mutation while preserving ordinary permission and tool-policy behavior.
+- files_changed=`src/runtime/persistent-agents/workspace.ts`; `src/runtime/persistent-agents/child-sandbox.ts`; focused workspace/child-sandbox/policy/permission/host-sandbox tests; umbrella task/test/context/progress state.
+- evidence_state=Any partial or inconsistent formal lease now fails closed. The write/edit guard resolves relative, absolute, normalized, existing, missing and symlink-alias targets against the exact two owning paths in shared or isolated roots and blocks before the tool mutates bytes. Formal bash is hard denied unless the process-owned sandbox provider is ready, its full formal profile matches, and it returns operations configured with exactly two distinct absolute denyWrite paths; absent/mismatched/failing providers, disabled sandbox and YOLO cannot restore bash through role/call tool narrowing. A ready host sandbox denies both owning files while leaving an adjacent file writable. Ordinary children retain their prior workspace, permission, approval and bash behavior.
+- verification=`npm test -- tests/unit/persistent-agent-workspace.test.ts tests/unit/persistent-agent-child-sandbox.test.ts tests/unit/persistent-agent-policy.test.ts tests/unit/persistent-agent-permission.test.ts tests/integration/permission-sandbox.test.ts tests/integration/permission-modes.test.ts tests/integration/persistent-agent-host-seams.test.ts` PASS (34/34); `npm run typecheck` PASS; scoped diff check PASS. Evidence supports these adapter/provider seams only, not a universal OS sandbox or arbitrary-process/TOCTOU containment claim.
+- package_4_5=done. INT-09 is complete on the accepted child-tool and process-owned-sandbox contract.
+- unresolved_items=Package 4.6 restart-to-Board reconciliation, returned/blocked mapping and stale restart/migration compatibility fixtures; later distribution/release gates.
+- rose_decision=Accept package 4.5 on byte-preserving pre-mutation denial, exact sandbox deny-or-no-bash and ordinary/YOLO regressions. Keep broader sandbox guarantees explicitly out of scope.
+- next_package=4.6 deterministic restart reconciliation with zero replay/redispatch/fallback/auto-done.
+
+## 2026-08-01T14:25:36+08:00 — PACKAGE_4_6_DONE
+
+- scope=Implement explicit ROSE-owned restart reconciliation from one exact canonical Board/progress pair and immutable same-parent Agent Journal result evidence, with no automatic execution or completion authority.
+- files_changed=`src/runtime/formal-orchestration.ts`; `src/runtime/formal-task-board{,-update,-migration}.ts`; `src/runtime/persistent-agents/{production,runtime,output-delivery,storage,task-coordinator,types}.ts`; focused orchestration/Board/update/migration/task/storage/output/runtime tests; umbrella task/test/context/progress state.
+- evidence_state=Runtime creation only marks unfinished work interrupted/unexecuted/parked and never invokes reconciliation or a model. The explicit `actor: ROSE` entry resolves one exact canonical pair, binds Journal candidates through full change/package/role/continuation identity, ignores another change's same local package ID and rejects multiple exact candidates. Formal settlements require one strict bounded canonical terminal envelope; empty, whitespace, malformed, duplicate-field, wrong package/role, blocked or unverified output cannot become returned. Immutable exclusive per-job/turn output plus history-prefix SHA-256/byte snapshots are Journal-bound and reverified. Only exact completed/partial readable evidence maps running to returned; failed/interrupted/unexecuted/missing/stale/unreadable/blocked/unverified/malformed maps to blocked. Guarded updates append only portable RETURNED/BLOCKED plus RECONCILED anchors, never raw Runtime refs, JOINED, acceptance, done or phase movement. Evidence sequence, active Agent identity and hashes are rechecked before/after each tasks/progress replacement boundary; drift triggers exact rollback.
+- verification=Focused orchestration/update/task/storage/output/runtime suite PASS (95/95); full formal-orchestration runtime file PASS (11/11); final guarded-race/update rerun PASS (41/41); `npm run typecheck` PASS; scoped diff check PASS. A focused silent-failure review initially found false-return, mutable Agent-output substitution, cross-change package ambiguity and a post-validation rename race; all were repaired. Final narrow recheck found no remaining blocker/high and confirmed beforeRename output/Journal/release races preserve byte-identical Board/progress. Full package-runtime still has an unrelated existing 65-versus-64 Skill snapshot-count expectation; no live provider/process-loss run was performed.
+- package_4_6=done. INT-10 is complete on deterministic local Journal/filesystem evidence; live provider/process-loss behavior remains explicitly unverified rather than inferred.
+- unresolved_items=Package 5.1 requires separate exact deletion and package publication/package-lock mutation approval; packages 5.2-5.4 and final verification/release gates follow. Existing unrelated package-runtime Skill-count fixture and provenance permission-adaptation failure remain outside this package.
+- rose_decision=Accept package 4.6 after the silent-failure repair/recheck. Do not treat returned as inspected/done or grant any replay, redispatch, fallback selector, Git or release authority.
+- next_package=5.1 after exact approval for the named deletion/publication/package-lock operations.
+
+## 2026-08-01T15:59:07+08:00 — PACKAGE_5_1_DONE
+
+- scope=Remove `aili-pi` ownership of generic shared-Skill installation and publication under the exact approved deletion/package-lock boundary.
+- files_changed=Deleted `scripts/sync-global-skills.mjs` and `scripts/sync-global-skills.d.mts`; removed `postinstall` and `skills/` publication from `package.json`; removed only root `hasInstallScript` from `package-lock.json`; replaced the legacy global-sync bootstrap test with package/lock/dry-run inventory evidence; aligned the package baseline test.
+- evidence_state=The npm candidate has no install lifecycle owner for shared Skills, publishes no repository `skills/**`, and contains neither retired synchronizer path. The dependency graph/version metadata were otherwise preserved. Repository-local `skills/**` was not deleted.
+- verification=Focused distribution/package tests PASS (8/8), including offline `npm pack --dry-run --json --ignore-scripts`; `npm run typecheck` PASS; scoped diff check PASS.
+- package_5_1=done. No real HOME, network, install, publish or release operation occurred.
+- unresolved_items=Repository-only snapshot proof in 5.2; owner documentation/bootstrap in 5.3; read-only doctor in 5.4; final verification queue.
+- rose_decision=Accept the exact owner removal and lock-root metadata change under the granted approval; do not infer dependency, Git or release authority.
+- next_package=5.2 repository-only exact snapshot verification.
+
+## 2026-08-01T15:59:07+08:00 — PACKAGE_5_2_DONE
+
+- scope=Preserve the shared Skill snapshot solely as exact repository verification evidence after removing runtime publication ownership.
+- files_changed=`tests/integration/package-runtime.test.ts`; umbrella task/test/context/progress state.
+- evidence_state=The integration fixture now joins repository skill directories to both the compatibility manifest and exact workflow lock instead of a stale hard-coded count, while asserting package publication excludes `skills/`. The snapshot remains generated/lock-bound, not semantically hand-edited or registered as a Pi Skill.
+- verification=`npm run verify:skills` PASS (65 skills/588 files at `bb1fedacc46d71045daa6257d121f2b71ba29d54`); package-runtime integration PASS (2/2); scoped diff check PASS.
+- package_5_2=done. The previously reported 64-versus-65 package-runtime failure is closed.
+- unresolved_items=Owner documentation/bootstrap, doctor compatibility and final verification queue.
+- rose_decision=Accept repository-only exact verification as distinct from installed/runtime ownership.
+- next_package=5.3 separate lifecycle owner documentation and bootstrap guidance.
+
+## 2026-08-01T15:59:07+08:00 — PACKAGE_5_3_DONE
+
+- scope=Document and expose separate explicit shared-workflow and Pi Package lifecycle owners without making bootstrap invoke the shared owner.
+- files_changed=`README.md`; `scripts/bootstrap.sh`; `tests/bootstrap/bootstrap.test.ts`; `tests/unit/package.test.ts`; umbrella task/test/context/progress state.
+- evidence_state=README names explicit `npx -y rose-aili@0.4.2 install|update` as the shared-workflow owner and Pi install/update/remove as the Package owner, states moving latest is not evidence, and records the repository-only 65/588 snapshot. Bootstrap prints the shared commands as `status=not-run` guidance and fake-command fixtures prove no npm/npx/rose-aili child executes.
+- verification=Bootstrap/package focused tests PASS (30/30); `npm run typecheck` PASS; scoped diff check PASS.
+- package_5_3=done. No real shared workflow or Package lifecycle command was executed.
+- unresolved_items=Read-only doctor compatibility and final verification queue.
+- rose_decision=Accept the two-owner boundary; printed remediation is guidance, not operation authority or execution evidence.
+- next_package=5.4 read-only shared-workflow compatibility doctor.
+
+## 2026-08-01T15:59:07+08:00 — PACKAGE_5_4_DONE
+
+- scope=Add local read-only compatibility diagnosis for the two default shared workflow protocol references with no repair, fetch, install, update or fallback.
+- files_changed=`src/runtime/doctor.ts`; `tests/unit/doctor.test.ts`; umbrella task/test/context/progress state.
+- evidence_state=Doctor validates the two v1 protocol markers, exact required 19-role inventory and canonical Board reference structure independently of exact hash; structurally compatible hash drift remains `present-compatible` with `source_match=modified`. Missing, incompatible and symlink/I/O ambiguity map to their accepted states; exact lock hashes produce `source_match=exact`. Evidence is bounded/redacted and remediation is text only.
+- verification=`npm run test:doctor` PASS (18/18) across exact, hash-drift, missing, malformed/unsupported/role-inventory and symlink cases; `npm run typecheck` PASS; scoped diff check PASS.
+- package_5_4=done. Real HOME and network behavior were intentionally not exercised; `compatible-newer` is not claimed without source evidence.
+- unresolved_items=Packages 6.1-6.5 cross-module, package, disposable lifecycle and final evidence reconciliation; release operations remain separately gated.
+- rose_decision=Accept the four compatibility states and source-match projection as read-only diagnosis. A missing or incompatible required protocol keeps overall doctor non-pass.
+- next_package=6.1 focused routing/ordinary-formal/continuation/Board/protection/reconciliation verification.
+
+## 2026-08-01T16:34:18+08:00 — PACKAGE_6_1_DONE
+
+- scope=Run the accepted focused cross-module Runtime verification for generated routing, ordinary/formal Agent behavior, continuation, canonical Board, owning-file protection and restart reconciliation.
+- files_changed=Umbrella task/context/progress state only; the verification lane made no implementation edits.
+- evidence_state=Sixteen directly owning test files cover INT-04 through INT-10, including active/inactive catalog, formal pre-allocation selector/async failures, ordinary defaults, continuation identity/dedupe/pre-steer audit, Board parser/root/update/bootstrap, workspace protection, exact-deny-or-no-bash, immutable result reconciliation, async-open joins and commit-boundary race rollback.
+- verification=One focused Vitest command PASS (16 files, 205/205 tests); `npm run typecheck` PASS.
+- package_6_1=done. Evidence is candidate-tree-specific and does not claim live provider/process-loss or release readiness.
+- unresolved_items=Package/distribution/generated/provenance/compatibility checks, disposable lifecycle and final reconciliation.
+- rose_decision=Accept the focused matrix as sufficient for the exact Runtime claims; do not expand to a full suite without a remaining affected gap.
+- next_package=6.2 package/doctor/bootstrap/generated/provenance/compatibility verification.
+
+## 2026-08-01T16:34:18+08:00 — PACKAGE_6_2_DONE
+
+- scope=Run and repair the accepted package, doctor, bootstrap, generated, provenance, compatibility, exact-snapshot and affected integration gates.
+- files_changed=`manifests/adapter-evidence.json`; generated `manifests/skill-compatibility.json`, `THIRD_PARTY_NOTICES.md`, `manifests/sbom.json`; `tests/unit/doctor.test.ts`; umbrella task/context/progress state.
+- evidence_state=Initial checks exposed expected generated drift from the approved root lock metadata change. Revision-bound artifact hashes were refreshed, the now-implemented/tested persistent-Agent `subagent.dispatch` adapter was promoted from unverified to adapted, compatibility was regenerated, and provenance/SBOM/notices were regenerated from the unchanged dependency graph. One unrelated `i-have-adhd` presentation adapter remains honestly blocked. The previously selected package-level provenance generator check passes.
+- verification=`validate:package` PASS (6/6); `test:doctor` PASS (18/18); `test:bootstrap` PASS (24/24); affected global-skill/package-runtime/global-resources PASS (8/8); `validate:generated` PASS (7/7 plus 20 role/19 routing verification); `validate:provenance` PASS; `validate:compatibility` PASS (45 records); `verify:skills` PASS (65/588); persistent dispatch evidence matrix PASS (43/43); scoped diff check PASS.
+- package_6_2=done. The initial full provenance-unit rerun exposed a runtime-validator mismatch; final reconciliation aligned the validator with the six generated permission adaptations and the complete provenance/permission/doctor matrix now passes.
+- unresolved_items=Disposable npm lifecycle, final type/OpenSpec/diff checks, final requirement reconciliation and separate release gates.
+- rose_decision=Accept the selected package/provenance/compatibility gates and adapter promotion on fresh revision-bound evidence. Do not claim the unrelated full provenance file passes.
+- next_package=6.3 offline tarball and disposable install/update/remove lifecycle.
+
+## 2026-08-01T16:34:18+08:00 — PACKAGE_6_3_DONE
+
+- scope=Prove candidate tarball boundaries and one real Pi install/update/remove cycle without network or real HOME mutation.
+- files_changed=`scripts/local-package-e2e.ts`; umbrella task/test/context/progress state.
+- evidence_state=A task-owned disposable `npmCommand` wrapper maps unpinned `npm:@rosetears/aili-pi` to local offline tarballs while exercising Pi's actual npm-source install/update/remove path. The managed candidate moves `0.1.12→0.1.13→removed`; wrapper sequence is `install#1,view,install#2,uninstall`. The packed candidate has no generic Skills, retired sync scripts, postinstall or root hasInstallScript and retains required Pi resources. Same-name and user-only shared workflow fixtures retain exact inventory/hash after every stage; fail guards observe zero npx/rose-aili child calls.
+- verification=`npm test -- tests/bootstrap/global-skill-sync.test.ts` PASS (2/2); `npm run test:e2e:linux-clean` PASS (bootstrap 24/24 plus native Linux lifecycle); shared tree SHA-256 `34282f71105af8a0555b014aba26f6570260bc08bfd37214b13d6ce543737575`; `npm run typecheck` PASS; scoped diff check PASS. Latest bounded evidence is under repository-local `.tmp/p8-local-e2e/run-linux-txOvi6/` and is not publication authority.
+- package_6_3=done. This is a controlled disposable HOME and local npm wrapper, not a real user HOME, public registry or release installation.
+- unresolved_items=Final type/OpenSpec/diff checks, requirement reconciliation and separate real operation gates.
+- rose_decision=Accept the real Pi npm-source lifecycle path and byte-identical shared-tree proof without converting local wrapper evidence into a public-registry claim.
+- next_package=6.4 final static/coherence checks.
+
+## 2026-08-01T16:34:18+08:00 — PACKAGE_6_4_DONE
+
+- scope=Run the final candidate type, strict OpenSpec and tracked-diff hygiene checks, broadening only if an affected integration claim remains unsupported.
+- files_changed=Umbrella task/context/progress state only.
+- evidence_state=The accepted focused and affected integration matrices already support the implementation claims, so the conditional full-suite expansion was not triggered. The repository remains intentionally very dirty from the supplied baseline; unrelated changes were not cleaned or attributed to this package.
+- verification=`npm run typecheck` PASS; `openspec validate integrate-upstream-formal-agent-protocols --strict --no-interactive` PASS; whole tracked `git diff --check` PASS; current branch remains `fix/quota-animation-subagent-label`.
+- package_6_4=done. No commit, push, publish, release, real install or HOME mutation occurred.
+- unresolved_items=Package 6.5 requirement/evidence reconciliation; historical/release status boundaries and exact operation approvals in section 7.
+- rose_decision=Accept the selected static/coherence evidence and skip the non-required full suite. The then-open provenance-unit limitation is superseded by the final Package 6.5 repair and fresh focused pass.
+- next_package=6.5 final requirement matrix and limitation reconciliation.
+
+## 2026-08-01T16:53:29+08:00 — BUILD_MATERIAL_REACCEPTED
+
+- discovery=Final convergence found that accepted design/spec/source-brief wording still named `tasks.md` as the Runtime Board while the exact upstream `aili-task-board/v1` placement rule, Package 4 implementation and focused evidence use `formal-task-board.md`.
+- decision=The user explicitly accepted `formal-task-board.md` plus `progress.txt` as the unique Runtime owning pair. OpenSpec `tasks.md` remains the accepted task-definition artifact and is not auto-migrated.
+- writeback=`design.md`; capability spec; source brief; `test-plan.md`; `context.md`; `progress.txt`.
+- authorization=This reaccepts the named public contract only. It grants no dependency, HOME, Git, publish, release or real-install operation authority.
+- next_package=Resume Package 6.5 convergence against the reconciled contract and current evidence.
+
+## 2026-08-01T17:03:35+08:00 — PACKAGE_6_5_DONE
+
+- scope=Reconcile every requirement, selected scenario, package result, independent change, candidate/public-exposure state and remaining limitation without converting local evidence into release authority.
+- files_changed=`src/runtime/registry.ts`; `tests/unit/doctor.test.ts`; `manifests/provenance.json` and regenerated notices/SBOM; coordinated independent progress artifacts; reaccepted umbrella contract artifacts; new `release-state.md`; umbrella tasks/test/context/progress state.
+- evidence_state=The first convergence pass found public-status tags, a material owning-pair conflict, stale permission/provenance validation, stale role-adapter prose, contradictory independent TUI status and missing release-state separation. Non-material defects were repaired. The user explicitly reaccepted `formal-task-board.md` + `progress.txt` as the Runtime pair. Permission validation now matches all six generated adaptations; provenance semantics and generated artifacts are current; historical migration fixtures pass. Independent proposals are ordinary-prose, non-inheriting states. `release-state.md` separates implementation, selected verification, conditional full-suite status, upstream identity, local candidate identity, bounded exposure review, live/real limitations and absent operation authority. A fresh convergence recheck found no remaining implementation blocker/high/medium and recommended closing 6.5, 7.1 and 7.2 after superseding stale progress limitations.
+- verification=Permission/provenance/doctor focused matrix PASS (35/35); full provenance unit included; `validate:provenance` PASS; reaccepted Board root/protection matrix PASS (58/58); legacy migration PASS (10/10); strict umbrella OpenSpec PASS; four-root public claim-tag scans PASS; scoped diff checks PASS. Fresh candidate tarball `@rosetears/aili-pi@0.1.13` is 9,829,963 bytes, 5,750 files, SHA-256 `5b026d99287aed1eb8c298c2931d94fa5a69af0c8cdcbf51d1044efb2a22cf2d`; bounded archive inspection found no forbidden paths or package-owned credential material, with two byte-identical third-party generated-code pattern false positives documented in `release-state.md`.
+- package_6_5=done. INT-01 through INT-13 and tasks 7.1-7.2 are reconciled. A current full repository suite was not required by the accepted conditional selector and is not claimed.
+- unresolved_items=Current live provider/model/auth/transport/retry and real process-loss behavior; real user HOME/WSL/clipboard/terminal and public npm-registry composition; the independent TUI proposal's own reconciliation/manual rows; emergency checkpoint upstream seam; separately gated commit/push/npm publish/GitHub release/real WSL install.
+- rose_decision=Close BUILD and the evidence-recording boundary without entering SHIP or executing any release operation. Keep task 7.3 unchecked because exact operation approvals are absent.
+- next_package=None in BUILD. A fresh explicit SHIP intent is required for any closeout beyond this bounded result; each real operation remains separately approved.
+
+## 2026-08-01T17:12:43+08:00 — FINAL_BUILD_CLOSURE_RECHECK
+
+- scope=Bind the Package 6.5 completion claim to the current dirty tree and remove stale lifecycle contradictions identified by a fresh convergence review.
+- files_changed=`context.md`; `test-plan.md`; `design.md`; `release-state.md`; this progress entry.
+- reconciliation=Changed stale `BUILD_ACTIVE`/active markers to `BUILD_COMPLETE`; converted the unresolved exact-upstream and historical-PR questions to resolved inputs; recorded completed Package 5.1 lock/deletion approval separately from future operation gates; explicitly classified local package `0.1.13` as a non-publishable lifecycle artifact below the source brief's recorded published `0.1.15` baseline.
+- verification=`openspec validate integrate-upstream-formal-agent-protocols --strict --no-interactive` PASS; current legacy migration test PASS (10/10); current provenance/permission/doctor focused matrix PASS (31/31 across four files); package validation PASS (6/6); provenance generation verification PASS; TypeScript typecheck PASS; whole tracked `git diff --check` PASS. Current branch/status and complete tracked diff name/stat inventory were captured. Repacking the current package tree reproduced SHA-256 `5b026d99287aed1eb8c298c2931d94fa5a69af0c8cdcbf51d1044efb2a22cf2d`, size 9,829,963 bytes.
+- completion_boundary=BUILD remains complete and task 7.3 remains unchecked. The tarball is local test evidence only; SHIP must recheck the public registry, choose a publishable version and regenerate release evidence under fresh intent/exact approvals.
+- next_package=None in BUILD.
+
+## 2026-08-01T17:15:39+08:00 — FINAL_CONVERGENCE_PASS
+
+- review_state=A fresh read-only convergence review after all lifecycle corrections found no blocker, high, medium or low finding and recommended BUILD closure with high confidence.
+- checked_boundary=All implementation/verification rows 1.1-6.5 and evidence-separation rows 7.1-7.2 are checked. Task 7.3 remains correctly unchecked because SHIP and commit/push/publish/release/real-install operations are separate, unrequested gates.
+- named_risk=Local `0.1.13` remains valid BUILD/package-test evidence only and is not publishable below the source brief's recorded public `0.1.15` baseline. Live provider/process-loss, real HOME/WSL, current public-registry composition and every real operation remain unverified.
+- next_action=None in BUILD. Await fresh explicit SHIP or another user intent.
+
+## 2026-08-01 — SHIP_RECONSTRUCTION_0_1_16
+
+- scope=Reconstruct only `integrate-upstream-formal-agent-protocols` and its coordinated public-status corrections on the clean PR #1 branch while preserving the `0.1.15` implementation and release history.
+- identity=Package, root lock, and generated SPDX root now bind `@rosetears/aili-pi@0.1.16`; no `0.1.13` tarball remains active candidate evidence.
+- generated=Exact `rose-aili@0.4.2` 65-skill/588-file snapshot, 20 roles, 19-specialist routing projection, permission adaptation, compatibility evidence, provenance, notices, and SBOM were regenerated or verified locally.
+- verification=`npm run typecheck` PASS; focused formal Runtime matrix PASS (16 files, 206/206). Initial broader affected group PASS 66/72; five failures require absent target `node_modules` and one stale doctor fixture was corrected. Fresh unaffected subset PASS 39/39; provenance regeneration PASS 1/1; doctor PASS 17/18 with only absent exact Pi host packages remaining; final status inspected and `git diff --check` PASS.
+- exclusions=No AILI Compact implementation, TUI/image-paste/Matrix/Zentui implementation, keybinding/settings merger, emergency-checkpoint implementation, local `.pi`, `graphify-out`, `.tmp`, Zone Identifier, or local artifact was imported.
+- operation_boundary=No commit, push, merge, publish, release, install, or external operation occurred. Task 7.3 remains unchecked and pending ROSE.
+
+## 2026-08-01T18:54:57+08:00 — SHIP_LOCAL_GATE_PASS_0_1_16
+
+- scope=Close the bounded review/repair and local release-candidate gate before GitHub/npm operations.
+- repairs=Fixed the linked-worktree sandbox fixture without weakening production sandboxing; exposed parent/ROSE-only `hub` formal planning/reconciliation; aligned generated ordinary JSON roles with the formal canonical terminal envelope; made continuation reconciliation fail closed across all relevant turns; required and propagated formal write scope; denied resource-only file writes, path-only resource writes and in-root symlink scope escapes; restored prepublish routing/compatibility/runtime gates; corrected packaged validator wording, Compact version status and Sakura notice attribution.
+- verification=`npm run prepublishOnly` PASS; `npm run typecheck` PASS; strict OpenSpec PASS; full suite PASS (`93` files, `2` skipped; `733` tests, `2` skipped); focused final security matrix PASS (`39/39`); Linux disposable lifecycle PASS (`0.1.12→0.1.16→removed`, shared tree SHA-256 `34282f71105af8a0555b014aba26f6570260bc08bfd37214b13d6ce543737575`); `git diff --check` PASS.
+- candidate=`@rosetears/aili-pi@0.1.16`; tarball `.tmp/release-0.1.16/rosetears-aili-pi-0.1.16.tgz`; 9,833,442 bytes; 5,752 entries; SHA-256 `336497c8d160a73db0b7ee70f2d60a04dc509af2dd12898fcd9090efabed9293`.
+- exposure=No forbidden npm paths or bounded first-party sensitive-pattern hits. Repository `.pi`, `graphify-out`, unrelated dirty host changes and other non-selected proposals are absent from this PR worktree candidate scope.
+- operation_boundary=Local SHIP gate passes. Commit, push, merge, npm publication, GitHub release and real user installation have not yet run; task 7.3 remains unchecked until those exact operations complete.
+- next_action=Inspect final Git diff/status, commit the selected PR worktree, push PR #1, observe current checks/mergeability, merge, then publish/release/install under the user's explicit SHIP request.
+
+## 2026-08-01 — SHIP_REPAIR_PASS_0_1_16
+
+- scope=One bounded repair pass for six validated 0.1.16 SHIP findings; public `formalContext` remains exactly `{ changeId }`; no dependency, lockfile, Git, publish, release, install, real HOME, real WSL, or external operation was performed.
+- fixture_evidence=ROSE supplied a fresh full-suite PASS after a separate worktree-fixture CWD correction in `tests/integration/permission-modes.test.ts`: 93 files passed, 2 skipped; 725 tests passed, 2 skipped. This lane did not rerun the full suite.
+- repaired=Loaded parent/ROSE-only formal planning and explicit reconciliation reachability; ordinary-JSON versus formal canonical-output override; same-identity continuation-turn restart handling; mutation-capable formal empty-scope denial with validated scope propagation; current 0.1.16 prepublish gates; repository-only provenance wording.
+- production_boundary=`hub formal-plan` requires exact operation, ownership and normalized write-scope evidence and returns only a plan/task request. `hub formal-reconcile` remains explicit. Child Agents are denied both. No automatic reconciliation, replay, redispatch, inspection, acceptance, join closure, done transition or phase advance was added.
+- continuation_boundary=All same-Agent/same-formal-identity follow-up turns are collected. Failed/aborted/interrupted turns block, queued/running turns preserve/wait, and completed follow-ups without fresh immutable canonical evidence cannot reuse the initial result.
+- verification=`npm test -- tests/unit/formal-orchestration.test.ts tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-workspace.test.ts tests/unit/package.test.ts tests/unit/roles.test.ts tests/unit/generated.test.ts tests/unit/agent-routing-generated.test.ts tests/unit/provenance.test.ts tests/integration/formal-orchestration-runtime.test.ts tests/integration/persistent-agent-runtime.test.ts tests/integration/package-runtime.test.ts` PASS (11 files, 88/88); the suite directly executed role/routing/Skill/permission/compatibility/provenance verifiers; `npm run typecheck` PASS.
+- command_limit=Aggregate npm validator commands and `openspec validate integrate-upstream-formal-agent-protocols --strict --no-interactive` were not run because the active runtime command policy denies those command forms. Underlying generator and owning Runtime tests pass, but final command gate 8.6 remains open for ROSE.
+- operation_boundary=Task 7.3 remains unchecked. No commit, push, merge, publish, release or install completion is claimed.

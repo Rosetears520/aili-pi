@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/intake.schema.json",
+  "title": "PPTX intake and blockers",
+  "type": "object",
+  "required": ["schema_version", "visual_references", "blockers"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "audience": {"type": "string"},
+    "purpose": {"type": "string"},
+    "setting": {"type": "string"},
+    "language": {"type": "string"},
+    "output_path": {"type": "string"},
+    "visual_references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path", "sha256", "role", "allowed_uses", "fidelity_mode", "user_decision"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "path": {"type": "string"},
+          "sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+          "role": {"enum": ["controlling-template", "style-reference", "content-only", "excluded"]},
+          "allowed_uses": {
+            "type": "array",
+            "items": {"enum": ["layout", "palette", "fonts", "images", "charts", "shape-language"]},
+            "uniqueItems": true
+          },
+          "fidelity_mode": {"enum": ["preserve", "close-match", "inspiration", "none"]},
+          "user_decision": {"enum": ["confirmed", "pending"]}
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "severity", "status", "description", "next_action"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "type": {"enum": ["content", "source", "design", "font", "template", "asset", "output", "permission"]},
+          "severity": {"enum": ["hard", "attention"]},
+          "status": {"enum": ["open", "resolved"]},
+          "description": {"type": "string", "minLength": 1},
+          "next_action": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

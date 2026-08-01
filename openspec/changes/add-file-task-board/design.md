@@ -1,12 +1,14 @@
 ## Context
 
-[已知|用户] 第一阶段只做正式 OpenSpec 提案，不建立 `task/<task-id>`。用户要求主 Agent 从“可以自己做也可以派发”转为 AILI lifecycle 的 Orchestrator：主 Agent策划、分解、决定、整合和最终验证；有边界的材料侦察、实现、测试、研究和独立审查由匹配的 Specialized Agents执行。完成条件依赖 Agent evidence graph，而不是一句“多调用 Subagent”或固定调用次数。
+> **Historical/superseded status (2026-08-01):** `openspec/changes/integrate-upstream-formal-agent-protocols` is the sole future BUILD and release owner for overlapping scope. This design remains a capability-source reference and must not independently dispatch, advance, accept, close, publish, or release overlapping packages. Readiness, completion, test-count, snapshot, runtime, acceptance, and opaque session-reference statements below are historical assertions not independently reverified during this reconciliation.
 
-[工具结果|本地] 当前 `task`/`hub` 已有 persistent Agent/job/turn、sync/async、output/history、restart journal、workspace guard 和 canonical selector validation。当前上层 workflow、APPEND_SYSTEM 和 README 仍使用 benefit-based delegation；省略 `agent` 默认为 `general`，顶层非 blocking Agent 默认 async，task metadata没有 selector 职责或 lifecycle dispatch policy。
+第一阶段只做正式 OpenSpec 提案，不建立 `task/<task-id>`。历史决策记录要求主 Agent 从“可以自己做也可以派发”转为 AILI lifecycle 的 Orchestrator：主 Agent策划、分解、决定、整合和最终验证；有边界的材料侦察、实现、测试、研究和独立审查由匹配的 Specialized Agents执行。完成条件依赖 Agent evidence graph，而不是一句“多调用 Subagent”或固定调用次数。
 
-[工具结果|本地] 当前 RoleProfile/manifest拥有 20 个 canonical selectors、description、tools/capabilities/status/provenance，但没有 phase tags。当前 lifecycle prompt 能表达 IDEATE/DEFINE/BUILD/SHIP，Runtime没有持久 active-phase state。现有 OpenSpec checklists没有 task-board v1 marker，必须继续可读且不被批量改写。
+当时的本地仓库记录显示，`task`/`hub` 已有 persistent Agent/job/turn、sync/async、output/history、restart journal、workspace guard 和 canonical selector validation；上层 workflow、APPEND_SYSTEM 和 README 仍使用 benefit-based delegation；省略 `agent` 默认为 `general`，顶层非 blocking Agent 默认 async，task metadata没有 selector 职责或 lifecycle dispatch policy。该记录未在本次 reconciliation 中重新验证。
 
-[已知|官方 Pi 0.82.1] Extension tool的 `description`、`promptSnippet` 和 active-tool `promptGuidelines` 对模型可见；custom session entries/context hooks可用于以后扩展，但第一阶段不需要新增 phase persistence或隐藏状态。
+当时的本地仓库记录还显示，RoleProfile/manifest拥有 20 个 canonical selectors、description、tools/capabilities/status/provenance，但没有 phase tags；lifecycle prompt 能表达 IDEATE/DEFINE/BUILD/SHIP，Runtime没有持久 active-phase state。既有 OpenSpec checklists没有 task-board v1 marker，必须继续可读且不被批量改写。该记录未在本次 reconciliation 中重新验证。
+
+本文引用的 Pi 0.82.1 文档说明 Extension tool的 `description`、`promptSnippet` 和 active-tool `promptGuidelines` 对模型可见；custom session entries/context hooks可用于以后扩展，但第一阶段不需要新增 phase persistence或隐藏状态。本次 reconciliation 未重新核验该版本文档。
 
 ## Goals / Non-Goals
 
@@ -305,4 +307,4 @@ Bridge必须满足：
 
 ## Open Questions
 
-无未关闭的材料产品/架构问题。Cross-repository attachment/write、snapshot/lock、implementation locality、dependency/Git/publish/release是独立operation gates。Regenerated final `test-plan.md`仍需用户明确接受，接受前BUILD readiness为`BLOCKED`。
+本历史设计不再拥有重开或关闭重叠问题的执行权。Cross-repository attachment/write、snapshot/lock、implementation locality、dependency/Git/publish/release曾被记录为独立 operation gates；任何未来判断和执行均由 `integrate-upstream-formal-agent-protocols` 重新建立当前证据与授权。

@@ -1,5 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   BUNDLED_ROLE_SELECTORS,
@@ -10,6 +12,7 @@ import {
 } from "../../src/runtime/roles.js";
 
 const scratchRoots: string[] = [];
+const execFileAsync = promisify(execFile);
 
 async function scratch(): Promise<string> {
   await mkdir(resolve(".tmp"), { recursive: true });
@@ -37,7 +40,21 @@ afterEach(async () => {
 });
 
 describe("Pi-owned role profiles", () => {
+  it("passes the generated role verifier with the ordinary/formal output split", async () => {
+    const root = new URL("../../", import.meta.url);
+    const { stdout } = await execFileAsync(process.execPath, ["--experimental-strip-types", "scripts/sync-roles.ts", "--verify"], { cwd: root });
+    expect(stdout).toContain("Role profiles verified: 20");
+  });
+
   it("contains the accepted 19 specialized selectors plus general with schema-v2 policy", async () => {
+    const lock = JSON.parse(await readFile(new URL("../../upstream/aili-workflows.lock.json", import.meta.url), "utf8"));
+    const manifest = JSON.parse(await readFile(new URL("../../manifests/roles.json", import.meta.url), "utf8"));
+    expect(lock).toMatchObject({
+      repository: "https://github.com/Rosetears520/aili-workflows.git",
+      commit: "bb1fedacc46d71045daa6257d121f2b71ba29d54",
+    });
+    expect(manifest.source).toEqual({ repository: lock.repository, commit: lock.commit });
+
     const roles = await loadRoleProfiles();
     expect(roles).toHaveLength(20);
     expect(roles.map((role) => role.selector)).toEqual(BUNDLED_ROLE_SELECTORS);
@@ -70,10 +87,12 @@ describe("Pi-owned role profiles", () => {
     expect(general.prompt).toContain("general persistent worker Agent");
     expect(await validateRoleProfiles()).toEqual([]);
 
-    const manifest = await readFile(new URL("../../manifests/roles.json", import.meta.url), "utf8");
-    expect(manifest).toContain('"schemaVersion": 2');
-    expect(manifest).toContain("7eb35f357ad489f5841ee10dac1e44549c1bdb76");
-    expect(manifest).not.toContain('"name": "rose"');
+    expect(manifest.schemaVersion).toBe(2);
+    expect(manifest.outputContractScope).toBe("ordinary");
+    expect(manifest.formalOutputOverride.marker).toBe("CANONICAL RESULT:");
+    expect(manifest.formalOutputOverride.fields.slice(0, 7)).toEqual(["result_id", "trace_id", "lane", "owner", "package_id", "role_id", "status"]);
+    expect(manifest.formalOutputOverride.fields.at(-1)).toBe("review_arbitration_ref");
+    expect(manifest.records).not.toContainEqual(expect.objectContaining({ name: "rose" }));
   });
 
   it("replaces obsolete process lifecycle wording while preserving authority and output semantics", async () => {
@@ -84,7 +103,8 @@ describe("Pi-owned role profiles", () => {
       expect(role.prompt).not.toContain("--no-session");
       expect(role.prompt).not.toContain("Recursive AILI task dispatch is unavailable");
       expect(role.prompt).toContain("parent-scoped persistent official Pi Agent session");
-      expect(role.prompt).toContain("Return exactly one JSON object");
+      expect(role.prompt).toContain("For ordinary assignments, return exactly one JSON object");
+      expect(role.prompt).toContain("FORMAL ASSIGNMENT OUTPUT OVERRIDE:");
     }
     for (const role of roles.filter((candidate) => candidate.name !== "general")) {
       expect(role.prompt).toContain("Your result is evidence for ROSE or the user, not final authority");

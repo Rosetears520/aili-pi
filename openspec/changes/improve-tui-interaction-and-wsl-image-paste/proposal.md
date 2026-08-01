@@ -1,16 +1,16 @@
 ## Why
 
-[KNOWN|USER] The user requested one bounded TUI/WSL change covering four outcomes in this session: restore a visible right-side scroll indicator while fixed editor is active, allow selection to continue across transcript viewports, allow the four Code Rain rows to be disabled without hiding Rose Shimmer, and make WSL2 clipboard-image paste reachable through `Alt+V` while preserving file drag-in.
+This independent proposal defines one bounded TUI/WSL change covering four outcomes: restore a visible right-side scroll indicator while fixed editor is active, allow selection to continue across transcript viewports, allow the four Code Rain rows to be disabled without hiding Rose Shimmer, and make WSL2 clipboard-image paste reachable through `Alt+V` while preserving file drag-in.
 
-[COMPUTED] The current fixed editor enters an application-owned alternate-screen viewport, tracks transcript scroll through `TerminalSplitCompositor.scrollOffset`, and does not render a scrollbar. Wheel and PageUp/PageDown handling clear selection, drag does not move the viewport, events below the transcript are discarded, and release copies then clears the selection. `extensions/zentui/fixed-editor/compositor.ts`; `extensions/zentui/fixed-editor/selection.ts`.
+The source inspection recorded during drafting indicated that the fixed editor enters an application-owned alternate-screen viewport, tracks transcript scroll through `TerminalSplitCompositor.scrollOffset`, and does not render a scrollbar. It also indicated that wheel and PageUp/PageDown handling clear selection, drag does not move the viewport, events below the transcript are discarded, and release copies then clears the selection. These observations require revalidation before implementation. `extensions/zentui/fixed-editor/compositor.ts`; `extensions/zentui/fixed-editor/selection.ts`.
 
-[COMPUTED] The current Matrix config has one `enabled` flag and always returns one Shimmer row plus four Rain rows. The accepted `rose-working-animation` delta requires exactly five rows whenever enabled. `extensions/matrix/index.ts:39-68,432-491`; `openspec/changes/migrate-rem-cyberdeck-to-rose/specs/rose-working-animation/spec.md:3-15`.
+The cited Matrix source was recorded as having one `enabled` flag and returning one Shimmer row plus four Rain rows. The cited `rose-working-animation` delta specifies exactly five rows whenever enabled. Both observations require revalidation before implementation. `extensions/matrix/index.ts:39-68,432-491`; `openspec/changes/migrate-rem-cyberdeck-to-rose/specs/rose-working-animation/spec.md:3-15`.
 
-[COMPUTED] Pi 0.82.1 already implements WSL clipboard-image reading through `wslpath` and `powershell.exe`, while its default WSL keymap follows the Linux `ctrl+v` branch. AILI currently forwards `onPasteImage` but has no WSL keybinding/bootstrap integration or user documentation. `node_modules/@earendil-works/pi-coding-agent/dist/core/keybindings.js`; `node_modules/@earendil-works/pi-coding-agent/dist/utils/clipboard-image.js`; `extensions/zentui/ui.ts`; `scripts/bootstrap.sh`.
+Drafting-time inspection of Pi 0.82.1 indicated WSL clipboard-image reading through `wslpath` and `powershell.exe`, with the default WSL keymap following the Linux `ctrl+v` branch. The inspected AILI source forwarded `onPasteImage` but did not provide WSL keybinding/bootstrap integration or user documentation. Installed-runtime details are not durable completion evidence and require revalidation against the implementation target before BUILD. `node_modules/@earendil-works/pi-coding-agent/dist/core/keybindings.js`; `node_modules/@earendil-works/pi-coding-agent/dist/utils/clipboard-image.js`; `extensions/zentui/ui.ts`; `scripts/bootstrap.sh`.
 
 ## What Changes
 
-[FRAME] The accepted change SHALL:
+The proposed change SHALL:
 
 - add a default-enabled, overflow-only application scrollbar that overlays the rightmost visible transcript cell without changing Pi's render width;
 - keep selection coordinates absolute to the full transcript, extend an active drag while wheel/edge scrolling changes the viewport, clamp an existing drag across the pinned editor/footer boundary, and copy exactly once on release;
@@ -31,4 +31,4 @@
 
 ## Boundaries
 
-[FRAME] No dependency or lockfile change, Pi fork, `node_modules` edit, duplicate clipboard-image reader, native Windows support, Git operation, install, publish, release, or real user-HOME write is authorized by this DEFINE. Automated tests SHALL use repository-owned code and disposable HOME/terminal fixtures. A real `~/.pi/agent/keybindings.json` mutation, real clipboard/provider probe, install, Git, publish, or release requires its own exact approval.
+No dependency or lockfile change, Pi fork, `node_modules` edit, duplicate clipboard-image reader, native Windows support, Git operation, install, publish, release, or real user-HOME write is authorized by this proposal. Automated tests SHALL use repository-owned code and disposable HOME/terminal fixtures. A real `~/.pi/agent/keybindings.json` mutation, real clipboard/provider probe, install, Git, publish, or release requires its own exact approval.

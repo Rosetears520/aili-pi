@@ -1,6 +1,8 @@
-This package includes a modified copy of pi-zentui by Luka.
-Original project: https://github.com/lmilojevicc/pi-zentui
-License: MIT. Full license text: licenses/pi-zentui-MIT.txt
+This package includes adapted design and implementation patterns from
+pi-sakura-cyberdeck.
+Original project: https://github.com/beautifulrem/pi-sakura-cyberdeck.git
+Revision: 165a1f8011a12a58a6409b56b8a6c0416cd9b589
+License: MIT. Full license text: licenses/pi-sakura-cyberdeck-MIT.txt
 
 Modifications include Rose Cyberdeck branding, Rose Shimmer and Rose Code Rain,
 Rose Zentui gradients, responsive bounded Matrix track selection, package-specific

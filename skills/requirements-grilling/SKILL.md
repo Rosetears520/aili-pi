@@ -43,6 +43,18 @@ Keep these items in English or original form:
 
 Before persisting an interview packet to the repository, follow the repository's document language convention or ask the user. If no English-only convention exists, persisting the Chinese packet is allowed.
 
+## Decision-state contract
+
+Record each material decision as exactly one of `proposed`, `direction-recorded`, `conditional`, `awaiting-confirmation`, `accepted`, `rejected`, or `superseded`.
+
+- A user preference or direction without exact acceptance is `direction-recorded`.
+- Acceptance that depends on an explanation, evidence result, or future condition is `conditional`.
+- After the Agent supplies the requested rationale or believes a condition is met, use `awaiting-confirmation`; only a later explicit user confirmation can make it `accepted`.
+- Explicit rejection is `rejected`. A later explicit decision replacing an earlier one makes the earlier decision `superseded` and gives the new decision its own state and evidence.
+- A filled answer slot, checked item, copied user text, document-authored state, or Agent judgment cannot create acceptance.
+
+Keep decision state separate from `implementation_authorization: absent | granted | expired | revoked`. Requirements artifacts may record either state but cannot create it. Decision acceptance and final test-plan acceptance do not grant implementation authorization. A same-turn accept-and-implement message may record two separate events only when the user explicitly accepts the exact final artifact and explicitly requests immediate implementation of the same exact scope; this skill then returns the implementation-intent evidence to the lifecycle owner and never starts BUILD itself.
+
 ## When to Use
 
 Use this skill when the user explicitly asks to refine, grill, interview, batch-grill, or write back requirements; when the user wants their decisions about a plan, decision, or idea elicited interactively; or when one named ambiguity can change scope, design, tasks, acceptance, verification, risk, terminology, or implementation safety.
@@ -370,7 +382,7 @@ After the user answers in chat or directly edits the interview packet:
 1. Re-read the artifact from disk first; compatibility marker: Re-read the filled packet from disk. Conversation summaries and chat-only answers are stale until confirmed against the saved artifact. If answers were collected in chat, write them to the agreed artifact first, then re-read from disk before classification or readiness. If the user edited the file directly, treat the on-disk content as the fallback source of truth after re-reading and reconciling material changes.
 2. Classify every material answer as one of: `confirmed`, `ambiguous`, `contradictory`, `incomplete`, `untestable`, `evidence-conflicting`, `out-of-scope`, or `Unverified`.
    - Answers that repeat broad labels such as “做安全策略”, “按幂等处理”, “正常回滚”, “走 quota”, “写 audit”, or “按现有逻辑” without concrete behavior, boundary, source-of-truth, and testable acceptance remain `incomplete` or `untestable`. A named waiver or `UNVERIFIED` disposition may preserve the gap but cannot turn it into concrete accepted behavior.
-3. Convert only `confirmed` answers into accepted Decisions, Requirements, Design notes, Tasks, Acceptance criteria, Verification commands, Language updates, or ADR proposals. Record explicit waivers and user-accepted `Unverified` items only as named limitations; they cannot clear decision-shaping research or supply missing acceptance behavior.
+3. Convert only `confirmed` answers into factual requirements, design notes, tasks, acceptance criteria, verification commands, Language updates, or ADR proposals. Assign the decision state from the explicit user event under the Decision-state contract; a confirmed answer may still be `direction-recorded`, `conditional`, or `awaiting-confirmation` rather than `accepted`. Record explicit waivers and user-accepted `Unverified` items only as named limitations; they cannot clear decision-shaping research or supply missing acceptance behavior.
 4. Keep unanswered, ambiguous, contradictory, incomplete, untestable, evidence-conflicting, out-of-scope, or terminology-conflicting answers out of factual write-back.
 5. Choose the next interaction from the active mode. Interactive Mode and static Packet Mode default to one focused follow-up for the next dependency-ordered material blocker; use another bounded static packet only when several newly exposed independent blockers are cheaper together. Frontier Batch Mode instead recomputes and asks the complete next dependency-ready frontier; an ambiguous answer remains an unresolved frontier item and does not unlock its dependents. Every follow-up still includes why it blocks, affected artifact/decision, recommended default if evidence supports one, consequences/trade-offs, answer slot, and write-back target.
 6. Persist the follow-up in the same `interview.md` artifact for OpenSpec sources; do not create `grill.md`, `requirements-grilling.md`, or a parallel artifact.

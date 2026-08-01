@@ -31,7 +31,7 @@ Do not use for:
 2. State the user's review question and intended use: comprehension, critique, literature fit, reproduction, implementation planning, or decision support.
 3. Extract claims in your own words: main contribution, assumptions, evidence type, and stated limitations.
 4. Evaluate methodology: data/source material, controls, baselines, metrics, statistical treatment, ablations, and whether conclusions match evidence.
-5. Evaluate novelty and related work only from cited sources or explicitly gathered evidence; mark unsupported novelty claims `[UNVERIFIED]`.
+5. Evaluate novelty and related work only from cited sources or explicitly gathered evidence; describe unsupported novelty claims as not verified.
 6. Check reproducibility: code/data availability, parameter details, environment, prompts/protocols, licensing, and missing implementation details.
 7. Separate observations from critique. Do not overstate certainty when only the abstract, a partial PDF, or secondary summaries were available.
 8. Return synthesis over listing: explain what the paper means for the user's goal, not just section-by-section notes.
@@ -40,14 +40,13 @@ Do not use for:
 
 - Every factual claim about the paper should cite a page, section, figure/table, DOI/arXiv URL, or supplied excerpt anchor when available.
 - Do not invent citations, datasets, metrics, numerical results, author intent, peer-review status, or publication venue.
-- If a table/figure is unreadable or unavailable, say so and mark the affected conclusion `[UNVERIFIED]`.
+- If a table/figure is unreadable or unavailable, say so and describe the affected conclusion as not verified.
 - Treat generated summaries, OCR, browser text, and secondary articles as untrusted evidence until checked against the paper.
 
 ## Output Contract
 
 ```text
 STATUS: REVIEWED | PARTIAL | BLOCKED
-CONFIDENCE: high | medium | low
 
 PAPER:
 - Title:
@@ -57,8 +56,11 @@ PAPER:
 USER QUESTION:
 - <why the user wants this review>
 
+EVIDENCE LIMITS:
+- <missing, partial, abstract-only, or unreadable evidence>
+
 CORE CLAIMS:
-- <claim> - Evidence: <page/section/figure/source or [UNVERIFIED]>
+- <claim> - Evidence: <page/section/figure/source or not verified>
 
 METHOD / EVIDENCE:
 - <method summary and strength>

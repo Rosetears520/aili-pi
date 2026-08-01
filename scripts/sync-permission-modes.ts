@@ -112,8 +112,8 @@ function piSessionEnvironmentPrelude(env: NodeJS.ProcessEnv): string {
   const withChildSandboxImport = replaceExactlyOnce(
     withEnvironmentPrelude,
     'import { SandboxController } from "pi-permission-modes/src/sandbox.ts";',
-    `import { SandboxController } from "pi-permission-modes/src/sandbox.ts";
-import { installPersistentAgentSandboxProvider } from "../../runtime/persistent-agents/child-sandbox.js";`,
+    `import { createSandboxedBashOps, SandboxController } from "pi-permission-modes/src/sandbox.ts";
+import { composePersistentAgentSandboxConfig, installPersistentAgentSandboxProvider } from "../../runtime/persistent-agents/child-sandbox.js";`,
     "persistent Agent child sandbox bridge import",
   );
   const withChildSandboxProvider = replaceExactlyOnce(
@@ -122,7 +122,13 @@ import { installPersistentAgentSandboxProvider } from "../../runtime/persistent-
     `  const sandbox = new SandboxController();
   installPersistentAgentSandboxProvider({
     currentProfile: () => currentMode().sandbox,
-    operations: ({ readOnly }) => sandbox.ready && !sandbox.disabled ? sandbox.bashOps({ readOnly }) : null,
+    operations: ({ readOnly, denyWrite }) => {
+      if (denyWrite.length === 0) return sandbox.ready && !sandbox.disabled ? sandbox.bashOps({ readOnly }) : null;
+      const manager = sandbox.sandboxManager;
+      if (!sandbox.ready || sandbox.disabled || !manager) return null;
+      const customConfig = composePersistentAgentSandboxConfig(currentMode().sandbox, readOnly, denyWrite);
+      return createSandboxedBashOps(manager, customConfig, () => net.drainBlocked());
+    },
     diagnostic: () => sandbox.disabled ? "sandbox disabled by host flag" : sandbox.warn,
   });`,
     "process-owned persistent Agent child sandbox provider",
@@ -185,6 +191,7 @@ async function expectedOutputs(): Promise<Record<string, string>> {
       "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.82.1 can derive current PI_* session environment values.",
       "The adapted sandbox BashOperations wrapper injects Pi's resolved five-variable session environment as a shell-safe prelude because pi-permission-modes@2.2.0 ignores BashOperations.options.env.",
       "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime.",
+      "Formal persistent children compose their exact two owning-file denyWrite paths into each sandboxed command while preserving the active profile, network rules, and blocked-host diagnostics.",
     ],
     generatedBy: "scripts/sync-permission-modes.ts",
     verification: ["npm run verify:permission-modes", "tests/unit/permission-patterns.test.ts", "tests/integration/permission-modes.test.ts", "tests/unit/persistent-agent-child-sandbox.test.ts"],

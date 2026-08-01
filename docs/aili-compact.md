@@ -2,7 +2,7 @@
 
 AILI Compact 是 Pi Session 之上的可逆上下文投影层。Pi JSONL/tree 始终是 append-only source of truth；AILI 只追加带版本的状态交易，并在 provider request 之前决定哪些原始消息、工具结果或摘要进入 provider context。它不删除或重写原始 Session，也不创建第二份 raw-conversation sidecar。
 
-> 当前状态：本文描述本仓库本地 BUILD 中的 cooperative recovery（目标 `v0.1.14`）与 v3 lifecycle（目标 `v0.2.0`）。根包版本仍是 `0.1.13`；live provider、production overflow、candidate/version 和 release gate 未完成前，不应把这些目标版本写成已发布能力。
+> 当前状态：根包已推进到 `0.1.16`，但本文描述的 cooperative recovery 与 v3 lifecycle 仍以未来 `v0.2.0` release gate 为准。live provider、production overflow 和对应 candidate evidence 未完成前，不应把这些目标能力写成已发布的 `v0.2.0` 能力。
 
 ## Recovery：AILI 与 Pi 协作，而不是取消 Pi
 

@@ -1,27 +1,29 @@
 # 测试文档：separate-shared-and-pi-skill-distribution
 
+> **Historical/superseded status (2026-08-01):** This test plan is retained as capability and verification-source material only. `openspec/changes/integrate-upstream-formal-agent-protocols` is the sole future BUILD and release owner for overlapping scope. This plan cannot independently authorize dispatch, advancement, acceptance, closure, publication, or release. Any completion, test-count, snapshot, runtime, acceptance, or external-state claim below is historical and was not independently reverified during this reconciliation.
+
 ## 0. 文档元信息
 
-- [工具结果] 来源：`proposal.md`、`design.md`、`context.md`、`interview.md`、`tasks.md`、capability spec、当前 package/postinstall/bootstrap/doctor/tests，以及 Pi `0.82.1` npm artifact 的 `docs/skills.md` 与 `docs/packages.md`。
-- [工具结果] 生成日期：2026-07-30。
-- [工具结果] 适用 change：`separate-shared-and-pi-skill-distribution`。
-- [已知|用户] 状态：`ACCEPTED_BUILD_BLOCKED`；用户已显式接受 final test plan，并选择在 upstream prerequisite 满足前保持 BUILD 阻塞。
-- [工具结果] material research gap：`0`；已知 external dependency blocker：`B-UPSTREAM-FORMAL-001`。
+- 来源：`proposal.md`、`design.md`、`context.md`、`interview.md`、`tasks.md`、capability spec、当时的 package/postinstall/bootstrap/doctor/tests，以及 Pi `0.82.1` npm artifact 的 `docs/skills.md` 与 `docs/packages.md`。
+- 生成日期：2026-07-30。
+- 适用 change：`separate-shared-and-pi-skill-distribution` 的历史能力与验证来源；不得作为新的 BUILD target。
+- 状态：`HISTORICAL_SUPERSEDED`。本文保留先前记录的 acceptance，但本次 reconciliation 未独立重新验证该 acceptance。
+- 当时记录的 material research gap 为 `0`，external dependency blocker 为 `B-UPSTREAM-FORMAL-001`；这些状态未在本次 reconciliation 中重新验证，也不授予当前执行权。
 
 ## 1. Scope Under Test
 
-- [框架内] `rose-aili` sole shared-skill installer ownership and two explicit independent `@latest` commands。
-- [框架内] `aili-pi` zero-write boundary for `~/.agents/skills` and zero implicit npm/npx/network invocation。
-- [框架内] repository-only pinned snapshot versus npm runtime/tarball exclusion。
-- [框架内] package-local future `pi-skills/**` + explicit `pi.skills` ownership without placeholder content。
-- [框架内] read-only doctor visibility for shared workflow compatibility。
-- [框架内] upstream generic formal-contract prerequisite and Pi-specific adapter non-leakage。
+- `rose-aili` sole shared-skill installer ownership and two explicit independent `@latest` commands。
+- `aili-pi` zero-write boundary for `~/.agents/skills` and zero implicit npm/npx/network invocation。
+- repository-only pinned snapshot versus npm runtime/tarball exclusion。
+- package-local future `pi-skills/**` + explicit `pi.skills` ownership without placeholder content。
+- read-only doctor visibility for shared workflow compatibility。
+- upstream generic formal-contract prerequisite and Pi-specific adapter non-leakage。
 
 ### Explicitly out of scope
 
-- [框架内] No `aili-workflows` source edit, npm publish, actual `rose-aili install/update`, real HOME write, dependency add/remove/version update, Pi fork, Git operation or release action。
-- [框架内] No concrete Pi-specific Skill is created without a later accepted workflow requirement。
-- [框架内] No claim that arbitrary future `rose-aili@latest` is pre-verified。
+- No `aili-workflows` source edit, npm publish, actual `rose-aili install/update`, real HOME write, dependency add/remove/version update, Pi fork, Git operation or release action。
+- No concrete Pi-specific Skill is created without a later accepted workflow requirement。
+- No claim that arbitrary future `rose-aili@latest` is pre-verified。
 
 ## 2. Requirements / Decision / Risk Traceability
 
@@ -52,7 +54,7 @@
 | OpenSpec coherence | `openspec validate separate-shared-and-pi-skill-distribution --strict --no-interactive` | validates capability requirements/scenarios |
 | Scope hygiene | `git diff --check`; scoped diff/read inspection | confirms task-only changes and no unrelated cleanup |
 
-[框架内] Run the smallest focused checks first; broaden only when package/generated integration claims still lack evidence. `npm test` is not automatic, but MAY be selected if affected integration cannot be supported by focused checks.
+Run the smallest focused checks first; broaden only when package/generated integration claims still lack evidence. `npm test` is not automatic, but MAY be selected if affected integration cannot be supported by focused checks.
 
 ## 4. Conditional Scenarios and Negative Cases
 
@@ -99,10 +101,10 @@
 
 ## 7. Final Acceptance Gate
 
-- [x] [已知|用户] 用户已显式接受本 final `test-plan.md`，并要求保持 BUILD 阻塞。
+- [x] 历史记录称用户已接受本 final `test-plan.md` 并要求保持 BUILD 阻塞；该 acceptance 未在本次 reconciliation 中独立重新验证，且不授予当前执行权。
 - [ ] 用户在接受后提供 fresh BUILD intent；接受本身不执行任何 package/install change。
 - [ ] `B-UPSTREAM-FORMAL-001` 由 exact candidate evidence 关闭后，受影响 implementation package 才可开始。
 - [ ] `package-lock.json` mutation 与删除旧 sync owner 分别获得精确批准。
-- [框架内] 即使 test plan 被接受，real HOME、external repository write、npm/npx install、Git、publish、release 仍保持未授权。
+- 即使 test plan 曾被接受，real HOME、external repository write、npm/npx install、Git、publish、release 仍保持未授权。
 
-当前 readiness：`DEFINE_ACCEPTED_BUILD_BLOCKED_ON_UPSTREAM_PREREQUISITE`。
+当前 readiness：`NOT ACTIVE / SUPERSEDED`。先前的 accepted/blocked 状态仅作历史参考；重叠工作的未来 BUILD 与 release 只由 `integrate-upstream-formal-agent-protocols` 管理。

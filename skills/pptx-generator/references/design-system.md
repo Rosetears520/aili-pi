@@ -1,5 +1,7 @@
 # Design System
 
+[FRAME] Use this reference when no user-supplied template or brand system controls the deck. For human-curated reasoning about color, typography, content areas, spacing, and visual style, also consult [`human-design-playbook.md`](human-design-playbook.md).
+
 ## Color Palette Reference
 
 | # | Name | Colors | Style | Use Cases | Tips |
@@ -12,8 +14,8 @@
 | 6 | Bohemian | `#ccd5ae` `#e9edc9` `#fefae0` `#faedcd` `#d4a373` | Gentle, muted | Wedding planning, home decor, organic food, slow living | Cream background, green-brown accents |
 | 7 | Vibrant & Tech | `#8ecae6` `#219ebc` `#023047` `#ffb703` `#fb8500` | High energy, sporty | Sports events, gyms, startup pitches, youth education | Deep blue for stability, orange as focal accent |
 | 8 | Craft & Artisan | `#7f5539` `#a68a64` `#ede0d4` `#656d4a` `#414833` | Rustic, coffee-toned | Coffee shops, handicrafts, traditional culture, bakery | Suited for paper/leather textures |
-| 9 | Tech & Night | `#000814` `#001d3d` `#003566` `#ffc300` `#ffd60a` | Deep, luminous | Tech launches, astronomy, night economy, luxury automobiles | Must use dark mode |
-| 10 | Education & Charts | `#264653` `#2a9d8f` `#e9c46a` `#f4a261` `#e76f51` | Clear, logical | Statistical reports, education, market analysis, general business | Perfect chart color scheme |
+| 9 | Tech & Night | `#000814` `#001d3d` `#003566` `#ffc300` `#ffd60a` | Deep, luminous | Tech launches, astronomy, night economy, luxury automobiles | Works best on a dark background |
+| 10 | Education & Charts | `#264653` `#2a9d8f` `#e9c46a` `#f4a261` `#e76f51` | Clear, logical | Statistical reports, education, market analysis, general business | Well suited to categorical charts |
 | 11 | Forest & Eco | `#dad7cd` `#a3b18a` `#588157` `#3a5a40` `#344e41` | Monochrome gradient, forest | Landscape design, ESG reports, environmental causes, botanical | Monochrome palette is safe and cohesive |
 | 12 | Elegant & Fashion | `#edafb8` `#f7e1d7` `#dedbd2` `#b0c4b1` `#4a5759` | Muted, Morandi tones | Haute couture, art galleries, beauty brands, magazine style | Negative space is key |
 | 13 | Art & Food | `#335c67` `#fff3b0` `#e09f3e` `#9e2a2b` `#540b0e` | Rich, vintage-poster | Food documentaries, art exhibitions, ethnic themes, vintage restaurants | Works well with large color blocks |
@@ -23,11 +25,15 @@
 | 17 | Vibrant Orange Mint | `#ff9f1c` `#ffbf69` `#ffffff` `#cbf3f0` `#2ec4b6` | Bright, cheerful | Children's events, promotional posters, FMCG, social media | Orange grabs attention, mint feels fresh |
 | 18 | Platinum White Gold | `#0a0a0a` `#0070F3` `#D4AF37` `#f5f5f5` `#ffffff` | Premium, professional | Agent products, corporate websites, fintech, luxury brands | White-gold base, blue for action, gold for emphasis |
 
+The table uses CSS-style `#` prefixes for readability. Remove the prefix when passing a color to PptxGenJS.
+
 ---
 
 ### Agent Design System — Full Color Scale
 
-Based on the Platinum White-Gold Theme design tokens. Provides complete color scales for fine-grained design work.
+[FRAME] The following Platinum White-Gold tokens provide one optional scale for fine-grained design work.
+
+The eight-character opacity tokens are visual references. Do not pass them directly to PptxGenJS; use a six-character color plus the runtime's transparency/opacity property.
 
 #### White Scale (Backgrounds & Light Surfaces)
 
@@ -139,78 +145,57 @@ Based on the Platinum White-Gold Theme design tokens. Provides complete color sc
 
 ---
 
-## Color Palette Rules (MANDATORY)
+## Palette Discipline
 
-### Strict Palette Adherence
+### Start from the Controlling Source
 
-**Use ONLY the provided color palette. Do NOT create or modify colors.**
+1. If the user supplies a brand palette or template, preserve its semantic roles and existing light/dark hierarchy.
+2. If no palette exists, choose one main color, neutrals, and only the supporting colors needed to distinguish information.
+3. Keep repeated roles consistent: title, body, background, accent, positive/negative data, and muted structure.
 
-- All colors must come from the user-provided palette
-- Do NOT use colors outside the palette
-- Do NOT modify palette colors (brightness, saturation, mixing)
-- **Only exception**: Add transparency using the `transparency` property (0-100)
+When a template already contains approved variants, reuse them. For a from-scratch deck, derive and record controlled hue, lightness, or transparency variants instead of adding unrelated colors slide by slide.
 
 ```javascript
 // Correct: Using palette colors
 slide.addShape(pres.shapes.RECTANGLE, { fill: { color: theme.primary } });
 slide.addText("Title", { color: theme.accent });
 
-// Wrong: Colors outside palette
+// Poor default: an untracked color with no defined role
 slide.addShape(pres.shapes.RECTANGLE, { fill: { color: "1a1a2e" } });
 ```
 
-### No Gradients
+### Gradients
 
-**Gradients are prohibited. Use solid colors only.**
+Use a gradient only when it has a job: protect text over an image, establish a light source, extend a background, or reinforce depth. Keep its direction and stops consistent with the composition. If the selected PPTX runtime cannot create an editable gradient, use a supported static gradient image or a solid-color approximation and report the editability trade-off.
 
-### No Animations
+### Animations and Transitions
 
-**Animations and transitions are prohibited.** All slides must be static.
+Add animation only when the brief requires it and the selected runtime can preserve or author it reliably. Use animation to reveal sequence, connect matching elements, or focus attention; otherwise keep the deck static. Mark animation behavior `Unverified` unless it is inspected in a compatible presentation runtime.
 
 ---
 
-## Font Reference
+## Font Contract
 
-### Recommended Fonts
+[FRAME] Follow [`font-policy.md`](font-policy.md). Choose typefaces from the controlling template/brand, explicit user choice, accepted profile/configuration, and fonts verified in the actual build/render environments; do not apply a universal language default.
 
-| Language | Default Font | Alternatives |
-|----------|-------------|--------------|
-| **Chinese** | Microsoft YaHei | — |
-| **English** | Arial | Georgia, Calibri, Cambria, Trebuchet MS |
+[FRAME] Microsoft YaHei, Arial, and Calibri are compatibility examples only when a controlling template requires them or the user explicitly approves them as fallbacks. Record title/body/data/source roles and any approved fallback in `font-contract.json`.
 
-- For mixed Chinese-English content: use Microsoft YaHei for Chinese, the chosen font for English
-- Prefer system fonts for cross-platform compatibility
-- Titles and body text can use different font pairings (e.g. Georgia + Calibri)
+[FRAME] For mixed-language content, verify every required script coverage in both build and render environments. A visually interesting pairing is still invalid when it conflicts with the controlling source or cannot render required glyphs.
 
-### Recommended Font Pairings
+### Body Weight
 
-| Header Font | Body Font |
-|-------------|-----------|
-| Georgia | Calibri |
-| Arial Black | Arial |
-| Calibri | Calibri Light |
-| Cambria | Calibri |
-| Trebuchet MS | Calibri |
-| Impact | Arial |
-| Palatino | Garamond |
-| Consolas | Calibri |
-
-**Choose an interesting font pairing** — don't default to Arial for everything. Pick a header font with personality and pair it with a clean body font.
-
-### No Bold for Body Text
-
-**Plain body text and caption/legend text must NOT use bold.**
+Prefer regular weight for ordinary body, caption, legend, and footnote text. Reserve bold for titles, labels, and selected emphasis so hierarchy remains visible.
 
 - Body paragraphs, descriptions → normal weight
 - Captions, legends, footnotes → normal weight
 - Reserve bold for titles and headings only
 
 ```javascript
-// Correct
-slide.addText("Main Title", { bold: true, fontSize: 36, fontFace: "Arial" });
-slide.addText("Body text here.", { bold: false, fontSize: 14, fontFace: "Arial" });
+// Correct: font roles come from the current design/font contracts
+slide.addText("Main Title", { bold: true, fontSize: 36, fontFace: theme.titleFont });
+slide.addText("Body text here.", { bold: false, fontSize: 14, fontFace: theme.bodyFont });
 
-// Wrong
+// Poor default: body emphasis everywhere flattens hierarchy
 slide.addText("Body text here.", { bold: true, fontSize: 14 });
 ```
 
@@ -302,21 +287,21 @@ The same design can be rendered in 4 distinct visual styles by adjusting corner 
 
 ```javascript
 // Sharp style card
-slide.addShape("rect", {
+slide.addShape(pres.shapes.RECTANGLE, {
   x: 0.5, y: 1, w: 4, h: 2.5,
   fill: { color: "F5F5F5" },
   rectRadius: 0.03
 });
 
 // Rounded style card
-slide.addShape("rect", {
+slide.addShape(pres.shapes.ROUNDED_RECTANGLE, {
   x: 0.5, y: 1, w: 4, h: 2.5,
   fill: { color: "F5F5F5" },
   rectRadius: 0.2
 });
 
-// Pill style button (height 0.4", rectRadius 0.2" = perfect pill)
-slide.addShape("rect", {
+// Pill style button (height 0.4", rectRadius 0.2")
+slide.addShape(pres.shapes.ROUNDED_RECTANGLE, {
   x: 3, y: 4, w: 2, h: 0.4,
   fill: { color: "4A90D9" },
   rectRadius: 0.2

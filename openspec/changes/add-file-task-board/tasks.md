@@ -1,11 +1,13 @@
 # Task Board
 
+> **Historical/superseded board (2026-08-01):** `openspec/changes/integrate-upstream-formal-agent-protocols` is the sole future BUILD and release owner for overlapping scope. This v1 board is cancelled as execution authority and retained only as history and capability-source evidence. It must not independently dispatch, advance, accept, close, publish, or release any overlapping package. Existing package status, Evidence, test-count, snapshot, runtime, acceptance, and opaque session-reference fields are preserved historical assertions and were not independently reverified during this reconciliation.
+
 - Protocol: `aili-task-board/v1`
 - Task kind: `formal`
 - Task identity: `add-file-task-board`
 - Goal: Make formal OpenSpec work an auditable Agent Evidence Graph in which ROSE orchestrates and Specialized Agents execute bounded material packages.
 - Phase: `BUILD`
-- Board status: `active`
+- Board status: `cancelled`
 - Accepted contract: `proposal.md`; `design.md`; `context.md`; `interview.md`; `specs/file-task-board/spec.md`; `specs/agent-dispatch-catalog/spec.md`; `specs/lifecycle-agent-orchestration/spec.md`
 - Accepted verification: `Round-2 test-plan.md explicitly accepted by user instruction “接受并继续（推荐）”`
 - Decision owner: `ROSE`

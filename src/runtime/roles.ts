@@ -7,8 +7,15 @@ const ROOT_URL = new URL("../../", import.meta.url);
 const ROOT_PATH = fileURLToPath(ROOT_URL);
 const ROLES_PATH = resolve(ROOT_PATH, "roles");
 const SOURCE_REPOSITORY = "https://github.com/Rosetears520/aili-workflows.git";
-const SOURCE_COMMIT = "7eb35f357ad489f5841ee10dac1e44549c1bdb76";
+const SOURCE_COMMIT = "bb1fedacc46d71045daa6257d121f2b71ba29d54";
 const OUTPUT_CONTRACT = ["status", "summary", "evidence", "changedFiles", "verification", "blockers", "risks", "confidence"] as const;
+const FORMAL_OUTPUT_FIELDS = [
+  "result_id", "trace_id", "lane", "owner", "package_id", "role_id", "status", "confidence",
+  "worktree_context_ref", "declared_repository", "cwd", "target_rules_ref", "artifact_destination",
+  "inspected_scope", "summary", "evidence", "changed_files", "verification", "checks", "freshness",
+  "skipped_checks", "soft_boundary_limitations", "blockers", "risks", "unverified",
+  "continuation_recommendation", "findings", "convergence_links", "review_arbitration_ref",
+] as const;
 
 export const SPECIALIZED_ROLE_NAMES = [
   "agent-evaluator", "ai-regression-scout", "browser-qa-runner", "code-reviewer",
@@ -49,6 +56,8 @@ interface RolesManifest {
   source: { repository: string; commit: string };
   bundledSelectors: string[];
   outputContract: string[];
+  outputContractScope: "ordinary";
+  formalOutputOverride: { marker: "CANONICAL RESULT:"; fields: string[] };
   turnAuditFields: string[];
   records: Array<Omit<RoleProfile, "prompt" | "sourceKind"> & {
     sourceKind: "canonical-adapter" | "aili-owned";
@@ -124,6 +133,11 @@ function validateManifest(manifest: RolesManifest): void {
   }
   if (JSON.stringify(manifest.outputContract) !== JSON.stringify(OUTPUT_CONTRACT)) {
     throw new Error("role manifest output contract mismatch");
+  }
+  if (manifest.outputContractScope !== "ordinary"
+    || manifest.formalOutputOverride?.marker !== "CANONICAL RESULT:"
+    || JSON.stringify(manifest.formalOutputOverride.fields) !== JSON.stringify(FORMAL_OUTPUT_FIELDS)) {
+    throw new Error("role manifest formal output override mismatch");
   }
   const turnAuditFields = ["selector", "profileHash", "sourceHash", "profileVersion", "runtimeAdapterVersion", "effectiveTools", "provider", "model", "thinking"];
   if (JSON.stringify(manifest.turnAuditFields) !== JSON.stringify(turnAuditFields)) {
@@ -236,7 +250,7 @@ export async function validateRoleProfiles(): Promise<string[]> {
       selectors.add(role.selector);
       if (role.profileVersion !== 2 || role.runtimeAdapterVersion !== 2) errors.push(`${role.name}: profile/runtime version mismatch`);
       if (!role.prompt.includes("parent-scoped persistent official Pi Agent session")) errors.push(`${role.name}: persistent adapter contract missing`);
-      if (!role.prompt.includes("Return exactly one JSON object")) errors.push(`${role.name}: output contract missing`);
+      if (!role.prompt.includes("For ordinary assignments, return exactly one JSON object") || !role.prompt.includes("FORMAL ASSIGNMENT OUTPUT OVERRIDE:")) errors.push(`${role.name}: ordinary/formal output contract missing`);
       if (role.prompt.includes("OpenCode subagent") || role.prompt.includes(".agents/skills/") || role.prompt.includes("single-use") || role.prompt.includes("--no-session") || role.prompt.includes("Recursive AILI task dispatch is unavailable")) {
         errors.push(`${role.name}: obsolete source/runtime backend wording remains`);
       }

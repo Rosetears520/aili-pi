@@ -34,3 +34,12 @@ status=blocked
 blocker=B-UPSTREAM-FORMAL-001 exact rose-aili successor required before fallback-removal BUILD
 operation_gates=lockfile mutation; file deletion; external write; npm/npx install; real HOME; Git; publish; release remain separately unauthorized
 next_action=wait for an exact rose-aili successor containing generic formal-board semantics; then revalidate target/evidence and request fresh BUILD intent plus exact operation approvals
+
+[2026-08-01T00:00:00Z] BOARD RECONCILED
+reason=Overlapping future BUILD and release ownership moved exclusively to openspec/changes/integrate-upstream-formal-agent-protocols.
+phase=HISTORICAL
+status=superseded
+retention=This log and its owning change remain historical and capability-source references only.
+historical_claims=Prior readiness, blocker, completion, test-count, snapshot, runtime, acceptance, and external-state statements were not independently reverified during this reconciliation.
+authority=none; this old change must not independently dispatch, advance, accept, close, publish, or release overlapping packages
+next_action=Use openspec/changes/integrate-upstream-formal-agent-protocols for any overlapping future BUILD or release work.

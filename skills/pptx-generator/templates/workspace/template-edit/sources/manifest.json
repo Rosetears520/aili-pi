@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "sources": [
+    {
+      "id": "controlling-deck",
+      "role": "controlling-template",
+      "path": "",
+      "required": true,
+      "sha256": null,
+      "allowed_uses": ["layout", "palette", "fonts", "images", "charts", "shape-language"],
+      "fidelity_mode": "preserve",
+      "user_decision": "pending"
+    }
+  ]
+}

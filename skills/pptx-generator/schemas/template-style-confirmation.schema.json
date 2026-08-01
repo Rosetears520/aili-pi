@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/template-style-confirmation.schema.json",
+  "title": "User confirmation of the current template-edit Style Proof",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_kind", "status", "confirmed_by", "proof_hash", "role_coverage", "bindings"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "report_kind": {"const": "template-style-confirmation"},
+    "status": {"const": "confirmed"},
+    "confirmed_by": {"type": "string", "minLength": 1},
+    "proof_hash": {"$ref": "#/$defs/hash"},
+    "role_coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["image-or-chart", "longest-text", "densest-numeric"],
+      "properties": {
+        "image-or-chart": {"type": "string", "minLength": 1},
+        "longest-text": {"type": "string", "minLength": 1},
+        "densest-numeric": {"type": "string", "minLength": 1}
+      }
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_fingerprint", "outline_sha256", "renderer_source_sha256", "baseline_template_sha256", "baseline_render_sha256", "template_profile_sha256", "font_environment_sha256", "proof_pptx_sha256", "proof_render_sha256", "proof_layout_preflight_sha256", "proof_review_sha256", "slide_ids"],
+      "properties": {
+        "source_fingerprint": {"$ref": "#/$defs/hash"},
+        "outline_sha256": {"$ref": "#/$defs/hash"},
+        "renderer_source_sha256": {"$ref": "#/$defs/hash"},
+        "baseline_template_sha256": {"$ref": "#/$defs/hash"},
+        "baseline_render_sha256": {"$ref": "#/$defs/hash"},
+        "template_profile_sha256": {"$ref": "#/$defs/hash"},
+        "font_environment_sha256": {"$ref": "#/$defs/hash"},
+        "proof_pptx_sha256": {"$ref": "#/$defs/hash"},
+        "proof_render_sha256": {"$ref": "#/$defs/hash"},
+        "proof_layout_preflight_sha256": {"$ref": "#/$defs/hash"},
+        "proof_review_sha256": {"$ref": "#/$defs/hash"},
+        "slide_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true}
+      }
+    }
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+}

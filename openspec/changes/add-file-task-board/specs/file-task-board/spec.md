@@ -1,5 +1,7 @@
 ## ADDED Requirements
 
+> **Historical capability-source status (2026-08-01):** These requirements are retained for source material. `openspec/changes/integrate-upstream-formal-agent-protocols` is the sole future BUILD and release owner for overlapping scope. This specification does not independently authorize package dispatch, advancement, acceptance, closure, publication, or release, and historical completion/runtime claims elsewhere in this change were not reverified here.
+
 ### Requirement: Formal work uses one deterministic OpenSpec task root
 AILI SHALL store a v1 task board only at `openspec/changes/<change-id>/tasks.md` with an append-only `progress.txt` in the same explicitly resolved OpenSpec change root. AILI MUST NOT create `task/<task-id>`, `.aili/tasks/<task-id>`, a competing root `TODO.md`, hidden Todo database, or second formal task store.
 

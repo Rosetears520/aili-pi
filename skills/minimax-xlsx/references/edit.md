@@ -1,12 +1,14 @@
 # Minimal-Invasive Editing of Existing xlsx
 
+> Preservation-aware XML fallback reference. Use it for `.xlsm`, VBA/unsupported extensions, high-fidelity workbooks, unsupported installed OfficeCLI help, unclear output semantics, or insufficient round-trip evidence. A simple bounded `.xlsx` edit remains OfficeCLI-first under `SKILL.md`.
+
 Make precise, surgical changes to existing xlsx files while preserving everything you do not touch: styles, macros, pivot tables, charts, sparklines, named ranges, data validation, conditional formatting, and all other embedded content.
 
 ---
 
 ## 1. When to Use This Path
 
-Use the edit (unpack → XML edit → pack) path whenever the task involves **modifying an existing xlsx file**:
+After `SKILL.md` selects this fallback, use the edit (unpack → XML edit → pack) path for these existing-workbook tasks:
 
 - Template filling — populating designated input cells with values or formulas
 - Data updates — replacing outdated numbers, text, or dates in a live file
