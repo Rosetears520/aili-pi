@@ -582,3 +582,10 @@ boundary=No commit, push, tag, publish, release, cleanup, or unrelated dirty-tre
 verification=Current branch and HEAD rechecked; `git diff --check` produced no diagnostics for tracked changes. The new Markdown file was reread after writing. No remote branch existence was inferred or queried over the network.
 status=blocked
 next_action=Use the branch summary for review. Commit and push remain separately gated; raw-gap BUILD remains blocked on controlled-production timeout diagnosis and fresh 2.8/2.9 evidence.
+
+[2026-08-07] BUILD Compact snapshot committed and pushed
+commit=Created `08fd221560eedb1f079d15bafcd8946f50b6acba` (`feat: snapshot Compact raw gap proof`) with the selected full Compact runtime dependency snapshot, Compact tests/scripts, and this OpenSpec change; excluded handoffs and the remaining unrelated dirty paths.
+push=Published the exact commit to `origin/feature/reconcile-aili-compact-raw-gap-proof` at `https://github.com/Rosetears520/aili-pi/tree/feature/reconcile-aili-compact-raw-gap-proof`.
+verification=Before commit, `npm run typecheck` passed and the four raw-gap unit owners passed 51/51. The staged high-signal credential scan found only fixture/test literals; no private-key, GitHub-token, AWS-key, or real provider secret pattern was identified. `git diff --cached --check` reported only intentional Markdown trailing spaces in accepted contract metadata.
+boundary=The worktree still contains 185 unstaged/untracked paths outside the selected snapshot. No cleanup, reset, stash, force-push, tag, publish, or release operation ran. Controlled AgentSession verification remains timed out/Unverified; tasks 2.8 and 2.9 remain unchecked.
+next_action=Review the pushed branch using `branch-summary.md`; do not treat the pushed snapshot as release-ready until the controlled-production blocker and remaining release gates are resolved.
