@@ -1,0 +1,584 @@
+[2026-08-02] DEFINE started
+decision=User accepted: do not manufacture v0.1.14; preserve P0 as behavior; target the merged release at v0.2.0; verify the expected real predecessor before rollback.
+evidence=Local Git history contains v0.1.13, v0.1.15, and v0.1.16 but no v0.1.14; current release validation has 16 blockers split across stale live evidence, blocked i-have-adhd compatibility, stale package/candidate identity, and missing Compact live evidence.
+scope=Release-lineage reconciliation, local release remediation, fresh predecessor/live/candidate evidence, and separately approved publication operations.
+artifacts=.openspec.yaml; proposal.md; design.md; specs/aili-compact-release-lineage/spec.md; specs/aili-compact-checkpoint-recovery/spec.md; specs/reversible-context-compression/spec.md; tasks.md; test-plan.md; release-gates.md
+phase=DEFINE
+status=blocked
+blocker=Explicit acceptance of this change's final test-plan.md is required before repository-local BUILD.
+operation_gates=Network; credentials/provider calls; version/lockfile; installation; commit; push; tag; npm publish; GitHub release remain separately gated.
+next_action=Strict-validate and consistency-check the DEFINE artifacts, then request explicit test-plan acceptance.
+
+[2026-08-02] BUILD authorized
+acceptance=User explicitly accepted test-plan.md and requested BUILD.
+phase=BUILD
+status=active
+scope=Repository-local release-lineage, validator, adapter, generated-evidence, and focused verification work covered by the accepted contract.
+operation_gates=Network; credentials/provider calls; version/lockfile; installation; commit; push; tag; npm publish; GitHub release remain separately gated.
+packages=2.1 active release/migration contract and validator; 2.3 i-have-adhd Pi adapter; then 2.2/2.4 integration after exact version and generated-owner gates.
+next_action=Confirm exact implementation locality and dispatch the independent bounded local packages.
+
+[2026-08-02] BUILD local packages 2.1, 2.2-partial, 2.3, and 2.4-partial
+dispatch=Two independent implementation packages covered release-lineage validators and i-have-adhd native Pi evidence; one later bounded package separated candidate identity from license history.
+done=Five-stage OpenSpec sequence; exact expected predecessor 0.1.16 schema and fail-closed mismatch tests; migration artifact now keeps external predecessor rollback Unverified; official Pi 0.82.1 native ~/.agents/skills discovery evidence promotes i-have-adhd without shipping or changing generic skills; license disposition reads the current candidate while README history remains anchored at 0.1.13.
+repair=The copied-session migration assertion was stale after the accepted emergency-checkpoint suffix truth change. It now expects no suffix after restore-all when no semantic action is executable, while still proving no suffix persistence; fake-provider coverage remains the injection owner.
+verification=Focused 5-file Vitest run PASS (38 tests); doctor PASS (18 tests); typecheck PASS; validate:compatibility PASS (46 records); strict OpenSpec PASS; task-scoped diff check PASS.
+partial=Task 2.2 still requires the exact approved 0.2.0 version/lock/SBOM/direct-consumer mutation. Task 2.4 still requires candidate-bound provenance/package generation and checks after that mutation.
+unverified=Fresh Git/npm predecessor identity, installed rollback, Persistent Agent live reruns, all Compact real-provider rows, final candidate artifacts, full suite, package dry-run, and publication.
+next_action=Request exact read-only network approval to verify Git-remote and npm-registry predecessor identity before version-sensitive work.
+
+[2026-08-02] PREDECESSOR identity verified
+approval=User approved exact GitHub/npm metadata access, then separately approved exact tarball download/inspection and task-owned scratch cleanup.
+result=Git remote v0.1.16 resolves to annotated tag 1e6b81702ddbadec9d2f214492d412010f6333f1 and commit e8a8f77f84a1dc608da7ce0c0f047f5c552b0546; npm reports @rosetears/aili-pi@0.1.16 as the latest published 0.1.x with the recorded SHA-512/SHA-1.
+discovery=npm metadata does not publish gitHead, so identity used the already-accepted tarball-integrity/content-comparison path rather than weakening the gate.
+comparison=Registry SHA-512 and SHA-1 matched; 173 first-party tarball files and selected manifest fields matched the local v0.1.16 tag; missing=0; mismatched=0; aggregate SHA-256=32792bde86c5ef8ce0d2310271c1d77a065c6877fe765f1e3f571809537c14b0.
+safety=No install or package script ran; HOME/npm cache and extraction stayed in task-owned repository .tmp; scratch cleanup confirmed.
+artifact=artifacts/test-results/aili-compact-predecessor-identity.json
+remaining=Installed predecessor rollback is still Unverified and requires separate exact installation approval.
+next_action=Bind the validator and migration evidence to the verified tarball-to-tag identity, then request exact version/lockfile mutation approval.
+
+[2026-08-02] PREDECESSOR identity bound
+done=Release validation now reads and SHA-256-binds the exact predecessor identity artifact, validates freshness/Git/npm/tarball comparison, and permits missing npm gitHead only when the complete byte-comparison proof passes.
+migration=Safe-local copied-session evidence references the identity artifact and remains NON_PASS because installed predecessor rollback is still Unverified.
+verification=Focused release-evidence plus migration tests PASS (18 tests); typecheck PASS; task-scoped diff check PASS.
+release_gate=validate:release now reports 15 blockers: seven stale Persistent Agent live bindings and eight candidate/version/live Compact categories. The predecessor-identity and i-have-adhd blockers are cleared.
+next_action=Request exact package version and lock-root mutation approval for 0.2.0, with no dependency graph change, then regenerate candidate metadata through its owners.
+
+[2026-08-02] BUILD candidate identity 0.2.0
+approval=User approved exact package and lock-root version mutation to 0.2.0 plus owner-generated candidate metadata; no dependency change was authorized.
+mutation=npm version 0.2.0 --no-git-tag-version --ignore-scripts updated package.json and the two package-lock root version fields.
+lock_proof=Replacing only those two lock fields back to 0.1.13 reproduces the prior exact SHA-256 8acfd03e5b136a285abc3a39e02c512e6a18921715709110d4dfbd8ac221752d; dependency graph and all other lock bytes are unchanged.
+generated=Compatibility was regenerated from updated adapter evidence; provenance/SBOM/notices were regenerated through existing owners. Package identity consumers now target 0.2.0 while README/license history remains 0.1.13+.
+repair=Fake-provider suffix evidence was stale after emergency-checkpoint pressure arbitration. The fixture now creates its safe plan before entering PRESSURE, then proves one still-executable suffix without spending the cycle at startup; the focused test passes.
+verification=validate:compatibility PASS; validate:provenance PASS; validate:package PASS (6 tests); doctor PASS (18 tests); typecheck PASS; validate:generated PASS (7 tests); five-stage OpenSpec sequence PASS; diff check PASS.
+candidate_evidence=Migration/performance/fake-provider artifacts were regenerated for 0.2.0; provenance/sanitizer/index generator ran and correctly remains NON_PASS while installed rollback and live evidence are absent.
+release_gate=validate:release now reports 11 blockers: seven stale Persistent Agent live bindings plus Compact index, migration, live, and sanitizer.
+next_action=Request exact repository-local installation approval for @rosetears/aili-pi@0.1.16 rollback rehearsal in disposable roots.
+
+[2026-08-02] INSTALLED rollback rehearsal
+approval=User approved exact repository-local predecessor/candidate installation and copied-session rollback in disposable roots with ignore-scripts, no provider, and cleanup.
+installation=Exact @rosetears/aili-pi@0.1.16 and current packed 0.2.0 candidate were installed under one task-owned .tmp root with disposable HOME/npm cache; package lifecycle scripts did not run.
+rehearsal=Installed predecessor opened and replayed the sanitized v1 fixture, installed candidate appended/reloaded one valid v3 transaction, predecessor reopened without rewriting bytes and continued work, and candidate reopened the post-rollback Session.
+result=PASS: JSONL prefix preserved; no raw sidecar; predecessor accepted the candidate v3 transaction with zero v3 diagnostics; no provider or live Session was used.
+artifact=artifacts/test-results/aili-compact-installed-rollback.json
+binding=Release validator now validates and hash-binds the installed rollback artifact; migration evidence is PASS for the exact predecessor/candidate pair.
+verification=Installed rollback test PASS (1); release-evidence plus migration tests PASS (19); typecheck PASS; candidate evidence regenerated.
+cleanup=Exact task-owned installation root .tmp/reconcile-installed-rollback-0.1.16 removed and absence confirmed.
+release_gate=validate:release now reports 10 blockers: seven stale Persistent Agent live bindings plus Compact index, live, and sanitizer. Migration is cleared.
+next_action=Request exact credential/provider authorization for current Persistent Agent probes and the accepted three-provider Compact live matrix.
+
+[2026-08-02] LIVE release matrix attempted; blocked NON_PASS
+approval=User authorized official Pi to reference existing configured authentication without credential disclosure, live OpenAI/Anthropic/Google Gemini calls, Persistent Agent probes, Compact LIVE-V2/P0/lifecycle/overflow/order rows, and exact disposable root /tmp/aili-pi-live-verification.
+harness=No executable Compact live matrix runner existed. Added one gated repository-local Vitest runner plus npm test entry; it writes candidate-bound sanitized evidence and fails closed for every behavior it does not actually observe.
+providers=OpenAI Codex gpt-5.4-mini transport PASS with bounded usage/digest and controlled context-handler before/after order PASS. No authenticated Anthropic or Google Gemini model was available through the official registry, so both provider families and all of their rows are NON_PASS.
+persistent=External disposable Git workspace lifecycle PASS. The OpenAI parent made the task tool call, but no completed persistent child turn or sandbox marker was observed; provider-turn and child-sandbox remain NON_PASS. manifests/live-verification.json was intentionally not refreshed from the stale prior PASS evidence.
+compact=LIVE-V2-1..10 PASS=0/NON_PASS=30 across the three required families. Inherited P0, long T1-to-T2-to-T3-to-T3-restill, post-checkpoint continued work, real production AgentSession context overflow/retry, copied long Session/cache/TUI rows remain NON_PASS. Synthetic/direct-hook/fake evidence was not accepted.
+artifacts=artifacts/test-results/aili-compact-live-v2.json; artifacts/test-results/persistent-agent-framework/live-smoke-2026-08-02-pi-0.82.1.json
+sanitization=Artifacts contain only bounded IDs, API/context metadata, counters, usage, digests, ordering, status, and blocker codes. No credentials, raw prompts/conversations, provider payloads, protected text, private paths, or full logs were persisted.
+verification=npm run typecheck PASS; npm run test:live-release PASS as an executed fail-closed harness, while its durable matrix verdict is NON_PASS; focused release-evidence tests PASS (15). The focused test's stale expectation that migration was still blocked was narrowed to the current live/index/sanitizer blockers.
+cleanup=/tmp/aili-pi-live-verification removed and absence asserted by the live test.
+status=blocked
+blockers=Authenticated Anthropic and Google Gemini models unavailable; no deterministic harness/observation for the required semantic lifecycle, inherited P0, threshold/native fallback, production real context-length overflow/retry/continued-work, copied long Session/cache, and TUI rows; Persistent Agent child/sandbox did not complete.
+next_action=Keep tasks 3.4 and 4.1 unchecked. Resolve provider configuration and the named harness/child execution gaps under a fresh bounded package before rerunning; do not regenerate PASS release index/sanitizer from this NON_PASS live artifact.
+
+[2026-08-02] BUILD fail-closed live-release repair package
+scope=Repository-local enforcement repair only; no provider, network, authentication, installation, dependency, lockfile, version, Git publication, or release operation ran.
+commands=probe:live-release and capture:live-release retain the explicitly gated evidence-capture interface; test:live-release is now a read-only gate and exits nonzero for any current required NON_PASS result.
+persistent=Schema-v4 manifest now binds the newest exact artifact path/SHA-256, capture freshness, package/Pi identity, live harness, exact implementation inventory/hashes, cleanup verdict, and actual probe statuses. The current 2026-08-02 artifact is recorded truthfully as NON_PASS and supersedes the stale prior PASS manifest.
+compact=Live validation now requires fresh detailed real-provider observations for all 30 rows plus P0, long lifecycle, continued work, exact ordering, production overflow, sanitized marker, bounded usage/context/transport identity, syntheticEvidenceAccepted=false, and the exact live-harness hash.
+sanitizer=Capture, generation, and validation share one deterministic scanner. The validator recomputes flags from every exact index-hash-bound artifact byte sequence and rejects path/hash extras, omissions, forged false flags, credentials, raw conversation/provider requests, protected text, private paths, and full logs.
+runner=Evidence remains staged until cleanup verification; environment restoration is independent; atomic publication writes the manifest last. Cleanup failure downgrades both evidence sets to NON_PASS and cannot promote PASS. Persistent task observation requires exactly one async=false call, a matching call-ID result, and completed child Agent/job/turn/output/history evidence.
+verification=Typecheck PASS; focused non-provider unit/registry/doctor/release tests PASS (63); test:live-release expected NON_PASS with exactly current Persistent Agent, Compact index, and Compact live blockers; no probe:live-release/provider command ran.
+status=blocked
+blockers=Current Persistent Agent provider-turn and child-sandbox probes are NON_PASS; Compact LIVE-V2 matrix remains 0/30 with P0, long lifecycle, continued work, and production overflow NON_PASS; generated release index remains NON_PASS. Authenticated Anthropic/Google Gemini availability and the named real lifecycle/overflow harness observations remain unresolved.
+tasks=3.4 and 4.1 remain unchecked.
+next_action=Under a future exact provider authorization, run capture:live-release only after the missing real observation harness exists; then run test:live-release and require a zero exit before any release-ready claim.
+
+[2026-08-02] BUILD row-specific Compact live scenario package
+scope=Repository-local harness/schema/validator work only. No provider, network, authentication, dependency, lockfile, version, installation, Git publication, live artifact capture, or release operation ran.
+schema=LIVE-V2-1..10 now use exact discriminated PASS observation classes with per-row provider/model/API, candidate, current harness, freshness, recomputable sanitized event-code bytes, event digest/count, and row-specific fields/codes. Declaration-only or wrong-class PASS is rejected.
+overflow=LIVE-V2-7 records only production AgentSession provider context errors, overflow hook/willRetry, persisted custom/native checkpoint, original-request retry, and later provider work. productionOverflow requires matching genuine LIVE-V2-7 PASS from OpenAI, Anthropic, and Google Gemini rather than one provider.
+scenarios=The gated capture now has reusable production AgentSession helpers and provider-driven suffix/tool-result/search, usage/calibration status, rejection, provider-authored tier lifecycle, rescue/native-threshold, real-overflow, copied-session production-API, cache-status, native-integration ordering/checkpoint, restart, and continued-work scaffolds. Preseeded copied fixture setup is explicitly synthetic/non-live; V2-3 waits for provider-authored transactions plus human verdict; V2-10 waits for PTY resize evidence.
+inventory=Known native integrations are read from NATIVE_INTEGRATIONS and the production loader path. Unknown third-party handlers remain Unverified.
+truth=Every unavailable or incomplete observation reduces to NON_PASS. Positive provider cache telemetry requires provider-reported nonzero cacheRead/cacheWrite plus production-status classifications; internal identities never count as hits. Actual threshold/overflow rows remain NON_PASS when natural induction fails or threshold runs first.
+verification=Typecheck PASS. Focused non-network matrix PASS: 6 files / 62 tests, including row validators/reducers, release negatives, lifecycle support, production AgentSession controlled regression, copied-session migration, and fake-provider state contracts. test:live-release exited nonzero as required with 6 current blockers (Persistent Agent verdict/harness plus Compact index/migration/live/sanitizer staleness).
+artifacts=No live capture ran and no current NON_PASS manifest/live artifact was promoted or rewritten. Harness changes intentionally stale current bindings until a fresh separately authorized capture.
+status=blocked
+tasks=3.4 and 4.1 remain unchecked.
+blockers=No fresh authorized OpenAI/Anthropic/Google Gemini scenario capture; no explicit human hard-fact verdict; no naturally observed per-family threshold/overflow/cache matrix; no production copied non-synthetic long Session; no interactive PTY resize evidence; Persistent Agent current live rows remain NON_PASS.
+next_action=Under future exact provider authorization, run capture:live-release with all three authenticated families and retain NON_PASS for every missing natural observation; obtain separate human/PTY evidence before release reconciliation.
+
+[2026-08-02] BUILD local evidence rebound after live-harness change
+scope=Safe-local evidence regeneration only; no provider, network, authentication, installation, dependency, lockfile, version, Git publication, or release operation ran.
+verification=Migration/performance/fake-provider integration matrix PASS (3 files / 7 tests); candidate evidence generator completed with truthful NON_PASS; typecheck PASS.
+release_gate=test:live-release exits nonzero with four current blockers: Persistent Agent current NON_PASS, stale live-harness binding, Compact index NON_PASS, and Compact live NON_PASS. Migration and sanitizer are current again.
+status=blocked
+blockers=The accepted stable-release contract still lacks authenticated Anthropic and Google Gemini models, a fresh three-family capture, explicit human hard-fact review, production-backed copied long Session evidence, and interactive PTY resize evidence.
+next_action=Resolve provider availability and the human-review/PTY evidence operation, then obtain one fresh exact authorization before another live capture.
+
+[2026-08-02] LIVE release capture rerun; current candidate remains NON_PASS
+approval=User stated Anthropic and Google Gemini were configured and approved exactly one fresh OpenAI/Anthropic/Google Gemini, Persistent Agent, Compact, bounded PTY, sanitized-artifact, and exact /tmp/aili-pi-live-verification operation. No commit, push, tag, publish, or release was authorized.
+preflight=Local plumbing added exact row validators, provider-produced Session rehearsal, a real Linux forkpty/TIOCSWINSZ production Pi probe, and a PENDING-only external-human-review candidate/verdict path. Typecheck PASS; focused non-network matrix PASS (3 files / 55 tests); diff check PASS.
+execution=capture:live-release ran exactly once and completed its fail-closed capture interface in 57.81 seconds. The operation was not retried.
+providers=OpenAI Codex gpt-5.4-mini transport and known before/after ordering PASS. Official Pi still reported no authenticated Anthropic or Google Gemini model despite the user's configuration statement; both families remained transport-unavailable.
+compact=Status NON_PASS. Required rows remain 0/30: OpenAI did not naturally produce suffix/calibration/lifecycle/rejection/checkpoint/threshold/overflow/cache/copied-session/PTY completion evidence; Anthropic and Gemini had no transport. No qualifying T1-to-T3-restill transactions existed, so no human-review candidate was published.
+persistent=Status NON_PASS. OpenAI parent produced exactly one synchronous task call, but the matching task result was an error; no persistent child Session or sandbox marker was accepted. External-workspace lifecycle PASS.
+pty=NON_PASS production-pty-resize-observation-incomplete; no synthetic event was promoted.
+cleanup=/tmp/aili-pi-live-verification absence confirmed; manifest cleanup PASS; durable artifacts are sanitized and bind the current harness/runtime/candidate.
+artifacts=artifacts/test-results/aili-compact-live-v2.json; artifacts/test-results/persistent-agent-framework/live-smoke-2026-08-02-pi-0.82.1.json; manifests/live-verification.json
+release_gate=Candidate evidence regenerated truthfully. test:live-release and validate:release both exit nonzero with three blockers: current Persistent Agent NON_PASS, Compact index NON_PASS, and Compact live NON_PASS.
+package_dry_run=npm pack --dry-run --ignore-scripts --json completed: packed size 9,856,579 bytes; unpacked size 50,094,284 bytes; 5,754 entries including declared bundled dependency closure. Package-content human review remains pending.
+status=blocked
+tasks=3.4, 4.1, 4.2, and 4.3 remain unchecked.
+blockers=Official Pi still lacks authenticated Anthropic/Gemini models; OpenAI lifecycle/threshold/overflow/cache rows did not naturally occur; Persistent child returned task-result-error; PTY evidence was incomplete; no human review candidate exists.
+next_action=Do not publish. Correct official Pi Anthropic/Gemini authentication and the bounded Persistent/PTY diagnostics, then request a new exact live-operation approval; the completed one-shot approval is consumed.
+
+[2026-08-02] BUILD bounded V2-3/V2-9/V2-10 evidence plumbing (completed before the live capture; recorded late)
+scope=Repository-local harness, schema, reducer, validator, sanitizer-safe candidate, and focused test work only. No provider, network, authentication, live capture, /tmp/aili-pi-live-verification, installation, dependency, lockfile, version, Git publication, publish, or release operation ran in this package. At package completion the one-shot approval was unconsumed; the preceding LIVE capture entry records its later consumption.
+v2_3=The live harness now emits a PENDING human-review candidate only after four exact provider-authored persisted T1/T2/T3/T3-restill transactions exist. Candidate evidence binds provider/model/API, candidate and harness hashes, tool-call/transaction IDs, transaction and summary digests, and the three explicit source hard facts without durable prompts, payloads, transcripts, credentials, or private paths. Reducers require a separately supplied exact external-human verdict artifact; pending evidence cannot promote LIVE-V2-3. A fail-closed local apply/validation script was added, but no verdict was generated or applied.
+v2_9=The legacy v1 fixture rehearsal remains syntheticSetup=true and NON_PASS. A new path copies the provider-produced main production Session from the same capture and attempts reload, branch navigation, decompression, checkpoint, branch-index fallback, prefix preservation, and continued provider work only through production AgentSession/SessionManager/AILI APIs. LIVE-V2-9 requires all operation booleans plus same-capture provider transaction IDs/digests and exact API bindings; any missing production observation remains NON_PASS.
+v2_10=The capture harness now has a bounded Linux PTY probe using python3 stdlib forkpty plus TIOCSWINSZ to launch the repository-local official Pi 0.82.1 CLI with the production extension in offline interactive mode. PASS requires actual ioctl/query resize, production command and post-resize output, no direct event injection, bounded transcript digest/count, and exact executable/production-entry/harness/candidate hashes. Missing Python/Linux/CLI or any incomplete observation is retained as an exact bounded NON_PASS reason.
+atomicity=Cleanup still precedes publication, cleanup failure downgrades all staged artifacts, the manifest remains last, and the shared deterministic sanitizer scans every published body including any pending review candidate.
+verification=Typecheck PASS. Focused non-network Vitest PASS (3 files / 55 tests), including pending-review, incomplete/fake/direct-event PTY, legacy synthetic migration, complete binding, runtime-hash drift, sanitizer, cleanup, and release-validator cases. No live capture or provider command ran.
+status=blocked
+tasks=3.4 and 4.1 remain unchecked.
+blockers=A fresh separately authorized three-family provider capture is still required. LIVE-V2-3 also needs actual qualifying transactions followed by a later exact human verdict; LIVE-V2-9 needs every production rehearsal observation including a real branch-index fallback; LIVE-V2-10 needs the real local PTY probe to complete. Current Persistent Agent and Compact release artifacts/index remain NON_PASS/stale until that future capture and reconciliation.
+next_action=Superseded by the preceding LIVE capture entry. That one-shot authorization is consumed; retain NON_PASS and require a new exact approval for any later provider capture.
+
+[2026-08-02] DEFINE material correction — remove mandatory three-provider authentication/live matrix
+decision=User explicitly rejected any requirement to obtain Anthropic or Google Gemini authentication and requested removal of that release blocker.
+root_cause=The all-three-provider LIVE-V2 matrix first appeared in the unaccepted redesign-aili-compact-lifecycle DEFINE draft and was later inherited into this accepted reconciliation plan. Serializer support was incorrectly expanded into a maintainer credential requirement.
+scope=Revise this change so one already available supported provider proves the representative official-Pi live production boundary; OpenAI/Anthropic/Google Gemini serializer/protocol compatibility remains deterministic and offline; absent cache telemetry is non-blocking bounded Unverified evidence.
+phase=DEFINE
+status=blocked
+build_state=Paused for BUILD_MATERIAL_DISCOVERY. No production validator, harness, generated evidence, provider, credential, Git, or publication operation is authorized by this decision.
+remaining_release_blockers=Persistent Agent task-result-error/child-sandbox; representative provider production-path and accepted real overflow/retry evidence; candidate live/index regeneration; current full test/validation matrix; package and quality human review; separate commit/push/tag/npm publish/GitHub release approvals.
+next_action=Strict-validate the revised artifacts and request explicit acceptance of the revised final test-plan.md before resuming BUILD.
+
+[2026-08-02] DEFINE provider-gate correction validated
+artifacts=proposal.md; design.md; specs/aili-compact-release-lineage/spec.md; specs/aili-compact-checkpoint-recovery/spec.md; tasks.md; test-plan.md; release-gates.md
+result=Active reconciliation contract now requires one representative already-configured provider live path, deterministic offline OpenAI/Anthropic/Google Gemini serializer/protocol compatibility, and non-blocking bounded Unverified cache telemetry. It explicitly supersedes mandatory Anthropic/Gemini authentication and complete family-specific live matrices.
+verification=The direct npx openspec executable was unavailable. The repository-owned five-stage OpenSpec sequence integration test passed (1 file / 2 tests) and performs strict materialization/validation through this final stage; git diff --check passed.
+phase=DEFINE
+status=blocked
+next_action=Obtain explicit user acceptance of the revised final test-plan.md. No validator/harness implementation or BUILD resume occurs before that acceptance.
+
+[2026-08-02] Revised final test plan accepted; BUILD resumed
+acceptance=User explicitly accepted the revised final test-plan.md and authorized repository-local BUILD for the corrected representative-live validator/harness/tests and remaining local release remediation.
+phase=BUILD
+status=active
+authorization_boundary=No provider/network/authentication call, commit, push, tag, npm publish, or GitHub release is authorized by this acceptance.
+packages=Correct representative-live/offline-provider validation; independently diagnose and repair the Persistent Agent task-result-error when reproducible through safe-local evidence; then reconcile candidate artifacts and current verification.
+next_action=Dispatch the independent validator/harness and Persistent Agent local packages, then integrate their evidence without provider execution.
+
+[2026-08-02] BUILD safe-local Persistent Agent task-result-error diagnosis and repair
+scope=Production Persistent Agent/native-integration code plus one controlled local integration regression. No provider, network, authentication, live capture, Compact live validator/harness edit, dependency, lockfile, version, install, Git publication, publish, or release operation ran.
+root_cause=The adapted permission-mode dispatcher classified the package-owned top-level task control as an unknown custom tool. Build mode resolved that surface to ask; the headless parent had no UI, so permission-modes returned tool blocked before PersistentAgentRuntime, workspace allocation, model selection, child Session creation, or sandbox resolution could run. Pi therefore persisted the matching task result with isError=true and empty details, exactly matching the sanitized live symptom.
+repair=registerNativeIntegrations now gives only the permission-mode integration a narrow ExtensionAPI view that skips its generic custom-tool handler for exact toolName=task. Every other permission-mode tool_call still reaches the original dispatcher, while the task runtime retains its role/tool/workspace/credential/sandbox/per-child approval fail-closed checks.
+controlled_reproduction=The new production AgentSession fixture first reproduced exact isError=true/content=tool blocked with the sanitized live task shape. After repair, the same parent-active task+bash, agent=general, async=false, workspace=shared, tools=[bash], and marker writeScope payload reached the coordinator, workspace, model selection, and child Session boundary; its expected controlled no-auth child stopped as a normal status=failed task settlement rather than a host task tool error.
+verification=Persistent Agent focused Vitest PASS (12 files / 85 tests). npm run typecheck PASS. The controlled fixture uses a local stream and fake process-owned sandbox operations only; it performs no provider/network/authentication operation.
+status=active
+tasks=3.4 remains unchecked; no current live PASS was claimed or generated.
+observer_follow_up=A future separately approved live run should retain the bounded task tool-result reason or structured stage code so a pre-runtime permission rejection is distinguishable from a child settlement without retaining raw prompts, provider payloads, paths, credentials, child output, or logs. The prohibited live observer/harness files were not edited here.
+next_action=Integrate this local repair evidence. Keep release and task 3.4 blocked until a separately approved current live operation proves the production child and sandbox path.
+
+[2026-08-02] BUILD representative-live release-rule correction
+scope=Repository-local schema, validator, gated harness, and focused offline tests only. No provider, network, authentication, /tmp/aili-pi-live-verification capture, dependency, lockfile, version, installation, Git mutation, publish, or release operation ran.
+schema=aili.compact.live-evidence.v3 has one exact top-level representative object, not a provider-family matrix. It binds one supported provider identity/model/API/context window, exact transport usage, LIVE-V2-1 suffix/non-persistence, LIVE-V2-7 real overflow/checkpoint/original-request retry/later work, one long-lifecycle human semantic review sample, controlled before/AILI/after order, candidate/harness/runtime hashes, and cache telemetry.
+cache=Missing, zero, or ambiguous cache telemetry is accepted only as status Unverified with cacheHitClaim=false. A provider-reported cache-hit PASS requires matching positive cache-read telemetry; zero telemetry cannot claim a hit.
+matrix=The three-family production-overflow aggregate and cardinality gate were removed. The gated capture selects only the first currently available supported provider and no longer calls unavailable Anthropic or Google Gemini families. Provider-neutral rejection, copied-session migration, and PTY observations were removed from the live capture path; their controlled-provider/production-entry owners remain unchanged.
+offline=OpenAI chat/Responses, Anthropic, and Google Gemini serializer tests now share a complete tool-call/tool-result protocol projection and remain deterministic with injected/non-network boundaries.
+verification=Focused non-network Vitest PASS (4 files / 57 tests); typecheck PASS; repository diff check PASS. The gated live test module loaded successfully and remained skipped without AILI_RUN_RELEASE_LIVE. test:live-release exited expected NON_PASS with four blockers: current Persistent Agent verdict, stale live-harness binding, Compact index, and legacy Compact live artifact. No live artifact was captured or promoted.
+artifact_truth=The existing three-family aili.compact.live-evidence.v2 NON_PASS artifact is deliberately invalid under v3 and cannot satisfy the release gate. Generated release index remains NON_PASS until a separately authorized representative capture and regeneration.
+status=blocked
+tasks=3.4 and 4.1 remain unchecked; no live task is PASS.
+blockers=Fresh representative provider evidence, exact current Persistent Agent PASS evidence, one external human semantic verdict for the representative sample, and candidate evidence regeneration remain unresolved.
+next_action=Obtain exact provider authorization before one representative capture; retain NON_PASS until all v3 bindings, current Persistent Agent evidence, and human review pass.
+
+[2026-08-02] BUILD integration check; security stop on task permission repair
+representative_live=Accepted provider-gate implementation is present: one representative v3 live record, offline OpenAI/Anthropic/Gemini protocol coverage, non-blocking Unverified cache telemetry, and no three-family live cardinality. Existing v2 live evidence remains intentionally stale/NON_PASS until a fresh separately approved representative capture.
+persistent_local=The local repair reproduced the prior task-result-error as permission-modes blocking the top-level task custom tool before Persistent Agent runtime execution, then changed native integration routing so exact toolName=task bypassed that generic handler.
+security_review=HIGH finding: a name-only exemption is not ownership-bound, so a colliding custom/MCP task tool could inherit the exemption. MEDIUM finding: child checks do not replace an explicit product decision for top-level task provider/storage/workspace side effects before child approval. The current production repair is not accepted as release-ready.
+verification=ROSE fresh typecheck PASS; focused representative-live/offline-provider/Persistent regression PASS (4 files / 55 tests); test:live-release correctly NON_PASS with current Persistent verdict, stale harness binding, Compact index, and legacy live artifact; git diff --check PASS.
+status=blocked
+authorization_gate=Changing authentication/permission semantics requires an explicit decision and approval. No provider call or publication operation ran.
+next_action=Choose an ownership-bound reserved AILI task trust policy or revert the name-only bypass and retain the Persistent Agent release blocker.
+
+[2026-08-02] BUILD ownership-bound Persistent Agent task reservation
+scope=Repository-local Persistent Agent/native-integration registration, controlled child model-runtime injection seam, focused collision/production tests, and this reconciliation record. No provider, network, external authentication, live capture, Compact schema/harness, dependency, lockfile, version, install, Git publication, publish, or release operation ran.
+accepted_policy=The canonical AILI top-level task definition is reserved through one shared registration contract. Permission-modes bypasses its generic custom-tool handler only when Pi reports task active and the winning definition retains the exact in-process schema/guideline references captured at registration plus non-builtin/non-SDK/non-MCP ownership metadata. Missing reservation, inactive task, discovery failure, and different same-name winners retain generic gating.
+collision_behavior=The registration boundary rejects a visible pre-existing task when Pi discovery is already bound. During initial extension loading, Pi 0.82.1 independently rejects duplicate Extension task definitions in either order. A later SDK/MCP-style same-name winner is detected at tool-call time and remains under permission-modes, so headless Build blocks it before either definition executes.
+controlled_child=An in-memory controlled provider was registered into an explicitly injected child ModelRuntime with a harmless fixture key and no model-network refresh. The genuine canonical task completed coordinator/storage/workspace/model/session setup, one child Agent turn (including its tool/final exchanges), and one fake process-owned sandbox bash operation that wrote only the declared repository-local scratch marker. This is controlled integration evidence, not live provider or real OS-sandbox evidence.
+preserved_guards=Focused existing regressions continue to cover role and call-tool narrowing, credential material denial, sandbox-unavailable handling, inherited nested permit/depth policy, writeScope enforcement, mutation conflict/protected boundaries, child approval, and headless behavior. The reservation authorizes only the canonical top-level task orchestration side effects; it does not exempt child tools, writes, or approvals.
+verification=Focused Persistent Agent/native/permission Vitest PASS (14 files / 74 tests across the boundary matrix and package/runtime composition checks); npm run typecheck PASS. The controlled fixture performed no provider/network/authentication operation.
+status=blocked
+tasks=3.4 remains unchecked; no current live Persistent Agent or real sandbox PASS was claimed or generated.
+blockers=A separately approved current live operation is still required for release evidence. Same-process trusted extensions remain outside a sandbox; this policy deterministically handles Pi winning-definition collisions but does not claim hostile in-process isolation.
+
+[2026-08-02] BUILD final dynamic-clone reservation repair
+scope=Repository-local task reservation, real Pi 0.82.1 collision fixture, focused Persistent Agent/native/permission verification, and this reconciliation record only. No provider, network, dependency, lockfile, version, install, Git, publish, release, or top-level orchestration/child-gate change ran.
+security_closure=The reservation now binds the canonical task to the exact immutable loader-owned sourceInfo object and snapshots all five fields (path, source, scope, origin, baseDir) in addition to exact description/schema/guideline identity and active state. When initial extension loading cannot expose tools, the first event-time binding requires the task sourceInfo object to be the same canonical Extension source object exposed by its aili-agent-model command. Another Extension can copy descriptor references but registerTool assigns that Extension's different sourceInfo object, so the exemption remains closed.
+dynamic_fixture=A real DefaultResourceLoader/AgentSession fixture registers an earlier Extension that waits for session_start, copies the exposed canonical description/schema/guideline references, and dynamically registers task. Clone-first is blocked by generic permission gating before either execute function; canonical-first retains the canonical winner and exemption. Existing static Extension collision, SDK-style winner, inactive task, controlled production, native composition, and child permission cases remain covered.
+preserved_policy=No accepted top-level orchestration side-effect policy or child role/tool/workspace/credential/sandbox/per-call approval gate changed.
+verification=Focused task-registration/collision/production/native/package/permission Vitest PASS (7 files / 33 tests); npm run typecheck PASS; tracked and task-owned untracked diff whitespace checks PASS.
+status=blocked
+tasks=3.4 remains unchecked; no provider, live Persistent Agent, or real sandbox PASS was claimed or generated.
+blockers=A separately approved current live operation remains required for task 3.4 and release evidence. Same-process trusted Extensions remain outside an OS sandbox; the bounded policy authenticates Pi loader ownership and does not claim hostile in-process isolation.
+
+[2026-08-02] BUILD reviewed representative-live composition and capture-budget package
+scope=Repository-local live evidence composition, validator/generator plumbing, bounded capture-budget interface, focused tests, and reconciliation record only. No provider, network, authentication, live capture, dependency, lockfile, version, installation, Git mutation, publish, or release operation ran.
+review_flow=The live harness remains NON_PASS and records a PENDING external-human-review candidate only after the exact provider-authored lifecycle exists. The candidate now hash-binds the immutable representative v3 capture. The apply CLI accepts only the canonical candidate path plus a separately authored exact human verdict, validates provider/candidate/harness/runtime/transaction/freshness/sanitization bindings, and atomically writes artifacts/test-results/aili-compact-reviewed-live-v3.json.
+composition=The reviewed artifact retains the source capture by exact path/SHA-256 and preserves its provider observations. Composition changes only semantic-review evidence plus the aggregate statuses recomputed from the complete v3 gate. Missing suffix, overflow/retry/later-work, transport, ordering, binding, freshness, or sanitization remains NON_PASS. The release generator/index/sanitizer now own the canonical reviewed-live path; pending source capture alone cannot pass.
+budget=Real overflow and pressure input selection now use the explicit AILI_COMPACT_LIVE_MAX_INPUT_CHARS interface. The conservative default is 600000 characters, the exact operation override is bounded to 1..2000000, and an over-budget overflow reports NON_PASS reason=capture-input-budget-exceeded with requiredInputCharacters and maxInputCharacters without making a provider call.
+verification=Typecheck PASS. Focused non-network Vitest PASS (3 files / 68 tests), covering pending, valid full composition, missing-overflow non-rescue, stale/wrong-provider/forged/unsanitized rejection, and under/over budget selection. Node strip-types release validator ran and remained expected NON_PASS on current stale/missing live evidence. The requested generator CLI smoke was blocked by the active terminal command permission before execution; no generated current artifact was rewritten.
+status=blocked
+tasks=3.4 and 4.1 remain unchecked.
+blockers=No canonical reviewed-live artifact exists for the current candidate because no matching representative v3 PENDING capture/candidate and external human verdict exist. Current Persistent Agent and Compact live evidence remain stale/NON_PASS. A fresh separately approved provider operation and external human review are still required; generator CLI smoke also remains not run in this terminal permission profile.
+
+[2026-08-02] BUILD reviewed-live integration and package-content preflight
+scope=Repository-local reconciliation, owner-generated evidence, provenance/SBOM correctness, focused tests, release-gate inspection, and npm dry-run only. No provider, network, authentication, installation, dependency graph, lockfile, version, Git publication, publish, or release operation ran.
+reviewed_live=ROSE inspected the canonical composition and reran typecheck plus the focused reviewed-live/budget matrix. The source capture remains PENDING/NON_PASS until an exact external verdict; a matching verdict can promote only the semantic-review field, while the full validator preserves NON_PASS for missing overflow, suffix, transport, ordering, binding, freshness, or sanitization.
+generated=generate:compact-release-evidence and its verify mode now execute successfully and truthfully report NON_PASS because artifacts/test-results/aili-compact-reviewed-live-v3.json is absent. Sanitizer flags are all false; only that reviewed-live artifact is missing.
+provenance_repair=The provenance source for pi-sakura-cyberdeck lacked a version and rendered `Version: undefined`; it now records the exact Git revision as its version. The deterministic SPDX 2.3 generator now requires source versions, emits required creationInfo.created, updates the document namespace when package/lock/provenance identity changes, and preserves the exact timestamp for byte-stable verification.
+verification=Typecheck PASS. Focused reviewed-live/budget tests PASS (2 passed files, 56 tests; gated provider file skipped). Provenance tests PASS (4). validate:provenance PASS; generate/validate:compact-release-evidence executed with expected NON_PASS candidate verdict; git diff --check PASS.
+release_gate=test:live-release and validate:release both exit nonzero with 27 diagnostics: one current Persistent Agent NON_PASS plus its stale harness/inventory hashes, and Compact reviewed-live/index/sanitizer NON_PASS. The expanded diagnostics represent two unresolved live evidence roots, not 27 independent product regressions.
+package_dry_run=Fresh npm pack --dry-run --ignore-scripts --json reports 9,863,822 packed bytes, 50,124,522 unpacked bytes, and 5,757 entries. Of these, 5,578 are bundled node_modules files; pi-markdown-preview pulls puppeteer-core/chromium-bidi/devtools-protocol and dominates the archive. Direct repository tests, openspec, artifacts, .pi, .tmp, graphify-out, and Zone.Identifier paths are excluded.
+material_decision=The package currently declares both bundledDependencies and bundleDependencies for @narumitw/pi-lsp, pi-cache-optimizer, and pi-markdown-preview. Historical package evidence described normal non-bundled dependency installation and a 531-entry archive, while the current duplicate canonical bundleDependencies field produces the 50 MB closure. Keeping a self-contained bundle versus relying on ordinary npm dependency installation changes public package behavior and lock metadata and therefore requires an explicit user decision before edits.
+status=blocked
+tasks=2.5, 3.4, 4.1, 4.2, 4.3, and 4.4 remain unchecked.
+next_action=Resolve the package bundling decision before spending a new provider authorization; then request one exact representative OpenAI/Persistent live operation with an explicit overflow input budget and follow it with external human review.
+
+[2026-08-03] BUILD package-history correction and optional-integration assessment
+correction=Fresh local Git-tag inspection disproved the prior inference that the published line used ordinary non-bundled dependency installation. v0.1.13, v0.1.15, and v0.1.16 all declared @narumitw/pi-lsp, pi-cache-optimizer, and pi-markdown-preview as bundled roots; each tag's lockfile marks 228 package entries inBundle. The verified 0.1.16 artifact's 173 count covered first-party files only, so it did not establish a small complete tarball.
+runtime=@narumitw/pi-lsp and pi-markdown-preview are imported unconditionally by the single native-integration entry. They expose lsp_diagnostics/lsp_fix//lsp and /preview*/preview_export respectively. Neither is used by AILI Compact, the Persistent Agent framework, permission modes, quota, web access, or cache correctness; they are optional developer/preview capabilities. Current tests/docs/manifests treat their public surfaces as required because they are presently part of the product.
+assessment=pi-markdown-preview is the dominant archive-cost source through puppeteer-core and requires an external Chromium executable for browser/terminal preview plus Pandoc/LaTeX for PDF. pi-lsp requires separately installed/configured language servers. If these workflows are not intentionally offered, removing the integrations entirely is cleaner than merely unbundling them, but that changes public tools/commands, production dependencies, lock metadata, provenance, docs, and verification scope.
+status=blocked
+next_action=Obtain one explicit product decision: retain both integrations, remove only markdown preview, remove both, or retain features but change only dependency delivery. Any removal is BUILD_MATERIAL_DISCOVERY and requires DEFINE artifact/test-plan reacceptance before implementation; no dependency/package/lock mutation is currently authorized.
+
+[2026-08-03] DEFINE material revision — remove optional LSP and Markdown Preview integrations
+decision=User explicitly selected complete removal of @narumitw/pi-lsp and pi-markdown-preview and requested continuation. pi-cache-optimizer remains selected.
+scope=Remove both packages from native registration, production dependencies, both bundle-list aliases, lock state and unreachable closure, docs, provenance/SBOM, generated manifests, doctor/capability evidence, runtime public tools/commands, and package tests/inventory. Add no replacement, alias, hidden fallback, or automatic installation.
+materiality=The decision changes the public command/tool surface and dependency/lock/verification contract, so affected BUILD work stopped as BUILD_MATERIAL_DISCOVERY and returned to DEFINE before production mutation.
+phase=DEFINE
+status=active
+authorization_boundary=The user's removal instruction establishes the product decision and implementation intent, but formal BUILD remains blocked until this revised final test plan is strictly validated and explicitly accepted. Provider/network/live, Git, tag, publish, and release operations remain separately gated.
+next_action=Strict-validate the revised proposal/design/spec/tasks/test-plan/release-gates sequence, then request explicit acceptance of the revised final test plan.
+
+[2026-08-03] DEFINE optional-integration removal revision validated
+artifacts=proposal.md; design.md; specs/aili-compact-release-lineage/spec.md; tasks.md; test-plan.md; release-gates.md; drift-log.md
+contract=Default 0.2.0 removes @narumitw/pi-lsp and pi-markdown-preview completely, including native registration, public tools/commands, dependencies, bundle and lock state, docs, provenance/SBOM, generated evidence, and archive closure. pi-cache-optimizer remains selected; no replacement, alias, hidden fallback, or automatic installer is allowed.
+verification=Repository-owned five-stage OpenSpec sequence script PASS with zero blockers and sourceWorkspaceMutated=false; isolated integration sequence test PASS (1 file / 2 tests); git diff --check PASS. The first concurrent invocation raced the same scratch-owning sequence runner, so the claim was established only by the later isolated rerun.
+phase=DEFINE
+status=blocked
+blocker=Explicit acceptance of the dependency-removal revision in final test-plan.md is required before BUILD resumes or package/runtime/lock mutation begins.
+next_action=Request explicit acceptance of the revised final test plan. Provider/network/live, Git, tag, publish, and release operations remain separately gated.
+
+[2026-08-03] Dependency-removal final test plan accepted; BUILD resumed
+acceptance=User explicitly accepted the dependency-removal revision of test-plan.md and selected repository-local BUILD continuation.
+phase=BUILD
+status=active
+scope=Remove @narumitw/pi-lsp and pi-markdown-preview from native registration, production dependency/bundle/lock state, public tools/commands, docs, provenance/SBOM, generated evidence, tests, and package archive; retain pi-cache-optimizer and every other accepted integration/gate.
+authorization_boundary=The user's exact removal instruction authorizes the task-scoped dependency and lockfile mutation required for these two packages. No provider/network/live capture, installation outside repository-local dependency metadata work, Git, tag, publish, or release operation is authorized.
+next_action=Confirm exact implementation/test/generated-owner locality, implement one bounded removal package, regenerate through owners, and run the smallest affected verification before broader accepted checks.
+
+[2026-08-04] BUILD optional LSP/Markdown Preview removal completed
+scope=Exact removal of @narumitw/pi-lsp and pi-markdown-preview from the default 0.2.0 runtime/package surface. No provider/network/live capture, external installation, Git, tag, publish, or release operation ran.
+lock_owner=npm uninstall --package-lock-only --ignore-scripts --offline --no-audit @narumitw/pi-lsp pi-markdown-preview completed without lifecycle scripts or network. npm updated dependencies, canonical bundleDependencies, lock entries, peer classifications, and unreachable closure; the legacy bundledDependencies alias was narrowed explicitly to the same remaining pi-cache-optimizer root.
+runtime=The single native integration inventory/loader now retains permission modes, quota status, web access, and pi-cache-optimizer only. Runtime and packaged-entry tests assert that /preview*, /lsp, preview_export, lsp_diagnostics, and lsp_fix are absent while retained commands/tools still load.
+metadata=README no longer advertises either integration. Active provenance now has the exact eight retained source records; registry validation binds their exact ordered identities. Notices, SPDX SBOM, adapter evidence, skill compatibility, and Compact metadata evidence were regenerated through their owners. No replacement, alias, hidden fallback, or automatic installer was added.
+package_dry_run=PASS: 808062 packed bytes, 3628847 unpacked bytes, 184 files (179 first-party, 5 under bundled node_modules). Exact inventory contains zero @narumitw/pi-lsp, pi-markdown-preview, puppeteer-core, chromium-bidi, or devtools-protocol paths. The previous candidate was 9863822 packed bytes, 50124522 unpacked bytes, and 5757 files.
+verification=Typecheck PASS. Focused package/runtime/provenance/doctor matrix PASS (5 files / 39 tests). validate:package PASS (6); validate:provenance PASS; validate:compatibility PASS (46 records); validate:generated PASS (7); full npm test PASS (101 files passed, 4 skipped; 833 tests passed, 4 skipped); git diff --check PASS. Compact evidence generation/verify executed truthfully with NON_PASS release status because live/reviewed evidence is absent.
+release_gate=validate:release remains NON_PASS with 33 diagnostics. Root categories are: predecessor identity freshness expired; installed rollback evidence is stale for the changed candidate package; Persistent Agent live manifest/hashes are stale and current verdict remains NON_PASS; Compact migration/reviewed-live/index/sanitizer evidence must be regenerated after fresh rollback/live evidence. These are release evidence gates, not dependency-removal regressions.
+phase=BUILD
+status=blocked
+tasks=2.6 complete; 3.4, 4.1, 4.2, 4.3, and 4.4 remain unchecked.
+next_action=Obtain fresh exact Git/npm/tarball read-only network approval for predecessor identity, then a separate disposable installed rollback approval, before requesting the representative provider live operation.
+
+[2026-08-04] PREDECESSOR identity refreshed
+approval=User approved one exact read-only GitHub/npm predecessor verification, npm tarball download into repository-local .tmp, bounded comparison, sanitized evidence update, and task-owned scratch cleanup. No installation, lifecycle script, provider, dependency, Git mutation, or publication operation was authorized.
+git=Current origin v0.1.16 resolves to annotated tag object 1e6b81702ddbadec9d2f214492d412010f6333f1 and peeled commit e8a8f77f84a1dc608da7ce0c0f047f5c552b0546, matching the accepted constants.
+npm=Registry @rosetears/aili-pi@0.1.16 reports the exact accepted SHA-512 integrity and SHA-1 shasum; the published 0.1.x version list still ends at 0.1.16 and npm still omits gitHead.
+tarball=Downloaded 0.1.16 tarball bytes independently reproduced the registry SHA-512/SHA-1. All 174 non-node_modules files matched the local v0.1.16 Git tag byte-for-byte; package.json was validated as the manifest, while the remaining 173 first-party file path/hash pairs reproduced aggregate SHA-256 32792bde86c5ef8ce0d2310271c1d77a065c6877fe765f1e3f571809537c14b0 with missing=0 and mismatched=0.
+artifact=artifacts/test-results/aili-compact-predecessor-identity.json refreshed at 2026-08-04T17:42:06+08:00; sanitized=true; scriptsRun=false; installed=false; scratchCleaned=true. Exact .tmp/reconcile-predecessor-identity cleanup and absence were confirmed.
+verification=Focused release-evidence unit suite PASS (1 file / 44 tests); git diff --check PASS. validate:release no longer reports predecessor identity freshness or Git/npm/tarball mismatch.
+status=blocked
+blockers=Installed predecessor/candidate rollback evidence remains stale for the dependency-removed candidate. Persistent Agent live evidence and Compact migration/performance/reviewed-live/index/sanitizer remain NON_PASS or stale pending their owning operations.
+next_action=Request separate exact approval for disposable predecessor/candidate installation and installed rollback rehearsal with scripts disabled, repository-local scratch/cache/HOME, sanitized evidence, and cleanup.
+
+[2026-08-04] INSTALLED rollback refreshed for dependency-removed candidate
+approval=User approved one exact repository-local disposable installation/rehearsal: predecessor 0.1.16, current locally packed 0.2.0 candidate, exact official Pi 0.82.1 and required peer; isolated HOME/npm cache; ignore-scripts; sanitized copied Session only; evidence publication; complete scratch cleanup.
+installation=Current candidate was packed locally. Two isolated prefixes each installed 273 packages with lifecycle scripts disabled: the verified registry predecessor or local candidate tarball plus exact Pi 0.82.1/typebox peer. No project dependency/lock mutation or real HOME/Session access occurred.
+rehearsal=PASS: predecessor installed open and legacy replay; candidate v3 append/reload; predecessor reopen without byte rewrite; rollback continued work; candidate reopen; JSONL prefix preservation; no raw sidecar. Predecessor accepted one candidate v3 transaction with zero v3 diagnostics.
+artifact=artifacts/test-results/aili-compact-installed-rollback.json refreshed at 2026-08-04T09:46:40.222Z and hash-binds the fresh predecessor identity. execution records disposableHome=true, copiedSessionOnly=true, packageScriptsRun=false, providerUsed=false, liveSessionTouched=false.
+cleanup=Exact repository-local .tmp/reconcile-installed-rollback-0.1.16 root, npm cache, installs, candidate tarball, HOME, and test scratch were removed; absence confirmed.
+verification=Installed rollback integration PASS (1 file / 1 test). Migration owner rerun PASS (1 file / 4 tests) and rebound identity/installed evidence. Compact evidence generate/verify executed truthfully NON_PASS pending reviewed live evidence. validate:release dropped predecessor, installed-rollback, and migration diagnostics; remaining 30 diagnostics collapse to stale/NON_PASS Persistent Agent live evidence plus Compact reviewed-live/index/sanitizer.
+status=blocked
+tasks=3.3 remains satisfied with fresh evidence; 3.4, 4.1, 4.2, 4.3, and 4.4 remain unchecked.
+next_action=Request a separate exact configured-provider operation for one current OpenAI representative/Persistent Agent capture, including the explicit 1,300,000-character operation ceiling needed to attempt the 1,224,000-character overflow input, current production sandbox marker, sanitized evidence, and exact /tmp cleanup.
+
+[2026-08-04] LIVE OpenAI representative capture reconciled; approval consumed
+approval=The single exact configured-provider operation was consumed. No retry or additional provider/network/authentication operation is authorized by that approval.
+transport=OpenAI representative transport PASS and controlled before/AILI/after ordering PASS.
+persistent=Parent task and child lifecycle completed. The exact sandbox marker was missing, so child-sandbox remained NON_PASS; the durable parent-visible evidence does not expose child Bash history and does not claim it.
+compact=Suffix, real overflow/checkpoint/retry/later-work, and provider-authored lifecycle were absent. No semantic human-review candidate qualified or was published. Compact status remains NON_PASS.
+cleanup=PASS: exact /tmp/aili-pi-live-verification cleanup was verified before atomic publication of the truthful NON_PASS artifacts.
+artifacts=artifacts/test-results/aili-compact-live-v2.json; artifacts/test-results/persistent-agent-framework/live-smoke-2026-08-02-pi-0.82.1.json; manifests/live-verification.json
+status=blocked
+tasks=3.4 and 4.1 remain unchecked.
+
+[2026-08-04] BUILD bounded live-harness silent-evidence repair
+scope=Repository-local live harness/support and focused controlled tests only. No provider, network, authentication, live capture, installation, dependency, lockfile, version, production runtime behavior, Git mutation, publication, or release operation ran. Existing fresh live artifacts were not regenerated or overwritten.
+root_causes=The Compact AgentSession SDK allowlist activated only read and therefore hid all required aili_compact tools; one early pressure failure could escape through a broad catch and suppress independent suffix/tool/lifecycle evidence; the overflow path swallowed prompt/preflight and missing-message_end failures; the Persistent probe did not validate exact task arguments or zero parent Bash calls and collapsed marker/lifecycle evidence; capture asserted aggregate NON_PASS and could exit green after publishing missing required rows.
+repair=The main Compact scenario now requests read plus aili_search_context, aili_compact_status, and aili_compact, while copied decompression scenarios alone add aili_decompress. AgentSession active tools are asserted fail-closed and covered without network. Pressure, real-tool, suffix, and lifecycle attempts are isolated with exact bounded NON_PASS stage codes; suffix PASS additionally requires an observed non-NORMAL pressure state. Overflow attempts classify provider context error, preflight/stage failure, and missing message_end separately, with final assistant error state used only as fallback; PASS still requires real provider context error, persisted overflow checkpoint, original-request retry, and later work.
+sandbox=Parent evidence now requires exact agent=general/async=false/tools=[bash]/workspace=shared/writeScope marker arguments, zero parent Bash calls, completed child lifecycle, and exact marker bytes as separate booleans/reasons. Parent task results expose only output/history references, not safe child tool-call history, so child Bash inspection is recorded Unverified; release capture PASS remains bounded to exact arguments, zero parent Bash, child completion, and exact marker evidence.
+capture_semantics=Cleanup verification and atomic publication happen before the capture assertion. The command then exits nonzero unless Persistent provider-turn and child-sandbox are PASS, suffix and overflow are PASS, and an external-review candidate is PENDING. Capture does not require an external human verdict or reviewed-live PASS.
+verification=npm run typecheck PASS; focused Vitest PASS (4 files passed, gated live module skipped; 40 tests passed, 1 skipped); git diff --check PASS. No capture, release validation, evidence generation, or provider-accessing command ran.
+status=blocked
+tasks=3.4 and 4.1 remain unchecked.
+blockers=A new exact provider approval is required for any rerun. Current truthful artifacts remain NON_PASS; suffix, overflow/retry/later-work, exact sandbox marker, semantic lifecycle candidate, and external human review are unresolved.
+
+[2026-08-04] LIVE OpenAI capture rerun after harness repair; approval consumed
+approval=User approved one new exact OpenAI-only capture with no automatic retry, existing configured Pi authentication, AILI_COMPACT_LIVE_MAX_INPUT_CHARS=1300000, exact /tmp/aili-pi-live-verification lifecycle, sanitized evidence, and cleanup. Claude/Gemini, dependency, Git, and publication operations were excluded. The authorization is consumed.
+execution=The repaired capture ran once for 92.50 seconds and intentionally exited nonzero only after cleanup and atomic evidence publication. Exact /tmp root absence was confirmed.
+transport=PASS for openai-codex/gpt-5.4-mini on openai-codex-responses with contextWindow=272000. Controlled before/AILI/after extension order remains PASS. Cache telemetry was zero and remains non-blocking Unverified with no cache-hit claim.
+persistent=Parent provider turn PASS: exactly one synchronous task call, exact general/async=false/tools=[bash]/workspace=shared/writeScope arguments, zero parent Bash calls, and completed persistent child lifecycle. Child sandbox remains NON_PASS because child-sandbox-marker.txt was absent; child Bash history is not exposed in the parent result and remains Unverified. External workspace lifecycle PASS.
+compact=Suffix remains NON_PASS with reason=pressure-stage-failed. The 1,224,000-character overflow attempt reached message_end but did not induce a provider context-length error, so overflow remains NON_PASS reason=provider-context-error-not-induced. No four provider-authored T1/T2/T3/T3-restill transactions qualified, so semantic review remains provider-tool-transaction-unobserved and no human-review candidate exists.
+capture_gate=Command failure accurately named all missing capture-time claims: persistent-child-sandbox, compact-suffix, compact-overflow, and semantic-review-candidate-pending. This is no longer a false-green capture.
+artifacts=Fresh artifacts/test-results/aili-compact-live-v2.json; artifacts/test-results/persistent-agent-framework/live-smoke-2026-08-02-pi-0.82.1.json; manifests/live-verification.json. Compact metadata generator/verify reran truthfully NON_PASS.
+verification=Post-capture test:live-release and validate:release both report exactly four blocker categories: current Persistent Agent NON_PASS, Compact index NON_PASS, reviewed live missing/invalid, and sanitizer NON_PASS. Predecessor, installed rollback, migration, performance, fake-provider, provenance, dependency removal, and current live bindings no longer appear as blockers.
+phase=BUILD
+status=blocked
+tasks=3.4, 4.1, 4.2, 4.3, and 4.4 remain unchecked.
+material_question=The accepted real-provider gate has now failed twice. Further attempts require a new exact provider/cost approval and a technically justified induction method; alternatively, weakening or replacing real pressure/overflow/provider-authored lifecycle claims changes verification strategy and requires DEFINE reacceptance. No third capture is authorized.
+next_action=Ask whether to keep the strict real-provider gate and fund further bounded diagnosis/capture, return to DEFINE to replace it with controlled-provider/production AgentSession evidence plus the already-PASS real transport/order boundary, or stop this release effort.
+
+[2026-08-04] DEFINE material revision — separate real-provider boundary from deterministic production evidence
+decision=User selected the recommended revision after two exact OpenAI captures: real provider evidence owns official-Pi transport/protocol acceptance, controlled extension ordering, and parent-to-persistent-child lifecycle; deterministic controlled-provider production-entry tests own suffix/non-persistence, overflow/checkpoint/original-request retry/later work, process-owned child sandbox marker work, and lifecycle/tiering.
+rationale=The repaired second run used 1,224,000 overflow-input characters against a 272,000-token model context but completed through message_end without a context-length error. Pressure suffix, marker work, and semantic tiers also remained naturally unobserved. Further billable failure induction is nondeterministic and cannot be the sole proof method.
+preserved_truth=Both 2026-08-04 OpenAI artifacts remain sanitized candidate-bound evidence and retain their NON_PASS/Unverified observations. They are not rewritten as suffix/overflow/sandbox/tier PASS and cannot substitute for controlled-production rows.
+human_review=Final human review will accept the evidence-class boundary, the preserved live limitations, and bounded unknowns; it will not require a provider-authored semantic-review candidate.
+materiality=This changes verification strategy and required artifact ownership. Affected BUILD stopped before validator/artifact edits and returned to DEFINE.
+phase=DEFINE
+status=active
+authorization_boundary=No further provider/network/authentication call, production validator/harness mutation, Git operation, publish, or release is authorized by this decision.
+next_action=Revise proposal/design/spec/tasks/test-plan/release-gates/drift, run the repository-owned five-stage strict sequence, and request explicit acceptance of the revised final test plan before resuming BUILD.
+
+[2026-08-04] DEFINE evidence-class revision validated
+artifacts=proposal.md; design.md; specs/aili-compact-release-lineage/spec.md; specs/aili-compact-checkpoint-recovery/spec.md; tasks.md; test-plan.md; release-gates.md; drift-log.md
+contract=One fresh real-provider boundary owns official-Pi transport/protocol acceptance, controlled extension order, exact parent task arguments, zero parent Bash calls, and completed persistent child lifecycle. Deterministic official-Pi production-entry tests own suffix/non-persistence, context-error overflow/checkpoint/original-request retry/later work, process-owned child sandbox marker work, and lifecycle/tiering. The two real OpenAI limitation artifacts remain truthful and do not require another provider attempt. Final human review accepts the boundary and limitations without a provider-authored semantic candidate.
+validation=The first strict sequence attempt failed atomically because an OpenSpec MODIFIED requirement heading had been renamed instead of retaining its upstream identity; sourceWorkspaceMutated=false and scratch cleanup passed. The heading was restored while preserving the revised body. The repository-owned five-stage sequence then passed all five stages with zero blockers, status=PASS, sourceWorkspaceMutated=false, and scratch cleanup PASS. The isolated sequence integration test passed (1 file / 2 tests); git diff --check passed.
+phase=DEFINE
+status=blocked
+blocker=Explicit user acceptance of this verification-strategy revision in final test-plan.md is required before validator, artifact schema, or release-gate implementation resumes.
+authorization_boundary=No provider/network/authentication call, production validator/harness mutation, Git operation, publish, or release is authorized by DEFINE validation.
+next_action=Request explicit acceptance of the revised final test plan. If accepted, record acceptance and resume the bounded validator/artifact reconciliation package without another provider call.
+
+[2026-08-04] Verification-strategy final test plan accepted; BUILD resumed
+acceptance=User explicitly accepted the current test-plan.md revision separating real-provider boundary evidence from deterministic controlled-production evidence and requested repository-local BUILD continuation.
+phase=BUILD
+status=active
+scope=Reconcile validators, artifact schemas/generators, controlled production tests, sanitizer/index ownership, and final local verification to the accepted evidence classes. Preserve both real OpenAI limitation artifacts without relabeling their absent observations.
+authorization_boundary=No provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation is authorized.
+next_action=Confirm exact validator/artifact/test locality, implement one bounded reconciliation package, regenerate safe-local evidence through owners, and run the accepted focused checks.
+
+[2026-08-04] BUILD material discovery: controlled-production entry gap
+phase=BUILD_MATERIAL_DISCOVERY
+status=blocked
+evidence=The existing focused AgentSession and Persistent production tests pass (2 files / 7 tests), but an attempted exact controlled-production evidence package could not retain PASS artifacts. Headless custom Compact tool calls were denied by the current permission-mode path. After interactive test approval, the real AgentSession production path reported an unhealthy Compact index with invalid-entry and zero provider-message passes, so pressure suffix and full production tiering could not be proved without changing production runtime/index or permission integration behavior. The attempted test edits were fully restored and no component artifacts were written.
+contract_effect=The accepted test plan forbids direct handler/event injection and manual promotion. Reusing the fake-provider artifact would therefore weaken the accepted evidence class. Repairing the exact production path may change runtime/index or permission integration behavior; relaxing the evidence owner would change verification strategy.
+authorization_boundary=No production runtime/index/permission repair, verification-strategy relaxation, provider/network/authentication call, dependency/lockfile/version mutation, Git operation, or publication operation is authorized by this diagnosis.
+next_action=Return the production-path repair versus verification-strategy decision to DEFINE. Recommended: preserve the accepted evidence class and authorize a bounded DEFINE revision for an internal production-entry testability/compatibility repair with unchanged default user behavior.
+
+[2026-08-04] DEFINE production-entry compatibility revision
+decision=User selected preservation of the accepted controlled-production evidence class and a bounded production-path repair rather than direct-handler evidence promotion.
+root_cause=Official Pi 0.82.1 represents the root Session entry with parentId null. Compact declared parentId as optional string and rejected every defined non-string parent before provider alignment. Headless custom-tool denial is expected fail-closed permission behavior; controlled tests were missing exact lifecycle binding and disposable tool-name preauthorization.
+contract=Accept null only for the actual root during cold build or first append to an empty index; reject later null/malformed parents. Controlled tests bind the real extension lifecycle and preauthorize only aili_compact_status and aili_compact in a disposable agent directory. Shipped permission policy remains unchanged.
+phase=DEFINE
+status=blocked
+blocker=Strict validation and explicit user acceptance of the revised final test-plan.md are required before runtime, test, validator, or artifact implementation resumes.
+authorization_boundary=No production code/test/validator mutation, provider/network/authentication call, dependency/lockfile/version mutation, Git operation, or publication operation is authorized by this DEFINE decision.
+next_action=Strict-validate the revised change and request explicit final test-plan acceptance.
+
+[2026-08-06] DEFINE promotion-adjacency revision validated
+phase=DEFINE
+status=blocked
+artifacts=proposal.md; design.md; specs/aili-compact-tiered-lifecycle/spec.md; tasks.md; test-plan.md; release-gates.md; drift-log.md; progress.txt
+validation=OpenSpec strict validation passed. The repository-owned five-stage sequence passed all stages with zero blockers, sourceWorkspaceMutated=false, and scratch cleanup PASS. Scoped git diff --check passed.
+contract=Each T1 source remains exact and raw-ordinal contiguous. T2/T3/restill may bridge only gaps fully proven to be complete AILI-owned status/compact planning protocol; protocol stays persisted and excluded from semantic leaves/digests/summaries. Status and mutation share the classifier; ordinary, third-party, malformed, unknown, and mixed gaps reject.
+authorization_boundary=Validation grants no affected runtime mutation, provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation.
+blocker=Explicit user acceptance of the revised final test-plan.md is required before affected BUILD resumes.
+next_action=Request explicit acceptance. If accepted, implement the shared classifier and focused negatives, then resume controlled production without any provider call.
+
+[2026-08-06] Promotion-adjacency final test plan accepted; BUILD resumed
+phase=BUILD
+status=active
+acceptance=User explicitly accepted the validated final test-plan.md revision and requested repository-local BUILD continuation.
+scope=Implement one shared fail-closed AILI planning-protocol gap classifier for lifecycle status and block mutation; preserve strict T1 source contiguity and recursive leaf digest/count; add AILI-only positive and ordinary/third-party/malformed/unknown/mixed negatives; resume controlled production.
+authorization_boundary=No provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation is authorized.
+next_action=Confirm exact protocol classification and mutation planner locality, implement the bounded classifier package, and run focused units before the production AgentSession matrix.
+
+[2026-08-06] BUILD material discovery: dynamic semantic ordinals drift across persistence
+phase=BUILD_MATERIAL_DISCOVERY
+status=blocked
+evidence=The classifier and focused units passed, but controlled production showed a previously persisted T1 interval [16,27] whose exact source entries later occupied derived semantic positions [12,23]; the next disjoint range [24,35] then failed reducer overlap. Public refs also renumber with catalog projection. Dynamic ordinals are not durable replay identity.
+decision=User selected authoritative raw branch-message intervals plus bounded versioned transparent-gap proofs, not a semantic-ordinal registry.
+materiality=The repair adds closed v3 transaction/state fields, permits block-parent raw hull width to exceed semantic leafCount only by proven gaps, and defines legacy proof omission plus pure/index replay verification. Affected BUILD returned to DEFINE.
+authorization_boundary=No gap-proof schema/runtime mutation, provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation is authorized before strict validation and final test-plan acceptance.
+next_action=Strict-validate the raw-interval gap-proof revision and request explicit acceptance of the revised final test plan.
+
+[2026-08-04] DEFINE production-entry compatibility revision validated
+validation=OpenSpec strict validation passed. The repository-owned five-stage sequence passed all stages with zero blockers, including the exact MODIFIED aili-compact-branch-index requirement; sourceWorkspaceMutated=false and scratch cleanup passed. git diff --check passed.
+phase=DEFINE
+status=blocked
+blocker=Explicit user acceptance of the revised final test-plan.md is still required before BUILD resumes.
+authorization_boundary=Validation grants no production code/test/validator mutation, provider/network/authentication call, dependency/lockfile/version mutation, Git operation, or publication operation.
+next_action=Request explicit acceptance of the production-entry compatibility revision. If accepted, record acceptance and resume the bounded null-root repair, controlled-production test/artifact, and validator reconciliation package.
+
+[2026-08-04] Production-entry compatibility final test plan accepted; BUILD resumed
+acceptance=User explicitly accepted the current test-plan.md revision covering strict null-root handling, exact disposable Compact tool preauthorization, and unchanged shipped permission defaults, then requested repository-local BUILD continuation.
+phase=BUILD
+status=active
+scope=Implement the bounded branch-index null-root repair, controlled production AgentSession/Persistent evidence components, real-boundary/controlled-production artifact composition, sanitizer/index/validator reconciliation, and focused verification.
+authorization_boundary=No provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation is authorized.
+next_action=Implement the null-root and controlled test package, compose strict evidence classes through their owners, and run the smallest accepted focused checks.
+
+[2026-08-04] BUILD material discovery: production safe-range ordinal gap
+phase=BUILD_MATERIAL_DISCOVERY
+status=blocked
+implemented=BranchIndex now accepts parentId null only for the first cold-build entry or first append to an empty snapshot and rejects later null parents. Fresh branch-index verification passed 16/16 and typecheck passed. The Persistent controlled production test passed and wrote a sanitized PASS component proving exact task arguments, zero parent Bash, completed child lifecycle, one process-owned sandbox operation, and exact marker bytes.
+evidence=The real AgentSession path reached and persisted the first T1. Its second status-derived aili_compact call failed non-contiguous-source. Planning removes persisted AILI status/compact caller/result messages and closes the public range across that omission, while mutation validation correctly counts those provider messages in effective source ordinals and rejects the hidden gap. Direct-handler tests miss the defect because they do not persist the complete status/tool protocol.
+contract_effect=Repairing planning to split ranges at effective-source-ordinal discontinuities changes production safe-range behavior and therefore requires DEFINE acceptance. Weakening mutation contiguity or using an artificial protected separator would violate or conceal the accepted exact-range contract.
+authorization_boundary=No safe-planning/index/runtime repair, verification-strategy relaxation, provider/network/authentication call, dependency/lockfile/version mutation, Git operation, or publication operation is authorized by this diagnosis.
+next_action=Return the safe-range repair decision to DEFINE. Recommended: preserve exact mutation contiguity and make planning split at omitted AILI protocol ordinal gaps; retain AILI protocol exclusion from tail aging and source refs.
+
+[2026-08-06] DEFINE safe-range ordinal-gap revision
+phase=DEFINE
+status=in_progress
+decision=User selected the recommended production repair: preserve exact mutation contiguity; keep persisted AILI status/compact protocol excluded from public refs and recent-tail aging; split current and indexed safe ranges at every effective-source-ordinal discontinuity.
+scope=Revise proposal, design, safe-planning delta spec, tasks, final test plan, release gates, drift, and progress. Add safe-planning gap/parity and repeated production AgentSession verification. Do not edit the affected runtime until strict validation and explicit final test-plan acceptance.
+rejected=Filtered catalog ordinals as mutation ordinals; weakening non-contiguous-source; protected fixture separators that conceal the product defect.
+authorization_boundary=No provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation is authorized.
+next_action=Strict-validate the revised change and request explicit acceptance of the revised final test plan before resuming affected BUILD.
+
+[2026-08-06] DEFINE safe-range ordinal-gap revision validated
+phase=DEFINE
+status=blocked
+artifacts=proposal.md; design.md; specs/aili-compact-safe-planning/spec.md; tasks.md; test-plan.md; release-gates.md; drift-log.md; progress.txt
+validation=OpenSpec strict validation passed. The repository-owned five-stage sequence passed all stages with zero blockers, sourceWorkspaceMutated=false, and scratch cleanup PASS. Scoped git diff --check passed.
+contract=Current and indexed planning preserve AILI protocol exclusion from public refs and recent-tail aging, but split every safe range at effective-provider-ordinal discontinuities. Exact mutation contiguity and non-contiguous-source rejection remain unchanged. Repeated production AgentSession and parity tests are required.
+authorization_boundary=Validation grants no runtime mutation, provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation.
+blocker=Explicit user acceptance of the revised final test-plan.md is required before affected BUILD resumes.
+next_action=Request explicit acceptance. If accepted, record it, implement the bounded safe-planning repair and tests, then continue controlled-production evidence reconciliation without another provider call.
+
+[2026-08-06] Safe-range ordinal-gap final test plan accepted; BUILD resumed
+phase=BUILD
+status=active
+acceptance=User explicitly accepted the validated final test-plan.md revision and selected continuation of repository-local BUILD.
+scope=Implement source-ordinal-aware splitting in current and indexed safe planning, preserve AILI protocol exclusion from public refs and recent-tail aging, keep exact mutation contiguity unchanged, add focused gap/parity/AgentSession regressions, then continue controlled-production evidence reconciliation.
+authorization_boundary=No provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation is authorized.
+next_action=Confirm exact safe-planning symbols and tests, implement one bounded repair package, and run the focused accepted checks before continuing evidence validators.
+
+[2026-08-06] BUILD safe-range repair implemented; controlled lineage fixture remains blocked
+phase=BUILD
+status=blocked
+implemented=SafeRangePlanningInput now accepts effective source ordinals; atom records bind contiguous ordinal bounds; range assembly flushes at every inter-atom ordinal discontinuity; invalid/missing intra-atom ordinals fail closed. Current and indexed production planners supply mutation-catalog effective ordinals. Exact mutation validation is unchanged. Added a focused ordinal-gap unit regression.
+verification=Safe-planning unit tests passed 13/13 and typecheck passed. The focused AgentSession/Persistent run advanced beyond the previous second-T1 non-contiguous-source failure: Persistent passed and Compact created two T1 transactions before T1 3 reached the quality evaluator. The run then failed quality-rejected with two hard facts and one missing hard fact for refs m000012 through m000019.
+repair_budget=One fixture-summary repair/recheck was attempted and did not identify the missing hard fact; the speculative fixture edit was restored. Per BUILD loop bounds and the repeated-failure stop condition, no further code iteration or evidence generation ran.
+assumption_correction=The assumption that the selected T1 range's hard facts were only the unique fixture anchor plus the visible completion label was wrong. The next diagnostic must expose the bounded frozen quality manifest or equivalent exact hard-fact anchors for that rejected range without weakening quality or persisting raw conversation evidence.
+retained_artifacts=The prior controlled Persistent PASS component remains. Compact PASS evidence remains absent. No live/provider artifact was changed.
+authorization_boundary=No provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation is authorized.
+next_action=Obtain explicit direction for one new bounded diagnostic/repair cycle that reveals only sanitized hard-fact anchors/counts for the rejected controlled fixture, then repair the fixture and rerun the focused integration once.
+
+[2026-08-06] Controlled T1 hard-fact diagnostic completed; repair cycle stopped
+phase=BUILD
+status=blocked
+diagnostic=The rejected T1 3 range's two sanitized hard facts were goal-constraint anchor L002 and decision anchor SOURCE_ACCEPTED. The fixture incorrectly authored the T1 3 summary from loop anchor L003, proving a one-iteration source/summary alignment assumption was wrong.
+attempt=The bounded delegated cycle removed neutral spacer turns to force immediate alignment. Its one post-repair focused run failed earlier at T1 1 with source-summary-scope-mismatch and no fresh ranges. The failed speculative fixture change was restored; temporary diagnostics were removed and no raw conversation evidence persisted.
+retained=Source-ordinal-aware production planning repair, its 13/13 unit PASS, typecheck PASS, and the prior Persistent controlled-production PASS component remain. Compact PASS artifact remains absent.
+next_hypothesis=Keep the economically required spacer turns, but derive each T1 summary's unique anchor from the exact oldest still-visible raw fixture source in the provider context rather than from the outer loop index. This must not read recaps as raw source or alter production quality/economics.
+authorization_boundary=No additional repair/recheck, provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation is authorized by the completed cycle.
+next_action=Start a fresh bounded fixture-alignment package only if explicitly continued; implement context-derived raw-source anchor selection and run the focused integration once.
+
+[2026-08-06] Context-derived fixture alignment did not resolve controlled quality
+phase=BUILD
+status=blocked
+attempt=Under explicit continuation, the fixture kept all spacer turns and replaced the loop-authored T1 anchor with the oldest visible raw fixture-source anchor from provider context. The single authorized focused AgentSession/Persistent run still failed at T1 3 with the same two-hard-fact/one-missing-hard-fact quality rejection for refs m000012 through m000019; Persistent passed.
+conclusion=Provider-context visibility is not equivalent to the exact safe-range source selected by durable refs, so the alignment heuristic was invalid. The failed speculative fixture change was restored. Compact PASS evidence remains absent.
+verified=The independent safe-range unit PASS (13/13), typecheck PASS, ordinal-gap production code, and Persistent controlled-production PASS remain the latest successful evidence. No claim is made that the full AgentSession matrix passes.
+stop=The package used its one repair/recheck and repeated the same failure. No further fixture iteration, artifact generation, provider/network operation, or broader verification ran.
+next_required_fact=Map the exact status safe-range durable refs to their immutable source entries inside the controlled fixture before summary construction, without using projected context order or persisting raw content. Until that mapping is established, further summary edits would be guesses.
+
+[2026-08-06] Durable-ref fixture mapping package stopped after repeated provider-stage failure
+phase=BUILD
+status=blocked
+scouting=Repository APIs are sufficient without a production export: status exposes orderedRefs; V3 mutationCatalog maps refs to immutable entry IDs; SessionManager retains the branch; freezeMessageQualitySource and qualityRequirement can derive sanitized hard anchors in memory.
+implementation_attempt=The test-only provider rebuilt a V3 view from SessionManager, resolved status orderedRefs to message entries, froze the exact quality source, and generated a bounded summary from hard anchors. Typecheck passed.
+verification=The focused AgentSession/Persistent run failed at T1 2 with controlled plan incomplete immediately after a successful aili_compact_status result; Persistent passed. Removing the trailing status result before rebuilding the status-time view produced the same failure on the single permitted repair/recheck.
+uncertainty=The provider exception is currently swallowed by the AgentSession stream boundary, so it is not yet known whether the failing assertion is catalog identity, status snapshot boundary, durable-ref resolution, or sanitized-anchor validation. Further edits without surfacing that bounded exception would be guesses.
+cleanup=The failed speculative test-only mapping implementation was restored. Production ordinal-gap code, 13/13 safe-planning unit PASS, typecheck PASS, and Persistent controlled-production PASS remain; Compact PASS artifact remains absent.
+stop=Repeated failure and package repair budget exhausted. No broader tests, artifact generation, provider/network operation, or release operation ran.
+next_action=Add a bounded test-only provider-error capture that reports only the fixture error code (no source content), run the focused test once to identify the failing assertion, then start a separate repair package from that exact fact.
+
+[2026-08-06] BUILD material discovery: strict ordinal adjacency makes production tier promotion unreachable
+phase=BUILD_MATERIAL_DISCOVERY
+status=blocked
+completed=Test-only provider errors now surface bounded fixture codes. Exact status orderedRefs can be mapped to immutable source entries and sanitized hard anchors. Production quality identity is now scoped to exact selected message/anchor entries rather than the full branch; quality-source and safe-planning units passed 16/16 and typecheck passed. Controlled production advanced through 16 T1 transactions without the former invalid-durable-ref limit.
+evidence=The first T2 plan had no structuralPromotionGroups candidate even with 16 active T1 blocks. v3LifecycleStatus flushes a run whenever `block.firstLeafOrdinal !== previous.lastLeafOrdinal + 1`. Each T1 is separated from the next by persisted AILI status/compact caller-result messages. Those messages retain effective provider ordinals but are intentionally excluded from semantic refs/source, so separately created T1 blocks can never satisfy strict raw-ordinal adjacency. Increasing the fixture to 64 only made the unreachable path slower; reducing child counts changed economics but not structural reachability.
+materiality=Any fix changes tier-promotion contiguity semantics or the public mutation shape. This is architecture/product-contract work and cannot continue under BUILD without DEFINE revision and final test-plan reacceptance.
+recommendation=Treat gaps composed exclusively of AILI-owned planning protocol as transparent for T1/T2/T3 block-to-block promotion adjacency. Keep every T1 source exact and contiguous; keep AILI protocol excluded from semantic source and tail aging; reject gaps containing any ordinary provider message, third-party tool protocol, malformed atom, or unknown ordinal.
+rejected=Test-only manual promotion/direct injection; including AILI protocol in semantic summaries; weakening all ordinal contiguity; larger/slower fixtures; multi-T1 single-call API unless explicitly preferred.
+authorization_boundary=No affected lifecycle runtime edit, provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation is authorized by this discovery.
+next_action=Obtain one explicit DEFINE decision on promotion adjacency semantics, revise the owning tiered-lifecycle/safe-planning contract and final test plan, strict-validate, and request acceptance before resuming BUILD.
+
+[2026-08-06] DEFINE promotion-adjacency revision
+phase=DEFINE
+status=in_progress
+decision=User accepted narrowly transparent promotion adjacency for complete AILI-owned planning protocol and requested continuation. T1 exact source contiguity, protocol persistence, and all ordinary/third-party/malformed/unknown gap rejection remain unchanged.
+scope=Revise proposal, design, tiered-lifecycle delta spec, tasks, final test plan, release gates, drift/progress. Require one shared classifier for lifecycle status and mutation validation, recursive leaf exclusion of protocol, positive production tiering, and strict negative gaps.
+authorization_boundary=No affected lifecycle runtime edit, provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation is authorized before strict validation and final test-plan acceptance.
+next_action=Strict-validate the revised change and request explicit final test-plan acceptance.
+
+[2026-08-07] Raw-interval gap-proof final test plan accepted; BUILD resumed
+phase=BUILD
+status=active
+acceptance=User explicitly accepted the validated raw-interval gap-proof revision of test-plan.md and requested repository-local BUILD continuation.
+scope=Implement the closed versioned transparent-gap proof contract, shared immutable raw-gap classifier, planner preflight, pure replay, BranchIndex replay, strict negative cases, legacy raw-+1 compatibility, and focused controlled-production integration covered by tasks 2.8 and 2.9.
+authorization_boundary=No provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or other publication operation is authorized.
+next_action=Confirm exact v3 transaction/reducer/BranchIndex locality, implement the bounded proof package, and run the smallest focused checks.
+
+[2026-08-07] BUILD raw-interval gap-proof focused package
+scope=Rechecked the existing promotion-gap implementation and added focused contract coverage in the four accepted v3 unit owners. No provider/network/authentication, dependency/lockfile/version, installation, Git, publication, or release operation ran.
+implementation=The current partial implementation now has direct classifier coverage for complete AILI planning atoms, ordinary/third-party/incomplete/malformed/mixed/missing/oversized gaps and the 15-child bound; v3 parser/apply coverage for closed proof fields, version/count/size/duplicate/endpoint/digest failures, raw-hull versus semantic-leaf invariants, strict-adjacent compatibility, and forged-proof rejection; pure reducer and BranchIndex replay coverage for the same immutable raw slice and proof.
+repair=Existing pre-gap unit expectations for an unproven raw child gap returned non-contiguous-children. Under the accepted contract the shared fail-closed classifier returns invalid-promotion-gap; the focused expectations now assert that contract without weakening exact T1 contiguity.
+verification=Focused four-file Vitest PASS (4 files / 51 tests); npm run typecheck PASS. Current direct openspec strict validation PASS (1 change). The repository-owned five-stage sequence command timed out during revalidation and is not used as completion evidence.
+status=active
+tasks=2.8 and 2.9 remain unchecked; status/mutation production AgentSession parity and the controlled T1→T2→T3→restill matrix remain pending. No controlled AgentSession was run in this package.
+authorization_boundary=No provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or publication operation is authorized.
+next_action=Continue only with the accepted Next Action: inspect the remaining status/mutation parity locality and close 2.8/2.9 only when every contract row has fresh evidence; then run the focused controlled AgentSession/Persistent matrix.
+
+[2026-08-07] BUILD controlled matrix attempt stopped
+scope=Attempted only the accepted focused controlled matrix: `npx vitest run tests/integration/aili-compact-agent-session.test.ts tests/integration/persistent-agent-production.test.ts`.
+execution=The run exceeded the 300-second command limit without producing a Vitest report or the expected Compact controlled-production artifact. The task-owned Vitest worker remained alive after the timeout and was terminated; no retry was run.
+evidence=The existing Persistent controlled-production artifact remained unchanged. Compact controlled AgentSession PASS remains unverified; tasks 2.8 and 2.9 remain unchecked and no T1→T2→T3→restill completion claim is made.
+status=blocked
+blocker=Claim-required controlled-production verification timed out before a result. Affected BUILD work stops fail-closed; the timeout does not prove PASS or NON_PASS behavior.
+authorization_boundary=No provider/network/authentication call, installation, dependency/lockfile/version mutation, Git operation, commit, push, tag, npm publish, GitHub release, or publication operation is authorized.
+next_action=Diagnose the bounded controlled-matrix hang before any retry; do not alter the accepted contract, widen the fixture, or infer completion from the timeout.
+
+[2026-08-07] BUILD bounded lineage hang diagnosis
+scope=Read-only diagnosis of the accepted controlled-production blocker; no production/test/config/dependency/Git/publication edit was made.
+command=Used the local Vitest binary for only `tests/integration/aili-compact-agent-session.test.ts` and the lineage case, with `--testTimeout=20000` and an outer 60-second bound; no provider, network, authentication, or external operation ran.
+result=The process produced only the Vitest startup banner, then exited 124 at the 60-second bound without a test report or Compact artifact. The task-owned Vitest worker was still running at approximately 101% CPU and 2.8% memory after the wrapper timeout and was terminated; the expected Compact artifact remains absent and the existing Persistent artifact is unchanged.
+locality=Current source shows each production index-oracle refresh calls `v3ViewFor` and `buildV3RuntimeView(entries, ...)`, which reduces/replays the full entry history; the lineage fixture performs 23 semantic compactions and approximately 165 local provider turns over large retained contexts.
+interpretation=Fresh command evidence supports a bounded CPU-bound production/test hot path rather than a launcher or network wait. The exact hottest symbol and whether the fix belongs in the shared production index/status path or the accepted fixture remain Unverified.
+status=blocked
+material_boundary=Optimizing the production status/index path or reducing/splitting the accepted controlled fixture would change implementation locality or verification strategy, so it is BUILD_MATERIAL_DISCOVERY rather than an authorized raw-gap proof edit.
+next_action=Obtain one decision on whether to open a bounded material-discovery/performance repair package; if denied, retain 2.8/2.9 unchecked and report controlled-production evidence as Unverified.
+
+[2026-08-07] BUILD local branch snapshot and status summary
+branch=Created and switched to `feature/reconcile-aili-compact-raw-gap-proof` from HEAD `227d9dc9392a83748ac4cf77f5c386cbacf7957c`.
+documentation=Added `openspec/changes/reconcile-aili-compact-release-lineage/branch-summary.md` describing branch scope, goal, current evidence, release gaps, and review focus.
+boundary=No commit, push, tag, publish, release, cleanup, or unrelated dirty-tree staging was performed. The branch currently carries the pre-existing dirty working tree; the summary explicitly distinguishes task scope from unrelated changes.
+verification=Current branch and HEAD rechecked; `git diff --check` produced no diagnostics for tracked changes. The new Markdown file was reread after writing. No remote branch existence was inferred or queried over the network.
+status=blocked
+next_action=Use the branch summary for review. Commit and push remain separately gated; raw-gap BUILD remains blocked on controlled-production timeout diagnosis and fresh 2.8/2.9 evidence.
