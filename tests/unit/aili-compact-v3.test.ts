@@ -18,7 +18,10 @@ import {
   type V3TokenMetadata,
   type V3Transaction,
 } from "../../src/runtime/aili-compact/v3.js";
-import { transparentPromotionGapDigest } from "../../src/runtime/aili-compact/promotion-gaps.js";
+import {
+  classifyTransparentPromotionGaps,
+  createAiliPlanningResultEnvelope,
+} from "../../src/runtime/aili-compact/promotion-gaps.js";
 import type { SessionLikeEntry } from "../../src/runtime/aili-compact/contracts.js";
 
 const FACT_DIGEST = "f".repeat(64);
@@ -185,6 +188,24 @@ describe("AILI Compact v3 closed contract", () => {
     expect(operations.map((operation) => parseV3Transaction(operation).ok)).toEqual([true, true, true, true, true]);
   });
 
+  it("replays legacy tier records but accepts tierless active-block state", () => {
+    const current = state();
+    const legacy = t1Tx(current, "legacy:t1", ["message:1"]);
+    expect(parseV3Transaction(legacy)).toEqual(expect.objectContaining({ ok: true }));
+    const first = applyV3Transaction(current, legacy, { messageOrdinals: new Map([["message:1", 1]]) });
+    expect(first).toEqual(expect.objectContaining({ ok: true }));
+    if (!first.ok) return;
+    const activeBase = t1Tx(first.value.state, "active", ["message:2"], 2) as Extract<V3Transaction, { tag: "semantic-create" }>;
+    const { tier: _tier, ...payload } = activeBase.payload;
+    const active = { ...activeBase, payload } as Extract<V3Transaction, { tag: "semantic-create" }>;
+    expect(parseV3Transaction(active)).toEqual(expect.objectContaining({ ok: true }));
+    const next = applyV3Transaction(first.value.state, active, { messageOrdinals: new Map([["message:2", 2]]) });
+    expect(next).toEqual(expect.objectContaining({ ok: true }));
+    if (!next.ok) return;
+    expect(next.value.state.blocks.get("legacy:t1")?.tier).toBe("T1");
+    expect(next.value.state.blocks.get("active")).not.toHaveProperty("tier");
+  });
+
   it("rejects unknown fields, caller-owned active state, mixed source arms, and invented reasons deterministically", () => {
     const current = state();
     const base = t1Tx(current, "t1", ["message:1"]);
@@ -215,6 +236,85 @@ describe("AILI Compact v3 closed contract", () => {
       .toEqual({ ok: false, code: "quality-metadata-invalid", path: "$.payload.quality.coveredHardFactCount" });
   });
 
+  it("binds structural block sources, proof snapshots, and creating transactions into the catalog identity", () => {
+    let current = addT1(state(), "t1:left", 1);
+    current = addT1(current, "t1:right", 2);
+    current = applied(current, parentTx(current, "t2:parent", "T2", ["t1:left", "t1:right"], 2));
+    const parent = current.blocks.get("t2:parent")!;
+    const source = parent.source as Extract<V3SemanticBlock["source"], { kind: "blocks" }>;
+    const withSnapshot = (sourceSnapshotDigest: string): V3LifecycleState => {
+      const blocks = new Map(current.blocks);
+      blocks.set(parent.blockId, {
+        ...parent,
+        source: {
+          ...source,
+          transparentGaps: [{
+            version: 1,
+            leftChildBlockId: "t1:left",
+            rightChildBlockId: "t1:right",
+            leftLeafEntryId: "message:1",
+            rightLeafEntryId: "message:2",
+            messageCount: 1,
+            gapDigest: "a".repeat(64),
+            sourceSnapshotDigest,
+          }],
+        },
+      });
+      return { ...current, blocks };
+    };
+    const firstSnapshot = withSnapshot("b".repeat(64));
+    const secondSnapshot = withSnapshot("c".repeat(64));
+    const changedTokens: V3LifecycleState = {
+      ...current,
+      blocks: new Map(current.blocks).set(parent.blockId, {
+        ...parent,
+        tokens: { ...parent.tokens, summaryTokensUpper: parent.tokens.summaryTokensUpper + 1 },
+      }),
+    };
+    const acceptedQuality = parent.quality as Extract<V3SemanticBlock["quality"], { status: "accepted" | "accepted-with-warnings" }>;
+    const changedQuality: V3LifecycleState = {
+      ...current,
+      blocks: new Map(current.blocks).set(parent.blockId, {
+        ...parent,
+        quality: { ...acceptedQuality, sourceFactDigest: "e".repeat(64) },
+      }),
+    };
+    const transaction = current.transactions.get(parent.transactionId)!;
+    if (transaction.tag !== "semantic-create") throw new Error("fixture parent transaction must be semantic");
+    const changedCreatingTransaction: V3LifecycleState = {
+      ...current,
+      transactions: new Map(current.transactions).set(parent.transactionId, {
+        ...transaction,
+        payload: { ...transaction.payload, topic: "altered creating transaction" },
+      }),
+    };
+
+    expect(deriveV3CatalogId(firstSnapshot)).not.toBe(deriveV3CatalogId(secondSnapshot));
+    expect(deriveV3CatalogId(changedTokens)).not.toBe(current.catalogId);
+    expect(deriveV3CatalogId(changedQuality)).not.toBe(current.catalogId);
+    expect(deriveV3CatalogId(changedCreatingTransaction)).not.toBe(current.catalogId);
+  });
+
+  it("parses and replays exactly 18,000 semantic-summary UTF-16 characters", () => {
+    const current = state();
+    const base = t1Tx(current, "t1-summary-cap", ["message:1"]) as Extract<V3Transaction, { tag: "semantic-create" }>;
+    const summary = "s".repeat(18_000);
+    const exact = {
+      ...base,
+      payload: { ...base.payload, summary, summaryDigest: v3SummaryDigest(summary) },
+    };
+    expect(parseV3Transaction(exact)).toEqual(expect.objectContaining({ ok: true }));
+    const replayed = applyV3Transaction(current, exact, { messageOrdinals: new Map([["message:1", 1]]) });
+    expect(replayed).toEqual(expect.objectContaining({ ok: true }));
+    if (replayed.ok) expect(replayed.value.state.blocks.get("t1-summary-cap")?.summary).toHaveLength(18_000);
+
+    const oversized = "s".repeat(18_001);
+    expect(parseV3Transaction({
+      ...base,
+      payload: { ...base.payload, summary: oversized, summaryDigest: v3SummaryDigest(oversized) },
+    })).toEqual({ ok: false, code: "invalid-field", path: "$.payload.summary" });
+  });
+
   it("canonicalizes empty proofs but rejects raw-gap omission and malformed proof shapes", () => {
     let current = addT1(state(), "t1:left", 1);
     current = addT1(current, "t1:right", 4);
@@ -227,6 +327,7 @@ describe("AILI Compact v3 closed contract", () => {
       rightLeafEntryId: "message:4",
       messageCount: 2,
       gapDigest: "a".repeat(64),
+      sourceSnapshotDigest: "a".repeat(64),
     };
     const withProof = {
       ...parent,
@@ -339,19 +440,27 @@ describe("AILI Compact v3 tier and lifecycle invariants", () => {
         role: "toolResult",
         toolCallId: "status:call",
         toolName: "aili_compact_status",
-        content: "ok",
+        content: JSON.stringify(createAiliPlanningResultEnvelope({
+          toolName: "aili_compact_status",
+          toolCallId: "status:call",
+          identity: { sessionId: current.sessionId, branchLeafId: current.branchLeafId, epochId: current.epochId, revision: current.projectionVersion },
+          outcome: "success",
+          result: "ok",
+        })),
       }),
       messageEntry("message:4", { role: "assistant", content: "right" }),
     ];
-    const proof = {
-      version: 1 as const,
-      leftChildBlockId: "t1:left",
-      rightChildBlockId: "t1:right",
-      leftLeafEntryId: "message:1",
-      rightLeafEntryId: "message:4",
-      messageCount: 2,
-      gapDigest: transparentPromotionGapDigest(entries.slice(1, 3), 2),
-    };
+    const classified = classifyTransparentPromotionGaps(entries, current.blocks, [
+      current.blocks.get("t1:left")!, current.blocks.get("t1:right")!,
+    ], {
+      sessionId: current.sessionId,
+      branchLeafId: current.branchLeafId,
+      epochId: current.epochId,
+      revision: current.projectionVersion,
+    });
+    expect(classified).toMatchObject({ ok: true });
+    if (!classified.ok) return;
+    const proof = classified.proofs[0]!;
     const parent = parentTx(current, "t2:gap", "T2", ["t1:left", "t1:right"], 2, tokens("T2"), [proof]);
     const accepted = applyV3Transaction(current, parent, { promotionGapEntries: entries });
     expect(accepted).toEqual(expect.objectContaining({ ok: true }));
@@ -414,6 +523,7 @@ describe("AILI Compact v3 tier and lifecycle invariants", () => {
       rightLeafEntryId: "message:2",
       messageCount: 1,
       gapDigest: "a".repeat(64),
+      sourceSnapshotDigest: "a".repeat(64),
     }]);
     expect(applyV3Transaction(adjacent, adjacentWithProof, {
       promotionGapEntries: [
@@ -461,6 +571,12 @@ describe("AILI Compact v3 tier and lifecycle invariants", () => {
     expect(result).toEqual(expect.objectContaining({ ok: true }));
     if (!result.ok) return;
     expect(result.value.state.blocks.get("t3:restill")).toMatchObject({ tier: "T3", active: true, leafCount: 8 });
+    expect(result.value.state.blocks.get("t3:restill")?.leafDigest).toBe(
+      v3ParentLeafDigest("T3", 8, [
+        result.value.state.blocks.get("t3:1")!.leafDigest,
+        result.value.state.blocks.get("t3:2")!.leafDigest,
+      ]),
+    );
     expect(result.value.state.blocks.get("t3:1")).toMatchObject({ active: false, deactivationReason: "nested" });
   });
 

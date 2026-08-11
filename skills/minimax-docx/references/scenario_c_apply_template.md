@@ -1,5 +1,7 @@
 # Scenario C: Applying Formatting / Templates
 
+> Preservation-sensitive OpenXML fallback reference. Preserve source and template originals, write a distinct output, and run the fallback setup/env gate. Do not switch this path to OfficeCLI unless installed help and current round-trip evidence prove the exact template transfer without weakening the gate-check.
+
 ## When to Use
 
 Use Scenario C when:

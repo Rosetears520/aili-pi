@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/font-audit.schema.json",
+  "title": "Observed PPTX font audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "font_contract_sha256", "font_environment_sha256", "template_profile_sha256", "environments", "status"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "font_contract_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "font_environment_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "template_profile_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "status": {"enum": ["passed", "need-user", "blocked", "unverified"]},
+    "environments": {
+      "type": "object",
+      "required": ["build", "render", "target"],
+      "properties": {
+        "build": {"$ref": "#/$defs/audit"},
+        "render": {"$ref": "#/$defs/audit"},
+        "target": {"$ref": "#/$defs/audit"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "audit": {
+      "type": "object",
+      "required": ["status", "renderer", "required_missing", "approved_fallbacks_used", "observed_substitutions", "unapproved_substitutions"],
+      "properties": {
+        "status": {"enum": ["verified", "unverified"]},
+        "renderer": {"type": "string"},
+        "required_missing": {"type": "array", "items": {"type": "string"}},
+        "approved_fallbacks_used": {"type": "array", "items": {"type": "string"}},
+        "observed_substitutions": {"type": "array", "items": {"type": "string"}},
+        "unapproved_substitutions": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    }
+  }
+}

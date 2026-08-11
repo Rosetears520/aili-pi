@@ -2,9 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import {
   CheckpointAttemptCache,
   CheckpointCoordinator,
+  MiMoCheckpointTracker,
   PressureCycle,
   checkpointAttemptId,
   observePressure,
+  resolveMiMoRecoveryAction,
+  resolveMiMoContextPolicy,
   type CheckpointAttemptIdentityInput,
   type RecoveryTuple,
 } from "../../src/runtime/aili-compact/recovery.js";
@@ -199,13 +202,153 @@ describe("checkpoint attempt identity and cache", () => {
 });
 
 describe("pressure stages and storm cycle", () => {
-  it("derives clamped five-stage boundaries from one conservative semantic budget", () => {
-    const normal = observePressure({ contextTokens: 1_000, contextWindow: 100_000 });
-    expect(normal).toMatchObject({ stage: "NORMAL", source: "observed", hardCheckpointAt: 90_000 });
-    expect(observePressure({ contextTokens: normal.pressureAt, contextWindow: 100_000 }).stage).toBe("PRESSURE");
-    expect(observePressure({ contextTokens: normal.forceSemanticAt, contextWindow: 100_000 }).stage).toBe("FORCE_SEMANTIC");
-    expect(observePressure({ contextTokens: normal.hardCheckpointAt, contextWindow: 100_000 }).stage).toBe("CHECKPOINT_REQUIRED");
-    expect(observePressure({ contextTokens: 1, contextWindow: 100_000, overflow: true }).stage).toBe("OVERFLOW_RECOVERY");
+  const policyForSafeBudget = (safeBudgetTokens: number, input: { observedTokens?: number | null; fallbackTokens?: number } = {}) => resolveMiMoContextPolicy({
+    contextWindow: safeBudgetTokens + 40_000,
+    maxOutputTokens: 20_000,
+    ...input,
+  });
+
+  it("resolves MiMo's four default checkpoint ladders at their exact window boundaries", () => {
+    expect(policyForSafeBudget(24_999).checkpointThresholdTokens).toEqual([]);
+    expect(policyForSafeBudget(100_000).checkpointThresholdTokens).toEqual([20_000, 40_000, 60_000, 80_000]);
+    expect(policyForSafeBudget(200_000).checkpointThresholdTokens).toEqual([40_000, 80_000, 120_000, 160_000]);
+    expect(policyForSafeBudget(200_001).checkpointThresholdTokens).toEqual([
+      20_000, 40_000, 60_000, 80_000, 100_000, 120_000, 140_000, 160_000, 180_000,
+    ]);
+    expect(policyForSafeBudget(500_000).checkpointThresholdTokens).toEqual([
+      50_000, 100_000, 150_000, 200_000, 250_000, 300_000, 350_000, 400_000, 450_000,
+    ]);
+    expect(policyForSafeBudget(500_001).checkpointThresholdTokens).toEqual([
+      25_000, 50_000, 75_000, 100_000, 125_000, 150_000, 175_000, 200_000, 225_000,
+      250_000, 275_000, 300_000, 325_000, 350_000, 375_000, 400_000, 425_000, 450_000,
+    ]);
+  });
+
+  it("keeps explicit reserves and disables invalid, zero, and reserve-exhausted budgets", () => {
+    expect(resolveMiMoContextPolicy({
+      contextWindow: 150_000,
+      maxOutputTokens: 30_000,
+      observedTokens: 75_000,
+      fallbackTokens: 90_000,
+    })).toMatchObject({
+      status: "enabled",
+      outputReserveTokens: 20_000,
+      recoveryReserveTokens: 20_000,
+      safeBudgetTokens: 110_000,
+      recoveryThresholdTokens: 110_000,
+      checkpointCeilingTokens: 97_000,
+      contextTokens: 75_000,
+      source: "observed",
+    });
+    expect(resolveMiMoContextPolicy({ contextWindow: -1, maxOutputTokens: 20_000 })).toMatchObject({ status: "disabled", disabledReason: "invalid" });
+    expect(resolveMiMoContextPolicy({ contextWindow: 0, maxOutputTokens: 20_000 })).toMatchObject({ status: "disabled", disabledReason: "zero" });
+    expect(resolveMiMoContextPolicy({ contextWindow: 40_000, maxOutputTokens: 20_000 })).toMatchObject({ status: "disabled", disabledReason: "reserve-exhausted" });
+  });
+
+  it("clamps only the first checkpoint threshold above the ceiling", () => {
+    const policy = policyForSafeBudget(25_000);
+    expect(policy).toMatchObject({ checkpointCeilingTokens: 12_000 });
+    expect(policy.checkpointThresholdTokens).toEqual([5_000, 10_000, 12_000]);
+  });
+
+  it("derives MiMo pressure levels from the safe budget and accepts fallback usage", () => {
+    expect([49_999, 50_000, 70_000, 85_000].map((observedTokens) => (
+      policyForSafeBudget(100_000, { observedTokens }).pressureLevel
+    ))).toEqual([0, 1, 2, 3]);
+    expect(policyForSafeBudget(100_000, { fallbackTokens: 70_000 })).toMatchObject({
+      contextTokens: 70_000,
+      source: "fallback",
+      pressureLevel: 2,
+    });
+  });
+
+  it("prepares each crossed threshold once and invalidates a stale binding", () => {
+    const tracker = new MiMoCheckpointTracker();
+    const first = policyForSafeBudget(100_000, { observedTokens: 40_000 });
+    expect(tracker.observe(first, "source-a")).toMatchObject({ thresholdTokens: 40_000, sourceBinding: "source-a" });
+    expect(tracker.observe(first, "source-a")).toBeUndefined();
+    const later = policyForSafeBudget(100_000, { observedTokens: 80_000 });
+    expect(tracker.observe(later, "source-a")).toMatchObject({ thresholdTokens: 80_000 });
+    expect(tracker.matches("source-a")).toBe(true);
+    expect(tracker.matches("source-b")).toBe(false);
+    tracker.reset();
+    expect(tracker.snapshot()).toBeUndefined();
+    expect(tracker.prepare(first, "source-b")).toMatchObject({ thresholdTokens: 40_000, sourceBinding: "source-b" });
+  });
+
+  it("permits one writer, preserves the last usable checkpoint, and advances after a failed writer", () => {
+    const tracker = new MiMoCheckpointTracker();
+    const first = tracker.prepare(policyForSafeBudget(100_000, { observedTokens: 40_000 }), "source-a");
+    expect(first).toMatchObject({ thresholdTokens: 40_000, sourceBinding: "source-a" });
+    expect(tracker.prepare(policyForSafeBudget(100_000, { observedTokens: 40_000 }), "source-a")).toBeUndefined();
+    expect(tracker.commit(first!)).toBe(true);
+
+    const failed = tracker.prepare(policyForSafeBudget(100_000, { observedTokens: 60_000 }), "source-a");
+    expect(failed).toMatchObject({ thresholdTokens: 60_000 });
+    tracker.reject(failed!);
+    expect(tracker.snapshot()).toMatchObject({ thresholdTokens: 40_000, sourceBinding: "source-a" });
+
+    const later = tracker.prepare(policyForSafeBudget(100_000, { observedTokens: 80_000 }), "source-a");
+    expect(later).toMatchObject({ thresholdTokens: 80_000 });
+    expect(tracker.commit(later!)).toBe(true);
+    expect(tracker.snapshot()).toMatchObject({ thresholdTokens: 80_000, sourceBinding: "source-a" });
+  });
+
+  it("uses rebuild only for a current checkpoint and otherwise selects the bounded fallback", () => {
+    const tracker = new MiMoCheckpointTracker();
+    const checkpoint = tracker.prepare(policyForSafeBudget(100_000, { observedTokens: 40_000 }), "current-source");
+    expect(tracker.commit(checkpoint!)).toBe(true);
+    expect(resolveMiMoRecoveryAction({ requested: true, checkpoint: tracker.snapshot(), sourceBinding: "current-source" })).toBe("rebuild");
+    expect(resolveMiMoRecoveryAction({ requested: true, checkpoint: tracker.snapshot(), sourceBinding: "stale-source" })).toBe("native-fallback");
+    expect(tracker.invalidate("current-source")).toBe(true);
+    expect(resolveMiMoRecoveryAction({ requested: true, checkpoint: tracker.snapshot(), sourceBinding: "current-source" })).toBe("native-fallback");
+  });
+
+  it("retries a final checkpoint only after a settled transient failure and one normal step of progress", () => {
+    const tracker = new MiMoCheckpointTracker();
+    const finalPolicy = policyForSafeBudget(256_000, { observedTokens: 230_400 });
+    const failed = tracker.prepare(finalPolicy, "source-a");
+    expect(failed).toMatchObject({ thresholdTokens: 230_400 });
+    tracker.reject(failed!, "transient");
+    expect(tracker.prepare(finalPolicy, "source-a")).toBeUndefined();
+    expect(tracker.prepare(policyForSafeBudget(256_000, { observedTokens: 242_999 }), "source-b")).toBeUndefined();
+
+    const retry = tracker.prepare(policyForSafeBudget(256_000, { observedTokens: 243_000 }), "source-b");
+    expect(retry).toMatchObject({ thresholdTokens: 230_400, sourceBinding: "source-b" });
+    tracker.reject(retry!, "transient");
+    expect(tracker.prepare(policyForSafeBudget(256_000, { observedTokens: 243_000 }), "source-c")).toBeUndefined();
+
+    for (const failure of ["deterministic", "unclassified"] as const) {
+      const blocked = new MiMoCheckpointTracker();
+      const final = blocked.prepare(finalPolicy, "source-a");
+      blocked.reject(final!, failure);
+      expect(blocked.prepare(policyForSafeBudget(256_000, { observedTokens: 243_000 }), "source-b")).toBeUndefined();
+    }
+  });
+
+  it("derives legacy presentation stages from MiMo safe-budget levels", () => {
+    const normal = observePressure({ contextTokens: 1_000, contextWindow: 100_000, maxOutputTokens: 20_000 });
+    expect(normal).toMatchObject({
+      stage: "NORMAL", source: "observed", hardCheckpointAt: 60_000, pressureAt: 30_000, forceSemanticAt: 42_000,
+    });
+    expect(observePressure({ contextTokens: normal.pressureAt, contextWindow: 100_000, maxOutputTokens: 20_000 }).stage).toBe("PRESSURE");
+    expect(observePressure({ contextTokens: normal.forceSemanticAt, contextWindow: 100_000, maxOutputTokens: 20_000 }).stage).toBe("FORCE_SEMANTIC");
+    expect(observePressure({ contextTokens: normal.hardCheckpointAt, contextWindow: 100_000, maxOutputTokens: 20_000 }).stage).toBe("CHECKPOINT_REQUIRED");
+    expect(observePressure({ contextTokens: 1, contextWindow: 100_000, maxOutputTokens: 20_000, overflow: true }).stage).toBe("OVERFLOW_RECOVERY");
+  });
+
+  it("adds MiMo policy fields without changing callers that omit max output tokens", () => {
+    const observation = observePressure({ contextTokens: 100_000, contextWindow: 140_000, maxOutputTokens: 20_000 });
+    expect(observation).toMatchObject({
+      stage: "CHECKPOINT_REQUIRED",
+      hardCheckpointAt: 100_000,
+      mimo: {
+        status: "enabled",
+        safeBudgetTokens: 100_000,
+        checkpointCeilingTokens: 87_000,
+        pressureLevel: 3,
+      },
+    });
   });
 
   it("uses fallback truthfully and allows only one semantic and checkpoint attempt per cycle", () => {

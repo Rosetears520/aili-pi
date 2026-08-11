@@ -1,9 +1,10 @@
 #!/bin/sh
 set -eu
 
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd -P)
 PACKAGE_SOURCE='npm:@rosetears/aili-pi@latest'
 PACKAGE_ID='npm:@rosetears/aili-pi'
-MINIMUM_PI_VERSION='0.81.1'
+MINIMUM_PI_VERSION='0.82.1'
 OFFICIAL_INSTALLER_URL='https://pi.dev/install.sh'
 UPDATE_PI=0
 PI_STATE='existing'
@@ -160,6 +161,10 @@ fi
 preflight
 say "AILI bootstrap: preflight=pass pi_version=$OBSERVED_PI_VERSION"
 
+command -v node >/dev/null 2>&1 || fail 'user-global-settings-runtime'
+node "$SCRIPT_DIR/merge-global-settings.mjs" --check || fail 'user-global-settings-validate'
+node "$SCRIPT_DIR/merge-global-keybindings.mjs" --check || fail 'user-global-keybindings-validate'
+
 if ! pi install "$PACKAGE_SOURCE" >/dev/null 2>&1; then
   say 'AILI bootstrap: ERROR stage=aili-package-install'
   say "pi_state=$PI_STATE"
@@ -173,8 +178,13 @@ if ! pi install "$PACKAGE_SOURCE" >/dev/null 2>&1; then
   exit 1
 fi
 
+node "$SCRIPT_DIR/merge-global-keybindings.mjs" || fail 'user-global-keybindings-merge'
+node "$SCRIPT_DIR/merge-global-settings.mjs" || fail 'user-global-settings-merge'
 say "AILI bootstrap: success pi_state=$PI_STATE aili_state=installed"
 say 'start=pi'
-say "update=pi update $PACKAGE_ID"
-say "list=pi list"
-say "remove=pi remove $PACKAGE_ID"
+say 'shared_workflows_status=not-run owner=explicit-user-command'
+say 'shared_workflows_install_command=npx -y rose-aili@0.4.2 install'
+say 'shared_workflows_update_command=npx -y rose-aili@0.4.2 update'
+say "pi_package_update_command=pi update $PACKAGE_ID"
+say "pi_package_list_command=pi list"
+say "pi_package_remove_command=pi remove $PACKAGE_ID"

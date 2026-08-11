@@ -128,8 +128,8 @@ function t1Transaction(
   entryIds: string[],
   createdAt: number,
   quality: V3QualityMetadata = acceptedQuality(),
+  summary = `summary:${blockId}`,
 ): V3Transaction {
-  const summary = `summary:${blockId}`;
   return semanticTransaction(current, `tx:${blockId}`, createdAt, {
     blockId,
     tier: "T1",
@@ -427,7 +427,7 @@ describe("AILI Compact v3 provider projection", () => {
 });
 
 describe("AILI Compact v3 checkpoint coverage", () => {
-  it("uses maximal T3, then T2, then T1 nodes without parent/descendant duplication", () => {
+  it("uses maximal legacy nodes without parent/descendant duplication", () => {
     const fixture = hierarchyFixture();
     const plan = planV3CheckpointCoverage({
       replay: fixture.replay,
@@ -444,13 +444,13 @@ describe("AILI Compact v3 checkpoint coverage", () => {
       details: { ailiCompact: expect.objectContaining({
         kind: "major-gc-v3",
         blockIds: ["t3:one", "t2:three", "t1:7"],
-        tiers: ["T3", "T2", "T1"],
+        blockSemantics: ["legacy-tiered-read-only", "legacy-tiered-read-only", "legacy-tiered-read-only"],
         leafCount: 7,
       }) },
     }));
-    expect(plan?.summary).toContain("[T3 t3:one]");
-    expect(plan?.summary).not.toContain("[T2 t2:one]");
-    expect(plan?.summary).not.toContain("[T1 t1:1]");
+    expect(plan?.summary).toContain("[legacy-tiered-read-only t3:one]");
+    expect(plan?.summary).not.toContain("[legacy-tiered-read-only t2:one]");
+    expect(plan?.summary).not.toContain("[legacy-tiered-read-only t1:1]");
   });
 
   it("fails closed when the current checkpoint identity is missing, unavailable, or drifts", () => {
@@ -483,6 +483,44 @@ describe("AILI Compact v3 checkpoint coverage", () => {
       });
       expect(plan).toBeUndefined();
     }
+  });
+
+  it("clamps a semantic 18k input cap to Pi's 12k checkpoint output limit", () => {
+    const fixture = hierarchyFixture();
+    const eligible = planV3CheckpointCoverage({
+      replay: fixture.replay,
+      entries: fixture.entries,
+      firstKeptEntryId: "kept",
+      tokensBefore: 64_000,
+      currentIdentity: CURRENT_CHECKPOINT_IDENTITY,
+      maxSummaryChars: 18_000,
+    });
+    expect(eligible?.summary.length).toBeLessThanOrEqual(12_000);
+
+    const source = message("oversize-source", "assistant");
+    const initial = empty();
+    const oversized = t1Transaction(
+      initial,
+      "t1:oversize",
+      [source.id],
+      1,
+      acceptedQuality(),
+      "s".repeat(12_000),
+    );
+    const entries: SessionLikeEntry[] = [source];
+    entries.push(
+      custom("oversize-entry", publicTransaction(entries, initial, oversized)),
+      message("oversize-kept", "user"),
+    );
+
+    expect(planV3CheckpointCoverage({
+      replay: reduceV3LifecycleState(entries),
+      entries,
+      firstKeptEntryId: "oversize-kept",
+      tokensBefore: 64_000,
+      currentIdentity: CURRENT_CHECKPOINT_IDENTITY,
+      maxSummaryChars: 18_000,
+    })).toBeUndefined();
   });
 
   it("returns undefined for gaps, old epochs and unevaluated quality so Pi native fallback remains authoritative", () => {

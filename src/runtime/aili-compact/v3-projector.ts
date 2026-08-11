@@ -12,7 +12,6 @@ import {
   v3SummaryDigest,
   type V3LifecycleState,
   type V3SemanticBlock,
-  type V3Tier,
 } from "./v3.js";
 
 const MAX_CHECKPOINT_SUMMARY_CHARS = 12_000;
@@ -83,7 +82,7 @@ export interface V3CheckpointCoveragePlan {
       kind: "major-gc-v3";
       catalogId: string;
       blockIds: string[];
-      tiers: V3Tier[];
+      blockSemantics: Array<"active-block" | "legacy-tiered-read-only">;
       leafCount: number;
       currentIdentity: V3CheckpointCurrentIdentity;
     };
@@ -121,7 +120,7 @@ export function v3RecapProjection(block: V3SemanticBlock, blockRef: string): V3R
     `block=${blockRef}`,
     `topic=${block.topic}`,
     `mode=${block.source.kind === "messages" ? "message" : "blocks"}`,
-    `tier=${block.tier}`,
+    ...(block.tier === undefined ? ["semantics=active-block"] : [`legacyTier=${block.tier}`]),
     `sources=${block.leafCount}`,
   ].join("; ");
   return {
@@ -344,8 +343,11 @@ export function planV3CheckpointCoverage(
   if (!isCurrentCheckpointIdentity(input.currentIdentity)
     || verified.state.projectionVersion !== input.currentIdentity.projectionVersion) return undefined;
   const currentIdentity = input.currentIdentity;
-  const summaryLimit = input.maxSummaryChars ?? MAX_CHECKPOINT_SUMMARY_CHARS;
-  if (!Number.isSafeInteger(summaryLimit) || summaryLimit < 1 || summaryLimit > MAX_CHECKPOINT_SUMMARY_CHARS) return undefined;
+  const semanticSummaryLimit = input.maxSummaryChars ?? MAX_CHECKPOINT_SUMMARY_CHARS;
+  if (!Number.isSafeInteger(semanticSummaryLimit) || semanticSummaryLimit < 1) return undefined;
+  // Semantic summaries may have a higher configured input cap, but Pi's native
+  // checkpoint envelope has its own independent output limit.
+  const summaryLimit = Math.min(semanticSummaryLimit, MAX_CHECKPOINT_SUMMARY_CHARS);
   if (input.previousSummary !== undefined
     && (typeof input.previousSummary !== "string" || input.previousSummary.length > summaryLimit)) return undefined;
   if (new Set(input.entries.map((entry) => entry.id)).size !== input.entries.length) return undefined;
@@ -396,12 +398,12 @@ export function planV3CheckpointCoverage(
   included.sort((left, right) => {
     const leftFirst = messageOrder.get(orderedLeafEntryIds(left, verified.state, leafCache, new Set())![0]!)!;
     const rightFirst = messageOrder.get(orderedLeafEntryIds(right, verified.state, leafCache, new Set())![0]!)!;
-    return leftFirst - rightFirst || tierRank(right.tier) - tierRank(left.tier) || left.blockId.localeCompare(right.blockId);
+    return leftFirst - rightFirst || left.blockId.localeCompare(right.blockId);
   });
   const sections = [
     "AILI Compact v3 checkpoint (maximal accepted semantic coverage)",
     ...(input.previousSummary ? [`Previous Pi summary:\n${input.previousSummary}`] : []),
-    ...included.map((block) => `[${block.tier} ${block.blockId}]\n${block.summary}`),
+    ...included.map((block) => `[${block.tier === undefined ? "active-block" : "legacy-tiered-read-only"} ${block.blockId}]\n${block.summary}`),
   ];
   const summary = sections.join("\n\n");
   if (summary.length > summaryLimit) return undefined;
@@ -414,7 +416,7 @@ export function planV3CheckpointCoverage(
         kind: "major-gc-v3",
         catalogId: verified.state.catalogId,
         blockIds: included.map((block) => block.blockId),
-        tiers: included.map((block) => block.tier),
+          blockSemantics: included.map((block) => block.tier === undefined ? "active-block" : "legacy-tiered-read-only"),
         leafCount: discardedMessages.length,
         currentIdentity: { ...currentIdentity },
       },
@@ -464,7 +466,7 @@ function orderedLeafEntryIds(
   let leaves: readonly string[] | undefined;
   if (block.source.kind === "messages") {
     const exact = [...block.source.entryIds];
-    leaves = block.tier === "T1"
+    leaves = (block.tier === "T1" || block.tier === undefined)
       && block.leafCount === exact.length
       && block.leafDigest === v3MessageLeafDigest(exact)
       && block.anchorEntryId === exact[0]
@@ -753,10 +755,6 @@ function compareBlocks(left: V3SemanticBlock, right: V3SemanticBlock): number {
   return left.createdAt - right.createdAt
     || left.firstLeafOrdinal - right.firstLeafOrdinal
     || left.blockId.localeCompare(right.blockId);
-}
-
-function tierRank(tier: V3Tier): number {
-  return tier === "T3" ? 3 : tier === "T2" ? 2 : 1;
 }
 
 function firstChange(before: readonly V3ProjectionMessage[], after: readonly V3ProjectionMessage[]): number | undefined {

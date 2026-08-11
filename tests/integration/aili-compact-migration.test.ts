@@ -118,7 +118,7 @@ interface MigrationScenario {
   };
   search: { matchCount: number; fixedIdsPresent: boolean };
   suffix: { injected: boolean; persisted: boolean };
-  indexFallback: { exactRaw: boolean; continuedWork: boolean };
+  providerInput: { historicalDuplicateDidNotRestoreRaw: boolean; continuedWork: boolean };
   artifact: Record<string, unknown>;
 }
 
@@ -158,7 +158,7 @@ describe("AILI Compact copied-session forward and rollback migration", () => {
     });
   });
 
-  it("proves fork/epoch isolation, source search and IDs, suffix non-persistence, and rollback opening", () => {
+  it("proves fork/epoch isolation, source search and IDs, bounded provider input, suffix non-persistence, and rollback opening", () => {
     expect(scenario.fork).toEqual({ sourceIdsExact: true, v3TransactionCount: 0, originalBytesUnchanged: true });
     expect(scenario.epoch.compactionEntries).toBe(1);
     expect(scenario.epoch.priorLegacyBlocks).toBe(2);
@@ -168,7 +168,7 @@ describe("AILI Compact copied-session forward and rollback migration", () => {
     expect(scenario.search.matchCount).toBeGreaterThan(0);
     expect(scenario.search.fixedIdsPresent).toBe(true);
     expect(scenario.suffix).toEqual({ injected: false, persisted: false });
-    expect(scenario.indexFallback).toEqual({ exactRaw: true, continuedWork: true });
+    expect(scenario.providerInput).toEqual({ historicalDuplicateDidNotRestoreRaw: true, continuedWork: true });
   });
 
   it("writes a durable sanitized evidence manifest with no copied raw body", () => {
@@ -209,7 +209,8 @@ async function runMigrationScenario(root: string): Promise<MigrationScenario> {
   const sessionDir = join(disposableHome, "sessions");
   const projectDir = join(root, "project");
   mkdirSync(sessionDir, { recursive: true });
-  mkdirSync(projectDir, { recursive: true });
+  mkdirSync(join(projectDir, ".pi"), { recursive: true });
+  writeFileSync(join(projectDir, ".pi", "aili-compact.jsonc"), '{ "enabled": true }');
   const copiedSession = join(sessionDir, "copied-v1-session.jsonl");
   copyFileSync(FIXTURE, copiedSession);
 
@@ -304,6 +305,28 @@ async function runMigrationScenario(root: string): Promise<MigrationScenario> {
 
   legacyState = bundle.legacy;
   view = runtimeView(reloaded, legacyState);
+  const legacyMutationRefs = view.mutationCatalog.blockRefs.filter((reference) => reference.legacy === true);
+  requireCondition(
+    legacyMutationRefs.length === dualReader.legacyBlockIds.length
+      && legacyMutationRefs.every((reference) => Number.isSafeInteger(reference.effectiveSourceOrdinal)
+        && reference.effectiveSourceOrdinal >= 0
+        && reference.effectiveSourceOrdinal < Number.MAX_SAFE_INTEGER
+        && view.catalog.blocks.some((block) => block.ref === reference.ref
+          && block.blockId === reference.blockId && block.family === "legacy")),
+    "legacy mutation refs lost a valid public catalog binding",
+  );
+  const legacyRef = legacyMutationRefs[0]?.ref;
+  requireCondition(legacyRef !== undefined, "legacy mutation ref missing");
+  const legacyRoot = planV3DecompressMutation({
+    operation: "decompress",
+    catalogId: view.catalog.catalogId,
+    transactionId: "migration-v3-reject-legacy-root",
+    blockRefs: [legacyRef],
+    provenanceId: "migration-reject-legacy-root",
+    createdAt: 11,
+    depth: "raw",
+  }, plannerContext(view, legacyState));
+  requireCondition(!legacyRoot.ok && legacyRoot.code === "legacy-block", "legacy block became a v3 root");
   const v3Ref = view.blockRefById.get("migration-v3-t1");
   requireCondition(v3Ref !== undefined, "v3 block reference missing");
   const raw = requireV3Plan(planV3DecompressMutation({
@@ -425,8 +448,8 @@ async function runMigrationScenario(root: string): Promise<MigrationScenario> {
   let searchMatchCount = 0;
   let suffixInjected = false;
   let suffixPersisted = false;
-  let indexFallbackExactRaw = false;
-  let indexFallbackContinuedWork = false;
+  let historicalDuplicateDidNotRestoreRaw = false;
+  let providerInputContinuedWork = false;
   let cleanContextStatus = "no-status";
   const runtimeStatuses: string[] = [];
   try {
@@ -453,11 +476,14 @@ async function runMigrationScenario(root: string): Promise<MigrationScenario> {
     const suffix = projected?.messages?.find((message: any) => message?.customType === "aili-compact-provider-suffix");
     suffixInjected = suffix !== undefined;
     suffixPersisted = suffix !== undefined && readFileSync(copiedSession, "utf8").includes(suffix.content);
-    const ambiguousProviderInput = [...providerInput, providerInput[0]!];
-    const failOpen = contextHandler({ type: "context", messages: ambiguousProviderInput }, context);
-    indexFallbackExactRaw = failOpen.messages === ambiguousProviderInput;
+    // The bounded frontier intentionally does not align arbitrary historical
+    // provider input. Exact raw fail-open belongs to source/index-health faults.
+    const historicalDuplicateProviderInput = [...providerInput, providerInput[0]!];
+    const bounded = contextHandler({ type: "context", messages: historicalDuplicateProviderInput }, context);
+    historicalDuplicateDidNotRestoreRaw = Array.isArray(bounded?.messages)
+      && bounded.messages !== historicalDuplicateProviderInput;
     const continued = contextHandler({ type: "context", messages: providerInput }, context);
-    indexFallbackContinuedWork = Array.isArray(continued?.messages) && continued.messages.length > 0;
+    providerInputContinuedWork = Array.isArray(continued?.messages) && continued.messages.length > 0;
   } finally {
     if (originalHome === undefined) delete process.env.HOME;
     else process.env.HOME = originalHome;
@@ -470,8 +496,8 @@ async function runMigrationScenario(root: string): Promise<MigrationScenario> {
   const fixtureIdsPreserved = FIXTURE_IDS.every((id) => finalIds.has(id));
   requireCondition(!suffixInjected && !suffixPersisted,
     `provider suffix truth/non-persistence evidence is incomplete: ${cleanContextStatus}`);
-  requireCondition(indexFallbackExactRaw, "copied-session index ambiguity did not fail open exact-raw");
-  requireCondition(indexFallbackContinuedWork, "copied-session context did not continue after index fail-open");
+  requireCondition(historicalDuplicateDidNotRestoreRaw, "copied-session historical provider input restored raw context");
+  requireCondition(providerInputContinuedWork, "copied-session context did not continue after bounded provider input");
   const predecessorIdentityBody = readFileSync(PREDECESSOR_IDENTITY_ARTIFACT, "utf8");
   const predecessorIdentity = JSON.parse(predecessorIdentityBody) as { npm?: { integrity?: unknown } };
   requireCondition(typeof predecessorIdentity.npm?.integrity === "string", "predecessor identity integrity is missing");
@@ -502,7 +528,7 @@ async function runMigrationScenario(root: string): Promise<MigrationScenario> {
     { id: "raw-session-rollback-open", status: "PASS", proof: "Pi SessionManager opened the mixed JSONL without rewriting it" },
     { id: "source-search-and-entry-ids", status: "PASS", proof: "public search matched archived sanitized source and fixture IDs remained" },
     { id: "provider-suffix-truth-and-non-persistence", status: "PASS", proof: "production context hook omitted unavailable actions after restore-all and Session bytes contained no suffix" },
-    { id: "index-alignment-fallback-continued-work", status: "PASS", proof: "duplicate alignment ambiguity failed open exact-raw and the next clean copied-session context completed" },
+    { id: "bounded-provider-frontier-continued-work", status: "PASS", proof: "historical duplicate input did not restore raw context and the next clean copied-session context completed" },
     {
       id: "externally-verified-predecessor-installed-rollback",
       status: installedReady ? "PASS" : "Unverified",
@@ -593,7 +619,7 @@ async function runMigrationScenario(root: string): Promise<MigrationScenario> {
     },
     search: { matchCount: searchMatchCount, fixedIdsPresent: fixtureIdsPreserved },
     suffix: { injected: suffixInjected, persisted: suffixPersisted },
-    indexFallback: { exactRaw: indexFallbackExactRaw, continuedWork: indexFallbackContinuedWork },
+    providerInput: { historicalDuplicateDidNotRestoreRaw, continuedWork: providerInputContinuedWork },
     artifact,
   };
 }

@@ -527,6 +527,14 @@ export interface BenefitDecision {
   saturated: boolean;
 }
 
+/**
+ * Tierless active-block writes retain bounded token accounting without
+ * inheriting a fixed T1/T2/T3 policy, restill threshold, or hierarchy rank.
+ */
+export interface ActiveBenefitDecision extends Omit<BenefitDecision, "tier"> {
+  semantics: "active-block";
+}
+
 /** Applies hard-minimum economics and pressure-specific break-even horizons. */
 export function evaluateTokenBenefit(
   input: BenefitInput,
@@ -588,6 +596,54 @@ export function evaluateTokenBenefit(
     oneTimeCostUpper: cost.value,
     breakEvenTurnsUpper,
     netSavingsLower,
+    saturated,
+  };
+}
+
+/** Applies only generic safety and positive-savings checks to an active block. */
+export function evaluateActiveTokenBenefit(
+  input: Omit<BenefitInput, "tier">,
+): ActiveBenefitDecision {
+  const boundedStage = isSemanticPressureStage(input.pressureStage);
+  const boundsAvailable = validBounds(input.sourceBounds) && validBounds(input.replacementBounds);
+  const cost = saturatingAdd(...ONE_TIME_COST_COMPONENTS.map((key) => input.oneTimeCostUpper[key]));
+  const arithmeticSaturated = input.sourceBounds.saturated
+    || input.replacementBounds.saturated
+    || cost.saturated;
+  const sourceLower = boundsAvailable ? input.sourceBounds.lower : 0;
+  const sourceUpper = boundsAvailable ? input.sourceBounds.upper : 0;
+  const replacementUpper = boundsAvailable ? input.replacementBounds.upper : SATURATED_SAFE_INTEGER;
+  const steadySavingsLower = boundsAvailable && sourceLower > replacementUpper
+    ? sourceLower - replacementUpper : 0;
+  const savingsRatio = boundsAvailable ? steadySavingsLower / Math.max(1, sourceUpper) : 0;
+  const breakEvenTurnsUpper = steadySavingsLower > 0 && !cost.saturated
+    ? ceilDiv(cost.value, steadySavingsLower) : SATURATED_SAFE_INTEGER;
+  const saturated = arithmeticSaturated;
+  const reasons = new Set<BenefitRejectionReason>();
+  if (!boundedStage) reasons.add("pressure-stage-disallows-semantic");
+  if (!boundsAvailable) reasons.add("bounds-unavailable");
+  if (saturated) reasons.add("saturated-arithmetic");
+  if (steadySavingsLower <= 0) reasons.add("no-steady-savings");
+  const orderedReasons: readonly BenefitRejectionReason[] = [
+    "pressure-stage-disallows-semantic",
+    "bounds-unavailable",
+    "saturated-arithmetic",
+    "no-steady-savings",
+  ].filter((reason) => reasons.has(reason as BenefitRejectionReason)) as BenefitRejectionReason[];
+  return {
+    eligible: orderedReasons.length === 0,
+    reasons: orderedReasons,
+    semantics: "active-block",
+    pressureStage: input.pressureStage,
+    horizonTurns: 0,
+    sourceLower,
+    sourceUpper,
+    replacementUpper,
+    steadySavingsLower,
+    savingsRatio,
+    oneTimeCostUpper: cost.value,
+    breakEvenTurnsUpper,
+    netSavingsLower: steadySavingsLower,
     saturated,
   };
 }
@@ -777,7 +833,9 @@ function lookupSourceOrdinal(ordinals: SourceOrdinalLookup, entryId: string): nu
     : Object.prototype.hasOwnProperty.call(ordinals, entryId)
       ? (ordinals as Readonly<Record<string, number>>)[entryId]
       : undefined;
-  return isNonNegativeSafeInteger(value) ? value : undefined;
+  // Number.MAX_SAFE_INTEGER is the mutation-catalog sentinel for an unknown
+  // provider-source ordinal. Never advertise it as an executable range.
+  return isNonNegativeSafeInteger(value) && value < Number.MAX_SAFE_INTEGER ? value : undefined;
 }
 
 function sourceOrdinalBounds(

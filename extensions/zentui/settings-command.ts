@@ -455,6 +455,13 @@ function buildItems(
 				currentValue: featureValue(config.fixedEditor.copyNotice),
 				values: featureStateValues,
 			});
+			items.push({
+				id: "fixedEditorScrollbar",
+				label: "Scrollbar",
+				description: "Show an application-owned scrollbar for the scrollable transcript.",
+				currentValue: featureValue(config.fixedEditor.scrollbar),
+				values: featureStateValues,
+			});
 		}
 		return items;
 	}
@@ -807,6 +814,14 @@ export function registerZentuiSettingsCommand(pi: ExtensionAPI, deps: SettingsCo
 									settingsList.updateValue(id, newValue);
 									deps.requestRender();
 									ctx.ui.notify(`Copy notice: ${newValue}`, "info");
+									tui.requestRender();
+									return;
+								}
+								if (id === "fixedEditorScrollbar" && isFeatureState(newValue)) {
+									deps.setFixedEditor({ scrollbar: newValue === "enabled" }, ctx);
+									settingsList.updateValue(id, newValue);
+									deps.requestRender();
+									ctx.ui.notify(`Scrollbar: ${newValue}`, "info");
 									tui.requestRender();
 									return;
 								}

@@ -18,8 +18,24 @@ const SNAPSHOT = resolve(ROOT, "skills");
 const LOCK = resolve(ROOT, "upstream/aili-workflows.lock.json");
 const COMPATIBILITY = resolve(ROOT, "manifests/skill-compatibility.json");
 const REPOSITORY = "https://github.com/Rosetears520/aili-workflows.git";
+const AGENT_SELECTION_PATH = ".agents/skills/parallel-subagent-dispatch/references/agent-selection-matrix.md";
+const FORMAL_TASK_BOARD_PATH = ".agents/skills/aili-delivery-flow/references/formal-task-board.md";
+const AGENT_SELECTION_PROTOCOL = "aili-agent-selection/v1";
+const FORMAL_TASK_BOARD_PROTOCOL = "aili-task-board/v1";
 
 type FileRecord = { path: string; sha256: string; bytes: number };
+type ProtocolRecord = { protocol: string; path: string; sha256: string; bytes: number };
+interface ReleaseRecord {
+  package: "rose-aili";
+  version: string;
+  npmGitHead: string;
+  tarballSha256: string;
+  protocols: {
+    agentSelection: ProtocolRecord;
+    formalTaskBoard: ProtocolRecord;
+  };
+  canonicalSpecialists: string[];
+}
 type AnchorRecord = {
   id: string;
   disposition: string;
@@ -30,6 +46,7 @@ interface LockFile {
   schemaVersion: 1;
   repository: string;
   commit: string;
+  release: ReleaseRecord;
   repositoryTree: string;
   skillTree: string;
   skillRoot: ".agents/skills";
@@ -138,6 +155,24 @@ function stopOutcomes(markdown: string): string[] {
     .filter((outcome) => markdown.includes(outcome));
 }
 
+function parseSpecialistRoles(markdown: string): string[] {
+  const roles = [...markdown.matchAll(/^\| `([a-z0-9-]+)` \|/gm)].map((match) => match[1]!);
+  if (roles.length !== 19 || new Set(roles).size !== roles.length || roles.includes("general") || roles.includes("rose")) {
+    throw new Error("agent-selection matrix must contain exactly 19 unique canonical specialist roles");
+  }
+  return roles;
+}
+
+async function exists(path: string): Promise<boolean> {
+  try {
+    await lstat(path);
+    return true;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("ENOENT")) return false;
+    throw error;
+  }
+}
+
 function textContent(content: Buffer): string | undefined {
   if (content.includes(0)) return undefined;
   try {
@@ -170,21 +205,84 @@ async function anchorInventory(skillRoot: string, files: FileRecord[]): Promise<
   return anchors;
 }
 
-function parseArgs(): { verify: boolean; source?: string; revision?: string } {
-  const args = process.argv.slice(2);
-  if (args.length === 1 && args[0] === "--verify") return { verify: true };
-  const sourceIndex = args.indexOf("--source");
-  const revisionIndex = args.indexOf("--revision");
-  if (sourceIndex < 0 || revisionIndex < 0 || !args[sourceIndex + 1] || !args[revisionIndex + 1]) {
-    throw new Error("usage: sync-skills.ts --source <aili-workflows-root> --revision <40-char-sha> | --verify");
-  }
-  return { verify: false, source: resolve(args[sourceIndex + 1]), revision: args[revisionIndex + 1] };
+interface SyncArgs {
+  verify: boolean;
+  replaceExisting: boolean;
+  source?: string;
+  revision?: string;
+  version?: string;
+  npmGitHead?: string;
+  tarballSha256?: string;
 }
 
-async function verifySnapshot(): Promise<void> {
+function argument(args: string[], name: string): string | undefined {
+  const index = args.indexOf(name);
+  return index >= 0 ? args[index + 1] : undefined;
+}
+
+function parseArgs(): SyncArgs {
+  const args = process.argv.slice(2);
+  if (args.length === 1 && args[0] === "--verify") return { verify: true, replaceExisting: false };
+  const source = argument(args, "--source");
+  const revision = argument(args, "--revision");
+  const version = argument(args, "--package-version");
+  const npmGitHead = argument(args, "--npm-git-head");
+  const tarballSha256 = argument(args, "--tarball-sha256");
+  if (!source || !revision || !version || !npmGitHead || !tarballSha256) {
+    throw new Error(
+      "usage: sync-skills.ts --source <aili-workflows-root> --revision <40-char-sha> " +
+      "--package-version <version> --npm-git-head <40-char-sha> --tarball-sha256 <sha256> " +
+      "[--replace-existing] | --verify",
+    );
+  }
+  return {
+    verify: false,
+    replaceExisting: args.includes("--replace-existing"),
+    source: resolve(source),
+    revision,
+    version,
+    npmGitHead,
+    tarballSha256,
+  };
+}
+
+async function verifyReleaseSnapshot(lock: LockFile): Promise<void> {
+  const release = lock.release;
+  if (
+    release?.package !== "rose-aili" ||
+    !/^\d+\.\d+\.\d+$/.test(release.version) ||
+    release.npmGitHead !== lock.commit ||
+    !/^[0-9a-f]{64}$/.test(release.tarballSha256)
+  ) {
+    throw new Error("generated skill release identity is incomplete or inconsistent");
+  }
+  const expectedProtocols = [
+    [release.protocols?.agentSelection, AGENT_SELECTION_PROTOCOL, AGENT_SELECTION_PATH],
+    [release.protocols?.formalTaskBoard, FORMAL_TASK_BOARD_PROTOCOL, FORMAL_TASK_BOARD_PATH],
+  ] as const;
+  for (const [record, protocol, sourcePath] of expectedProtocols) {
+    if (record?.protocol !== protocol || record.path !== sourcePath || !/^[0-9a-f]{64}$/.test(record.sha256)) {
+      throw new Error(`generated skill protocol identity is incomplete: ${protocol}`);
+    }
+    const snapshotPath = sourcePath.replace(/^\.agents\/skills\//, "");
+    const content = await readFile(resolve(SNAPSHOT, snapshotPath));
+    if (record.sha256 !== sha256(content) || record.bytes !== content.byteLength || !content.toString("utf8").includes(protocol)) {
+      throw new Error(`generated skill protocol drifted: ${protocol}`);
+    }
+  }
+  const matrix = await readFile(
+    resolve(SNAPSHOT, AGENT_SELECTION_PATH.replace(/^\.agents\/skills\//, "")),
+    "utf8",
+  );
+  if (JSON.stringify(parseSpecialistRoles(matrix)) !== JSON.stringify(release.canonicalSpecialists)) {
+    throw new Error("generated canonical specialist inventory drifted from the agent-selection matrix");
+  }
+}
+
+async function verifySnapshot(requireRelease = true): Promise<void> {
   const lock = JSON.parse(await readFile(LOCK, "utf8")) as LockFile;
   const compatibility = JSON.parse(await readFile(COMPATIBILITY, "utf8")) as {
-    source: { commit: string; contentHash: string };
+    source: { commit: string; contentHash: string; release?: ReleaseRecord };
     records: Array<Record<string, unknown> & { name: string; sourceHash: string }>;
   };
   const files = await collectFiles(SNAPSHOT);
@@ -196,6 +294,12 @@ async function verifySnapshot(): Promise<void> {
   }
   if (compatibility.source.commit !== lock.commit || compatibility.source.contentHash !== lock.contentHash) {
     throw new Error("skill compatibility source does not match the lock");
+  }
+  if (requireRelease) {
+    await verifyReleaseSnapshot(lock);
+    if (JSON.stringify(compatibility.source.release) !== JSON.stringify(lock.release)) {
+      throw new Error("skill compatibility release identity does not match the lock");
+    }
   }
   const expectedSkills = new Map(lock.skills.map((skill) => [skill.name, skill.sourceHash]));
   const seen = new Set<string>();
@@ -226,7 +330,39 @@ async function verifySnapshot(): Promise<void> {
   console.log(`PASS: ${lock.skillCount} skills and ${lock.fileCount} files match ${lock.commit}`);
 }
 
-async function synchronize(source: string, revision: string): Promise<void> {
+async function releaseRecord(source: string, args: SyncArgs): Promise<ReleaseRecord> {
+  if (!args.version || !/^\d+\.\d+\.\d+$/.test(args.version)) throw new Error("package version must be exact semver");
+  if (args.npmGitHead !== args.revision) throw new Error("npm gitHead must match the exact source revision");
+  if (!args.tarballSha256 || !/^[0-9a-f]{64}$/.test(args.tarballSha256)) {
+    throw new Error("tarball SHA-256 must be a lowercase 64-character hash");
+  }
+  const protocolRecord = async (protocol: string, path: string): Promise<ProtocolRecord> => {
+    const content = await readFile(resolve(source, path));
+    if (!content.toString("utf8").includes(protocol)) throw new Error(`missing protocol marker ${protocol} at ${path}`);
+    return { protocol, path, sha256: sha256(content), bytes: content.byteLength };
+  };
+  const agentSelection = await protocolRecord(AGENT_SELECTION_PROTOCOL, AGENT_SELECTION_PATH);
+  const formalTaskBoard = await protocolRecord(FORMAL_TASK_BOARD_PROTOCOL, FORMAL_TASK_BOARD_PATH);
+  const matrix = await readFile(resolve(source, AGENT_SELECTION_PATH), "utf8");
+  const canonicalSpecialists = parseSpecialistRoles(matrix);
+  const publishedRoleNames = (await readdir(resolve(source, "agents"), { withFileTypes: true }))
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md") && entry.name !== "rose.md")
+    .map((entry) => entry.name.slice(0, -3))
+    .sort((left, right) => left.localeCompare(right));
+  if (!(await exists(resolve(source, "agents/rose.md"))) || JSON.stringify([...canonicalSpecialists].sort()) !== JSON.stringify(publishedRoleNames)) {
+    throw new Error("published role files do not match the canonical specialist matrix plus rose control-plane role");
+  }
+  return {
+    package: "rose-aili",
+    version: args.version,
+    npmGitHead: args.npmGitHead!,
+    tarballSha256: args.tarballSha256,
+    protocols: { agentSelection, formalTaskBoard },
+    canonicalSpecialists,
+  };
+}
+
+async function synchronize(source: string, revision: string, args: SyncArgs): Promise<void> {
   if (!/^[0-9a-f]{40}$/.test(revision)) throw new Error("revision must be a lowercase 40-character SHA");
   const head = git(source, ["rev-parse", "HEAD"]);
   const status = git(source, ["status", "--porcelain", "--untracked-files=all"]);
@@ -239,12 +375,11 @@ async function synchronize(source: string, revision: string): Promise<void> {
   if (origin.replace(/\.git$/, "") !== REPOSITORY.replace(/\.git$/, "")) {
     throw new Error(`unexpected source origin: ${origin}`);
   }
-  try {
-    await lstat(SNAPSHOT);
-    throw new Error("skills/ already exists; verify it and use a separately approved replacement operation");
-  } catch (error) {
-    if (error instanceof Error && !error.message.includes("ENOENT")) throw error;
+  const snapshotExists = await exists(SNAPSHOT);
+  if (snapshotExists && !args.replaceExisting) {
+    throw new Error("skills/ already exists; verify it and use a separately approved --replace-existing operation");
   }
+  if (snapshotExists) await verifySnapshot(false);
 
   const sourceSkillRoot = resolve(source, ".agents/skills");
   const upstreamCapabilities = JSON.parse(
@@ -262,6 +397,7 @@ async function synchronize(source: string, revision: string): Promise<void> {
   }
 
   const files = await collectFiles(sourceSkillRoot);
+  const release = await releaseRecord(source, args);
   const skillNames = (await readdir(sourceSkillRoot, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
@@ -312,6 +448,7 @@ async function synchronize(source: string, revision: string): Promise<void> {
     schemaVersion: 1,
     repository: REPOSITORY,
     commit: revision,
+    release,
     repositoryTree,
     skillTree,
     skillRoot: ".agents/skills",
@@ -329,28 +466,52 @@ async function synchronize(source: string, revision: string): Promise<void> {
       commit: revision,
       tree: skillTree,
       contentHash: lock.contentHash,
+      release,
     },
     allowedStatuses: ["native", "adapted", "optional", "blocked"],
     records,
   };
 
   const stage = resolve(ROOT, `.tmp/sync-skills-${process.pid}`);
+  const backup = resolve(ROOT, `.tmp/sync-skills-backup-${process.pid}`);
+  const lockTemp = `${LOCK}.tmp`;
+  const compatibilityTemp = `${COMPATIBILITY}.tmp`;
   await rm(stage, { recursive: true, force: true });
+  await rm(backup, { recursive: true, force: true });
+  await rm(lockTemp, { force: true });
+  await rm(compatibilityTemp, { force: true });
   await mkdir(dirname(stage), { recursive: true });
   await cp(sourceSkillRoot, stage, { recursive: true, preserveTimestamps: false });
   await mkdir(dirname(LOCK), { recursive: true });
   await mkdir(dirname(COMPATIBILITY), { recursive: true });
-  await writeFile(`${LOCK}.tmp`, `${JSON.stringify(lock, null, 2)}\n`, { flag: "wx" });
-  await writeFile(`${COMPATIBILITY}.tmp`, `${JSON.stringify(compatibility, null, 2)}\n`, { flag: "wx" });
-  await rename(stage, SNAPSHOT);
-  await rename(`${LOCK}.tmp`, LOCK);
-  await rename(`${COMPATIBILITY}.tmp`, COMPATIBILITY);
-  await verifySnapshot();
+  await writeFile(lockTemp, `${JSON.stringify(lock, null, 2)}\n`, { flag: "wx" });
+  await writeFile(compatibilityTemp, `${JSON.stringify(compatibility, null, 2)}\n`, { flag: "wx" });
+  const priorLock = await readFile(LOCK).catch(() => undefined);
+  const priorCompatibility = await readFile(COMPATIBILITY).catch(() => undefined);
+  try {
+    if (snapshotExists) await rename(SNAPSHOT, backup);
+    await rename(stage, SNAPSHOT);
+    await rename(lockTemp, LOCK);
+    await rename(compatibilityTemp, COMPATIBILITY);
+    await verifySnapshot();
+    await rm(backup, { recursive: true, force: true });
+  } catch (error) {
+    await rm(SNAPSHOT, { recursive: true, force: true });
+    if (snapshotExists && await exists(backup)) await rename(backup, SNAPSHOT);
+    if (priorLock) await writeFile(LOCK, priorLock);
+    else await rm(LOCK, { force: true });
+    if (priorCompatibility) await writeFile(COMPATIBILITY, priorCompatibility);
+    else await rm(COMPATIBILITY, { force: true });
+    await rm(stage, { recursive: true, force: true });
+    await rm(lockTemp, { force: true });
+    await rm(compatibilityTemp, { force: true });
+    throw error;
+  }
 }
 
 const args = parseArgs();
 if (args.verify) {
   await verifySnapshot();
 } else {
-  await synchronize(args.source!, args.revision!);
+  await synchronize(args.source!, args.revision!, args);
 }

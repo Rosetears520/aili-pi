@@ -59,7 +59,7 @@ describe("AILI Compact production provider economics surfaces", () => {
         catalogId,
         epochId: "epoch",
         projectionVersion: "projection-v3",
-        tier: "T1",
+        semantics: "active-block",
         topic: `provider surface ${target.api}`,
         summary: `bounded provider recap for ${target.api}`,
         source: { kind: "messages", range },
@@ -73,7 +73,6 @@ describe("AILI Compact production provider economics surfaces", () => {
         catalogId,
         catalogScopeDigest: scopeDigest,
         safeRanges: [range],
-        targetTier: "T1",
         allowedActions: ["compress"],
         checkpointState: "idle",
       });
@@ -150,7 +149,7 @@ describe("AILI Compact production provider economics surfaces", () => {
       catalogId,
       epochId: "epoch",
       projectionVersion: "projection-v3",
-      tier: "T1",
+      semantics: "active-block",
       topic: "missing surface",
       summary: "must fail closed",
       source: { kind: "messages", range },
@@ -304,7 +303,7 @@ function exactRange(profile: ResolvedTokenBoundProfile): RecommendedSafeRange {
 
 function oneTimeSurfaces(candidate: V3CompactEconomicsCandidate): V3OneTimeEconomicsSurfaces {
   return {
-    discoveryStatusInput: { catalogId: candidate.catalogId, blockRef: candidate.blockRef, tier: candidate.tier },
+    discoveryStatusInput: { catalogId: candidate.catalogId, blockRef: candidate.blockRef, semantics: "active-block" },
     compressionToolCall: {
       role: "assistant",
       content: [{ type: "toolCall", id: "compact-call", name: "aili_compact", arguments: { summary: candidate.summary } }],
@@ -316,7 +315,7 @@ function oneTimeSurfaces(candidate: V3CompactEconomicsCandidate): V3OneTimeEcono
       content: [{ type: "text", text: JSON.stringify({ blockId: candidate.blockId, status: "planned" }) }],
       isError: false,
     },
-    qualityEvaluation: { input: { tier: candidate.tier }, result: { status: "accepted", hardFactCount: 1 } },
+    qualityEvaluation: { input: { semantics: "active-block" }, result: { status: "accepted", hardFactCount: 1 } },
   };
 }
 

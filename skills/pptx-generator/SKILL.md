@@ -1,275 +1,144 @@
 ---
 name: pptx-generator
-description: "Generate, edit, read, and verify PowerPoint/PPTX presentations and slide decks."
+description: "Generate, edit, inspect, or verify editable PowerPoint/PPTX decks when a .pptx file is the deliverable; use for template-preserving edits and from-scratch slide production, but not for HTML/SVG mockups, PDF-only reports, or presentation advice that needs no PPTX artifact."
 ---
 
-# PPTX Generator & Editor
+# PPTX Generator
 
-## Overview
+## Contract
 
-This skill handles all PowerPoint tasks: reading/analyzing existing presentations, editing template-based decks via XML manipulation, and creating presentations from scratch using PptxGenJS. It includes a complete design system (color palettes, fonts, style recipes) and detailed guidance for every slide type.
+[KNOWN|USER] `pptx-generator` is the sole general PPT/PPTX workflow owner. OfficeCLI is an internal non-routable tool adapter, not another Skill or lifecycle owner. Source: accepted change `pptx-workspace-officecli-integration`, decision `m0020`.
 
-## Routing Boundary
+[FRAME] This skill treats a presentation as a communication artifact first and a collection of decorated slides second. It is workspace-first: authored sources, generated artifacts, and verification evidence stay separated and hash-linked.
 
-Use this skill for PowerPoint, PPTX, presentation, deck, or slide generation/editing/reading. Use `minimax-docx` for editable Word documents, `minimax-pdf` for final PDF output, and `minimax-xlsx` for spreadsheet/workbook artifacts.
+Use one of three branches:
 
-| Trigger | Use this skill? | Why |
-|---|---:|---|
-| "Build a 12-slide investor deck" | Yes | Slide deck output |
-| "Edit this PPTX template" | Yes | PPTX edit workflow |
-| "Create a printable PDF report" | No | Route to `minimax-pdf` |
-| "Build an Excel model" | No | Route to `minimax-xlsx` |
-
-## Quick Reference
-
-| Task | Approach |
-|------|----------|
-| Read/analyze content | `python -m markitdown presentation.pptx` |
-| Edit or create from template | See [Editing Presentations](references/editing.md) |
-| Create from scratch | See [Creating from Scratch](#creating-from-scratch-workflow) below |
-
-| Item | Value |
-|------|-------|
-| **Dimensions** | 10" x 5.625" (LAYOUT_16x9) |
-| **Colors** | 6-char hex without # (e.g., `"FF0000"`) |
-| **English font** | Arial (default), or approved alternatives |
-| **Chinese font** | Microsoft YaHei |
-| **Page badge position** | x: 9.3", y: 5.1" |
-| **Theme keys** | `primary`, `secondary`, `accent`, `light`, `bg` |
-| **Shapes** | RECTANGLE, OVAL, LINE, ROUNDED_RECTANGLE |
-| **Charts** | BAR, LINE, PIE, DOUGHNUT, SCATTER, BUBBLE, RADAR |
-
-## Reference Files
-
-| File | Contents |
-|------|----------|
-| [slide-types.md](references/slide-types.md) | 5 slide page types (Cover, TOC, Section Divider, Content, Summary) + additional layout patterns |
-| [design-system.md](references/design-system.md) | Color palettes, font reference, style recipes (Sharp/Soft/Rounded/Pill), typography & spacing |
-| [editing.md](references/editing.md) | Template-based editing workflow, XML manipulation, formatting rules, common pitfalls |
-| [pitfalls.md](references/pitfalls.md) | QA process, common mistakes, critical PptxGenJS pitfalls |
-| [pptxgenjs.md](references/pptxgenjs.md) | Complete PptxGenJS API reference |
-
----
-
-## Reading Content
-
-```bash
-# Text extraction
-python -m markitdown presentation.pptx
-```
-
----
-
-## Creating from Scratch — Workflow
-
-**Use when no template or reference presentation is available.**
-
-### Step 1: Research & Requirements
-
-Search to understand user requirements — topic, audience, purpose, tone, content depth.
-
-### Step 2: Select Color Palette & Fonts
-
-Use the [Color Palette Reference](references/design-system.md#color-palette-reference) to select a palette matching the topic and audience. Use the [Font Reference](references/design-system.md#font-reference) to choose a font pairing.
-
-### Step 3: Select Design Style
-
-Use the [Style Recipes](references/design-system.md#style-recipes) to choose a visual style (Sharp, Soft, Rounded, or Pill) matching the presentation tone.
-
-### Step 4: Plan Slide Outline
-
-Classify **every slide** as exactly one of the [5 page types](references/slide-types.md). Plan the content and layout for each slide. Ensure visual variety — do NOT repeat the same layout across slides.
-
-### Step 5: Generate Slide JS Files
-
-Create one JS file per slide in `slides/` directory. Each file must export a synchronous `createSlide(pres, theme)` function. Follow the [Slide Output Format](#slide-output-format) and the type-specific guidance in [slide-types.md](references/slide-types.md). Work directly by default; if independent slide groups have a concrete concurrency benefit, return that bounded ownership need to ROSE rather than invoking another skill or ad hoc protocol.
-
-**If ROSE separately authorizes fresh independent slide assignments, include these work package constraints:**
-1. File naming: `slides/slide-01.js`, `slides/slide-02.js`, etc.
-2. Images go in: `slides/imgs/`
-3. Final PPTX goes in: `slides/output/`
-4. Dimensions: 10" x 5.625" (LAYOUT_16x9)
-5. Fonts: Chinese = Microsoft YaHei, English = Arial (or approved alternative)
-6. Colors: 6-char hex without # (e.g. `"FF0000"`)
-7. Must use the theme object contract (see [Theme Object Contract](#theme-object-contract))
-8. Must follow the [PptxGenJS API reference](references/pptxgenjs.md)
-
-### Step 6: Compile into Final PPTX
-
-Create `slides/compile.js` to combine all slide modules:
-
-```javascript
-// slides/compile.js
-const pptxgen = require('pptxgenjs');
-const pres = new pptxgen();
-pres.layout = 'LAYOUT_16x9';
-
-const theme = {
-  primary: "22223b",    // dark color for backgrounds/text
-  secondary: "4a4e69",  // secondary accent
-  accent: "9a8c98",     // highlight color
-  light: "c9ada7",      // light accent
-  bg: "f2e9e4"          // background color
-};
-
-for (let i = 1; i <= 12; i++) {  // adjust count as needed
-  const num = String(i).padStart(2, '0');
-  const slideModule = require(`./slide-${num}.js`);
-  slideModule.createSlide(pres, theme);
-}
-
-pres.writeFile({ fileName: './output/presentation.pptx' });
-```
-
-Run with: `cd slides && node compile.js`
-
-### Step 7: QA (Required)
-
-See [QA Process](references/pitfalls.md#qa-process).
-Before claiming the deck/slides complete, fixed, passing, or verified, follow the canonical lifecycle/ordinary-task verification owner and cite the selected fresh compile/QA evidence.
-
-### Compile / QA Failure Recovery
-
-| Trigger | First action | If still failing |
+| Branch | Trigger | Primary evidence |
 |---|---|---|
-| `node compile.js` throws module/export errors | Verify every `slides/slide-XX.js` exists and exports synchronous `createSlide(pres, theme)` | Stop and report the missing/broken slide module; do not fabricate a finished deck |
-| PPTX opens with repair/corruption warning | Remove the last changed slide module, recompile, then re-add shapes/images incrementally | Treat as `BLOCKED_VERIFICATION`; deliver the last non-corrupt compile evidence, not the corrupt file |
-| Text, charts, or images overflow the slide | Reduce content, font size, or image crop within the 10" × 5.625" canvas | Ask the user to approve content cuts; do not ship clipped or unreadable slides |
-| QA cannot inspect the final PPTX | Compile successfully, then provide the exact missing QA capability and manual review checklist | Mark visual QA as unverified instead of claiming completion |
+| Inspect | Read, inventory, summarize, or diagnose an existing PPTX | Extracted content plus package/visual evidence appropriate to the claim |
+| Template edit | Modify a supplied deck while retaining its slide size, masters, layouts, theme, and recurring visual language | Preserved source hash, replayable edit/build evidence, and rendered comparison |
+| From scratch | Produce a new editable PPTX without a controlling template | Approved brief, slide plan, successful compile, and rendered QA |
 
-🔴 CHECKPOINT / 🛑 STOP: If a compile, corruption, or visual QA failure remains after one focused repair pass, stop and report evidence before further edits.
+Near misses:
 
-### Output Structure
+- Return HTML/SVG design generation, PDF-only output, and document/spreadsheet artifacts to ROSE for the appropriate artifact owner.
+- For outline coaching or slide critique with no PPTX artifact, provide bounded advice directly rather than manufacturing a file workflow.
+- Do not silently convert a browser-rendered deck into a PPTX; editable-slide output is a distinct deliverable.
 
-```
-slides/
-├── slide-01.js          # Slide modules
-├── slide-02.js
-├── ...
-├── imgs/                # Images used in slides
-└── output/              # Final artifacts
-    └── presentation.pptx
-```
+## Capability Boundary
 
----
+- Required: `artifact.transform` for PPTX/package generation or editing.
+- Optional: `repo.read` for local source decks and supporting content; `artifact.store` for the final user-visible file.
+- If a required capability is missing, return `blocked` with the missing operation and do not claim a usable PPTX.
+- If visual rendering or inspection is unavailable, return `Unverified` for layout, clipping, font substitution, and image-crop claims; text extraction alone is not visual QA.
+- Installing a runtime or dependency, reading an external directory, fetching network assets, or writing outside the owning repository retains its separate ROSE approval gate.
 
-## Slide Output Format
+## Common Workflow
 
-Each slide is a **complete, runnable JS file**:
+### 1. Initialize the profile workspace
 
-```javascript
-// slide-01.js
-const pptxgen = require("pptxgenjs");
+[FRAME] Choose `from-scratch`, `template-edit`, or `inspect`, then follow [`references/workspace.md`](references/workspace.md). Capture audience, setting, purpose, language, duration/count, source/template, output path, editability, and material blockers in the profile-owned sources described by [`references/intake-and-blockers.md`](references/intake-and-blockers.md).
 
-const slideConfig = {
-  type: 'cover',
-  index: 1,
-  title: 'Presentation Title'
-};
+[FRAME] Completion criterion: the workspace profile and artifact contract are explicit; required sources exist or are typed blockers.
 
-// MUST be synchronous (not async)
-function createSlide(pres, theme) {
-  const slide = pres.addSlide();
-  slide.background = { color: theme.bg };
+### 2. Establish the canonical plan
 
-  slide.addText(slideConfig.title, {
-    x: 0.5, y: 2, w: 9, h: 1.2,
-    fontSize: 48, fontFace: "Arial",
-    color: theme.primary, bold: true, align: "center"
-  });
+[KNOWN|USER] `<deck-name>-per-slide-content-plan.md` is the sole semantic source for slide count, order, title, Layout, and Content. Source: accepted change `pptx-workspace-officecli-integration`, decision `m0020`.
 
-  return slide;
-}
+[FRAME] Follow [`references/content-planning.md`](references/content-planning.md). Every slide uses exact `## Slide NN:`, one stable `<!-- slide-id: lower-kebab -->`, exactly one `### 1. Layout`, and exactly one `### 2. Content`. Keep page takeaways and source/status annotations inside Content.
 
-// Standalone preview - use slide-specific filename
-if (require.main === module) {
-  const pres = new pptxgen();
-  pres.layout = 'LAYOUT_16x9';
-  const theme = {
-    primary: "22223b",
-    secondary: "4a4e69",
-    accent: "9a8c98",
-    light: "c9ada7",
-    bg: "f2e9e4"
-  };
-  createSlide(pres, theme);
-  pres.writeFile({ fileName: "slide-01-preview.pptx" });
-}
+[FRAME] Compile with `scripts/compile_plan.py`; `outline.json` is generated-only. Normal compilation never edits Markdown. Use `--initialize-ids` only for an explicit migration that inserts missing IDs without changing semantic text.
 
-module.exports = { createSlide, slideConfig };
-```
+[FRAME] Completion criterion: the deterministic outline exactly matches current normalized Markdown and has continuous ordinals plus unique stable IDs.
 
----
+### 3. Establish design and fonts
 
-## Theme Object Contract (MANDATORY)
+[FRAME] When a template exists, derive its grammar instead of imposing defaults. Otherwise use [`references/design-system.md`](references/design-system.md), [`references/human-design-playbook.md`](references/human-design-playbook.md), and [`references/design-contract.md`](references/design-contract.md). Record content area, hierarchy, palette roles, shape/image/chart language, and navigation in the design contract without duplicating slide copy.
 
-The compile script passes a theme object with these **exact keys**:
+[FRAME] For `template-edit`, first confirm every visual reference's role, allowed uses, fidelity mode, path, and hash. Before mapping content, run `scripts/profile_template.py` and require a current `template-profile.json` that preserves shape→paragraph→run raw/inherited/effective typography, palette usage, native layout IDs, capacity, alignment, spacing, and image-frame evidence. A role summary never overrides a run-level exception.
 
-| Key | Purpose | Example |
-|-----|---------|---------|
-| `theme.primary` | Darkest color, titles | `"22223b"` |
-| `theme.secondary` | Dark accent, body text | `"4a4e69"` |
-| `theme.accent` | Mid-tone accent | `"9a8c98"` |
-| `theme.light` | Light accent | `"c9ada7"` |
-| `theme.bg` | Background color | `"f2e9e4"` |
+[FRAME] Follow [`references/font-policy.md`](references/font-policy.md). `font-contract.json` records intent; `font-environment.json` separately records registration, mounted files, and renderer-visible families. Required fonts must be verified separately in build and render environments; missing/unknown required fonts return `need-user`. Unknown target-player availability remains named `Unverified`.
 
-**NEVER use other key names** like `background`, `text`, `muted`, `darkest`, `lightest`.
+[FRAME] For from-scratch work, render and actually review a representative Style Proof before full build. A style lock binds current design/proof/review hashes; any bound change invalidates it.
 
----
+[FRAME] Use the `style-proof` build kind and stable-ID render selection before creating the lock; the default full from-scratch build fails closed when the lock is missing or stale. Generate the hash-bound font audit from the current contract evidence before relying on font readiness.
 
-## Page Number Badge (REQUIRED)
+[FRAME] Completion criterion: current contracts define one implementable visual grammar, required fonts are evidenced, and applicable Style Proof evidence is current.
 
-All slides **except Cover Page** MUST include a page number badge in the bottom-right corner.
+### 4. Compute workspace readiness
 
-- **Position**: x: 9.3", y: 5.1"
-- Show current number only (e.g. `3` or `03`), NOT "3/12"
-- Use palette colors, keep subtle
+[FRAME] Run `scripts/report_workspace_readiness.py`. `workspace.json` records identity/configuration and never supplies manual completion truth. Resolve typed `blocked` or `needs_attention` results before building.
 
-### Circle Badge (Default)
+[FRAME] Only registered renderer kinds and contained workspace-relative entrypoints are allowed. Arbitrary command strings, absolute paths, `..`, and escaped symlinks are blocked. Readiness fingerprints renderer source and authored inputs.
 
-```javascript
-slide.addShape(pres.shapes.OVAL, {
-  x: 9.3, y: 5.1, w: 0.4, h: 0.4,
-  fill: { color: theme.accent }
-});
-slide.addText("3", {
-  x: 9.3, y: 5.1, w: 0.4, h: 0.4,
-  fontSize: 12, fontFace: "Arial",
-  color: "FFFFFF", bold: true,
-  align: "center", valign: "middle"
-});
-```
+[FRAME] Completion criterion: readiness is `ready` for the selected branch and all named `Unverified` limits remain explicit.
 
-### Pill Badge
+### 5. Implement with the selected branch
 
-```javascript
-slide.addShape(pres.shapes.ROUNDED_RECTANGLE, {
-  x: 9.1, y: 5.15, w: 0.6, h: 0.35,
-  fill: { color: theme.accent },
-  rectRadius: 0.15
-});
-slide.addText("03", {
-  x: 9.1, y: 5.15, w: 0.6, h: 0.35,
-  fontSize: 11, fontFace: "Arial",
-  color: "FFFFFF", bold: true,
-  align: "center", valign: "middle"
-});
-```
+- **Inspect:** extract text and package metadata; render slides when making visual claims.
+- **Template-preserving edit:** follow [`references/editing.md`](references/editing.md).
+- **From scratch:** use the registered renderer and technical patterns in [`references/pptxgenjs.md`](references/pptxgenjs.md).
 
----
+[FRAME] Every supported editable text-bearing shape in a final from-scratch or template-edit PPTX uses `shape-to-fit-text`. Apply it after paragraph/run formatting, then reread the final geometry. Unsupported, locked, unreadable, or non-recalculated objects are blockers; AutoFit never waives overlap, boundary, single-line, font-size, spacing, alignment, or visual checks.
 
-## Red Flags and Anti-Patterns
+[FRAME] `src/` reads current outline/design/font/assets and implements layouts; it never stores a second copy of page titles or content. Keep custom slide builders keyed by stable slide ID and include all renderer source in the build fingerprint.
 
-- Do not claim the deck is complete without a fresh compile result and QA evidence.
-- Do not ignore PowerPoint repair prompts, missing-slide warnings, broken media links, or unreadable overflow.
-- Do not use theme keys outside the required contract (`primary`, `secondary`, `accent`, `light`, `bg`).
-- Do not hide layout problems by exporting screenshots or PDF instead of fixing the PPTX.
-- Do not create extra `references/`, `scripts/`, or asset folders for this skill unless explicitly assigned.
+[FRAME] OfficeCLI use stays behind [`references/officecli-adapter.md`](references/officecli-adapter.md). The AILI installer owns installation and recovery; this Skill retains only PPTX-specific probe/build/render use. Use installed-version help as syntax authority; do not run npm or install/load OfficeCLI Skills, MCP, PATH integration, or another presentation owner.
 
----
+[FRAME] Completion criterion: all canonical slides exist, content is mapped once from outline, no placeholder survives, and the build report binds current source/renderer/outline/final-PPTX hashes.
 
-## Dependencies
+### 6. Verify content, visuals, and delivery
 
-- `pip install "markitdown[pptx]"` — text extraction
-- `npm install -g pptxgenjs` — creating from scratch
-- `npm install -g react-icons react react-dom sharp` — icons (optional)
+[FRAME] Follow [`references/pitfalls.md`](references/pitfalls.md), [`references/visual-review.md`](references/visual-review.md), and [`references/delivery-readiness.md`](references/delivery-readiness.md):
+
+1. [FRAME] validate/repack the current final PPTX and bind validation to its hash;
+2. [FRAME] render every slide and a contact sheet, then hash each artifact;
+3. [FRAME] run `scripts/report_layout_preflight.py` against the current final PPTX, post-AutoFit geometry, font audit, image-fit evidence, and individually dispositioned OfficeCLI issues; any blocking or unknown item fails closed;
+4. [FRAME] read the actual images and record reviewer, exact PPTX/render hashes, exact slide IDs, per-page checks, concrete observations, findings, finding dispositions, and overall disposition;
+5. [FRAME] for `template-edit`, obtain user confirmation of the current baseline/current proof hash before a full build; confirmation never waives final per-page review;
+6. [FRAME] repair at source and rebuild every invalidated downstream step;
+7. [FRAME] run `scripts/report_delivery_readiness.py`; missing or stale evidence fails closed.
+
+[FRAME] Completion criterion: the current plan→outline→build→PPTX→render→visual-review hash chain is `ready`; unsupported target-viewer, font, animation, or visual claims remain `Unverified`.
+
+## Reference Map
+
+| Need | Reference |
+|---|---|
+| Workspace profiles, ownership, initialization, and safe renderer paths | [`workspace.md`](references/workspace.md) |
+| Intake fields, typed blockers, and next actions | [`intake-and-blockers.md`](references/intake-and-blockers.md) |
+| Source distillation and a reusable per-slide Markdown content plan | [`content-planning.md`](references/content-planning.md) |
+| Complete English translation of the curated learning notes, including natural-language descriptions of source visuals | [`human-design-playbook.md`](references/human-design-playbook.md) |
+| Base slide roles and relationship-led layouts | [`slide-types.md`](references/slide-types.md) |
+| Palette, typography, spacing, and shape recipes | [`design-system.md`](references/design-system.md) |
+| Design brief/contract and Style Proof lock | [`design-contract.md`](references/design-contract.md) |
+| Font selection and build/render/target evidence | [`font-policy.md`](references/font-policy.md) |
+| Existing-template inventory and fidelity-preserving edits | [`editing.md`](references/editing.md) |
+| Compile, content, visual, and package QA | [`pitfalls.md`](references/pitfalls.md) |
+| Actual image review and hash-bound findings | [`visual-review.md`](references/visual-review.md) |
+| Workspace/delivery freshness gates | [`delivery-readiness.md`](references/delivery-readiness.md) |
+| Internal non-routable OfficeCLI tool use | [`officecli-adapter.md`](references/officecli-adapter.md) |
+| PptxGenJS implementation patterns | [`pptxgenjs.md`](references/pptxgenjs.md) |
+
+## Hard Boundaries
+
+- Preserve the original file unless replacement was explicitly requested; write an edited copy by default.
+- Do not rebuild a supplied template from scratch merely because generation is easier.
+- Do not invent data, citations, logos, customer names, or source claims to fill a slide.
+- Do not begin slide production before a required per-slide content plan exists and its material omissions, claims, or structure decisions are resolved.
+- Do not edit `outline.json` as a semantic source or copy slide meaning into renderer source.
+- Do not accept unregistered renderer kinds, arbitrary command strings, or workspace-escaping paths.
+- Do not hide PPTX corruption or layout defects by shipping only screenshots or a PDF.
+- Do not treat a render, issue scan, file-existence check, or reviewer-free record as visual completion.
+- Do not silently substitute a required build/render font or claim an unknown target font environment is verified.
+- Do not force a page-number badge, palette, font, gradient, animation, or decorative motif when the brief or controlling template does not use it.
+- Do not recurse, invoke another process skill, or delegate. Return any routing, research, capability, approval, or independent-work need to ROSE.
+
+## Terminal Outcomes
+
+- `complete`: the requested PPTX work is produced and claim-matched verification is current.
+- `need-user`: one material audience, content, template, output, style, required-font, or fidelity decision is unresolved.
+- `need-evidence`: required source content or visual/package evidence is unavailable.
+- `material-delta`: implementation reveals a new dependency, public artifact contract, permission, or verification-strategy change.
+- `blocked`: required capability/approval is missing, workspace/delivery readiness fails closed, renderer/path policy is violated, or the PPTX remains corrupt.
+- `Unverified`: the file exists but one or more claimed visual behaviors could not be freshly inspected.

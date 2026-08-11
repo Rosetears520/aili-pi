@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { canonicalJson, digest, isRecord } from "./contracts.js";
+import { SEMANTIC_SUMMARY_LIMITS } from "./summary-limits.js";
 
 export const QUALITY_INPUT_VERSION = 1 as const;
 export const QUALITY_MANIFEST_VERSION = 1 as const;
@@ -14,14 +15,15 @@ export const MAX_QUALITY_CODES = 16;
 const MAX_REFS = 256;
 const MAX_FACT_REFS = 8;
 const MAX_ANCHORS = 8;
-const MAX_SUMMARY_UTF16 = 12_000;
+const MAX_SUMMARY_UTF16 = SEMANTIC_SUMMARY_LIMITS.hardMaxChars;
 const MAX_FACT_TEXT_UTF16 = 16_000;
 const MAX_ANCHOR_UTF16 = 512;
 const MAX_IDENTIFIER_UTF16 = 256;
 const HASH_PATTERN = /^[0-9a-f]{64}$/;
 const ZERO_DIGEST = "0".repeat(64);
 
-const QUALITY_INPUT_KEYS = ["catalogId", "orderedRefs", "sourceDigest", "sourceKind", "summary", "tier", "version"] as const;
+const LEGACY_QUALITY_INPUT_KEYS = ["catalogId", "orderedRefs", "sourceDigest", "sourceKind", "summary", "tier", "version"] as const;
+const ACTIVE_QUALITY_INPUT_KEYS = ["catalogId", "orderedRefs", "semantics", "sourceDigest", "sourceKind", "summary", "version"] as const;
 const FROZEN_SOURCE_KEYS = ["catalogId", "facts", "orderedRefs", "sourceDigest", "sourceKind", "version"] as const;
 const FROZEN_FACT_KEYS = ["anchors", "class", "current", "durableRefs", "eligibility", "releaseRelevant", "status", "text"] as const;
 const IDENTITY_CONTEXT_KEYS = [
@@ -64,7 +66,7 @@ const COUNTS_KEYS = [
   "totalFacts",
   "warningFacts",
 ] as const;
-const EVIDENCE_KEYS = [
+const LEGACY_EVIDENCE_KEYS = [
   "catalogId",
   "codes",
   "counts",
@@ -76,6 +78,21 @@ const EVIDENCE_KEYS = [
   "sourceDigest",
   "sourceKind",
   "tier",
+  "verdict",
+  "version",
+] as const;
+const ACTIVE_EVIDENCE_KEYS = [
+  "catalogId",
+  "codes",
+  "counts",
+  "evaluatorVersion",
+  "extractorVersion",
+  "facts",
+  "manifestDigest",
+  "orderedRefs",
+  "semantics",
+  "sourceDigest",
+  "sourceKind",
   "verdict",
   "version",
 ] as const;
@@ -92,6 +109,7 @@ const EVIDENCE_FACT_KEYS = [
 ] as const;
 
 export type QualityTier = "T1" | "T2" | "T3";
+export type QualitySemantics = QualityTier | "active-block";
 export type QualitySourceKind = "messages" | "blocks";
 export type QualityVerdict = "pass" | "pass-with-warnings" | "reject";
 export type QualityRequirement = "hard" | "warning" | "optional";
@@ -202,16 +220,23 @@ export interface QualitySpanUtf16 {
   end: number;
 }
 
-/** Runtime-owned input assembled only after exact source selection is frozen. */
-export interface QualityInputV1 {
+interface QualityInputFields {
   version: typeof QUALITY_INPUT_VERSION;
-  tier: QualityTier;
   catalogId: string;
   sourceKind: QualitySourceKind;
   orderedRefs: string[];
   sourceDigest: string;
   summary: string;
 }
+
+/** Runtime-owned input assembled only after exact source selection is frozen. */
+export type QualityInputV1 = (QualityInputFields & {
+  /** Read-only legacy quality identity. */
+  tier: QualityTier;
+}) | (QualityInputFields & {
+  /** Tierless active-block quality identity for every new write. */
+  semantics: "active-block";
+});
 
 /** A fact extracted from the frozen source. It is never caller or Session input. */
 export interface FrozenQualityFactV1 {
@@ -296,12 +321,10 @@ export interface QualityEvidenceFactV1 {
   covered: boolean;
 }
 
-/** Bounded PR2-persistable evidence: no source body, fact text, or anchor text. */
-export interface QualityEvidenceV1 {
+interface QualityEvidenceFields {
   version: typeof QUALITY_EVIDENCE_VERSION;
   extractorVersion: typeof QUALITY_EXTRACTOR_VERSION;
   evaluatorVersion: typeof QUALITY_EVALUATOR_VERSION;
-  tier: QualityTier;
   catalogId: string;
   sourceKind: QualitySourceKind;
   orderedRefs: string[];
@@ -312,6 +335,15 @@ export interface QualityEvidenceV1 {
   codes: QualityCode[];
   counts: QualityCountsV1;
 }
+
+/** Bounded PR2-persistable evidence: no source body, fact text, or anchor text. */
+export type QualityEvidenceV1 = (QualityEvidenceFields & {
+  /** Read-only legacy quality identity. */
+  tier: QualityTier;
+}) | (QualityEvidenceFields & {
+  /** Tierless active-block quality identity for every new write. */
+  semantics: "active-block";
+});
 
 export interface QualityResultV1 {
   version: typeof QUALITY_RESULT_VERSION;
@@ -370,16 +402,21 @@ export function qualityFactDigest(factClass: QualityFactClass, durableRef: Quali
 
 export function parseQualityInput(value: unknown): QualityInputV1 | undefined {
   try {
-    if (!isRecord(value) || !hasExactKeys(value, QUALITY_INPUT_KEYS)) return undefined;
-    if (value.version !== QUALITY_INPUT_VERSION || !isQualityTier(value.tier) || !isQualitySourceKind(value.sourceKind)) return undefined;
-    if (!tierMatchesSourceKind(value.tier, value.sourceKind)) return undefined;
+    if (!isRecord(value)) return undefined;
+    const legacy = hasExactKeys(value, LEGACY_QUALITY_INPUT_KEYS);
+    const active = hasExactKeys(value, ACTIVE_QUALITY_INPUT_KEYS);
+    if (!legacy && !active) return undefined;
+    if (value.version !== QUALITY_INPUT_VERSION || !isQualitySourceKind(value.sourceKind)) return undefined;
+    const legacyTier = legacy && isQualityTier(value.tier) ? value.tier : undefined;
+    if (legacy && (!legacyTier || !tierMatchesSourceKind(legacyTier, value.sourceKind))) return undefined;
+    if (active && value.semantics !== "active-block") return undefined;
     if (!isIdentifier(value.catalogId) || !isHash(value.sourceDigest)) return undefined;
     const orderedRefs = parseIdentifierArray(value.orderedRefs, MAX_REFS, false);
     if (!orderedRefs || typeof value.summary !== "string" || value.summary.length === 0 || value.summary.length > MAX_SUMMARY_UTF16) return undefined;
     if (hasMalformedUtf16(value.summary)) return undefined;
     return {
       version: QUALITY_INPUT_VERSION,
-      tier: value.tier,
+      ...(legacy ? { tier: legacyTier! } : { semantics: "active-block" as const }),
       catalogId: value.catalogId,
       sourceKind: value.sourceKind,
       orderedRefs,
@@ -536,7 +573,7 @@ export function extractQualityManifest(
     }
 
     const normalizedSummary = normalizeQualityText(input.summary);
-    const boundaryIndex = buildNormalizedBoundaryIndex(input.summary);
+    const boundaryIndex = buildNormalizedBoundaryIndex(input.summary, normalizedSummary);
     const facts: QualityManifestFactV1[] = [];
     const factIds = new Set<string>();
 
@@ -636,35 +673,7 @@ export function evaluateQuality(
     if (mismatch) return failureResult(parsedInput, [mismatch], digest(expected));
     const frozenSource = parseFrozenQualitySource(frozenSourceValue);
     if (!frozenSource) return failureResult(parsedInput, ["invalid-frozen-source"], digest(expected));
-
-    const requirements = expected.facts.map((fact) => qualityRequirement(
-      parsedInput!.tier,
-      fact.class,
-      fact.current,
-      fact.releaseRelevant,
-      options.resolvedDetailT3 ?? "optional",
-    ));
-    const counts = qualityCounts(expected.facts, requirements);
-    const codes: QualityCode[] = [];
-    if (counts.missingHardFacts > 0) codes.push("missing-hard-fact");
-    if (counts.missingWarningFacts > 0) codes.push("warning-fact-omitted");
-    if (hasContradictoryStatus(parsedInput.summary, frozenSource.facts)) codes.push("contradictory-status");
-    const orderedCodes = canonicalCodes(codes);
-    const verdict: QualityVerdict = orderedCodes.includes("missing-hard-fact") || orderedCodes.includes("contradictory-status")
-      ? "reject"
-      : orderedCodes.length > 0 ? "pass-with-warnings" : "pass";
-    const evidenceFacts = expected.facts.map((fact, index): QualityEvidenceFactV1 => ({
-      factId: fact.factId,
-      class: fact.class,
-      requirement: requirements[index]!,
-      durableRefs: fact.durableRefs.map(cloneDurableRef),
-      sourceFactDigests: [...fact.sourceFactDigests],
-      anchorDigests: [...fact.anchorDigests],
-      summarySpanUtf16: cloneSpan(fact.summarySpanUtf16),
-      summarySpanDigest: fact.summarySpanDigest,
-      covered: fact.summarySpanUtf16 !== null,
-    }));
-    return makeResult(parsedInput, verdict, orderedCodes, counts, digest(expected), evidenceFacts);
+    return evaluateExtractedQuality(parsedInput, expected, frozenSource, options);
   } catch {
     return failureResult(parsedInput, ["evaluator-error"]);
   }
@@ -683,23 +692,71 @@ export function assessQuality(
     if (options.extractorAvailable === false) return failureResult(parsedInput, ["extractor-unavailable"]);
     const extraction = extractQualityManifest(inputValue, frozenSourceValue, identityContextValue, options);
     if (!extraction.ok) return failureResult(parsedInput, [extraction.code]);
-    return evaluateQuality(inputValue, extraction.manifest, frozenSourceValue, identityContextValue, options);
+    if (!parsedInput) return failureResult(undefined, ["invalid-input"]);
+    if (options.evaluatorAvailable === false) return failureResult(parsedInput, ["evaluator-unavailable"]);
+    const spanFailure = validateManifestSpans(extraction.manifest, parsedInput.summary);
+    if (spanFailure) return failureResult(parsedInput, [spanFailure], digest(extraction.manifest));
+    const frozenSource = parseFrozenQualitySource(frozenSourceValue);
+    if (!frozenSource) return failureResult(parsedInput, ["invalid-frozen-source"], digest(extraction.manifest));
+    return evaluateExtractedQuality(parsedInput, extraction.manifest, frozenSource, options);
   } catch {
     return failureResult(parsedInput, ["evaluator-error"]);
   }
 }
 
+function evaluateExtractedQuality(
+  input: QualityInputV1,
+  manifest: QualityManifestV1,
+  frozenSource: FrozenQualitySourceV1,
+  options: Pick<QualityRuntimeOptions, "evaluatorAvailable" | "resolvedDetailT3">,
+): QualityResultV1 {
+  const requirements = manifest.facts.map((fact) => qualityRequirement(
+    qualitySemantics(input),
+    fact.class,
+    fact.current,
+    fact.releaseRelevant,
+    options.resolvedDetailT3 ?? "optional",
+  ));
+  const counts = qualityCounts(manifest.facts, requirements);
+  const codes: QualityCode[] = [];
+  if (counts.missingHardFacts > 0) codes.push("missing-hard-fact");
+  if (counts.missingWarningFacts > 0) codes.push("warning-fact-omitted");
+  if (hasContradictoryStatus(input.summary, frozenSource.facts)) codes.push("contradictory-status");
+  const orderedCodes = canonicalCodes(codes);
+  const verdict: QualityVerdict = orderedCodes.includes("missing-hard-fact") || orderedCodes.includes("contradictory-status")
+    ? "reject"
+    : orderedCodes.length > 0 ? "pass-with-warnings" : "pass";
+  const evidenceFacts = manifest.facts.map((fact, index): QualityEvidenceFactV1 => ({
+    factId: fact.factId,
+    class: fact.class,
+    requirement: requirements[index]!,
+    durableRefs: fact.durableRefs.map(cloneDurableRef),
+    sourceFactDigests: [...fact.sourceFactDigests],
+    anchorDigests: [...fact.anchorDigests],
+    summarySpanUtf16: cloneSpan(fact.summarySpanUtf16),
+    summarySpanDigest: fact.summarySpanDigest,
+    covered: fact.summarySpanUtf16 !== null,
+  }));
+  return makeResult(input, verdict, orderedCodes, counts, digest(manifest), evidenceFacts);
+}
+
 export function qualityRequirement(
-  tier: QualityTier,
+  semantics: QualitySemantics,
   factClass: QualityFactClass,
   current: boolean,
   releaseRelevant: boolean,
   resolvedDetailT3: "optional" | "warning" = "optional",
 ): QualityRequirement {
-  if (factClass === "resolved-detail") return tier === "T3" ? resolvedDetailT3 : "warning";
-  if (factClass === "artifact-symbol" && tier === "T3" && !current) return "warning";
+  if (semantics === "active-block") {
+    if (factClass === "resolved-detail") return "warning";
+    if (factClass === "artifact-symbol" && !current) return "warning";
+    if (factClass === "verification") return current || releaseRelevant ? "hard" : "warning";
+    return "hard";
+  }
+  if (factClass === "resolved-detail") return semantics === "T3" ? resolvedDetailT3 : "warning";
+  if (factClass === "artifact-symbol" && semantics === "T3" && !current) return "warning";
   if (factClass === "verification") {
-    if (tier === "T3" || current || (tier === "T2" && releaseRelevant)) return "hard";
+    if (semantics === "T3" || current || (semantics === "T2" && releaseRelevant)) return "hard";
     return "warning";
   }
   return "hard";
@@ -757,12 +814,17 @@ function parseManifestFact(value: unknown): QualityManifestFactV1 | undefined {
 }
 
 export function parseQualityEvidence(value: unknown): QualityEvidenceV1 | undefined {
-  if (!isRecord(value) || !hasExactKeys(value, EVIDENCE_KEYS)) return undefined;
+  if (!isRecord(value)) return undefined;
+  const legacy = hasExactKeys(value, LEGACY_EVIDENCE_KEYS);
+  const active = hasExactKeys(value, ACTIVE_EVIDENCE_KEYS);
+  if (!legacy && !active) return undefined;
   if (value.version !== QUALITY_EVIDENCE_VERSION || value.extractorVersion !== QUALITY_EXTRACTOR_VERSION
-    || value.evaluatorVersion !== QUALITY_EVALUATOR_VERSION || !isQualityTier(value.tier)
+    || value.evaluatorVersion !== QUALITY_EVALUATOR_VERSION
     || !isIdentifier(value.catalogId) || !isQualitySourceKind(value.sourceKind)
     || !isHash(value.sourceDigest) || !isHash(value.manifestDigest) || !isQualityVerdict(value.verdict)) return undefined;
-  if (!tierMatchesSourceKind(value.tier, value.sourceKind)) return undefined;
+  const legacyTier = legacy && isQualityTier(value.tier) ? value.tier : undefined;
+  if (legacy && (!legacyTier || !tierMatchesSourceKind(legacyTier, value.sourceKind))) return undefined;
+  if (active && value.semantics !== "active-block") return undefined;
   const orderedRefs = parseIdentifierArray(value.orderedRefs, MAX_REFS, true);
   const codes = parseCodes(value.codes);
   const counts = parseCounts(value.counts);
@@ -785,7 +847,7 @@ export function parseQualityEvidence(value: unknown): QualityEvidenceV1 | undefi
     version: QUALITY_EVIDENCE_VERSION,
     extractorVersion: QUALITY_EXTRACTOR_VERSION,
     evaluatorVersion: QUALITY_EVALUATOR_VERSION,
-    tier: value.tier,
+    ...(legacy ? { tier: legacyTier! } : { semantics: "active-block" as const }),
     catalogId: value.catalogId,
     sourceKind: value.sourceKind,
     orderedRefs,
@@ -912,8 +974,14 @@ function locateNormalizedAnchor(
   return "invalid";
 }
 
-function buildNormalizedBoundaryIndex(value: string): Map<number, number[]> {
+function buildNormalizedBoundaryIndex(value: string, normalizedValue = normalizeQualityText(value)): Map<number, number[]> {
   const result = new Map<number, number[]>();
+  if (normalizedValue === value) {
+    for (let offset = 0; offset <= value.length; offset += 1) {
+      if (isUtf16Boundary(value, offset)) result.set(offset, [offset]);
+    }
+    return result;
+  }
   for (let offset = 0; offset <= value.length; offset += 1) {
     if (!isUtf16Boundary(value, offset)) continue;
     const normalizedOffset = normalizeQualityText(value.slice(0, offset)).length;
@@ -1049,7 +1117,7 @@ function makeResult(
     version: QUALITY_EVIDENCE_VERSION,
     extractorVersion: QUALITY_EXTRACTOR_VERSION,
     evaluatorVersion: QUALITY_EVALUATOR_VERSION,
-    tier: input.tier,
+    ...qualityIdentity(input),
     catalogId: input.catalogId,
     sourceKind: input.sourceKind,
     orderedRefs: [...input.orderedRefs],
@@ -1073,7 +1141,7 @@ function makeResult(
 function failureResult(input: QualityInputV1 | undefined, codes: readonly QualityCode[], manifestDigest = ZERO_DIGEST): QualityResultV1 {
   const fallback: QualityInputV1 = input ?? {
     version: QUALITY_INPUT_VERSION,
-    tier: "T1",
+    semantics: "active-block",
     catalogId: "unknown",
     sourceKind: "messages",
     orderedRefs: [],
@@ -1203,6 +1271,14 @@ function isNonNegativeSafeInteger(value: unknown): value is number {
 
 function isQualityTier(value: unknown): value is QualityTier {
   return value === "T1" || value === "T2" || value === "T3";
+}
+
+function qualityIdentity(value: QualityInputV1): { tier: QualityTier } | { semantics: "active-block" } {
+  return "tier" in value ? { tier: value.tier } : { semantics: value.semantics };
+}
+
+function qualitySemantics(value: QualityInputV1): QualitySemantics {
+  return "tier" in value ? value.tier : value.semantics;
 }
 
 function isQualitySourceKind(value: unknown): value is QualitySourceKind {

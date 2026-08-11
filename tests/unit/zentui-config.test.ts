@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { defaultConfig, loadConfig, saveFooterFormatPatch } from "../../extensions/zentui/config.js";
+import { defaultConfig, loadConfig, saveFixedEditorPatch, saveFooterFormatPatch } from "../../extensions/zentui/config.js";
 import { roseRuntimeStyle } from "../../extensions/zentui/format.js";
 
 const roots: string[] = [];
@@ -41,5 +41,23 @@ describe("Zentui Rose config migration", () => {
     saveFooterFormatPatch("saved", canonical);
     expect(JSON.parse(readFileSync(canonical, "utf8"))).toMatchObject({ footerFormat: "saved" });
     expect(JSON.parse(readFileSync(legacy, "utf8"))).toMatchObject({ footerFormat: "legacy" });
+  });
+
+  it("keeps the renderer-replacing fixed editor opt-in and preserves unrelated fixed-editor keys", () => {
+    expect(defaultConfig.fixedEditor.enabled).toBe(false);
+    const { canonical, legacy } = fixture();
+    writeFileSync(canonical, JSON.stringify({ fixedEditor: { enabled: true, custom: "keep" } }));
+    expect(loadConfig(canonical, legacy).fixedEditor).toMatchObject({
+      enabled: true,
+      mouseScroll: true,
+      copyNotice: true,
+      scrollbar: true,
+    });
+    saveFixedEditorPatch({ scrollbar: false }, canonical);
+    expect(JSON.parse(readFileSync(canonical, "utf8")).fixedEditor).toEqual({
+      enabled: true,
+      custom: "keep",
+      scrollbar: false,
+    });
   });
 });

@@ -16,29 +16,43 @@ describe("offline packaged runtime discovery", () => {
     const tools = [...extension.tools.keys()];
     const shortcuts = [...extension.shortcuts.keys()];
     expect(commands).toEqual(expect.arrayContaining([
-      "aili-doctor", "aili-install-global-resources", "perm", "quota",
-      "cache-optimizer", "preview", "preview-browser", "preview-pdf", "preview-clear-cache", "lsp",
+      "aili-doctor", "aili-install-global-resources", "aili-agent-model", "perm", "quota",
+      "cache-optimizer",
     ]));
+    expect(commands.filter((name) => [
+      "preview", "preview-browser", "preview-pdf", "preview-clear-cache", "lsp",
+    ].includes(name))).toEqual([]);
     expect(commands).not.toContain("aili-mode");
+    expect(commands).not.toContain("aili-compact");
     expect(tools).toEqual(expect.arrayContaining([
-      "subagent", "web_search", "fetch_content", "get_search_content", "preview_export", "lsp_diagnostics", "lsp_fix",
+      "task", "hub", "web_search", "fetch_content", "get_search_content",
     ]));
+    expect(tools.filter((name) => ["preview_export", "lsp_diagnostics", "lsp_fix"].includes(name))).toEqual([]);
+    expect(tools).not.toContain("subagent");
     expect(tools).not.toContain("aili_task");
+    expect(tools.filter((name) => name.startsWith("aili_compact") || [
+      "aili_decompress", "aili_prune", "aili_search_context", "aili_context_recap",
+    ].includes(name))).toEqual([]);
     expect(shortcuts).toContain("alt+m");
     expect(shortcuts).not.toContain("ctrl+shift+alt+a");
     expect([...extension.handlers.keys()]).toEqual(expect.arrayContaining(["before_agent_start", "session_start", "tool_call"]));
   });
 
-  it("ships the pinned snapshot without registering it as a duplicate Pi skill source", async () => {
-    const [compatibility, roles, packageJson] = await Promise.all([
+  it("keeps the pinned repository snapshot without publishing or registering it as a Pi skill source", async () => {
+    const [compatibility, workflowLock, roles, packageJson] = await Promise.all([
       readFile(new URL("../../manifests/skill-compatibility.json", import.meta.url), "utf8").then(JSON.parse),
+      readFile(new URL("../../upstream/aili-workflows.lock.json", import.meta.url), "utf8").then(JSON.parse),
       readFile(new URL("../../manifests/roles.json", import.meta.url), "utf8").then(JSON.parse),
       readFile(new URL("../../package.json", import.meta.url), "utf8").then(JSON.parse),
     ]);
     const skillDirectories = (await readdir(new URL("../../skills/", import.meta.url), { withFileTypes: true })).filter((item) => item.isDirectory()).map((item) => item.name).sort();
     expect(skillDirectories).toEqual(compatibility.records.map((item: { name: string }) => item.name).sort());
-    expect(skillDirectories).toHaveLength(64);
-    expect(roles.records).toHaveLength(19);
+    expect(skillDirectories).toEqual(workflowLock.skills.map((item: { name: string }) => item.name).sort());
+    expect(skillDirectories).toHaveLength(workflowLock.skillCount);
+    expect(packageJson.files).not.toContain("skills/");
+    expect(roles.schemaVersion).toBe(2);
+    expect(roles.records).toHaveLength(20);
+    expect(roles.bundledSelectors).toEqual(expect.arrayContaining(["general", "aili.code-scout", "aili.implementer"]));
     expect(packageJson.pi.prompts).toEqual([
       "./prompts/ideate.md", "./prompts/define.md", "./prompts/build.md", "./prompts/ship.md", "./prompts/local-review.md",
     ]);

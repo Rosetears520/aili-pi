@@ -15,7 +15,6 @@ export interface ProviderSuffixInput {
   catalogScopeDigest: string;
   safeRanges: readonly Pick<RecommendedSafeRange, "endRef" | "rangeId" | "startRef">[];
   eligibleBlockRefs?: readonly string[];
-  targetTier?: "T1" | "T2" | "T3";
   allowedActions: readonly ("compress" | "decompress" | "recompress" | "checkpoint")[];
   checkpointState: string;
 }
@@ -45,7 +44,7 @@ export function buildProviderSuffix(input: ProviderSuffixInput): ProviderSuffixR
     `headroomSource=${safeToken(input.headroomSource)}`,
     `catalog=${safeDigest(input.catalogId)}`,
     `scope=${safeDigest(input.catalogScopeDigest)}`,
-    `targetTier=${input.targetTier ?? "none"}`,
+    "semantics=active-block",
     `actions=${orderedActions(input.allowedActions).join(",") || "none"}`,
     `checkpoint=${safeToken(input.checkpointState)}`,
   ];

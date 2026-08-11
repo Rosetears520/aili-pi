@@ -21,10 +21,12 @@ describe("AILI Compact provider-only suffix", () => {
       planningEnabled: true, pressureStage: "PRESSURE", headroomTokens: 4096, headroomSource: "observed",
       catalogId: identity, catalogScopeDigest: "b".repeat(64),
       safeRanges: [{ rangeId: "r000002", startRef: "m000010", endRef: "m000020" }, { rangeId: "r000001", startRef: "m000001", endRef: "m000005" }],
-      eligibleBlockRefs: ["b000002", "b000001"], targetTier: "T1", allowedActions: ["checkpoint", "compress"], checkpointState: "idle",
+      eligibleBlockRefs: ["b000002", "b000001"], allowedActions: ["checkpoint", "compress"], checkpointState: "idle",
     })!;
     expect(result.message).toMatchObject({ role: "custom", customType: AILI_COMPACT_PROVIDER_SUFFIX, display: false, timestamp: 0 });
     expect(result.content.indexOf("r000001")).toBeLessThan(result.content.indexOf("r000002"));
+    expect(result.content).toContain("semantics=active-block");
+    expect(result.content).not.toContain("targetTier");
     expect(result.content).not.toContain("raw source");
     expect(result.content.length).toBeLessThanOrEqual(MAX_PROVIDER_SUFFIX_CHARS);
     expect(result.estimatedTokens).toBeLessThanOrEqual(MAX_PROVIDER_SUFFIX_TOKENS);

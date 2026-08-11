@@ -96,6 +96,18 @@ describe("AILI Compact reducer", () => {
     })).toBe(false);
   });
 
+  it("replays legacy semantic summaries through exactly 18,000 UTF-16 characters", () => {
+    const exact = tx("legacy-summary-cap");
+    exact.blocks![0]!.summary = "s".repeat(18_000);
+    expect(isCompactTransaction(exact)).toBe(true);
+    expect(reduceCompactState([source, successfulToolResult("legacy-summary-cap-result", exact)]).blocks.get("block:legacy-summary-cap")?.summary)
+      .toHaveLength(18_000);
+
+    const oversized = structuredClone(exact);
+    oversized.blocks![0]!.summary = "s".repeat(18_001);
+    expect(isCompactTransaction(oversized)).toBe(false);
+  });
+
   it("replays successful current-epoch tool and custom transactions deterministically", () => {
     const toolResult = successfulToolResult("result", tx("tool"));
     const entries = [source, toolResult, custom("control", { schema: "aili.compact.tx.v1", id: "off", kind: "control", epochId: "root", control: "off" })];
@@ -451,13 +463,13 @@ describe("AILI Compact reducer", () => {
     expect(state.diagnostics).toContain("invalid-lifecycle:bad-lifecycle");
   });
 
-  it("rejects oversized v2 persisted summaries", () => {
+  it("rejects v2 persisted semantic summaries above 18,000 characters", () => {
     const oversized = {
       schema: "aili.compact.tx.v2",
       id: "oversized",
       kind: "compact",
       epochId: "root",
-      blocks: [v2Block("oversized-block", [source], ["entry-1"], { summary: "x".repeat(12_001) })],
+      blocks: [v2Block("oversized-block", [source], ["entry-1"], { summary: "x".repeat(18_001) })],
     };
     expect(isCompactTransaction(oversized)).toBe(false);
     expect(activeBlocks(reduceCompactState([source, custom("oversized", oversized)]))).toEqual([]);

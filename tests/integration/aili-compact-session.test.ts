@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SessionManager, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { afterEach, describe, expect, it } from "vitest";
@@ -18,7 +18,10 @@ describe("AILI Compact persisted-session controls", () => {
     mkdirSync(scratchRoot, { recursive: true });
     const sessionDir = mkdtempSync(join(scratchRoot, "aili-compact-session-"));
     temporaryDirectories.push(sessionDir);
-    const manager = SessionManager.create("/project", sessionDir, { id: "aili-compact-session" });
+    const projectDir = join(sessionDir, "project");
+    mkdirSync(join(projectDir, ".pi"), { recursive: true });
+    writeFileSync(join(projectDir, ".pi", "aili-compact.jsonc"), '{ "enabled": true }');
+    const manager = SessionManager.create(projectDir, sessionDir, { id: "aili-compact-session" });
     manager.appendMessage({ role: "user", content: "persisted source", timestamp: 1 } as any);
     // Pi defers creation of a new JSONL until it has an assistant entry.
     const sourceId = manager.appendMessage({ role: "assistant", content: [{ type: "text", text: "persisted answer" }], timestamp: 2 } as any);
@@ -53,7 +56,7 @@ describe("AILI Compact persisted-session controls", () => {
     } as unknown as ExtensionAPI);
 
     const context = {
-      cwd: "/project",
+      cwd: projectDir,
       sessionManager: manager,
       getContextUsage: () => undefined,
       ui: { setStatus() {}, notify() {} },

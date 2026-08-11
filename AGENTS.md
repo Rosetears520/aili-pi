@@ -13,7 +13,7 @@ Do not copy broad global operating rules into this file unless this project inte
 ## Project Overview
 
 - Project purpose: Publish the `@rosetears/aili-pi` Package and thin Unix bootstrap on top of official Pi while keeping `pi` as the user CLI.
-- Primary language/runtime: TypeScript on Node.js `>=22.19.0`, aligned with the fresh official Pi `0.81.1` package baseline.
+- Primary language/runtime: TypeScript on Node.js `>=22.19.0`, aligned with the fresh official Pi `0.82.1` package baseline.
 - Package manager: npm with a committed `package-lock.json` once commit approval is granted.
 - Main application entry points: `extensions/index.ts` is the single Pi Extension entry; `install.sh` and `scripts/bootstrap.sh` implement the thin Linux-only bootstrap.
 - Main test framework: Vitest `4.1.9`; the accepted verification interfaces are recorded in `openspec/changes/create-aili-pi-distribution/test-plan.md`.

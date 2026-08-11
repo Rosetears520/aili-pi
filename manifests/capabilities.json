@@ -6,7 +6,7 @@
     "pi-web-access",
     "pi-quota-status",
     "pi-permission-modes",
-    "@agwab/pi-subagent",
+    "aili-persistent-agents",
     "optional-pack:web-research",
     "optional-pack:browser-qa",
     "optional-pack:artifact-runtime"
@@ -34,8 +34,8 @@
     },
     {
       "id": "subagent.dispatch",
-      "provider": "@agwab/pi-subagent",
-      "adapterOwner": "aili generic wrapper over @agwab/pi-subagent@0.4.8 with mandatory credential guard",
+      "provider": "aili-persistent-agents",
+      "adapterOwner": "src/runtime/persistent-agents/production.ts (AILI-owned task/hub with parent-scoped Pi sessions)",
       "platforms": ["linux"],
       "class": "required",
       "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "delegated" },

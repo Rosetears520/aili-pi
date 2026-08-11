@@ -33,11 +33,9 @@ import {
   type BranchSessionEntry,
 } from "../../src/runtime/aili-compact/branch-index.js";
 import { registerAiliCompact } from "../../src/runtime/aili-compact/index.js";
-import { alignEntriesToMessages, projectMessages } from "../../src/runtime/aili-compact/projector.js";
 import { reduceCompactState } from "../../src/runtime/aili-compact/reducer.js";
 import { deriveRuntimeCatalogIdForState } from "../../src/runtime/aili-compact/runtime-catalog.js";
 import { buildV3RuntimeView, type V3RuntimeView } from "../../src/runtime/aili-compact/v3-runtime.js";
-import { projectV3Messages } from "../../src/runtime/aili-compact/v3-projector.js";
 import {
   AILI_COMPACT_SCHEMA_V3,
   applyV3Transaction,
@@ -120,13 +118,17 @@ describe("AILI Compact registered production-entry performance gate", () => {
       expect(cold).toEqual({
         ...emptyBranchIndexCounters(),
         entryVisits: 12,
+        rawSlotVisits: 4,
         atomMembershipVisits: 4,
         hashOps: 22,
         fullRebuilds: 1,
+        fullReducerRuns: 1,
+        pureAuditRuns: 1,
         hashRecatalogs: 1,
         protocolRebuilds: 1,
         protectionRebuilds: 1,
         catalogRebuilds: 1,
+        indexedV3RuntimeViewBuilds: 1,
       });
 
       const status = await compactStatus(runtime, ctx, { offset: 0, limit: 4 });
@@ -147,8 +149,6 @@ describe("AILI Compact registered production-entry performance gate", () => {
       const steady = indexCounters(await doctor(runtime, ctx));
       expect(counterDelta(afterStatus, steady)).toEqual({
         ...emptyBranchIndexCounters(),
-        providerMessagePasses: 1,
-        providerMessageVisits: 4,
       });
 
       const appended = message("small-5", "assistant", "append", "small-4");
@@ -162,16 +162,80 @@ describe("AILI Compact registered production-entry performance gate", () => {
       expect(counterDelta(steady, afterAppend)).toEqual({
         ...emptyBranchIndexCounters(),
         entryVisits: 3,
+        rawSlotVisits: 1,
         atomMembershipVisits: 2,
         hashOps: 6,
-        providerMessagePasses: 1,
-        providerMessageVisits: 5,
+        providerFrontierInvalidations: 1,
         incrementalAppends: 1,
       });
     } finally {
       rmSync(project, { recursive: true, force: true });
     }
   }, 30_000);
+
+  it("keeps healthy MiMo recovery binding bounded and restarts it for a current source transition", () => {
+    const project = mkdtempSync(join(tmpdir(), "aili-compact-performance-mimo-"));
+    try {
+      writePerformanceConfig(project);
+      const sourceEntries: BranchSessionEntry[] = [
+        message("mimo-1", "user", "alpha"),
+        message("mimo-2", "assistant", "beta", "mimo-1"),
+        message("mimo-3", "user", "gamma", "mimo-2"),
+        message("mimo-4", "assistant", "delta", "mimo-3"),
+      ];
+      const guarded = guardAllEntries(sourceEntries);
+      const branchGuard = guardBranchContainer(guarded.entries);
+      const providerMessages = guarded.entries.map((entry) => entry.message as Record<string, unknown>);
+      const runtime = extensionHarness();
+      const ctx = extensionContext(
+        project,
+        branchGuard.proxy,
+        "mimo-4",
+        "performance-mimo-session",
+        { tokens: 90_000, contextWindow: 128_000 },
+      );
+
+      runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+      guarded.guard.arm();
+      branchGuard.arm(guarded.entries.length);
+      const context = runtime.handlers.get("context")!;
+      context({ type: "context", messages: providerMessages }, ctx);
+      context({ type: "context", messages: providerMessages }, ctx);
+
+      const prepared = () => runtime.appendedEntries
+        .filter(({ data }) => typeof data === "object" && data !== null
+          && (data as { schema?: unknown }).schema === "aili.compact.mimo-checkpoint.v1")
+        .map(({ data }) => data as { sessionId: string; branchId: string; epochId: string });
+      expect(prepared()).toHaveLength(1);
+      expect(prepared()[0]).toMatchObject({
+        sessionId: "performance-mimo-session",
+        epochId: "root",
+        branchId: expect.stringMatching(/^br_[a-f0-9]{64}$/),
+      });
+      expect(guarded.guard.touches()).toBe(0);
+      expect(branchGuard.oldIndexTouches()).toBe(0);
+      expect(branchGuard.allowedIndexTouches()).toBe(0);
+
+      const appended = message("mimo-5", "assistant", "epsilon", "mimo-4");
+      guarded.entries.push(appended);
+      ctx.setLeafId(appended.id);
+      context({ type: "context", messages: [...providerMessages, appended.message as Record<string, unknown>] }, ctx);
+
+      expect(prepared()).toHaveLength(2);
+      expect(prepared()[1]).toMatchObject({
+        sessionId: "performance-mimo-session",
+        epochId: "root",
+        branchId: expect.stringMatching(/^br_[a-f0-9]{64}$/),
+      });
+      expect(prepared()[1]!.branchId).not.toBe(prepared()[0]!.branchId);
+      expect(guarded.guard.touches()).toBe(0);
+      expect(branchGuard.oldIndexTouches()).toBe(0);
+      expect(branchGuard.allowedIndexTouches()).toBeGreaterThanOrEqual(1);
+      expect(branchGuard.allowedIndexTouches()).toBeLessThanOrEqual(3);
+    } finally {
+      rmSync(project, { recursive: true, force: true });
+    }
+  });
 
   it("passes fixed 10K/100K production gates with independent scan tripwires and sanitized evidence", async () => {
     rmSync(REPORT_PATH, { force: true });
@@ -193,10 +257,6 @@ describe("AILI Compact registered production-entry performance gate", () => {
         sessionPath: join(project, "fixture-session.jsonl"),
       });
       const providerInput = productionProviderInput(corpus.providerMessages);
-      const pureProviderInput = providerInput.filter((message) => message.customType !== TRANSIENT_SUFFIX_TYPE);
-      const pureProjection = buildPureProjection(corpus.entries, pureProviderInput, pureState, pureView);
-      const rawIdentity = new Map(corpus.providerMessages.map((item, index) => [item, index] as const));
-      const pureProjectionPattern = projectionPattern(pureProjection.messages, rawIdentity);
 
       const directHeapBefore = process.memoryUsage().heapUsed;
       const directStarted = performance.now();
@@ -228,6 +288,14 @@ describe("AILI Compact registered production-entry performance gate", () => {
       );
       expect(direct.snapshot.stats.retainedRecords).toBeLessThanOrEqual(direct.snapshot.stats.retainedRecordLimit);
       expect(getIndexedEntry(direct.snapshot, "production-000001")?.entry).toBe(corpus.entries[0]);
+      const oneNEntries = corpus.entries.slice(0, PROVIDER_MESSAGE_COUNT / 2);
+      const oneN = coldBuildBranchIndex({
+        key: branchKey(oneNEntries.at(-1)!.id),
+        entries: oneNEntries,
+      });
+      expect(oneN.ok).toBe(true);
+      if (!oneN.ok) return;
+      expect(direct.counters.rawSlotVisits).toBeLessThanOrEqual(2.5 * oneN.counters.rawSlotVisits);
       const structural = exerciseForkEpochLruAndCleanup(direct.snapshot);
 
       const heapBefore = process.memoryUsage().heapUsed;
@@ -243,13 +311,18 @@ describe("AILI Compact registered production-entry performance gate", () => {
       expect(coldDoctor.components.index.status).toBe("PASS");
       expect(coldCounters).toEqual(expect.objectContaining({
         entryVisits: 3 * entryCount,
+        rawSlotVisits: PROVIDER_MESSAGE_COUNT,
         atomMembershipVisits: atomEdges,
         fullRebuilds: 1,
-        fullReducerRuns: 0,
+        fullReducerRuns: 1,
+        pureAuditRuns: 1,
         fullScans: 0,
         fallbacks: 0,
         failOpenReturns: 0,
+        fullV3RuntimeViewBuilds: 0,
+        indexedV3RuntimeViewBuilds: 1,
       }));
+      expect(coldCounters.rawSlotVisits).toBeLessThanOrEqual(2.5 * PROVIDER_MESSAGE_COUNT);
       expect(coldCounters.entryVisits).toBeLessThanOrEqual(3 * entryCount);
       expect(coldCounters.atomMembershipVisits).toBeLessThanOrEqual(4 * atomEdges);
       expect(coldCounters.blockVisits).toBeLessThanOrEqual(4 * blockCount);
@@ -270,18 +343,21 @@ describe("AILI Compact registered production-entry performance gate", () => {
       expect(steadyDoctor.components.projection.status, ctx.statuses.at(-1)).toBe("PASS");
       expect(steadyDelta).toEqual({
         ...emptyBranchIndexCounters(),
-        providerMessagePasses: 1,
-        providerMessageVisits: PROVIDER_MESSAGE_COUNT,
       });
-      expect(providerGuard.numericReads()).toBe(PROVIDER_MESSAGE_COUNT);
-      expect(providerGuard.repeatedNumericReads()).toBe(0);
-      expect(providerGuard.objectKeyWalks()).toBe(PROVIDER_MESSAGE_COUNT);
-      expect(providerGuard.repeatedObjectKeyWalks()).toBe(0);
-      expect(providerGuard.repeatedPropertyReads()).toBe(0);
-      expect(corpus.entryGuard.touches()).toBe(0);
-      expect(branchGuard.oldIndexTouches()).toBe(0);
-      expect(branchGuard.allowedIndexTouches()).toBe(0);
-      expect(projectionPattern(productionProjection.messages, providerGuard.identityToOrdinal)).toEqual(pureProjectionPattern);
+      expect(steadyDelta.fullV3RuntimeViewBuilds).toBe(0);
+      expect(steadyDelta.indexedV3RuntimeViewBuilds).toBe(0);
+       expect(providerGuard.numericReads()).toBe(2);
+       expect(providerGuard.repeatedNumericReads()).toBe(0);
+       expect(providerGuard.objectKeyWalks()).toBeGreaterThanOrEqual(2);
+       expect(providerGuard.objectKeyWalks()).toBeLessThanOrEqual(6);
+       expect(providerGuard.repeatedObjectKeyWalks()).toBeLessThanOrEqual(4);
+       expect(providerGuard.repeatedPropertyReads()).toBeLessThanOrEqual(16);
+       expect(corpus.entryGuard.touches()).toBe(0);
+       expect(branchGuard.oldIndexTouches()).toBe(0);
+       expect(branchGuard.allowedIndexTouches()).toBe(0);
+       expect(productionProjection.messages).toHaveLength(8);
+       expect(projectionPattern(productionProjection.messages, providerGuard.identityToOrdinal))
+         .toEqual(expect.arrayContaining(["source:9998", "source:9999"]));
 
       let referenceOperations = 0;
       let referencePageCalls = 0;
@@ -329,14 +405,14 @@ describe("AILI Compact registered production-entry performance gate", () => {
       );
       corpus.entries.push(appended);
       ctx.setLeafId(appended.id);
-      const appendedProviderMessages = [...providerInput, appended.message as Record<string, unknown>];
-      const appendedProviderGuard = guardProviderMessages(appendedProviderMessages);
-      const appendStarted = performance.now();
-      runtime.handlers.get("context")!(
-        { type: "context", messages: appendedProviderGuard.messages },
-        ctx,
-      );
-      const appendDurationMs = performance.now() - appendStarted;
+       const appendedProviderMessages = [...providerInput, appended.message as Record<string, unknown>];
+       const appendedProviderGuard = guardProviderMessages(appendedProviderMessages);
+       const appendStarted = performance.now();
+       runtime.handlers.get("context")!(
+         { type: "context", messages: appendedProviderGuard.messages },
+         ctx,
+       );
+       const appendDurationMs = performance.now() - appendStarted;
       const afterAppendDoctor = await doctor(runtime, ctx);
       const afterAppend = indexCounters(afterAppendDoctor);
       const appendDelta = counterDelta(afterLookup, afterAppend);
@@ -344,25 +420,45 @@ describe("AILI Compact registered production-entry performance gate", () => {
       expect(appendDelta).toEqual({
         ...emptyBranchIndexCounters(),
         entryVisits: 3,
-        atomMembershipVisits: 3,
-        hashOps: 6,
-        providerMessagePasses: 1,
-        providerMessageVisits: PROVIDER_MESSAGE_COUNT + 1,
-        incrementalAppends: 1,
-      });
-      expect(appendDelta.preTipEntryVisits).toBe(0);
-      expect(appendDelta.entryVisits).toBeLessThanOrEqual(3);
+         rawSlotVisits: 1,
+         atomMembershipVisits: 3,
+         hashOps: 6,
+         providerFrontierDescriptorDerivations: 3,
+         providerFrontierOmittedRawMessages: 9_997,
+         providerFrontierOmittedRawBytes: 514_006,
+         providerFrontierInvalidations: 1,
+         incrementalAppends: 1,
+       });
+       expect(appendDelta.preTipEntryVisits).toBe(0);
+       expect(appendDelta.entryVisits).toBeLessThanOrEqual(3);
       expect(appendDelta.fullRebuilds).toBe(0);
-      expect(appendedProviderGuard.numericReads()).toBe(PROVIDER_MESSAGE_COUNT + 1);
-      expect(appendedProviderGuard.repeatedNumericReads()).toBe(0);
+       expect(appendedProviderGuard.numericReads()).toBe(2);
+       expect(appendedProviderGuard.repeatedNumericReads()).toBe(0);
       expect(appendedProviderGuard.repeatedObjectKeyWalks()).toBe(0);
       expect(appendedProviderGuard.repeatedPropertyReads()).toBe(0);
-      expect(corpus.entryGuard.touches()).toBe(0);
-      expect(branchGuard.oldIndexTouches()).toBe(0);
-      expect(branchGuard.allowedIndexTouches()).toBeGreaterThanOrEqual(1);
-      expect(branchGuard.allowedIndexTouches()).toBeLessThanOrEqual(3);
+       expect(corpus.entryGuard.touches()).toBe(0);
+       expect(branchGuard.oldIndexTouches()).toBe(0);
+       expect(branchGuard.allowedIndexTouches()).toBeGreaterThanOrEqual(1);
+       expect(branchGuard.allowedIndexTouches()).toBeLessThanOrEqual(3);
 
-      // A declared fault is allowed to rebuild. Disarm the independent scan
+       const postSourceTransitionGuard = guardProviderMessages(appendedProviderMessages);
+       runtime.handlers.get("context")!(
+         { type: "context", messages: postSourceTransitionGuard.messages },
+         ctx,
+       );
+       const postSourceTransitionDoctor = await doctor(runtime, ctx);
+       const postSourceTransitionCounters = indexCounters(postSourceTransitionDoctor);
+       const postSourceTransitionDelta = counterDelta(afterAppend, postSourceTransitionCounters);
+       expect(postSourceTransitionDoctor.components.projection.status).toBe("PASS");
+       expect(postSourceTransitionDelta).toEqual({
+         ...emptyBranchIndexCounters(),
+       });
+       expect(postSourceTransitionGuard.numericReads()).toBe(2);
+       expect(postSourceTransitionGuard.repeatedNumericReads()).toBe(0);
+       expect(corpus.entryGuard.touches()).toBe(0);
+       expect(branchGuard.oldIndexTouches()).toBe(0);
+
+       // A declared fault is allowed to rebuild. Disarm the independent scan
       // tripwire first, then prove exact input fail-open and truthful counters.
       corpus.entryGuard.disarm();
       branchGuard.disarm();
@@ -382,9 +478,9 @@ describe("AILI Compact registered production-entry performance gate", () => {
       );
       const faultDurationMs = performance.now() - faultStarted;
       expect(faultOutput.messages).toBe(faultMessages);
-      const faultDoctor = await doctor(runtime, ctx);
-      const faultCounters = indexCounters(faultDoctor);
-      const faultDelta = counterDelta(afterAppend, faultCounters);
+       const faultDoctor = await doctor(runtime, ctx);
+       const faultCounters = indexCounters(faultDoctor);
+       const faultDelta = counterDelta(postSourceTransitionCounters, faultCounters);
       expect(faultDoctor.components.index.status).toBe("ERROR");
       expect(faultDelta.fullRebuilds).toBe(1);
       expect(faultDelta.fallbacks).toBe(2);
@@ -436,7 +532,7 @@ describe("AILI Compact registered production-entry performance gate", () => {
             repeatedProviderReads: 0,
             oldBranchEntryTouches: branchGuard.oldIndexTouches(),
             sourceObjectTouches: corpus.entryGuard.touches(),
-            pureProjectionOrderEqual: true,
+            boundedFrontierMessageCount: productionProjection.messages.length,
             comparative: { durationMs: roundMillis(steadyDurationMs) },
           },
           scopedReferencePaging: {
@@ -454,6 +550,11 @@ describe("AILI Compact registered production-entry performance gate", () => {
             delta: appendDelta,
             preTipSourceTouches: branchGuard.oldIndexTouches(),
             comparative: { durationMs: roundMillis(appendDurationMs) },
+          },
+          postSourceTransitionSteady: {
+            status: "PASS",
+            delta: postSourceTransitionDelta,
+            sourceTransitionInvalidated: appendDelta.providerFrontierInvalidations === 1,
           },
           injectedFault: {
             status: "PASS",
@@ -509,16 +610,17 @@ function extensionHarness() {
   const tools = new Map<string, RegisteredTool>();
   const commands = new Map<string, RegisteredCommand>();
   const handlers = new Map<string, Handler>();
+  const appendedEntries: Array<{ type: string; data: unknown }> = [];
   registerAiliCompact({
     registerTool(tool: RegisteredTool) { tools.set(tool.name, tool); },
     registerCommand(name: string, command: { handler: RegisteredCommand }) { commands.set(name, command.handler); },
     on(event: string, handler: Handler) { handlers.set(event, handler); },
-    appendEntry() {},
+    appendEntry(type: string, data: unknown) { appendedEntries.push({ type, data }); },
     sendUserMessage() {},
     getAllTools() { return [...tools.values()].map((tool) => ({ name: tool.name, description: tool.name, parameters: {} })); },
     getActiveTools() { return [...tools.keys()]; },
   } as unknown as ExtensionAPI);
-  return { tools, commands, handlers };
+  return { tools, commands, handlers, appendedEntries };
 }
 
 function extensionContext(
@@ -526,10 +628,12 @@ function extensionContext(
   entries: BranchSessionEntry[],
   initialLeafId: string,
   sessionId: string,
+  initialUsage = { tokens: 100, contextWindow: 128_000 },
 ) {
   const notifications: string[] = [];
   const statuses: string[] = [];
   let leafId: string | null = initialLeafId;
+  let usage = initialUsage;
   return {
     cwd: project,
     model: {
@@ -546,7 +650,7 @@ function extensionContext(
     },
     isIdle: () => true,
     hasPendingMessages: () => false,
-    getContextUsage: () => ({ tokens: 100, contextWindow: 128_000 }),
+    getContextUsage: () => usage,
     compact() {},
     sessionManager: {
       getSessionId: () => sessionId,
@@ -555,6 +659,7 @@ function extensionContext(
       getBranch: () => entries,
     },
     setLeafId(value: string | null) { leafId = value; },
+    setContextUsage(value: typeof initialUsage) { usage = value; },
     ui: {
       setStatus(_key: string, value: string) { statuses.push(value); },
       setWidget() {},
@@ -580,7 +685,10 @@ async function compactStatus(
 ): Promise<any> {
   const result = await runtime.tools.get("aili_compact_status")!.execute("status", params, undefined, undefined, ctx);
   if (result.isError) throw new Error(result.content?.[0]?.text ?? "compact status failed");
-  return JSON.parse(result.content[0].text);
+  const parsed = JSON.parse(result.content[0].text);
+  return parsed && typeof parsed === "object" && "attestation" in parsed && "result" in parsed
+    ? parsed.result
+    : parsed;
 }
 
 function indexCounters(report: any): BranchIndexCounters {
@@ -770,24 +878,27 @@ function guardProviderMessages(messages: readonly Record<string, unknown>[]): Pr
   const guardedMessages = messages.map((message, ordinal) => {
     let keyWalks = 0;
     const propertyReads = new Map<PropertyKey, number>();
+    const currentTail = ordinal >= Math.max(0, messages.length - 2);
     const guarded = new Proxy(message, {
       ownKeys(target) {
         keyWalks += 1;
         objectKeyWalks += 1;
-        if (keyWalks > 1) {
+        if (keyWalks > 1 && !currentTail) {
           repeatedObjectKeyWalks += 1;
           throw new Error(`provider message ${ordinal} was enumerated more than once`);
         }
+        if (keyWalks > 1) repeatedObjectKeyWalks += 1;
         return Reflect.ownKeys(target);
       },
       get(target, property, receiver) {
         if (Object.prototype.hasOwnProperty.call(target, property)) {
           const reads = (propertyReads.get(property) ?? 0) + 1;
           propertyReads.set(property, reads);
-          if (reads > 1) {
+          if (reads > 1 && !currentTail) {
             repeatedPropertyReads += 1;
             throw new Error(`provider message ${ordinal} property ${String(property)} was reread`);
           }
+          if (reads > 1) repeatedPropertyReads += 1;
         }
         return Reflect.get(target, property, receiver);
       },
@@ -806,6 +917,9 @@ function guardProviderMessages(messages: readonly Record<string, unknown>[]): Pr
         const reads = (perIndex.get(index) ?? 0) + 1;
         perIndex.set(index, reads);
         numericReads += 1;
+        if (index < Math.max(0, target.length - 2)) {
+          throw new Error(`provider message container read historical index ${index}`);
+        }
         if (reads > 1) {
           repeatedNumericReads += 1;
           throw new Error(`provider message container index ${index} was reread`);
@@ -826,31 +940,6 @@ function guardProviderMessages(messages: readonly Record<string, unknown>[]): Pr
     repeatedObjectKeyWalks: () => repeatedObjectKeyWalks,
     repeatedPropertyReads: () => repeatedPropertyReads,
   };
-}
-
-function buildPureProjection(
-  entries: readonly BranchSessionEntry[],
-  messages: readonly Record<string, unknown>[],
-  state: ReturnType<typeof reduceCompactState>,
-  view: V3RuntimeView,
-) {
-  const alignment = alignEntriesToMessages(entries, messages);
-  expect(alignment.diagnostic).toBeUndefined();
-  const legacy = projectMessages(messages, state, alignment.byEntryId, {
-    blockReferenceFor: (blockId) => view.blockRefById.get(blockId),
-  });
-  expect(legacy.diagnostic).toBeUndefined();
-  const projectedAlignment = alignEntriesToMessages(entries, legacy.messages);
-  expect(projectedAlignment.diagnostic).toBeUndefined();
-  const v3 = projectV3Messages({
-    replay: view.replay,
-    entries,
-    messages: legacy.messages,
-    alignment: projectedAlignment,
-    blockReferenceFor: (blockId) => view.blockRefById.get(blockId),
-  });
-  expect(v3.diagnostic).toBeUndefined();
-  return v3;
 }
 
 function projectionPattern(

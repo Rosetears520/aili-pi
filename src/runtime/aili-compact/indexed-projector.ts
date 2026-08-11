@@ -1,404 +1,376 @@
 import {
+  addBranchIndexCounters,
+  branchIndexKeyId,
+  descriptorCanonical,
   describeOwnedProviderMessage,
-  getBranchProtocolAtomForEntry,
-  getIndexedBlock,
+  getIndexedEntry,
+  readBranchProviderFrontierSources,
+  type BranchIndexCounters,
   type BranchIndexSnapshot,
-  type BranchProviderAlignmentResult,
   type BranchProviderMessageDescriptor,
 } from "./branch-index.js";
 import {
+  digest,
   digestCanonicalJson,
+  type CompactBlock,
   type CompactState,
 } from "./contracts.js";
+import { type ProjectionMessage } from "./projector.js";
 import {
-  semanticRecapProjection,
-  type ProjectionMessage,
-} from "./projector.js";
-import { activeBlocks } from "./reducer.js";
-import { TOOL_COOLING_PROFILE_VERSION } from "./cooling-profiles.js";
-import { v3RecapProjection } from "./v3-projector.js";
-import {
-  v3LeafEntryIds,
-  type V3RuntimeView,
-} from "./v3-runtime.js";
+  MAX_PROVIDER_FRONTIER_DESCRIPTORS,
+  providerFrontierDescriptorIdentity,
+  providerFrontierDescriptorMessage,
+  providerFrontierProjectionIdentity,
+  providerFrontierSelectionResultMatches,
+  providerFrontierSelectionMatches,
+  type ProviderFrontierBlock,
+  type ProviderFrontierSelection,
+} from "./provider-frontier.js";
+import { estimateTokenBounds, type ResolvedTokenBoundProfile } from "./safe-planning.js";
+import { type V3RuntimeView } from "./v3-runtime.js";
+import type { V3SemanticBlock } from "./v3.js";
 
-interface IndexedProjectionItem<T extends ProjectionMessage> {
-  message: T;
-  descriptor: BranchProviderMessageDescriptor;
-  entryId?: string;
-}
-
-interface ProjectionLookup {
-  callersByKey: ReadonlyMap<string, readonly number[]>;
-  resultsByCallId: ReadonlyMap<string, readonly number[]>;
-}
-
-export interface IndexedProviderProjectionInput<T extends ProjectionMessage> {
+export interface IndexedProviderFrontierInput {
   snapshot: BranchIndexSnapshot;
-  alignment: BranchProviderAlignmentResult;
   state: CompactState;
   view: V3RuntimeView;
-  blockReferenceFor: (blockId: string) => string | undefined;
+  protectedEntryIds: readonly string[];
+  configIdentity: string;
+  profile: ResolvedTokenBoundProfile;
+  contextWindow?: number;
+  safetyReserve?: number;
+  selection?: ProviderFrontierSelection;
 }
 
-export interface IndexedProviderProjectionResult<T extends ProjectionMessage> {
-  messages: readonly T[];
+export interface IndexedProviderFrontierResult {
+  messages: readonly ProjectionMessage[];
   canonicalMessages: string;
   hash: string;
   structuredToolPartCount: number;
   hasBinaryOrImage: boolean;
   projectedBlockIds: readonly string[];
+  descriptorIdentity: string;
+  identity: string;
+  tokenUpper: number;
+  selectionExpanded: boolean;
+  counters: BranchIndexCounters;
   diagnostic?: string;
 }
 
 /**
- * Production-only projection over the immutable descriptor captured by
- * BranchIndex's one provider pass.  It never reads a provider or Session source
- * object; changed messages are AILI-owned recaps or body-only cooling stubs.
+ * Builds the provider-only active frontier directly from immutable ledger
+ * snapshots. Historical raw provider messages never enter alignment or
+ * canonicalization on this healthy path.
  */
-export function projectIndexedProviderMessages<T extends ProjectionMessage>(
-  input: IndexedProviderProjectionInput<T>,
-): IndexedProviderProjectionResult<T> {
-  const fail = (diagnostic: string): IndexedProviderProjectionResult<T> => ({
-    messages: input.alignment.messages as readonly T[],
-    canonicalMessages: input.alignment.canonicalMessages,
-    hash: input.alignment.hash,
-    structuredToolPartCount: input.alignment.structuredToolPartCount,
-    hasBinaryOrImage: input.alignment.hasBinaryOrImage,
+export function projectIndexedProviderFrontier(input: IndexedProviderFrontierInput): IndexedProviderFrontierResult {
+  const source = readBranchProviderFrontierSources(input.snapshot, input.protectedEntryIds);
+  const fail = (diagnostic: string, counters: BranchIndexCounters = source.counters): IndexedProviderFrontierResult => ({
+    messages: [],
+    canonicalMessages: "[]",
+    hash: digestCanonicalJson("[]"),
+    structuredToolPartCount: 0,
+    hasBinaryOrImage: false,
     projectedBlockIds: [],
+    descriptorIdentity: "unavailable",
+    identity: "unavailable",
+    tokenUpper: 0,
+    selectionExpanded: false,
+    counters,
     diagnostic,
   });
-  if (input.alignment.diagnostic) return fail(`alignment:${input.alignment.diagnostic}`);
-  if (input.state.enabled && input.alignment.protocolDiagnostic) return fail(input.alignment.protocolDiagnostic);
+  if (!source.ok) return fail(source.diagnostic, source.counters);
   if (input.snapshot.key.epochId !== input.state.epochId || input.view.state.epochId !== input.state.epochId) {
+    source.counters.providerFrontierFallbacks += 1;
     return fail("stale-epoch");
   }
-
-  const entryIdByOriginalIndex = new Map<number, string>();
-  for (const [entryId, originalIndex] of input.alignment.byEntryId) {
-    if (entryIdByOriginalIndex.has(originalIndex)) return fail("alignment-duplicate-index");
-    entryIdByOriginalIndex.set(originalIndex, entryId);
+  const active = frontierBlocks(input.state, input.view);
+  const descriptors = active.slice(0, MAX_PROVIDER_FRONTIER_DESCRIPTORS);
+  const descriptorIdentity = providerFrontierDescriptorIdentity(descriptors);
+  const selectionCurrent = providerFrontierSelectionMatches(
+    input.selection,
+    active,
+    {
+      ...selectionBindingScope(input.snapshot, source.sources, input.protectedEntryIds, input.selection),
+      configIdentity: input.configIdentity,
+      profile: input.profile,
+      contextWindow: input.contextWindow,
+      safetyReserve: input.safetyReserve,
+    },
+  );
+  if (input.selection && !selectionCurrent) source.counters.providerFrontierInvalidations += 1;
+  const committedCompactIds = new Set([...input.view.state.blocks.values()]
+    .filter((block) => block.active && !block.queryOnly && block.epochId === input.view.state.epochId)
+    .map((block) => block.transactionId));
+  const retained = retainCurrentSelectionSources(source.sources, input.selection, selectionCurrent, active, committedCompactIds);
+  const selectionExpanded = selectionCurrent && retained.selectionRetained;
+  if (selectionCurrent && !selectionExpanded) source.counters.providerFrontierInvalidations += 1;
+  const descriptorMessages = descriptors.map(providerFrontierDescriptorMessage);
+  source.counters.providerFrontierDescriptorDerivations = descriptors.length;
+  source.counters.providerFrontierSelectedExpansions = selectionExpanded ? input.selection!.binding.blockRefs.length : 0;
+  const messages = [...retained.messages, ...descriptorMessages];
+  const described = messages.map((message) => describeOwnedProviderMessage(message));
+  const protocolDiagnostic = validateDescriptorProtocol(described);
+  if (protocolDiagnostic) {
+    source.counters.providerFrontierFallbacks += 1;
+    return fail(protocolDiagnostic);
   }
-  let items: IndexedProjectionItem<T>[] = input.alignment.descriptors.map((descriptor) => ({
-    message: descriptor.message as T,
-    descriptor,
-    ...(entryIdByOriginalIndex.get(descriptor.originalIndex)
-      ? { entryId: entryIdByOriginalIndex.get(descriptor.originalIndex)! }
-      : {}),
-  }));
-
-  const legacy = projectLegacy(items, input);
-  if ("diagnostic" in legacy) return fail(legacy.diagnostic);
-  items = legacy.items;
-
-  const v3 = projectV3(items, input);
-  if ("diagnostic" in v3) return fail(v3.diagnostic);
-  items = v3.items;
-  const protocolDiagnostic = validateDescriptorProtocol(items.map((item) => item.descriptor));
-  if (protocolDiagnostic) return fail(protocolDiagnostic);
-
-  const canonicalMessages = `[${items.map((item) => item.descriptor.canonical).join(",")}]`;
+  const canonicalMessages = `[${described.map(descriptorCanonical).join(",")}]`;
+  const structuredToolPartCount = described.reduce((sum, descriptor) => sum + descriptor.structuredToolPartCount, 0);
+  const tokenUpper = estimateTokenBounds({
+    utf8Bytes: Buffer.byteLength(canonicalMessages, "utf8"),
+    messageCount: messages.length,
+    structuredToolPartCount,
+  }, input.profile).upper;
+  const hasContextBudget = validContextBudget(input.contextWindow, input.safetyReserve);
+  const overBudget = hasContextBudget && tokenUpper + input.safetyReserve! > input.contextWindow!;
+  if (selectionExpanded && (!hasContextBudget || overBudget)) {
+    source.counters.providerFrontierInvalidations += 1;
+    source.counters.providerFrontierFallbacks += 1;
+    const fallback = projectIndexedProviderFrontier({ ...input, selection: undefined });
+    return { ...fallback, counters: addBranchIndexCounters(source.counters, fallback.counters) };
+  }
+  if (overBudget) {
+    source.counters.providerFrontierFallbacks += 1;
+    return fail("frontier-over-budget");
+  }
+  const identity = providerFrontierProjectionIdentity({
+    branchKeyId: input.snapshot.keyId,
+    sourceRevision: input.snapshot.sourceDigest,
+    proofRevision: input.snapshot.replayDigest,
+    descriptorIdentity,
+    configIdentity: input.configIdentity,
+    profileKey: input.profile.profileKey,
+    contextWindow: input.contextWindow ?? 0,
+    safetyReserve: input.safetyReserve ?? 0,
+    protectedEntryIds: input.protectedEntryIds,
+    selectedBlockRefs: selectionExpanded ? input.selection!.binding.blockRefs : [],
+  });
   return {
-    messages: items.map((item) => item.message),
+    messages,
     canonicalMessages,
     hash: digestCanonicalJson(canonicalMessages),
-    structuredToolPartCount: items.reduce((sum, item) => sum + item.descriptor.structuredToolPartCount, 0),
-    hasBinaryOrImage: items.some((item) => item.descriptor.hasBinaryOrImage),
-    projectedBlockIds: v3.projectedBlockIds,
+    structuredToolPartCount,
+    hasBinaryOrImage: described.some((descriptor) => descriptor.hasBinaryOrImage),
+    projectedBlockIds: descriptors.map((block) => block.blockId),
+    descriptorIdentity,
+    identity,
+    tokenUpper,
+    selectionExpanded,
+    counters: source.counters,
   };
 }
 
-function projectLegacy<T extends ProjectionMessage>(
-  items: readonly IndexedProjectionItem<T>[],
-  input: IndexedProviderProjectionInput<T>,
-): { items: IndexedProjectionItem<T>[] } | { diagnostic: string } {
-  if (!input.state.enabled) return { items: [...items] };
-  const positionByEntryId = itemPositions(items);
-  const hidden = new Set<number>();
-  const stubs = new Map<number, string>();
-  const recaps = new Map<number, readonly IndexedProjectionItem<T>[]>();
-  const claimed = new Set<number>();
-  const lastUserIndex = findLastRole(items, "user");
-  const activeSemanticIds = new Set<string>();
-  const lookup = projectionLookup(items);
-
-  for (const block of activeBlocks(input.state)) {
-    const indexed = getIndexedBlock(input.snapshot, block.id);
-    if (!indexed
-      || indexed.sourceDigest !== block.sourceDigest
-      || !sameStrings(indexed.sourceEntryIds, block.sourceEntryIds)) {
-      return { diagnostic: `digest-mismatch:${block.id}` };
-    }
-    const positions = block.sourceEntryIds.map((entryId) => positionByEntryId.get(entryId));
-    if (positions.some((position) => position === undefined)) return { diagnostic: `unaligned-block:${block.id}` };
-    const selected = positions as number[];
-    if (new Set(selected).size !== selected.length || selected.some((position) => claimed.has(position))) {
-      return { diagnostic: `protected-range:${block.id}` };
-    }
-    if (block.kind !== "cool" && lastUserIndex !== undefined && selected.includes(lastUserIndex)) {
-      return { diagnostic: `protected-range:${block.id}` };
-    }
-    const selectedEntryIds = new Set(block.sourceEntryIds);
-    for (const entryId of block.sourceEntryIds) {
-      const atom = getBranchProtocolAtomForEntry(input.snapshot, entryId);
-      if (atom && (atom.kind === "tool-protocol" || atom.kind === "remainder")
-        && atom.entryIds.some((atomEntryId) => !selectedEntryIds.has(atomEntryId))) {
-        return { diagnostic: `protocol-block:${block.id}` };
-      }
-    }
-    selected.forEach((position) => claimed.add(position));
-    if (block.kind === "cool") {
-      if (!block.stub || selected.some((position) => items[position]?.descriptor.role !== "toolResult")) {
-        return { diagnostic: `invalid-stub:${block.id}` };
-      }
-      selected.forEach((position) => stubs.set(position, block.stub!));
-      continue;
-    }
-    selected.forEach((position) => hidden.add(position));
-    if (block.kind !== "semantic") continue;
-    const anchorEntryId = block.anchorEntryId ?? block.sourceEntryIds[0];
-    const anchor = anchorEntryId ? positionByEntryId.get(anchorEntryId) : undefined;
-    const blockRef = input.blockReferenceFor(block.id);
-    if (anchor === undefined || !selected.includes(anchor) || !blockRef || recaps.has(anchor)) {
-      return { diagnostic: `invalid-recap-anchor:${block.id}` };
-    }
-    const recap = semanticRecapProjection(block, blockRef);
-    recaps.set(anchor, [ownedItem<T>(recap.call), ownedItem<T>(recap.result)]);
-    activeSemanticIds.add(block.id);
-  }
-
-  if (activeSemanticIds.size > 0) {
-    for (let resultIndex = 0; resultIndex < items.length; resultIndex += 1) {
-      const descriptor = items[resultIndex]!.descriptor;
-      if (descriptor.role !== "toolResult"
-        || descriptor.toolName !== "aili_compact"
-        || !descriptor.toolCallId
-        || !descriptor.committedLegacyBlockIds.some((blockId) => activeSemanticIds.has(blockId))) continue;
-      const callers = lookup.callersByKey.get(callKey(descriptor.toolCallId, "aili_compact")) ?? [];
-      if (callers.length === 1 && callers[0]! < resultIndex) {
-        hidden.add(callers[0]!);
-        hidden.add(resultIndex);
-      }
-    }
-  }
-  return { items: construct(items, hidden, stubs, recaps) };
+/** Computes a default-frontier cache key without touching provider or raw source bodies. */
+export function indexedProviderFrontierCacheIdentity(input: Omit<IndexedProviderFrontierInput, "selection">): string | undefined {
+  if (!validContextBudget(input.contextWindow, input.safetyReserve)) return undefined;
+  const descriptors = frontierBlocks(input.state, input.view).slice(0, MAX_PROVIDER_FRONTIER_DESCRIPTORS);
+  return providerFrontierProjectionIdentity({
+    branchKeyId: input.snapshot.keyId,
+    sourceRevision: input.snapshot.sourceDigest,
+    proofRevision: input.snapshot.replayDigest,
+    descriptorIdentity: providerFrontierDescriptorIdentity(descriptors),
+    configIdentity: input.configIdentity,
+    profileKey: input.profile.profileKey,
+    contextWindow: input.contextWindow,
+    safetyReserve: input.safetyReserve!,
+    protectedEntryIds: input.protectedEntryIds,
+    selectedBlockRefs: [],
+  });
 }
 
-function projectV3<T extends ProjectionMessage>(
-  items: readonly IndexedProjectionItem<T>[],
-  input: IndexedProviderProjectionInput<T>,
-): { items: IndexedProjectionItem<T>[]; projectedBlockIds: readonly string[] } | { diagnostic: string } {
-  const maximal = input.view.replay.maximalActiveBlocks;
-  const cooling = input.view.state.cooling;
-  if (maximal.length === 0 && cooling.length === 0) return { items: [...items], projectedBlockIds: [] };
-  const positions = itemPositions(items);
-  const claimed = new Set<number>();
-  const recaps = new Map<number, readonly IndexedProjectionItem<T>[]>();
-  const projectedBlockIds: string[] = [];
-  const lookup = projectionLookup(items);
-
-  for (const block of maximal) {
-    if (block.quality.status !== "accepted" && block.quality.status !== "accepted-with-warnings") {
-      return { diagnostic: `quality-ineligible:${block.blockId}` };
-    }
-    const leaves = v3LeafEntryIds(input.view.state, block.blockId);
-    if (leaves.length === 0 || leaves.length !== block.leafCount) return { diagnostic: `leaf-invalid:${block.blockId}` };
-    const rawPositions = leaves.flatMap((entryId) => positions.get(entryId) === undefined ? [] : [positions.get(entryId)!]);
-    const hasRaw = rawPositions.length > 0;
-    if (hasRaw && rawPositions.length !== leaves.length) return { diagnostic: `alignment-gap:${block.blockId}` };
-    let selected: number[] | undefined;
-    if (hasRaw) {
-      if (!isConsecutive(rawPositions)) return { diagnostic: `leaf-gap:${block.blockId}` };
-      const selectedIds = new Set(leaves);
-      for (const entryId of leaves) {
-        const atom = getBranchProtocolAtomForEntry(input.snapshot, entryId);
-        if (!atom || atom.hardProtected || atom.entryIds.some((atomEntryId) => !selectedIds.has(atomEntryId))) {
-          return { diagnostic: `protocol-block:${block.blockId}` };
-        }
-      }
-      selected = rawPositions;
-    }
-    const childPositions = locateImmediateChildRecaps(items, lookup, block, input);
-    if (typeof childPositions === "string") return { diagnostic: childPositions };
-    if (selected && childPositions) return { diagnostic: `coverage-overlap:${block.blockId}` };
-    selected ??= childPositions;
-    if (!selected || selected.length === 0) return { diagnostic: `unaligned-block:${block.blockId}` };
-    for (const position of selected) {
-      if (claimed.has(position)) return { diagnostic: `coverage-overlap:${block.blockId}` };
-      claimed.add(position);
-    }
-    const blockRef = input.blockReferenceFor(block.blockId);
-    const anchor = selected[0]!;
-    if (!blockRef || recaps.has(anchor)) return { diagnostic: `invalid-recap-anchor:${block.blockId}` };
-    const recap = v3RecapProjection(block, blockRef);
-    recaps.set(anchor, [ownedItem<T>(recap.call), ownedItem<T>(recap.result)]);
-    projectedBlockIds.push(block.blockId);
-  }
-
-  const activeBlockIds = new Set(projectedBlockIds);
-  for (let resultIndex = 0; resultIndex < items.length; resultIndex += 1) {
-    const descriptor = items[resultIndex]!.descriptor;
-    if (descriptor.role !== "toolResult"
-      || descriptor.toolName !== "aili_compact"
-      || descriptor.isError
-      || !descriptor.toolCallId
-      || !descriptor.committedV3BlockId
-      || !activeBlockIds.has(descriptor.committedV3BlockId)) continue;
-    const callers = lookup.callersByKey.get(callKey(descriptor.toolCallId, "aili_compact")) ?? [];
-    if (callers.length !== 1 || callers[0]! >= resultIndex) continue;
-    for (const position of [callers[0]!, resultIndex]) {
-      if (claimed.has(position)) return { diagnostic: "coverage-overlap:commit-protocol" };
-      claimed.add(position);
-    }
-  }
-
-  const stubs = new Map<number, string>();
-  for (const record of cooling) {
-    const provenance = record.provenance;
-    if (provenance.epochId !== input.view.state.epochId) continue;
-    if (record.profileVersion !== TOOL_COOLING_PROFILE_VERSION
-      || provenance.sessionId !== input.view.state.sessionId
-      || provenance.branchLeafId !== input.view.state.branchLeafId
-      || record.targetEntryIds.length !== 1
-      || record.targetEntryIds[0] !== provenance.resultEntryId) return { diagnostic: "cooling-identity-mismatch" };
-    const call = input.alignment.descriptorByEntryId.get(provenance.callEntryId);
-    const result = input.alignment.descriptorByEntryId.get(provenance.resultEntryId);
-    if (!call || !result
-      || call.role !== "assistant"
-      || !call.namedToolCalls.some((candidate) => candidate.id === provenance.callId
-        && candidate.name?.trim().toLocaleLowerCase("en-US") === provenance.normalizedExactToolName)
-      || result.role !== "toolResult"
-      || result.toolCallId !== provenance.callId
-      || result.toolName?.trim().toLocaleLowerCase("en-US") !== provenance.normalizedExactToolName
-      || result.resultBodyDigest !== provenance.resultBodyDigest) return { diagnostic: "cooling-source-drift" };
-    const position = positions.get(provenance.resultEntryId);
-    if (position === undefined || claimed.has(position)) return { diagnostic: position === undefined ? "cooling-alignment-drift" : "coverage-overlap:cooling" };
-    const stub = `[tool-result cooled profile=${record.profile} body=${provenance.resultBodyDigest.slice(0, 16)} version=${record.profileVersion}]`.slice(0, 160);
-    const previous = stubs.get(position);
-    if (previous !== undefined && previous !== stub) return { diagnostic: "cooling-overlap" };
-    stubs.set(position, stub);
-  }
-  return { items: construct(items, claimed, stubs, recaps), projectedBlockIds };
+/** Exposes only current descriptor metadata plus selected summary text for the recap tool. */
+export function indexedProviderFrontierBlocks(state: CompactState, view: V3RuntimeView): readonly ProviderFrontierBlock[] {
+  return frontierBlocks(state, view);
 }
 
-function locateImmediateChildRecaps<T extends ProjectionMessage>(
-  items: readonly IndexedProjectionItem<T>[],
-  lookup: ProjectionLookup,
-  block: V3RuntimeView["replay"]["maximalActiveBlocks"][number],
-  input: IndexedProviderProjectionInput<T>,
-): number[] | undefined | string {
-  if (block.source.kind !== "blocks") return undefined;
-  const pairs: number[][] = [];
-  let present = 0;
-  for (const childId of block.source.childBlockIds) {
-    const child = input.view.state.blocks.get(childId);
-    const childRef = child ? input.blockReferenceFor(child.blockId) : undefined;
-    if (!child || !childRef) return `child-recap-invalid:${block.blockId}`;
-    const recap = v3RecapProjection(child, childRef);
-    const expected = [describeOwnedProviderMessage(recap.call), describeOwnedProviderMessage(recap.result)];
-    const callId = expected[1]!.toolCallId;
-    const callers = callId
-      ? lookup.callersByKey.get(callKey(callId, "aili_context_recap")) ?? []
+function frontierBlocks(state: CompactState, view: V3RuntimeView): ProviderFrontierBlock[] {
+  return view.catalog.blocks.flatMap((reference) => {
+    if (!reference.frontierEligible) return [];
+    if (reference.family === "legacy") {
+      const block = state.blocks.get(reference.blockId);
+      return block?.active ? [legacyFrontierBlock(block, reference.ref)] : [];
+    }
+    const block = view.state.blocks.get(reference.blockId);
+    return block?.active && !block.queryOnly && block.epochId === view.state.epochId
+      ? [v3FrontierBlock(block, reference.ref)]
       : [];
-    const results = callId ? lookup.resultsByCallId.get(callId) ?? [] : [];
-    if (callers.length > 1 || results.length > 1) return `child-recap-invalid:${block.blockId}`;
-    if (callers.length === 1 || results.length === 1) {
-      if (callers.length !== 1 || results.length !== 1 || results[0] !== callers[0]! + 1
-        || items[callers[0]!]!.descriptor.canonical !== expected[0]!.canonical
-        || items[results[0]!]!.descriptor.canonical !== expected[1]!.canonical) {
-        return `child-recap-invalid:${block.blockId}`;
-      }
-      present += 1;
-      pairs.push([callers[0]!, results[0]!]);
-    }
-  }
-  if (present === 0) return undefined;
-  if (present !== block.source.childBlockIds.length) return `child-recap-gap:${block.blockId}`;
-  const flat = pairs.flat();
-  return isConsecutive(flat) ? flat : `leaf-gap:${block.blockId}`;
+  });
 }
 
-function construct<T extends ProjectionMessage>(
-  items: readonly IndexedProjectionItem<T>[],
-  hidden: ReadonlySet<number>,
-  stubs: ReadonlyMap<number, string>,
-  recaps: ReadonlyMap<number, readonly IndexedProjectionItem<T>[]>,
-): IndexedProjectionItem<T>[] {
-  const result: IndexedProjectionItem<T>[] = [];
-  for (let index = 0; index < items.length; index += 1) {
-    result.push(...(recaps.get(index) ?? []));
-    if (hidden.has(index)) continue;
-    const item = items[index]!;
-    const stub = stubs.get(index);
-    result.push(stub === undefined ? item : stubbedItem(item, stub));
-  }
-  return result;
-}
-
-function stubbedItem<T extends ProjectionMessage>(item: IndexedProjectionItem<T>, stub: string): IndexedProjectionItem<T> {
-  if (!item.descriptor.shallowEntries) return item;
-  const message = Object.fromEntries(item.descriptor.shallowEntries) as T;
-  message.content = item.descriptor.contentIsArray ? [{ type: "text", text: stub }] : stub;
+function legacyFrontierBlock(block: CompactBlock, blockRef: string): ProviderFrontierBlock {
   return {
-    message,
-    descriptor: describeOwnedProviderMessage(message),
-    ...(item.entryId ? { entryId: item.entryId } : {}),
+    blockId: block.id,
+    blockRef,
+    epochId: block.epochId,
+    schema: "legacy",
+    ...(block.topic ? { topic: block.topic } : {}),
+    sourceKind: block.mode ?? block.kind,
+    leafCount: block.sourceEntryIds.length,
+    sourceDigest: block.sourceDigest,
+    summaryDigest: digest(block.summary),
+    summary: block.summary,
   };
 }
 
-function ownedItem<T extends ProjectionMessage>(message: ProjectionMessage): IndexedProjectionItem<T> {
+function v3FrontierBlock(block: V3SemanticBlock, blockRef: string): ProviderFrontierBlock {
   return {
-    message: message as T,
-    descriptor: describeOwnedProviderMessage(message),
+    blockId: block.blockId,
+    blockRef,
+    epochId: block.epochId,
+    schema: "v3",
+    topic: block.topic,
+    sourceKind: block.source.kind,
+    leafCount: block.leafCount,
+    sourceDigest: block.leafDigest,
+    summaryDigest: block.summaryDigest,
+    summary: block.summary,
   };
 }
 
-function itemPositions<T extends ProjectionMessage>(items: readonly IndexedProjectionItem<T>[]): Map<string, number> {
-  const result = new Map<string, number>();
-  for (let index = 0; index < items.length; index += 1) {
-    const entryId = items[index]!.entryId;
-    if (entryId) result.set(entryId, index);
+function retainCurrentSelectionSources(
+  sources: readonly { entryId: string; message: Readonly<Record<string, unknown>> }[],
+  selection: ProviderFrontierSelection | undefined,
+  selectionCurrent: boolean,
+  activeBlocks: readonly ProviderFrontierBlock[],
+  committedCompactIds: ReadonlySet<string>,
+): { messages: ProjectionMessage[]; selectionRetained: boolean } {
+  const calls = new Map<string, { name: string }>();
+  for (const { message } of sources) {
+    const call = singleToolCall(message);
+    if (call) calls.set(call.id, { name: call.name });
   }
-  return result;
-}
-
-function findLastRole<T extends ProjectionMessage>(
-  items: readonly IndexedProjectionItem<T>[],
-  role: string,
-): number | undefined {
-  for (let index = items.length - 1; index >= 0; index -= 1) {
-    if (items[index]!.descriptor.role === role) return index;
-  }
-  return undefined;
-}
-
-function projectionLookup<T extends ProjectionMessage>(
-  items: readonly IndexedProjectionItem<T>[],
-): ProjectionLookup {
-  const callersByKey = new Map<string, number[]>();
-  const resultsByCallId = new Map<string, number[]>();
-  for (let index = 0; index < items.length; index += 1) {
-    const descriptor = items[index]!.descriptor;
-    if (descriptor.role === "assistant") {
-      for (const call of descriptor.namedToolCalls) {
-        if (!call.name) continue;
-        const key = callKey(call.id, call.name);
-        const positions = callersByKey.get(key) ?? [];
-        positions.push(index);
-        callersByKey.set(key, positions);
+  const keepSelection = selectionCurrent ? selection : undefined;
+  const selectionSourcesCurrent = keepSelection !== undefined
+    && sources.filter(({ message }) => {
+      const call = singleToolCall(message);
+      return call?.name === "aili_context_recap" && call.id === keepSelection.toolCallId;
+    }).length === 1
+    && sources.filter(({ message }) => message.role === "toolResult" && message.toolCallId === keepSelection.toolCallId).length === 1
+    && sources.some(({ message }) => providerFrontierSelectionResultMatches(
+      message as Record<string, unknown>,
+      keepSelection,
+      activeBlocks,
+    ));
+  const messages = sources.flatMap(({ message }) => {
+    const call = singleToolCall(message);
+    if (call?.name === "aili_context_recap") {
+      const current = selectionSourcesCurrent && keepSelection?.toolCallId === call.id;
+      return current ? [message as ProjectionMessage] : [];
+    }
+    if (call?.name === "aili_compact" && committedCompactIds.has(call.id)) return [];
+    if (call?.name.startsWith("aili_")) {
+      return [];
+    }
+    if (message.role === "toolResult" && typeof message.toolCallId === "string") {
+      const callName = calls.get(message.toolCallId)?.name;
+      if (callName === "aili_context_recap") {
+        const current = selectionSourcesCurrent
+          && keepSelection?.toolCallId === message.toolCallId
+          && providerFrontierSelectionResultMatches(message as Record<string, unknown>, keepSelection, activeBlocks)
+          && resultBodyDigest(message) === keepSelection.resultBodyDigest;
+        return current ? [message as ProjectionMessage] : [];
+      }
+      if (callName === "aili_compact" && committedCompactIds.has(message.toolCallId)) return [];
+      if (callName?.startsWith("aili_")) {
+        return [];
       }
     }
-    if (descriptor.role === "toolResult" && descriptor.toolCallId) {
-      const positions = resultsByCallId.get(descriptor.toolCallId) ?? [];
-      positions.push(index);
-      resultsByCallId.set(descriptor.toolCallId, positions);
-    }
-  }
-  return { callersByKey, resultsByCallId };
+    return [message as ProjectionMessage];
+  });
+  return { messages, selectionRetained: selectionSourcesCurrent };
 }
 
-function callKey(callId: string, name: string): string {
-  return `${callId}\u0000${name}`;
+/**
+ * A tool executes against the verified snapshot immediately before its recap
+ * call is appended. The current snapshot may contain only the protected
+ * call/result/request suffix; any other suffix entry makes the selection
+ * stale rather than widening the provider frontier.
+ */
+function selectionBindingScope(
+  snapshot: BranchIndexSnapshot,
+  sources: readonly { entryId: string; message: Readonly<Record<string, unknown>> }[],
+  protectedEntryIds: readonly string[],
+  selection: ProviderFrontierSelection | undefined,
+): {
+  branchKeyId?: string;
+  epochId?: string;
+  sourceRevision?: string;
+  proofRevision?: string;
+} {
+  if (!selection) return {};
+  const calls = sources.filter(({ message }) => {
+    const call = singleToolCall(message);
+    return call?.name === "aili_context_recap" && call.id === selection.toolCallId;
+  });
+  const results = sources.filter(({ message }) => message.role === "toolResult"
+    && message.toolCallId === selection.toolCallId);
+  const call = calls[0];
+  const result = results[0];
+  if (calls.length !== 1 || results.length !== 1 || !call || !result) return {};
+  const callRecord = getIndexedEntry(snapshot, call.entryId);
+  const resultRecord = getIndexedEntry(snapshot, result.entryId);
+  const priorRecord = callRecord?.parentId ? getIndexedEntry(snapshot, callRecord.parentId) : undefined;
+  if (!callRecord
+    || !resultRecord
+    || !priorRecord
+    || callRecord.epochId !== snapshot.key.epochId
+    || resultRecord.epochId !== snapshot.key.epochId
+    || resultRecord.parentId !== callRecord.entryId
+    || !selectionSuffixIsProtected(snapshot, callRecord.entryId, protectedEntryIds)) return {};
+  return {
+    branchKeyId: branchIndexKeyId({ ...snapshot.key, branchLeafId: priorRecord.entryId }),
+    epochId: snapshot.key.epochId,
+    sourceRevision: priorRecord.ancestryDigest,
+    proofRevision: snapshot.replayDigest,
+  };
+}
+
+function selectionSuffixIsProtected(
+  snapshot: BranchIndexSnapshot,
+  callEntryId: string,
+  protectedEntryIds: readonly string[],
+): boolean {
+  const protectedIds = new Set(protectedEntryIds);
+  let entryId = snapshot.tipEntryId;
+  for (let remaining = protectedIds.size + 1; entryId && remaining > 0; remaining -= 1) {
+    const entry = getIndexedEntry(snapshot, entryId);
+    if (!entry) return false;
+    if (entry.entryId === callEntryId) return protectedIds.has(entry.entryId);
+    if (!protectedIds.has(entry.entryId)) return false;
+    entryId = entry.parentId;
+  }
+  return false;
+}
+
+function singleToolCall(message: Readonly<Record<string, unknown>>): { id: string; name: string } | undefined {
+  if (message.role !== "assistant") return undefined;
+  const calls = Array.isArray(message.content)
+    ? message.content.filter((part): part is Record<string, unknown> => typeof part === "object" && part !== null
+      && (part as Record<string, unknown>).type === "toolCall")
+    : [];
+  if (calls.length !== 1) return undefined;
+  const call = calls[0]!;
+  return typeof call.name === "string" && typeof call.id === "string" ? { id: call.id, name: call.name } : undefined;
+}
+
+function resultBodyDigest(message: Readonly<Record<string, unknown>>): string {
+  const content = message.content;
+  const text = Array.isArray(content)
+    ? content.find((part) => typeof part === "object" && part !== null
+      && (part as Record<string, unknown>).type === "text"
+      && typeof (part as Record<string, unknown>).text === "string") as Record<string, unknown> | undefined
+    : undefined;
+  return digest(typeof text?.text === "string" ? text.text : typeof content === "string" ? content : "");
+}
+
+function validContextBudget(contextWindow: unknown, safetyReserve: unknown): contextWindow is number {
+  return typeof contextWindow === "number"
+    && Number.isSafeInteger(contextWindow)
+    && contextWindow > 0
+    && typeof safetyReserve === "number"
+    && Number.isSafeInteger(safetyReserve)
+    && safetyReserve >= 0
+    && safetyReserve < contextWindow;
 }
 
 function validateDescriptorProtocol(descriptors: readonly BranchProviderMessageDescriptor[]): string | undefined {
@@ -424,13 +396,4 @@ function validateDescriptorProtocol(descriptors: readonly BranchProviderMessageD
     pending.delete(descriptor.toolCallId);
   }
   return [...calls.keys()].every((id) => results.has(id)) ? undefined : "invalid-tool-pair";
-}
-
-function isConsecutive(values: readonly number[]): boolean {
-  return new Set(values).size === values.length
-    && values.every((value, index) => index === 0 || value === values[index - 1]! + 1);
-}
-
-function sameStrings(left: readonly string[], right: readonly string[]): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
 }

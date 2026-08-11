@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { access, copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import {
@@ -21,31 +21,13 @@ import {
 import {
   assertLiveCaptureClaims,
   atomicPublishLiveEvidence,
-  classifyRealOverflowAttempt,
-  compactLiveCaptureBudget,
-  COMPACT_HUMAN_REVIEW_CANDIDATE_PATH,
-  createProductionCompactScenario,
-  createCompactHumanReviewCandidate,
-  createPendingRepresentativeSemanticReview,
   executeLiveCaptureLifecycle,
-  observePersistentSandboxTask,
-  PERSISTENT_SANDBOX_MARKER_BYTES,
-  PERSISTENT_SANDBOX_MARKER_PATH,
-  PERSISTENT_SANDBOX_TASK_TEXT,
-  selectCompactLiveInput,
-  type CompactLiveCaptureBudget,
-  type CompactHumanReviewCandidateInput,
+  observePersistentBoundaryTask,
+  PERSISTENT_BOUNDARY_TASK_TEXT,
   type LiveCaptureBundle,
 } from "../../scripts/live-release-support.js";
 import {
-  COMPACT_LIVE_ROW_IDS,
-  nonPassCompactLiveRow,
-  reduceCompactLiveRow,
-  reduceInheritedCompactObservations,
-  type CompactLiveExpectedBinding,
   type CompactLiveProviderFamily,
-  type CompactLiveRowObservation,
-  type CompactScenarioEvent,
 } from "../../scripts/aili-compact-live-observations.js";
 import { PERSISTENT_LIVE_IMPLEMENTATION_PATHS } from "../../src/runtime/persistent-agents/live-evidence-contract.js";
 import { CoordinatorJournal, ensureSidecarLayout } from "../../src/runtime/persistent-agents/storage.js";
@@ -146,7 +128,7 @@ async function providerTransportProbe(
   const sessionDir = join(cwd, "sessions");
   await mkdir(join(cwd, ".pi"), { recursive: true });
   await mkdir(sessionDir, { recursive: true });
-  await writeFile(join(cwd, ".pi", "aili-compact.jsonc"), JSON.stringify({ autoCooling: false }));
+  await writeFile(join(cwd, ".pi", "aili-compact.jsonc"), JSON.stringify({ enabled: true, autoCooling: false }));
   const observations: string[] = [];
   const settings = SettingsManager.inMemory({
     compaction: { enabled: true, reserveTokens: 16_384, keepRecentTokens: 20_000 },
@@ -236,16 +218,14 @@ async function providerTransportProbe(
   }
 }
 
-async function persistentProviderAndSandboxProbe(runtime: ModelRuntime, selected: SelectedModel | undefined): Promise<JsonRecord[]> {
+async function persistentProviderBoundaryProbe(runtime: ModelRuntime, selected: SelectedModel | undefined): Promise<JsonRecord[]> {
   if (!selected) {
     return [
       { id: "provider-turn", status: "NON_PASS", changedFiles: 0, reason: "openai-model-unavailable" },
-      { id: "child-sandbox", status: "NON_PASS", changedFiles: 0, reason: "openai-model-unavailable" },
     ];
   }
   const cwd = join(liveRoot, "persistent-provider");
   const sessionDir = join(cwd, "sessions");
-  const marker = join(cwd, PERSISTENT_SANDBOX_MARKER_PATH);
   await mkdir(cwd, { recursive: true });
   await mkdir(sessionDir, { recursive: true });
   const settings = SettingsManager.inMemory({}, { projectTrusted: true });
@@ -277,24 +257,19 @@ async function persistentProviderAndSandboxProbe(runtime: ModelRuntime, selected
     resourceLoader: loader,
     settingsManager: settings,
     sessionManager: manager,
-    // Bash must be active in the parent tool snapshot so the persistent child
-    // can receive the process-owned sandboxed Bash definition requested by the
-    // task call. The parent prompt still directs the model to invoke task only.
-    tools: ["task", "bash"],
+    tools: ["task"],
     thinkingLevel: "off",
   });
   try {
     await created.session.prompt([
       "Call task exactly once.",
-      `Set task=${JSON.stringify(PERSISTENT_SANDBOX_TASK_TEXT)}, agent=general, async=false, tools=[bash], workspace=shared,`,
-      `writeScope.paths=[${PERSISTENT_SANDBOX_MARKER_PATH}], writeScope.resources=[].`,
+      `Set task=${JSON.stringify(PERSISTENT_BOUNDARY_TASK_TEXT)}, agent=general, async=false, tools=[], workspace=shared,`,
+      "writeScope.paths=[], writeScope.resources=[].",
     ].join(" "), { expandPromptTemplates: false, source: "extension" });
     const parent = assistantOutcome(created.session.state.messages);
-    const markerBody = await readFile(marker, "utf8").catch(() => "");
-    const taskObservation = observePersistentSandboxTask(created.session.state.messages, markerBody);
+    const taskObservation = observePersistentBoundaryTask(created.session.state.messages);
     const providerPass = parent.ok && taskObservation.taskArgumentsExact
       && taskObservation.zeroParentBashCalls && taskObservation.childLifecycleCompleted;
-    const sandboxPass = providerPass && taskObservation.markerExact;
     return [
       {
         id: "provider-turn",
@@ -312,28 +287,11 @@ async function persistentProviderAndSandboxProbe(runtime: ModelRuntime, selected
         childTurnStatus: taskObservation.childStatus ?? "unavailable",
         ...(taskObservation.reason ? { reason: taskObservation.reason } : {}),
       },
-      {
-        id: "child-sandbox",
-        status: sandboxPass ? "PASS" : "NON_PASS",
-        changedFiles: 0,
-        mode: "build",
-        workspace: "shared",
-        processOwnedSandbox: true,
-        taskArgumentsExact: taskObservation.taskArgumentsExact,
-        zeroParentBashCalls: taskObservation.zeroParentBashCalls,
-        childLifecycleCompleted: taskObservation.childLifecycleCompleted,
-        markerExact: taskObservation.markerExact,
-        childBashInspection: taskObservation.childBashInspection,
-        childBashInspectionReason: taskObservation.childBashInspectionReason,
-        markerDigest: markerBody ? sha256(markerBody) : undefined,
-        ...(taskObservation.reason ? { reason: taskObservation.reason } : {}),
-      },
     ];
   } catch (error) {
     const reason = boundedFailure(error);
     return [
       { id: "provider-turn", status: "NON_PASS", changedFiles: 0, provider: selected.provider, model: selected.id, api: selected.api, reason },
-      { id: "child-sandbox", status: "NON_PASS", changedFiles: 0, mode: "build", workspace: "shared", processOwnedSandbox: true, reason },
     ];
   } finally {
     created.session.dispose();
@@ -403,519 +361,6 @@ async function implementationBindings(): Promise<Record<string, string>> {
   )));
 }
 
-function compactRows(reason: Parameters<typeof nonPassCompactLiveRow>[1] = "required-production-events-missing"): Record<string, CompactLiveRowObservation> {
-  return Object.fromEntries(COMPACT_LIVE_ROW_IDS.map((id) => [id, nonPassCompactLiveRow(id, reason)]));
-}
-
-async function runCompactProviderScenarios(
-  runtime: ModelRuntime,
-  family: CompactLiveProviderFamily,
-  selected: SelectedModel,
-  binding: CompactLiveExpectedBinding,
-  captureBudget: CompactLiveCaptureBudget,
-): Promise<{
-  rows: Record<string, CompactLiveRowObservation>;
-  p0: JsonRecord;
-  longLifecycle: JsonRecord;
-  continuedWork: JsonRecord;
-  humanReviewCandidate?: JsonRecord;
-}> {
-  const events: CompactScenarioEvent[] = [];
-  const scenarioRoot = join(liveRoot, `compact-scenarios-${family}`);
-  const fixtureName = "bounded-tool-result.txt";
-  await mkdir(scenarioRoot, { recursive: true });
-  await writeFile(join(scenarioRoot, fixtureName), "BOUNDED_REAL_TOOL_RESULT\n", "utf8");
-  const scenario = await createProductionCompactScenario({
-    cwd: scenarioRoot,
-    sessionDir: join(scenarioRoot, "sessions"),
-    agentDir: configuredAgentDir,
-    productionEntry,
-    modelRuntime: runtime,
-    model: selected.model,
-    sessionId: `compact-scenarios-${family}`,
-    tools: ["read", "aili_search_context", "aili_compact_status", "aili_compact"],
-    config: { autoCooling: false, providerSuffix: { enabled: true } },
-    systemPrompt: [
-      "Follow each live verification instruction exactly and use only the named tool.",
-      `When asked for a real tool result, call read exactly once for ${fixtureName}.`,
-      "When asked for suffix search, call aili_search_context exactly once with query provider-only guidance.",
-      "When asked for archived lifecycle search, call aili_search_context exactly once with query RELEASE-CANDIDATE-42.",
-      "Never repeat source bodies in prose.",
-    ].join(" "),
-  });
-  let humanReviewCandidate: JsonRecord | undefined;
-  const stageFailures = new Set<"pressure-stage-failed" | "tool-stage-failed" | "suffix-stage-failed" | "lifecycle-stage-failed">();
-  let scenarioEventCursor = 0;
-  const drainScenarioEvents = () => {
-    events.push(...scenario.events.slice(scenarioEventCursor));
-    scenarioEventCursor = scenario.events.length;
-  };
-  const attempt = async (failure: "pressure-stage-failed" | "tool-stage-failed" | "suffix-stage-failed" | "lifecycle-stage-failed", action: () => Promise<void>) => {
-    try {
-      await action();
-    } catch {
-      stageFailures.add(failure);
-    } finally {
-      drainScenarioEvents();
-    }
-  };
-  try {
-    for (let index = 0; index < 5; index += 1) {
-      await attempt("lifecycle-stage-failed", async () => await scenario.prompt(`Calibration turn ${index + 1}: return CAL_${index + 1} only.`));
-    }
-
-    // Pressure is bounded and exists only to make the suffix claim eligible.
-    // Failure does not suppress independent tool, suffix, or lifecycle attempts.
-    const pressureChars = Math.ceil(selected.contextWindow * 3.6);
-    if (selectCompactLiveInput(pressureChars, captureBudget).status === "WITHIN_BUDGET") {
-      await attempt("pressure-stage-failed", async () => await scenario.prompt(`Retain this bounded pressure fixture and return PRESSURE_OK only. ${"p".repeat(pressureChars)}`));
-    } else {
-      stageFailures.add("pressure-stage-failed");
-    }
-    await attempt("pressure-stage-failed", async () => await scenario.prompt("Call aili_compact_status exactly once and report only its pressure stage."));
-    const observedPressureStage = scenario.toolExecutions
-      .filter((entry) => entry.toolName === "aili_compact_status" && !entry.isError)
-      .map((entry) => nestedPressureStage(entry.result))
-      .find((stage) => stage !== undefined);
-    if (observedPressureStage) events.push({ code: "pressure-state", stage: observedPressureStage });
-    else stageFailures.add("pressure-stage-failed");
-
-    await attempt("tool-stage-failed", async () => await scenario.prompt("Obtain the real tool result now, then return TOOL_OK only."));
-    if (!scenario.toolExecutions.some((entry) => entry.toolName === "read" && !entry.isError)) stageFailures.add("tool-stage-failed");
-    await attempt("suffix-stage-failed", async () => await scenario.prompt("Perform suffix search now, then report only the match count."));
-    const search = [...scenario.toolExecutions].reverse().find((entry) => entry.toolName === "aili_search_context" && !entry.isError);
-    const searchObservation = search ? embeddedJsonRecords(search.result).find((record) => Array.isArray(record.matches)) : undefined;
-    const providerAuthoredSearchMatches = Array.isArray(searchObservation?.matches) ? searchObservation.matches.length : -1;
-    const sessionFile = scenario.manager.getSessionFile();
-    const jsonl = sessionFile ? await readFile(sessionFile, "utf8").catch(() => "") : "";
-    if (!search) stageFailures.add("suffix-stage-failed");
-    events.push({
-      code: "suffix-persistence",
-      jsonlMatches: (jsonl.match(/aili-compact-provider-suffix/g) ?? []).length,
-      providerAuthoredSearchMatches,
-    });
-
-    // Sanitized fact-bearing setup is input only. Every summary and transaction
-    // must still be authored through real provider tool calls.
-    await attempt("lifecycle-stage-failed", async () => await scenario.prompt("Fact-bearing lifecycle source: target code is RELEASE-CANDIDATE-42; unresolved limitation is interactive PTY resize; verification state is NON_PASS. Call aili_compact_status, select one exact safe range, then call aili_compact once with a summary retaining all three facts."));
-    for (const tier of ["T2", "T3", "T3-restill"] as const) {
-      await attempt("lifecycle-stage-failed", async () => await scenario.prompt(`Call aili_compact_status, select the exact eligible current blocks for ${tier}, then call aili_compact once with a structural summary retaining target RELEASE-CANDIDATE-42, the PTY limitation, and NON_PASS verification.`));
-    }
-    appendProviderAuthoredTierEvents(events, scenario.manager.getEntries(), scenario.toolExecutions);
-    humanReviewCandidate = providerReviewCandidate(scenario.manager.getEntries(), scenario.toolExecutions, binding);
-    await attempt("lifecycle-stage-failed", async () => await scenario.prompt("/aili-compact rescue"));
-    await attempt("lifecycle-stage-failed", async () => await scenario.prompt("Perform archived lifecycle search after the checkpoint, then report only whether an archived match exists."));
-    await attempt("lifecycle-stage-failed", async () => await scenario.prompt("Return CONTINUED_OK only after the checkpoint attempt.", "continued"));
-    const oldSearchRecords = scenario.toolExecutions.filter((entry) => entry.toolName === "aili_search_context" && !entry.isError).flatMap((entry) => embeddedJsonRecords(entry.result)).filter((record) => Array.isArray(record.matches));
-    const lifecyclePersisted = events.some((event) => event.code === "tier-transaction" && event.tier === "T1" && event.providerAuthored && event.persisted);
-    const customCheckpoint = events.some((event) => event.code === "checkpoint" && event.origin === "custom" && event.persisted);
-    const oldEpochSearchable = oldSearchRecords.some((record) => JSON.stringify(record.matches).includes("RELEASE-CANDIDATE-42"));
-    const oldEpochQueryOnly = scenario.toolExecutions.filter((entry) => entry.toolName === "aili_compact_status" && !entry.isError).some((entry) => JSON.stringify(entry.result).includes('"queryOnly":true') || JSON.stringify(entry.result).includes('"queryOnly": true'));
-    if (lifecyclePersisted && customCheckpoint) events.push({ code: "lifecycle-rescue", providerAuthoredEligibleLifecycle: true, invocation: "agent-session-command", oldEpochQueryOnly, oldEpochSearchable });
-
-    const thresholdBefore = events.some((event) => event.code === "before-compact" && event.reason === "threshold");
-    const nativeThreshold = events.some((event) => event.code === "checkpoint" && event.reason === "threshold" && event.origin === "native");
-    if (thresholdBefore || nativeThreshold) events.push({ code: "native-threshold", actualHostThreshold: thresholdBefore, deterministicIneligible: nativeThreshold, cancelLoopCount: 0 });
-
-    const cacheUsages = events.filter((event): event is Extract<CompactScenarioEvent, { code: "provider-call" }> => event.code === "provider-call" && event.usage !== undefined).map((event) => event.usage!);
-    const cacheReadTokens = cacheUsages.reduce((sum, usage) => sum + usage.cacheRead, 0);
-    const cacheWriteTokens = cacheUsages.reduce((sum, usage) => sum + usage.cacheWrite, 0);
-    const productionStatusBodies = scenario.toolExecutions.filter((entry) => entry.toolName === "aili_compact_status" && !entry.isError).map((entry) => JSON.stringify(entry.result)).join("\n");
-    const productionClassificationsObserved = productionStatusBodies.includes("warm-candidate")
-      && productionStatusBodies.includes("suffix-changed") && productionStatusBodies.includes("projection-changed");
-    if (cacheReadTokens > 0 && cacheWriteTokens > 0 && productionClassificationsObserved) {
-      events.push({ code: "cache", providerReported: true, cacheReadTokens, cacheWriteTokens, stablePrefix: "warm-candidate", suffixChange: "suffix-changed", projectionChange: "projection-changed" });
-    }
-    const calibration = scenario.toolExecutions
-      .filter((entry) => entry.toolName === "aili_compact_status" && !entry.isError)
-      .flatMap((entry) => embeddedJsonRecords(entry.result))
-      .map((record) => (record.tokenCalibration ?? record) as JsonRecord)
-      .find((record) => Number.isSafeInteger(record.sampleCount) && record.exclusionCounts && typeof record.exclusionCounts === "object");
-    const exclusionCounts = calibration?.exclusionCounts as JsonRecord | undefined;
-    const exclusionCodes = Object.entries(exclusionCounts ?? {}).filter(([, count]) => Number(count) > 0).map(([code]) => code);
-    if (calibration && Number(calibration.sampleCount) >= 5 && exclusionCodes.length > 0
-      && Number(calibration.lowerMultiplier) <= 1 && Number(calibration.upperMultiplier) >= 1) {
-      events.push({ code: "calibration", eligible: Number(calibration.sampleCount), excluded: exclusionCodes.reduce((sum, code) => sum + Number(exclusionCounts?.[code] ?? 0), 0), exclusionCodes, lowerBoundPreserved: true, upperBoundPreserved: true, invalidNarrowing: false });
-    }
-  } finally {
-    drainScenarioEvents();
-    scenario.dispose();
-  }
-  let overflowResult: Awaited<ReturnType<typeof runRealOverflowScenario>>;
-  try {
-    overflowResult = await runRealOverflowScenario(runtime, family, selected, captureBudget);
-  } catch {
-    const selection = selectCompactLiveInput(Math.ceil(selected.contextWindow * 4.5), captureBudget);
-    overflowResult = selection.status === "NON_PASS"
-      ? { events: [], selection, laterWorkFailed: false }
-      : { events: [], selection, laterWorkFailed: false, classification: { status: "NON_PASS", reason: "overflow-preflight-or-stage-failed", source: "none" } };
-  }
-  events.push(...overflowResult.events);
-  const rows = Object.fromEntries(COMPACT_LIVE_ROW_IDS.map((id) => [id, reduceCompactLiveRow(id, events, binding)]));
-  if (overflowResult.selection.status === "NON_PASS") {
-    rows["LIVE-V2-7"] = {
-      ...nonPassCompactLiveRow("LIVE-V2-7", "capture-input-budget-exceeded"),
-      requiredInputCharacters: overflowResult.selection.requiredInputCharacters,
-      maxInputCharacters: overflowResult.selection.maxInputCharacters,
-    };
-  } else if (overflowResult.classification?.status === "NON_PASS") {
-    rows["LIVE-V2-7"] = {
-      ...nonPassCompactLiveRow("LIVE-V2-7", overflowResult.classification.reason),
-      attempt: { stage: "overflow", status: overflowResult.classification.reason, source: overflowResult.classification.source },
-    };
-  } else if (overflowResult.laterWorkFailed) {
-    rows["LIVE-V2-7"] = {
-      ...nonPassCompactLiveRow("LIVE-V2-7", "overflow-later-work-failed"),
-      attempt: { stage: "overflow", status: "overflow-later-work-failed", source: "message-end" },
-    };
-  }
-  if (stageFailures.has("pressure-stage-failed")) rows["LIVE-V2-1"] = nonPassCompactLiveRow("LIVE-V2-1", "pressure-stage-failed");
-  else if (stageFailures.has("tool-stage-failed")) rows["LIVE-V2-1"] = nonPassCompactLiveRow("LIVE-V2-1", "tool-stage-failed");
-  else if (stageFailures.has("suffix-stage-failed")) rows["LIVE-V2-1"] = nonPassCompactLiveRow("LIVE-V2-1", "suffix-stage-failed");
-  if (stageFailures.has("lifecycle-stage-failed")) {
-    rows["LIVE-V2-3"] = nonPassCompactLiveRow("LIVE-V2-3", "lifecycle-stage-failed");
-    rows["LIVE-V2-5"] = nonPassCompactLiveRow("LIVE-V2-5", "lifecycle-stage-failed");
-  }
-  const inherited = reduceInheritedCompactObservations(events, binding, rows["LIVE-V2-3"]!);
-  return { rows, ...inherited, ...(humanReviewCandidate ? { humanReviewCandidate } : {}) };
-}
-
-async function runRealOverflowScenario(
-  runtime: ModelRuntime,
-  family: CompactLiveProviderFamily,
-  selected: SelectedModel,
-  captureBudget: CompactLiveCaptureBudget,
-): Promise<{ events: CompactScenarioEvent[]; selection: ReturnType<typeof selectCompactLiveInput>; classification?: ReturnType<typeof classifyRealOverflowAttempt>; laterWorkFailed: boolean }> {
-  const overflowChars = Math.ceil(selected.contextWindow * 4.5);
-  const selection = selectCompactLiveInput(overflowChars, captureBudget);
-  if (selection.status === "NON_PASS") return { events: [], selection, laterWorkFailed: false };
-  const cwd = join(liveRoot, `compact-real-overflow-${family}`);
-  const scenario = await createProductionCompactScenario({
-    cwd,
-    sessionDir: join(cwd, "sessions"),
-    agentDir: configuredAgentDir,
-    productionEntry,
-    modelRuntime: runtime,
-    model: selected.model,
-    sessionId: `compact-real-overflow-${family}`,
-    tools: [],
-    config: { autoCooling: false },
-    settings: { compaction: { enabled: true, reserveTokens: 16_384, keepRecentTokens: 1 } },
-    systemPrompt: "Return OVERFLOW_OR_RECOVERED only. Do not use tools.",
-  });
-  try {
-    const eventStart = scenario.events.length;
-    let promptFailed = false;
-    try {
-      await scenario.prompt(`Complete the original bounded overflow request. ${"o".repeat(overflowChars)}`);
-    } catch {
-      promptFailed = true;
-      await scenario.session.waitForIdle().catch(() => undefined);
-    }
-    const classification = classifyRealOverflowAttempt(scenario.events, eventStart, scenario.session.state.messages, promptFailed);
-    if (classification.status === "PROVIDER_CONTEXT_ERROR" && classification.fallbackEvent) scenario.events.push(classification.fallbackEvent);
-    const recovered = scenario.events.some((event) => event.code === "provider-call" && event.turn === "retry" && event.succeeded);
-    let laterWorkFailed = false;
-    if (recovered) {
-      try {
-        await scenario.prompt("Return LATER_PROVIDER_WORK only.", "continued");
-      } catch {
-        laterWorkFailed = true;
-      }
-    }
-    return { events: [...scenario.events], selection, classification, laterWorkFailed };
-  } finally {
-    scenario.dispose();
-  }
-}
-
-async function runCopiedProductionSessionRehearsal(
-  runtime: ModelRuntime,
-  family: CompactLiveProviderFamily,
-  selected: SelectedModel,
-  sourceSession: string,
-  candidate: JsonRecord,
-): Promise<Extract<CompactScenarioEvent, { code: "migration" }>> {
-  const cwd = join(liveRoot, `compact-copied-production-session-${family}`);
-  const sessionDir = join(cwd, "sessions");
-  const copied = join(sessionDir, "copied-provider-session.jsonl");
-  await mkdir(sessionDir, { recursive: true });
-  await copyFile(sourceSession, copied);
-  const prefix = await readFile(copied);
-  const manager = SessionManager.open(copied, sessionDir, cwd);
-  const transactions = Array.isArray(candidate.transactions) ? candidate.transactions as JsonRecord[] : [];
-  const transactionIds = transactions.map((item) => String(item.transactionId ?? ""));
-  const transactionDigests = transactions.map((item) => String(item.transactionSha256 ?? ""));
-  const scenario = await createProductionCompactScenario({
-    cwd,
-    sessionDir,
-    agentDir: configuredAgentDir,
-    productionEntry,
-    modelRuntime: runtime,
-    model: selected.model,
-    sessionId: `compact-copied-production-session-${family}`,
-    sessionManager: manager,
-    tools: ["aili_compact_status", "aili_decompress"],
-    config: { autoCooling: false },
-    systemPrompt: "Use only the requested production AILI Compact command and return bounded confirmations.",
-  });
-  let reloaded = false; let branched = false; let decompressed = false;
-  let checkpoint = false; let indexFallback = false; let continued = false;
-  try {
-    await scenario.session.reload();
-    const reloadedBody = JSON.stringify(manager.getEntries());
-    reloaded = transactionIds.length === 4 && transactionIds.every((id) => id.length > 0 && reloadedBody.includes(id));
-    const branch = manager.getBranch();
-    const target = branch.length >= 4 ? branch[branch.length - 3] : undefined;
-    if (target) {
-      const navigation = await scenario.session.navigateTree(target.id, { summarize: false });
-      branched = navigation.cancelled === false;
-      if (branched) await scenario.prompt("Return COPIED_BRANCH_CONTINUED only.");
-    }
-    await scenario.prompt("Call aili_compact_status, then call aili_decompress exactly once for one active block if available.");
-    decompressed = scenario.toolExecutions.some((entry) => entry.toolName === "aili_decompress" && !entry.isError);
-    try {
-      await scenario.session.compact("Bounded copied production Session checkpoint; source hard facts remain in persisted AILI transactions.");
-      checkpoint = manager.getEntries().some((entry) => entry.type === "compaction");
-    } catch {
-      checkpoint = false;
-    }
-    await scenario.prompt("Call aili_compact_status exactly once, then return INDEX_STATUS_OK only.");
-    const statusRecords = scenario.toolExecutions.filter((entry) => entry.toolName === "aili_compact_status" && !entry.isError).flatMap((entry) => embeddedJsonRecords(entry.result));
-    indexFallback = statusRecords.some((item) => nestedPositiveCounter(item, "fallbacks") || nestedPositiveCounter(item, "failOpenReturns"));
-    await scenario.prompt("Return COPIED_PRODUCTION_SESSION_CONTINUED only.", "continued");
-    continued = scenario.events.some((event) => event.code === "provider-call" && event.turn === "continued" && event.succeeded);
-  } catch {
-    // Each incomplete production operation is retained as a bounded false field.
-  } finally {
-    scenario.dispose();
-  }
-  const after = await readFile(copied).catch(() => Buffer.alloc(0));
-  return {
-    code: "migration",
-    copiedSanitizedSession: true,
-    syntheticSetup: false,
-    v1v2v3Reload: reloaded,
-    branchSwitch: branched,
-    decompression: decompressed,
-    checkpoint,
-    indexFallback,
-    bytePrefixPreserved: after.subarray(0, prefix.length).equals(prefix),
-    continuedProviderWork: continued,
-    source: {
-      providerProduced: true,
-      sameCapture: true,
-      sessionIdDigest: sha256(manager.getSessionId()),
-      copiedPrefixSha256: sha256(prefix),
-      transactionIds,
-      transactionDigests,
-    },
-    productionApis: {
-      reload: "agent-session-reload",
-      branchSwitch: "agent-session-navigate-tree",
-      decompression: "production-aili-decompress",
-      checkpoint: "agent-session-compact",
-      indexFallback: "production-branch-index-fallback",
-      continuedWork: "agent-session-provider-prompt",
-    },
-  };
-}
-
-function nestedPositiveCounter(value: unknown, key: string, depth = 0): boolean {
-  if (depth > 6 || value === null || typeof value !== "object") return false;
-  if (!Array.isArray(value) && Number((value as JsonRecord)[key]) > 0) return true;
-  return Object.values(value as JsonRecord).some((item) => nestedPositiveCounter(item, key, depth + 1));
-}
-
-function nestedPressureStage(value: unknown, depth = 0): "PRESSURE" | "FORCE_SEMANTIC" | "CHECKPOINT_REQUIRED" | "OVERFLOW_RECOVERY" | undefined {
-  if (depth > 8) return undefined;
-  if (typeof value === "string") {
-    try {
-      return nestedPressureStage(JSON.parse(value), depth + 1);
-    } catch {
-      return undefined;
-    }
-  }
-  if (value === null || typeof value !== "object") return undefined;
-  if (!Array.isArray(value)) {
-    const stage = (value as JsonRecord).stage;
-    if (stage === "PRESSURE" || stage === "FORCE_SEMANTIC" || stage === "CHECKPOINT_REQUIRED" || stage === "OVERFLOW_RECOVERY") return stage;
-  }
-  for (const item of Object.values(value as JsonRecord)) {
-    if (typeof item === "string") {
-      try {
-        const nested = nestedPressureStage(JSON.parse(item), depth + 1);
-        if (nested) return nested;
-      } catch {
-        continue;
-      }
-    } else {
-      const nested = nestedPressureStage(item, depth + 1);
-      if (nested) return nested;
-    }
-  }
-  return undefined;
-}
-
-async function runCopiedLongSessionScaffold(
-  runtime: ModelRuntime,
-  family: CompactLiveProviderFamily,
-  selected: SelectedModel,
-): Promise<Extract<CompactScenarioEvent, { code: "migration" }>> {
-  const cwd = join(liveRoot, `compact-copied-session-${family}`);
-  const sessionDir = join(cwd, "sessions");
-  const copied = join(sessionDir, "copied-long-session.jsonl");
-  await mkdir(sessionDir, { recursive: true });
-  await copyFile(join(root, "tests/fixtures/aili-compact/legacy-v1-session.jsonl"), copied);
-  const prefix = await readFile(copied);
-  const manager = SessionManager.open(copied, sessionDir, cwd);
-  const scenario = await createProductionCompactScenario({
-    cwd,
-    sessionDir,
-    agentDir: configuredAgentDir,
-    productionEntry,
-    modelRuntime: runtime,
-    model: selected.model,
-    sessionId: `compact-copied-session-${family}`,
-    sessionManager: manager,
-    tools: ["aili_compact_status", "aili_decompress"],
-    config: { autoCooling: false },
-    systemPrompt: "Use production AILI Compact status and decompression commands exactly as requested; return bounded confirmations only.",
-  });
-  let branched = false;
-  let decompressed = false;
-  let checkpoint = false;
-  let continued = false;
-  try {
-    await scenario.session.reload();
-    const branch = manager.getBranch();
-    if (branch.length > 1) {
-      const navigation = await scenario.session.navigateTree(branch[0]!.id, { summarize: false });
-      branched = navigation.cancelled === false;
-      await scenario.prompt("Return BRANCH_CONTINUED only.");
-    }
-    await scenario.prompt("Call aili_compact_status, then if an active block exists execute /aili-compact decompress one for its exact block reference; otherwise report no active block.");
-    decompressed = scenario.toolExecutions.some((entry) => entry.toolName === "aili_decompress" && !entry.isError);
-    try {
-      await scenario.session.compact("Summarize this copied sanitized fixture without adding facts.");
-      checkpoint = manager.getEntries().some((entry) => entry.type === "compaction");
-    } catch {
-      checkpoint = false;
-    }
-    await scenario.prompt("Return COPIED_SESSION_CONTINUED only.", "continued");
-    continued = scenario.events.some((event) => event.code === "provider-call" && event.turn === "continued" && event.succeeded);
-  } catch {
-    // The synthetic fixture remains NON_PASS even when some production API
-    // operations complete; retain only bounded booleans.
-  } finally {
-    scenario.dispose();
-  }
-  const after = await readFile(copied).catch(() => Buffer.alloc(0));
-  return {
-    code: "migration",
-    copiedSanitizedSession: true,
-    syntheticSetup: true,
-    v1v2v3Reload: false,
-    branchSwitch: branched,
-    decompression: decompressed,
-    checkpoint,
-    indexFallback: false,
-    bytePrefixPreserved: after.subarray(0, prefix.length).equals(prefix),
-    continuedProviderWork: continued,
-  };
-}
-
-function compactTransactionCount(entries: readonly unknown[]): number {
-  return entries.filter((entry) => {
-    const item = entry as JsonRecord;
-    return item.type === "custom" && item.customType === "aili-compact";
-  }).length;
-}
-
-function embeddedJsonRecords(value: unknown, depth = 0): JsonRecord[] {
-  if (depth > 6) return [];
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value) as unknown;
-      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? [parsed as JsonRecord, ...embeddedJsonRecords(parsed, depth + 1)] : [];
-    } catch {
-      return [];
-    }
-  }
-  if (Array.isArray(value)) return value.flatMap((item) => embeddedJsonRecords(item, depth + 1));
-  if (!value || typeof value !== "object") return [];
-  return Object.values(value as JsonRecord).flatMap((item) => embeddedJsonRecords(item, depth + 1));
-}
-
-function appendProviderAuthoredTierEvents(
-  events: CompactScenarioEvent[],
-  entries: readonly unknown[],
-  executions: readonly { toolCallId: string; toolName: string; isError: boolean }[],
-): void {
-  const successfulCalls = executions.filter((entry) => entry.toolName === "aili_compact" && !entry.isError).length;
-  if (successfulCalls === 0) return;
-  let t3Count = 0;
-  for (const entry of entries) {
-    const item = entry as JsonRecord;
-    const data = item.data as JsonRecord | undefined;
-    const payload = data?.payload as JsonRecord | undefined;
-    const tier = payload?.tier;
-    if (item.type === "custom" && data?.tag === "semantic-create" && (tier === "T1" || tier === "T2" || tier === "T3")) {
-      if (tier === "T3") t3Count += 1;
-      events.push({ code: "tier-transaction", tier: tier === "T3" && t3Count > 1 ? "T3-restill" : tier as "T1" | "T2" | "T3", providerAuthored: true, persisted: true });
-    }
-  }
-}
-
-function providerReviewCandidate(
-  entries: readonly unknown[],
-  executions: readonly { toolCallId: string; toolName: string; isError: boolean }[],
-  binding: CompactLiveExpectedBinding,
-): JsonRecord | undefined {
-  const calls = executions.filter((entry) => entry.toolName === "aili_compact" && !entry.isError);
-  const transactions: CompactHumanReviewCandidateInput["transactions"] = [];
-  let t3Count = 0;
-  for (const entry of entries) {
-    const item = entry as JsonRecord;
-    const transaction = item.data as JsonRecord | undefined;
-    const header = transaction?.header as JsonRecord | undefined;
-    const payload = transaction?.payload as JsonRecord | undefined;
-    const tier = payload?.tier;
-    if (item.type !== "custom" || transaction?.tag !== "semantic-create" || (tier !== "T1" && tier !== "T2" && tier !== "T3")) continue;
-    if (tier === "T3") t3Count += 1;
-    const summary = typeof payload?.summary === "string" ? payload.summary : "";
-    const call = calls[transactions.length];
-    const transactionId = typeof header?.txId === "string" ? header.txId : "";
-    if (!call || !transactionId || !summary) return undefined;
-    transactions.push({
-      tier: tier === "T3" && t3Count > 1 ? "T3-restill" : tier,
-      providerToolCallId: call.toolCallId,
-      transactionId,
-      transactionSha256: sha256(JSON.stringify(transaction)),
-      summarySha256: sha256(summary),
-      hardFacts: {
-        releaseCandidate: summary.includes("RELEASE-CANDIDATE-42"),
-        ptyLimitation: /interactive PTY resize/i.test(summary),
-        verificationNonPass: summary.includes("NON_PASS"),
-      },
-    });
-  }
-  return createCompactHumanReviewCandidate({
-    capturedAt: new Date().toISOString(),
-    binding: {
-      providerFamily: binding.providerFamily,
-      provider: binding.provider,
-      model: binding.model,
-      api: binding.api,
-      packageVersion: binding.packageVersion,
-      piVersion: binding.piVersion,
-      implementationSha256: binding.implementationSha256,
-      liveHarnessSha256: binding.liveHarnessSha256,
-    },
-    transactions,
-  });
-}
-
 liveIt("runs one authorized representative provider path and fails closed for every unobserved required claim", async () => {
   const disposableHome = join(liveRoot, "home");
   await rm(liveRoot, { recursive: true, force: true });
@@ -934,7 +379,6 @@ liveIt("runs one authorized representative provider path and fails closed for ev
       authPath: join(configuredAgentDir, "auth.json"),
       modelsPath: join(configuredAgentDir, "models.json"),
     });
-    const captureBudget = compactLiveCaptureBudget(process.env.AILI_COMPACT_LIVE_MAX_INPUT_CHARS);
     const selected = providerFamilies(await runtime.getAvailable());
     const requestedFamily = process.env.AILI_COMPACT_LIVE_PROVIDER_FAMILY;
     if (requestedFamily !== undefined && !["openai", "anthropic", "google-gemini"].includes(requestedFamily)) {
@@ -953,41 +397,17 @@ liveIt("runs one authorized representative provider path and fails closed for ev
     const representativeFamily = representativeSelection?.family;
     const representativeModel = representativeSelection?.model;
     let transport: JsonRecord = { status: "NON_PASS", reason: "supported-model-unavailable" };
-    let compactScenario: Awaited<ReturnType<typeof runCompactProviderScenarios>> | undefined;
-    let compactScenarioFailure = false;
     if (representativeFamily && representativeModel) {
       try {
         transport = await providerTransportProbe(runtime, representativeFamily, representativeModel);
       } catch (error) {
         transport = { status: "NON_PASS", provider: representativeModel.provider, model: representativeModel.id, api: representativeModel.api, contextWindow: representativeModel.contextWindow, reason: boundedFailure(error) };
       }
-      try {
-          compactScenario = await runCompactProviderScenarios(runtime, representativeFamily, representativeModel, {
-            providerFamily: representativeFamily,
-            provider: representativeModel.provider,
-            model: representativeModel.id,
-            api: representativeModel.api,
-            packageVersion: binding.packageVersion,
-            piVersion: binding.piVersion,
-            implementationSha256: binding.implementationSha256,
-            liveHarnessSha256,
-            piExecutableSha256,
-            productionEntrySha256,
-          }, captureBudget);
-      } catch {
-        compactScenario = undefined;
-        compactScenarioFailure = true;
-      }
     }
 
-    const persistentProviderProbes = await persistentProviderAndSandboxProbe(runtime, representativeModel).catch(() => [
+    const persistentProbes = await persistentProviderBoundaryProbe(runtime, representativeModel).catch(() => [
       { id: "provider-turn", status: "NON_PASS", changedFiles: 0, reason: "persistent-provider-probe-failed" },
-      { id: "child-sandbox", status: "NON_PASS", changedFiles: 0, reason: "persistent-provider-probe-failed" },
     ]);
-    const workspaceProbe = await externalWorkspaceProbe().catch(() => ({
-      id: "external-workspace-lifecycle", status: "NON_PASS", changedFiles: 0, reason: "external-workspace-probe-failed",
-    }));
-    const persistentProbes = [...persistentProviderProbes, workspaceProbe];
     const persistentPass = persistentProbes.every((probe) => probe.status === "PASS");
     const persistentArtifact = {
       schemaVersion: 1,
@@ -1007,48 +427,20 @@ liveIt("runs one authorized representative provider path and fails closed for ev
     const ordering = transport.extensionOrdering && typeof transport.extensionOrdering === "object"
         ? transport.extensionOrdering as JsonRecord
         : { before: { status: "NON_PASS" }, after: { status: "NON_PASS" } };
-    const rows = compactScenario?.rows ?? compactRows(compactScenarioFailure ? "scenario-stage-failed" : transport.status === "PASS" ? "required-production-events-missing" : "transport-unavailable");
-    const longLifecycle = compactScenario?.longLifecycle ?? { status: "NON_PASS", observationClass: "unobserved", reason: "representative-human-review-not-observed" };
-    const pendingSemanticReview = compactScenario?.humanReviewCandidate && representativeFamily && representativeModel
-      ? createPendingRepresentativeSemanticReview(compactScenario.humanReviewCandidate, {
-        providerFamily: representativeFamily,
-        provider: representativeModel.provider,
-        model: representativeModel.id,
-        api: representativeModel.api,
-        packageVersion: binding.packageVersion,
-        piVersion: binding.piVersion,
-        implementationSha256: binding.implementationSha256,
-        liveHarnessSha256,
-        piExecutableSha256,
-        productionEntrySha256,
-      })
-      : undefined;
-    const semanticReview = pendingSemanticReview ?? (longLifecycle.status === "PASS" ? {
-      status: "PASS",
-      observationClass: "representative-long-lifecycle-human-review",
-      observedAt: longLifecycle.observedAt,
-      source: longLifecycle.source,
-      syntheticEvidenceAccepted: longLifecycle.syntheticEvidenceAccepted,
-      binding: longLifecycle.binding,
-      capture: longLifecycle.capture,
-      eventDigest: longLifecycle.eventDigest,
-      eventCount: longLifecycle.eventCount,
-      humanReview: longLifecycle.humanReview,
-    } : longLifecycle);
     const before = ordering.before as JsonRecord | undefined;
     const after = ordering.after as JsonRecord | undefined;
-    const representativePass = transport.status === "PASS"
-        && rows["LIVE-V2-1"]?.status === "PASS" && rows["LIVE-V2-7"]?.status === "PASS"
-        && semanticReview.status === "PASS"
-        && before?.status === "PASS" && after?.status === "PASS";
-    const usage = transport.usage && typeof transport.usage === "object" ? transport.usage as JsonRecord : undefined;
-    const cacheRead = Number(usage?.cacheRead ?? 0);
-    const cacheWrite = Number(usage?.cacheWrite ?? 0);
-    const cacheTelemetry = cacheRead > 0 ? {
-      status: "PASS", cacheHitClaim: true, source: "provider-reported", cacheReadTokens: cacheRead, cacheWriteTokens: cacheWrite,
-    } : {
-      status: "Unverified", cacheHitClaim: false, reason: usage ? "zero" : "missing",
+    const providerTurn = persistentProbes.find((probe) => probe.id === "provider-turn") as JsonRecord | undefined;
+    const parentPersistentChild = {
+      status: providerTurn?.status === "PASS" ? "PASS" : "NON_PASS",
+      synchronousTaskCallObserved: providerTurn?.synchronousTaskCallObserved === true,
+      taskArgumentsExact: providerTurn?.taskArgumentsExact === true,
+      zeroParentBashCalls: providerTurn?.zeroParentBashCalls === true,
+      persistentChildSessionObserved: providerTurn?.persistentChildSessionObserved === true,
+      childTurnStatus: providerTurn?.childTurnStatus ?? "unavailable",
     };
+    const representativePass = transport.status === "PASS"
+        && before?.status === "PASS" && after?.status === "PASS"
+        && parentPersistentChild.status === "PASS";
     const transportEvidence = {
       status: transport.status,
       provider: transport.provider ?? representativeModel?.provider ?? "unavailable",
@@ -1066,29 +458,9 @@ liveIt("runs one authorized representative provider path and fails closed for ev
         api: transportEvidence.api,
         contextWindow: transportEvidence.contextWindow,
         transport: transportEvidence,
-        suffix: rows["LIVE-V2-1"],
-        overflow: rows["LIVE-V2-7"],
-        semanticReview,
         extensionOrdering: ordering,
-        cacheTelemetry,
-    };
-    const reviewCandidates = representativeFamily && compactScenario?.humanReviewCandidate
-      ? { [representativeFamily]: compactScenario.humanReviewCandidate }
-      : {};
-    let reviewCandidateArtifact = Object.keys(reviewCandidates).length > 0 ? {
-      schema: "aili.compact.human-review-candidates.v1",
-      status: "PENDING",
-      reviewState: "human-verdict-required",
-      capturedAt: new Date().toISOString(),
-      ...binding,
-      liveHarness: { path: AILI_COMPACT_LIVE_HARNESS, sha256: liveHarnessSha256 },
-      liveCapture: { path: AILI_COMPACT_LIVE_CAPTURE_PATH, sha256: "pending" },
-      candidates: reviewCandidates,
-      sanitizer: {
-        credentialsIncluded: false, rawConversationIncluded: false, providerRequestsIncluded: false,
-        protectedTextIncluded: false, fullLogsIncluded: false, privatePathsIncluded: false,
-      },
-    } : undefined;
+        parentPersistentChild,
+      };
     const compactArtifact = {
       schema: "aili.compact.live-evidence.v3",
       status: representativePass ? "PASS" : "NON_PASS",
@@ -1105,22 +477,13 @@ liveIt("runs one authorized representative provider path and fails closed for ev
       },
       representative,
     };
-    if (reviewCandidateArtifact) {
-      reviewCandidateArtifact = {
-        ...reviewCandidateArtifact,
-        liveCapture: {
-          path: AILI_COMPACT_LIVE_CAPTURE_PATH,
-          sha256: sha256(`${JSON.stringify(compactArtifact, null, 2)}\n`),
-        },
-      };
-    }
-      return { persistentArtifact, compactArtifact, ...(reviewCandidateArtifact ? { reviewCandidateArtifact } : {}) };
+      return { persistentArtifact, compactArtifact };
     },
     failure: (reason) => ({
       persistentArtifact: {
         schemaVersion: 1, capturedAt: new Date().toISOString(), platform: "linux", piVersion: "0.82.1",
         package: { name: "@rosetears/aili-pi", version: "0.2.0", source: "current workspace package" },
-        status: "NON_PASS", probes: ["provider-turn", "child-sandbox", "external-workspace-lifecycle"].map((id) => ({ id, status: "NON_PASS", changedFiles: 0, reason })),
+        status: "NON_PASS", probes: ["provider-turn"].map((id) => ({ id, status: "NON_PASS", changedFiles: 0, reason })),
         sanitization: { rawProviderTranscriptIncluded: false, rawCredentialMaterialIncluded: false, credentialMarkerFindings: 0, localAbsolutePathsIncluded: false },
       },
       compactArtifact: { schema: "aili.compact.live-evidence.v3", status: "NON_PASS", reason, sanitized: true },
@@ -1130,7 +493,6 @@ liveIt("runs one authorized representative provider path and fails closed for ev
     downgradeForCleanupFailure: (bundle) => ({
       persistentArtifact: { ...bundle.persistentArtifact, status: "NON_PASS", captureCleanup: { status: "NON_PASS", reason: "cleanup-failed" } },
       compactArtifact: { ...bundle.compactArtifact, status: "NON_PASS", captureCleanup: { status: "NON_PASS", reason: "cleanup-failed" } },
-      ...(bundle.reviewCandidateArtifact ? { reviewCandidateArtifact: { ...bundle.reviewCandidateArtifact, status: "NON_PASS", reason: "cleanup-failed" } } : {}),
     }),
     publish: async (bundle) => {
       const persistentBody = `${JSON.stringify(bundle.persistentArtifact, null, 2)}\n`;
@@ -1156,7 +518,6 @@ liveIt("runs one authorized representative provider path and fails closed for ev
       };
       await atomicPublishLiveEvidence(root, [
         { path: persistentArtifactPath, body: persistentBody },
-        ...(bundle.reviewCandidateArtifact ? [{ path: COMPACT_HUMAN_REVIEW_CANDIDATE_PATH, body: `${JSON.stringify(bundle.reviewCandidateArtifact, null, 2)}\n` }] : []),
         { path: AILI_COMPACT_LIVE_CAPTURE_PATH, body: `${JSON.stringify(bundle.compactArtifact, null, 2)}\n` },
         { path: "manifests/live-verification.json", body: `${JSON.stringify(manifest, null, 2)}\n`, manifest: true },
       ]);

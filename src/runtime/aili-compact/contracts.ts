@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { parseQualityEvidence, type QualityEvidenceV1 } from "./quality.js";
+import { SEMANTIC_SUMMARY_LIMITS } from "./summary-limits.js";
 
 export const AILI_COMPACT_SCHEMA_V1 = "aili.compact.tx.v1" as const;
 export const AILI_COMPACT_SCHEMA_V2 = "aili.compact.tx.v2" as const;
@@ -217,7 +218,7 @@ function isCompactBlock(value: unknown, schema: CompactTransactionSchema): value
     || !isBoundedString(value.epochId, 256)
     || !isStringArray(value.sourceEntryIds, 256) || value.sourceEntryIds.length === 0
     || !isBoundedString(value.sourceDigest, 128)
-    || typeof value.summary !== "string" || value.summary.length > 12_000
+    || typeof value.summary !== "string" || value.summary.length > (value.kind === "semantic" ? SEMANTIC_SUMMARY_LIMITS.hardMaxChars : 12_000)
     || typeof value.active !== "boolean"
     || (value.stub !== undefined && (typeof value.stub !== "string" || value.stub.length > 4_000))
     || (value.kind === "cool" && typeof value.stub !== "string")) return false;
@@ -237,7 +238,7 @@ function isCompactBlock(value: unknown, schema: CompactTransactionSchema): value
   if (value.queryOnly !== undefined && typeof value.queryOnly !== "boolean") return false;
   if (value.qualityEvidence !== undefined) {
     const evidence = parseQualityEvidence(value.qualityEvidence);
-    if (!evidence || evidence.verdict === "reject" || evidence.tier !== "T1" || evidence.sourceKind !== "messages") return false;
+    if (!evidence || !("tier" in evidence) || evidence.verdict === "reject" || evidence.tier !== "T1" || evidence.sourceKind !== "messages") return false;
   }
   if (value.kind === "semantic") {
     return (value.mode === "range" || value.mode === "message")

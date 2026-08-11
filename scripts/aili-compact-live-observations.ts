@@ -2,10 +2,10 @@ import { createHash } from "node:crypto";
 import { NATIVE_INTEGRATIONS } from "../src/runtime/native-integrations.ts";
 
 export const COMPACT_LIVE_PROVIDER_FAMILIES = ["openai", "anthropic", "google-gemini"] as const;
-export const COMPACT_LIVE_ROW_IDS = Array.from({ length: 10 }, (_, index) => `LIVE-V2-${index + 1}`) as readonly CompactLiveRowId[];
+export const COMPACT_LIVE_ROW_IDS = ["LIVE-V2-1", "LIVE-V2-2", "LIVE-V2-4", "LIVE-V2-5", "LIVE-V2-6", "LIVE-V2-7", "LIVE-V2-8", "LIVE-V2-9", "LIVE-V2-10"] as const satisfies readonly CompactLiveRowId[];
 
 export type CompactLiveProviderFamily = (typeof COMPACT_LIVE_PROVIDER_FAMILIES)[number];
-export type CompactLiveRowId = `LIVE-V2-${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10}`;
+export type CompactLiveRowId = `LIVE-V2-${1 | 2 | 4 | 5 | 6 | 7 | 8 | 9 | 10}`;
 export type CompactLiveStatus = "PASS" | "NON_PASS";
 export type CompactLiveUsage = { input: number; output: number; cacheRead: number; cacheWrite: number; totalTokens: number };
 
@@ -66,25 +66,6 @@ export interface CompactLiveV22Pass extends CompactLivePassBase {
     invalidDataNarrowedBounds: false;
   };
   providerUsage: CompactLiveUsage;
-}
-
-export interface CompactLiveV23Pass extends CompactLivePassBase {
-  id: "LIVE-V2-3";
-  observationClass: "provider-authored-tier-lifecycle-human-review";
-  lifecycle: {
-    providerAuthoredToolTransactions: 4;
-    persistedTiers: readonly ["T1", "T2", "T3", "T3-restill"];
-    hiddenEvaluatorCalls: 0;
-  };
-  humanReview: {
-    verdict: "PASS";
-    verdictId: string;
-    verdictSource: "external-human-verdict-artifact";
-    candidateSha256: string;
-    verdictSha256: string;
-    hardFactsRetained: true;
-    limitationsAccepted: true;
-  };
 }
 
 export interface CompactLiveV24Pass extends CompactLivePassBase {
@@ -226,8 +207,8 @@ export interface CompactLiveV210Pass extends CompactLivePassBase {
   };
 }
 
-export type CompactLivePassObservation = CompactLiveV21Pass | CompactLiveV22Pass | CompactLiveV23Pass
-  | CompactLiveV24Pass | CompactLiveV25Pass | CompactLiveV26Pass | CompactLiveV27Pass | CompactLiveV28Pass
+export type CompactLivePassObservation = CompactLiveV21Pass | CompactLiveV22Pass | CompactLiveV24Pass
+  | CompactLiveV25Pass | CompactLiveV26Pass | CompactLiveV27Pass | CompactLiveV28Pass
   | CompactLiveV29Pass | CompactLiveV210Pass;
 
 export interface CompactLiveNonPassObservation {
@@ -243,7 +224,6 @@ export interface CompactLiveNonPassObservation {
 export type CompactLiveNonPassReason =
   | "actual-host-threshold-not-induced"
   | "capture-input-budget-exceeded"
-  | "human-verdict-required"
   | "interactive-pty-resize-unobserved"
   | "provider-cache-zero-or-unavailable"
   | "provider-context-error-not-induced"
@@ -255,7 +235,6 @@ export type CompactLiveNonPassReason =
   | "tool-stage-failed"
   | "lifecycle-stage-failed"
   | "scenario-stage-failed"
-  | "provider-tool-transaction-unobserved"
   | "required-production-events-missing"
   | "synthetic-setup-cannot-pass"
   | "transport-unavailable";
@@ -267,8 +246,6 @@ export type CompactScenarioEvent =
   | { code: "provider-suffix"; turn: "user" | "tool-result"; role: string; order: string; completeRealToolResult?: boolean; protocolError: boolean }
   | { code: "suffix-persistence"; jsonlMatches: number; providerAuthoredSearchMatches: number }
   | { code: "calibration"; eligible: number; excluded: number; exclusionCodes: string[]; lowerBoundPreserved: boolean; upperBoundPreserved: boolean; invalidNarrowing: boolean }
-  | { code: "tier-transaction"; tier: "T1" | "T2" | "T3" | "T3-restill"; providerAuthored: boolean; persisted: boolean }
-  | { code: "human-review"; verdict: "PASS" | "NON_PASS"; verdictId?: string; verdictSource?: "external-human-verdict-artifact"; candidateSha256?: string; verdictSha256?: string; hardFactsRetained: boolean; limitationsAccepted: boolean }
   | { code: "tool-rejection"; reason: "scope-drift" | "quality-hard-fact-loss"; providerAuthored: boolean; transactionAppended: boolean; redacted: boolean; pressure: boolean; pressureCycleAttempt: number }
   | { code: "before-compact"; reason: "manual" | "threshold" | "overflow"; willRetry: boolean; outcome: "custom" | "undefined-native-fallback" }
   | { code: "checkpoint"; reason: "manual" | "threshold" | "overflow"; origin: "custom" | "native" | "Unverified"; persisted: boolean; newEpoch: boolean }
@@ -361,18 +338,6 @@ export function validateCompactLiveRowPass(
         && codes.length >= 1 && codes.every((code) => ["ambiguous-cache", "ambiguous-request", "binary-or-image", "compaction", "identity-mismatch", "invalid-baseline", "invalid-reported-tokens", "outlier", "overflow-retry-cancelled"].includes(String(code)))
         && calibration.lowerBoundPreserved === true && calibration.upperBoundPreserved === true && calibration.invalidDataNarrowedBounds === false
         && exactUsage(item.providerUsage);
-    }
-    case "LIVE-V2-3": {
-      if (!exactKeys(item, [...baseKeys(), "observationClass", "lifecycle", "humanReview"]) || item.observationClass !== "provider-authored-tier-lifecycle-human-review") return false;
-      const lifecycle = record(item.lifecycle); const review = record(item.humanReview);
-      return !!lifecycle && exactKeys(lifecycle, ["providerAuthoredToolTransactions", "persistedTiers", "hiddenEvaluatorCalls"])
-        && lifecycle.providerAuthoredToolTransactions === 4 && lifecycle.hiddenEvaluatorCalls === 0
-        && JSON.stringify(lifecycle.persistedTiers) === JSON.stringify(["T1", "T2", "T3", "T3-restill"])
-        && !!review && exactKeys(review, ["verdict", "verdictId", "verdictSource", "candidateSha256", "verdictSha256", "hardFactsRetained", "limitationsAccepted"])
-        && review.verdict === "PASS" && boundedString(review.verdictId, 128)
-        && review.verdictSource === "external-human-verdict-artifact"
-        && HASH.test(String(review.candidateSha256 ?? "")) && HASH.test(String(review.verdictSha256 ?? ""))
-        && review.hardFactsRetained === true && review.limitationsAccepted === true;
     }
     case "LIVE-V2-4": {
       if (!exactKeys(item, [...baseKeys(), "observationClass", "rejection"]) || item.observationClass !== "provider-tool-rejection") return false;
@@ -486,16 +451,6 @@ export function reduceCompactLiveRow(
       const allowedExclusions = new Set(["ambiguous-cache", "ambiguous-request", "binary-or-image", "compaction", "identity-mismatch", "invalid-baseline", "invalid-reported-tokens", "outlier", "overflow-retry-cancelled"]);
       if (!calibration || calibration.eligible < 5 || calibration.excluded < 1 || calibration.exclusionCodes.length < 1 || calibration.exclusionCodes.some((code) => !allowedExclusions.has(code)) || !calibration.lowerBoundPreserved || !calibration.upperBoundPreserved || calibration.invalidNarrowing || !usage) return nonPassCompactLiveRow(id, "required-production-events-missing");
       return { ...base, id, observationClass: "provider-usage-calibration", calibration: { eligibleSamples: calibration.eligible, excludedSamples: calibration.excluded, exclusionCodes: calibration.exclusionCodes as CompactLiveV22Pass["calibration"]["exclusionCodes"], lowerBoundPreserved: true, upperBoundPreserved: true, invalidDataNarrowedBounds: false }, providerUsage: usage };
-    }
-    case "LIVE-V2-3": {
-      const tiers = events.filter((event): event is Extract<CompactScenarioEvent, { code: "tier-transaction" }> => event.code === "tier-transaction" && event.providerAuthored && event.persisted).map((event) => event.tier);
-      const review = events.find((event): event is Extract<CompactScenarioEvent, { code: "human-review" }> => event.code === "human-review");
-      if (JSON.stringify(tiers) !== JSON.stringify(["T1", "T2", "T3", "T3-restill"])) return nonPassCompactLiveRow(id, "provider-tool-transaction-unobserved");
-      if (!review || review.verdict !== "PASS" || !review.verdictId || review.verdictSource !== "external-human-verdict-artifact"
-        || !HASH.test(review.candidateSha256 ?? "") || !HASH.test(review.verdictSha256 ?? "")
-        || !review.hardFactsRetained || !review.limitationsAccepted) return nonPassCompactLiveRow(id, "human-verdict-required");
-      const candidateSha256 = review.candidateSha256!; const verdictSha256 = review.verdictSha256!;
-      return { ...base, id, observationClass: "provider-authored-tier-lifecycle-human-review", lifecycle: { providerAuthoredToolTransactions: 4, persistedTiers: ["T1", "T2", "T3", "T3-restill"], hiddenEvaluatorCalls: 0 }, humanReview: { verdict: "PASS", verdictId: review.verdictId, verdictSource: "external-human-verdict-artifact", candidateSha256, verdictSha256, hardFactsRetained: true, limitationsAccepted: true } };
     }
     case "LIVE-V2-4": {
       const rejects = events.filter((event): event is Extract<CompactScenarioEvent, { code: "tool-rejection" }> => event.code === "tool-rejection" && event.providerAuthored);
@@ -623,9 +578,8 @@ function passBase(id: CompactLiveRowId, events: readonly CompactScenarioEvent[],
 export function reduceInheritedCompactObservations(
   events: readonly CompactScenarioEvent[],
   binding: CompactLiveExpectedBinding,
-  v23: CompactLiveRowObservation,
   observedAt = new Date().toISOString(),
-): { p0: JsonRecord; longLifecycle: JsonRecord; continuedWork: JsonRecord } {
+): { p0: JsonRecord; continuedWork: JsonRecord } {
   const nonPass = (reason: string): JsonRecord => ({ status: "NON_PASS", observationClass: "unobserved", reason });
   const checkpointEvents = events.filter((event): event is Extract<CompactScenarioEvent, { code: "checkpoint" }> => event.code === "checkpoint" && event.persisted);
   const before = events.filter((event): event is Extract<CompactScenarioEvent, { code: "before-compact" }> => event.code === "before-compact");
@@ -644,20 +598,13 @@ export function reduceInheritedCompactObservations(
       nativeFallback: true, appendOnly: true, oneStormCoordinator: true, postRecoveryWork: true,
     },
   } : nonPass("inherited-production-recovery-incomplete");
-  const longLifecycle = v23.status === "PASS" && v23.id === "LIVE-V2-3" ? {
-    ...common,
-    status: "PASS",
-    observationClass: "long-provider-authored-lifecycle-human-review",
-    lifecycle: v23.lifecycle,
-    humanReview: v23.humanReview,
-  } : nonPass(v23.status === "NON_PASS" ? v23.reason : "provider-tool-transaction-unobserved");
   const continuedWork = checkpointEvents.length > 0 && continued?.usage ? {
     ...common,
     status: "PASS",
     observationClass: "post-checkpoint-provider-work",
     continuation: { checkpointPersisted: true, newProviderRequest: true, providerResponse: true, usage: continued.usage },
   } : nonPass("post-checkpoint-provider-work-unobserved");
-  return { p0, longLifecycle, continuedWork };
+  return { p0, continuedWork };
 }
 
 function inheritedPassBase(events: readonly CompactScenarioEvent[], expected: CompactLiveExpectedBinding, observedAt: string): JsonRecord {

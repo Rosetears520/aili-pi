@@ -18,7 +18,6 @@ import {
   planV3MessageMutation,
   planV3Mutation,
   planV3RecompressMutation,
-  resolveV3RestillPlannerPolicy,
   v3BlockSourceDigest,
   type V3BenefitEvidence,
   type V3BlockMutationRequest,
@@ -28,11 +27,13 @@ import {
 } from "../../src/runtime/aili-compact/v3-mutations.js";
 import {
   classifyTransparentPromotionGaps,
+  createAiliPlanningResultEnvelope,
+  createRawEpochProjection,
+  PromotionGapIndexV1,
   type PromotionGapBlock,
 } from "../../src/runtime/aili-compact/promotion-gaps.js";
 import {
   AILI_COMPACT_SCHEMA_V3,
-  V3_LIMITS,
   advanceV3Epoch,
   applyV3Transaction,
   createEmptyV3State,
@@ -223,12 +224,12 @@ function qualityResult(
       version: 1,
       extractorVersion: QUALITY_EXTRACTOR_VERSION,
       evaluatorVersion: QUALITY_EVALUATOR_VERSION,
-      tier,
+      semantics: "active-block",
       catalogId,
       sourceKind,
       orderedRefs: [...orderedRefs],
       sourceDigest,
-      manifestDigest: digest(["manifest", tier, sourceKind, sourceDigest]),
+      manifestDigest: digest(["manifest", "active-block", tier, sourceKind, sourceDigest]),
       facts: [],
       verdict: "pass",
       codes: [],
@@ -248,7 +249,7 @@ function qualityEvidence(
   return {
     input: {
       version: 1,
-      tier,
+      semantics: "active-block",
       catalogId,
       sourceKind,
       orderedRefs: [...orderedRefs],
@@ -466,6 +467,7 @@ function blockRequest(
   const summary = `summary:${blockId}`;
   return {
     operation: "compact",
+    semantics: "active-block",
     mode: "blocks",
     catalogId: context.catalog.catalogId,
     transactionId: `tx:${blockId}`,
@@ -482,34 +484,13 @@ function blockRequest(
   };
 }
 
-function activeT3Run(count = 2): V3LifecycleState {
-  let state = initialState();
-  for (let ordinal = 1; ordinal <= count * 4; ordinal += 1) state = addT1(state, `t1:${ordinal}`, ordinal);
-  for (let index = 0; index < count * 2; index += 1) {
-    state = addParent(state, `t2:${index + 1}`, "T2", [`t1:${index * 2 + 1}`, `t1:${index * 2 + 2}`], 2);
-  }
-  for (let index = 0; index < count; index += 1) {
-    state = addParent(state, `t3:${index + 1}`, "T3", [`t2:${index * 2 + 1}`, `t2:${index * 2 + 2}`], 3);
-  }
-  return state;
-}
-
-function restillFixture(count = 2) {
-  const state = activeT3Run(count);
-  const blockIds = Array.from({ length: count }, (_, index) => `t3:${index + 1}`);
-  const fixture = blockContext(state, blockIds);
-  return {
-    ...fixture,
-    refs: blockIds.map((blockId) => fixture.refById.get(blockId)!),
-  };
-}
-
-describe("v3 exact T1 mutation planning", () => {
-  it("maps one exact current safe range into an applicable T1 transaction without mutating state", () => {
+describe("v3 tierless active-block mutation planning", () => {
+  it("maps one exact current safe range into an applicable active block without mutating state", () => {
     const state = initialState();
     const { context, refs, entryIds, sourceDigest } = messageContext(state);
     const request: V3MessageMutationRequest = {
       operation: "compact",
+      semantics: "active-block",
       mode: "message",
       catalogId: state.catalogId,
       messageRefs: refs,
@@ -526,11 +507,10 @@ describe("v3 exact T1 mutation planning", () => {
     };
 
     const result = planV3Mutation(request, context);
-    expect(result).toMatchObject({ ok: true, orderedRefs: refs, sourceDigest, targetTier: "T1" });
+    expect(result).toMatchObject({ ok: true, orderedRefs: refs, sourceDigest });
     expect(state.blocks.size).toBe(0);
     if (!result.ok || result.transaction.tag !== "semantic-create") return;
     expect(result.transaction.payload).toMatchObject({
-      tier: "T1",
       source: { kind: "messages", entryIds, firstEntryId: entryIds[0], lastEntryId: entryIds[1] },
       leafDigest: v3MessageLeafDigest(entryIds),
       leafCount: 2,
@@ -573,7 +553,7 @@ describe("v3 exact T1 mutation planning", () => {
         },
       };
       const request: V3MessageMutationRequest = {
-        operation: "compact", mode: "message", catalogId: state.catalogId, messageRefs: refs,
+        operation: "compact", semantics: "active-block", mode: "message", catalogId: state.catalogId, messageRefs: refs,
         transactionId: `tx:${count}`, blockId: `t1:${count}`, topic: "topic", summary: "summary", runId: "run",
         createdAt: 1, createdTurnOrdinal: 1,
         benefit: benefitEvidence("T1", refs, sourceDigest),
@@ -581,7 +561,7 @@ describe("v3 exact T1 mutation planning", () => {
       };
       return planV3MessageMutation(request, context);
     };
-    expect(run(256)).toMatchObject({ ok: true, targetTier: "T1" });
+    expect(run(256)).toMatchObject({ ok: true });
     expect(run(257)).toMatchObject({ ok: false, code: "source-summary-scope-mismatch" });
   });
 
@@ -590,6 +570,7 @@ describe("v3 exact T1 mutation planning", () => {
     const fixture = messageContext(state);
     const base: V3MessageMutationRequest = {
       operation: "compact",
+      semantics: "active-block",
       mode: "message",
       catalogId: state.catalogId,
       messageRefs: fixture.refs,
@@ -624,9 +605,49 @@ describe("v3 exact T1 mutation planning", () => {
     }, fixture.context)).toMatchObject({ ok: false, code: "quality-mismatch" });
     expect(state.blocks.size).toBe(0);
   });
+
+  it("creates tierless active blocks without a tier hierarchy or restill policy", () => {
+    const state = initialState();
+    const fixture = messageContext(state);
+    const message = planV3MessageMutation({
+      operation: "compact",
+      semantics: "active-block",
+      mode: "message",
+      catalogId: state.catalogId,
+      messageRefs: fixture.refs,
+      transactionId: "tx:active-message",
+      blockId: "active:message",
+      topic: "active",
+      summary: "active summary",
+      runId: "run:active",
+      createdAt: 1,
+      createdTurnOrdinal: 1,
+      benefit: benefitEvidence("T3", fixture.refs, fixture.sourceDigest, tokenMetadata("T1"), "active summary"),
+      quality: { override: "quality-disabled" },
+    }, fixture.context);
+    expect(message).toMatchObject({ ok: true, orderedRefs: fixture.refs });
+    if (!message.ok || message.transaction.tag !== "semantic-create") return;
+    expect(message).not.toHaveProperty("targetTier");
+    expect(message.transaction.payload).not.toHaveProperty("tier");
+
+    let mixed = addT1(initialState(), "legacy:t1:1", 1);
+    mixed = addT1(mixed, "legacy:t1:2", 2);
+    mixed = addT1(mixed, "legacy:t1:3", 3);
+    mixed = addParent(mixed, "legacy:t2", "T2", ["legacy:t1:1", "legacy:t1:2"], 2);
+    const blocks = blockContext(mixed);
+    const refs = [blocks.refById.get("legacy:t2")!, blocks.refById.get("legacy:t1:3")!];
+    const replacement = planV3BlockMutation({
+      ...blockRequest(blocks.context, refs, "active:replacement"),
+      quality: { override: "quality-disabled" },
+    }, blocks.context);
+    expect(replacement).toMatchObject({ ok: true, orderedRefs: refs });
+    if (!replacement.ok || replacement.transaction.tag !== "semantic-create") return;
+    expect(replacement).not.toHaveProperty("targetTier");
+    expect(replacement.transaction.payload).not.toHaveProperty("tier");
+  });
 });
 
-describe("v3 block-mode promotion and restill planning", () => {
+describe("v3 active-block source-proof planning", () => {
   it("classifies only complete AILI planning atoms and rejects bounded gap failures", () => {
     const { blocks, children } = promotionChildren();
     const complete = [
@@ -639,11 +660,19 @@ describe("v3 block-mode promotion and restill planning", () => {
         role: "toolResult",
         toolCallId: "status:call",
         toolName: "aili_compact_status",
-        content: "ok",
+        content: JSON.stringify(createAiliPlanningResultEnvelope({
+          toolName: "aili_compact_status",
+          toolCallId: "status:call",
+          identity: { sessionId: "legacy", branchLeafId: "legacy", epochId: "legacy", revision: "legacy" },
+          outcome: "success",
+          result: "ok",
+        })),
       }),
       messageEntry("entry:4", { role: "assistant", content: "right" }),
     ];
-    expect(classifyTransparentPromotionGaps(complete, blocks, children)).toMatchObject({
+    expect(classifyTransparentPromotionGaps(complete, blocks, children, {
+      sessionId: "legacy", branchLeafId: "legacy", epochId: "legacy", revision: "legacy",
+    })).toMatchObject({
       ok: true,
       proofs: [{
         version: 1,
@@ -653,6 +682,7 @@ describe("v3 block-mode promotion and restill planning", () => {
         rightLeafEntryId: "entry:4",
         messageCount: 2,
         gapDigest: expect.any(String),
+        sourceSnapshotDigest: expect.any(String),
       }],
     });
 
@@ -760,7 +790,13 @@ describe("v3 block-mode promotion and restill planning", () => {
         role: "toolResult",
         toolCallId: "status:call",
         toolName: "aili_compact_status",
-        content: "ok",
+        content: JSON.stringify(createAiliPlanningResultEnvelope({
+          toolName: "aili_compact_status",
+          toolCallId: "status:call",
+          identity: { sessionId: state.sessionId, branchLeafId: state.branchLeafId, epochId: state.epochId, revision: state.projectionVersion },
+          outcome: "success",
+          result: "ok",
+        })),
       }),
       messageEntry("entry:4", { role: "assistant", content: "right" }),
     ];
@@ -768,7 +804,7 @@ describe("v3 block-mode promotion and restill planning", () => {
     const refs = [fixture.refById.get("gap:left")!, fixture.refById.get("gap:right")!];
     const result = planV3BlockMutation(blockRequest(fixture.context, refs, "gap-parent"), fixture.context);
 
-    expect(result).toMatchObject({ ok: true, targetTier: "T2", orderedRefs: refs });
+    expect(result).toMatchObject({ ok: true, orderedRefs: refs });
     if (!result.ok || result.transaction.tag !== "semantic-create") return;
     expect(result.transaction.payload.source).toMatchObject({
       kind: "blocks",
@@ -781,10 +817,92 @@ describe("v3 block-mode promotion and restill planning", () => {
         rightLeafEntryId: "entry:4",
         messageCount: 2,
         gapDigest: expect.any(String),
+        sourceSnapshotDigest: expect.any(String),
       }],
     });
     expect(result.transaction.payload.leafCount).toBe(2);
     expect(state.blocks.size).toBe(2);
+  });
+
+  it("keeps the 16-child mutation recommendation identical when status supplies one raw promotion index", () => {
+    let state = initialState();
+    const entries: SessionLikeEntry[] = [];
+    for (let index = 0; index < 16; index += 1) {
+      const ordinal = entries.length + 1;
+      entries.push(messageEntry(`entry:${ordinal}`, { role: "assistant", content: `leaf:${index + 1}` }));
+      state = addT1(state, `status:t1:${index + 1}`, ordinal);
+      if (index === 15) continue;
+      const callId = `status:gap:${index + 1}`;
+      entries.push(messageEntry(`status:call:${index + 1}`, {
+        role: "assistant", content: [{ type: "toolCall", id: callId, name: "aili_compact_status" }],
+      }));
+      entries.push(messageEntry(`status:result:${index + 1}`, {
+        role: "toolResult", toolCallId: callId, toolName: "aili_compact_status",
+        content: JSON.stringify(createAiliPlanningResultEnvelope({
+          toolName: "aili_compact_status", toolCallId: callId,
+          identity: {
+            sessionId: state.sessionId, branchLeafId: state.branchLeafId,
+            epochId: state.epochId, revision: state.projectionVersion,
+          },
+          outcome: "success", result: { status: "ok" },
+        })),
+      }));
+    }
+    const fixture = blockContext(state, undefined, entries);
+    const refs = Array.from({ length: 16 }, (_, index) => fixture.refById.get(`status:t1:${index + 1}`)!);
+    const request = blockRequest(fixture.context, refs, "status:parent");
+    const raw = planV3BlockMutation(request, fixture.context);
+    const index = new PromotionGapIndexV1(createRawEpochProjection(entries, {
+      sessionId: state.sessionId,
+      branchLeafId: state.branchLeafId,
+      epochId: state.epochId,
+      revision: state.projectionVersion,
+    }));
+    const indexed = planV3BlockMutation(request, { ...fixture.context, promotionGapIndex: index });
+    expect(indexed).toEqual(raw);
+  });
+
+  it("rejects a promotion index whose immutable source identity differs from the transaction state", () => {
+    let state = initialState();
+    state = addT1(state, "identity:left", 1);
+    state = addT1(state, "identity:right", 4);
+    const entries = [
+      messageEntry("entry:1", { role: "assistant", content: "left" }),
+      messageEntry("status:call", {
+        role: "assistant",
+        toolCalls: [{ id: "status:call", name: "aili_compact_status" }],
+      }),
+      messageEntry("status:result", {
+        role: "toolResult",
+        toolCallId: "status:call",
+        toolName: "aili_compact_status",
+        content: JSON.stringify(createAiliPlanningResultEnvelope({
+          toolName: "aili_compact_status",
+          toolCallId: "status:call",
+          identity: {
+            sessionId: state.sessionId,
+            branchLeafId: state.branchLeafId,
+            epochId: state.epochId,
+            revision: state.projectionVersion,
+          },
+          outcome: "success",
+          result: "ok",
+        })),
+      }),
+      messageEntry("entry:4", { role: "assistant", content: "right" }),
+    ];
+    const fixture = blockContext(state, undefined, entries);
+    const wrongIndex = new PromotionGapIndexV1(createRawEpochProjection(entries, {
+      sessionId: state.sessionId,
+      branchLeafId: "other-branch",
+      epochId: state.epochId,
+      revision: state.projectionVersion,
+    }));
+
+    expect(planV3BlockMutation(
+      blockRequest(fixture.context, [fixture.refById.get("identity:left")!, fixture.refById.get("identity:right")!], "identity:parent"),
+      { ...fixture.context, promotionGapIndex: wrongIndex },
+    )).toMatchObject({ ok: false, code: "invalid-promotion-gap" });
   });
 
   it("sorts caller refs by effective source ordinal and accepts the exact 2 and 16 child boundaries", () => {
@@ -797,13 +915,13 @@ describe("v3 block-mode promotion and restill planning", () => {
     twoRequest.topic = "t".repeat(200);
     twoRequest.summaryMaxChars = 256;
     const two = planV3BlockMutation(twoRequest, fixture.context);
-    expect(two).toMatchObject({ ok: true, orderedRefs: [refs[0], refs[1]], targetTier: "T2" });
+    expect(two).toMatchObject({ ok: true, orderedRefs: [refs[0], refs[1]] });
     if (two.ok && two.transaction.tag === "semantic-create") {
       expect(two.transaction.payload.source).toEqual({ kind: "blocks", childBlockIds: ["t1:1", "t1:2"] });
     }
 
     const sixteen = planV3BlockMutation(blockRequest(fixture.context, [...refs].reverse(), "t2:sixteen"), fixture.context);
-    expect(sixteen).toMatchObject({ ok: true, orderedRefs: refs, targetTier: "T2" });
+    expect(sixteen).toMatchObject({ ok: true, orderedRefs: refs });
     expect(planV3BlockMutation(blockRequest(fixture.context, [refs[0]!], "too-few"), fixture.context))
       .toMatchObject({ ok: false, code: "invalid-request" });
     expect(planV3BlockMutation({
@@ -816,7 +934,7 @@ describe("v3 block-mode promotion and restill planning", () => {
       .toMatchObject({ ok: false, code: "invalid-request" });
   });
 
-  it("rejects duplicate, stale, legacy, query-only, inactive, mixed-tier, active-parent, gaps, and protection", () => {
+  it("rejects duplicate, stale, legacy, query-only, inactive, active-parent, gaps, and protection", () => {
     let baseState = addT1(initialState(), "t1:1", 1);
     baseState = addT1(baseState, "t1:2", 2);
     baseState = addT1(baseState, "t1:3", 3);
@@ -843,6 +961,10 @@ describe("v3 block-mode promotion and restill planning", () => {
     };
     expect(planV3BlockMutation({ ...blockRequest(base.context, [r1, r2]), blockRefs: [r1, "b999999"] }, legacyContext))
       .toMatchObject({ ok: false, code: "legacy-block" });
+    expect(planV3DecompressMutation({
+      operation: "decompress", catalogId: legacyContext.catalog.catalogId, transactionId: "legacy:root",
+      blockRefs: ["b999999"], provenanceId: "user:legacy", createdAt: 2, depth: "raw",
+    }, legacyContext)).toMatchObject({ ok: false, code: "legacy-block" });
 
     let parentState = addParent(baseState, "t2:1", "T2", ["t1:1", "t1:2"], 2);
     const parentFixture = blockContext(parentState);
@@ -852,7 +974,7 @@ describe("v3 block-mode promotion and restill planning", () => {
 
     const mixedRefs = [parentFixture.refById.get("t2:1")!, parentFixture.refById.get("t1:3")!];
     expect(planV3BlockMutation(blockRequest(parentFixture.context, mixedRefs, "mixed"), parentFixture.context))
-      .toMatchObject({ ok: false, code: "mixed-tier" });
+      .toMatchObject({ ok: true, orderedRefs: mixedRefs });
 
     let gapState = addT1(initialState(), "gap:1", 1);
     gapState = addT1(gapState, "gap:3", 3);
@@ -885,153 +1007,6 @@ describe("v3 block-mode promotion and restill planning", () => {
       .toMatchObject({ ok: false, code: "inactive-child" });
   });
 
-  it("enforces strict default T3 restill thresholds at and across their boundaries", () => {
-    const fixture = restillFixture();
-    const refs = [...fixture.refs].reverse();
-    const boundaryTokens = tokenMetadata("T3", {
-      sourceTokensLower: 8_000,
-      sourceTokensUpper: 8_000,
-      replacementTokensUpper: 6_000,
-      steadySavingsTokensLower: 2_000,
-      savingsRatio: 0.25,
-      summaryTokensUpper: 3_000,
-    });
-    const accepted = planV3BlockMutation(blockRequest(fixture.context, refs, "t3:restill", 11, boundaryTokens), fixture.context);
-    expect(accepted).toMatchObject({ ok: true, targetTier: "T3" });
-
-    expect(planV3BlockMutation(blockRequest(fixture.context, refs, "young", 10, boundaryTokens), fixture.context))
-      .toMatchObject({ ok: false, code: "restill-ineligible" });
-    expect(planV3BlockMutation(blockRequest(fixture.context, refs, "summary-large", 11, {
-      ...boundaryTokens, summaryTokensUpper: 3_001,
-    }), fixture.context)).toMatchObject({ ok: false, code: "restill-ineligible" });
-    const lowRatio = tokenMetadata("T3", {
-      sourceTokensLower: 10_000,
-      sourceTokensUpper: 10_000,
-      replacementTokensUpper: 7_600,
-      steadySavingsTokensLower: 2_400,
-      savingsRatio: 0.24,
-    });
-    expect(planV3BlockMutation(blockRequest(fixture.context, refs, "ratio-low", 11, lowRatio), fixture.context))
-      .toMatchObject({ ok: false, code: "restill-ineligible" });
-    expect(planV3BlockMutation(blockRequest({ ...fixture.context, restillEnabled: false }, refs, "disabled", 11, boundaryTokens), {
-      ...fixture.context, restillEnabled: false,
-    })).toMatchObject({ ok: false, code: "restill-ineligible" });
-  });
-
-  it("ignores attempts to loosen any runtime restill policy below the stable defaults", () => {
-    expect(resolveV3RestillPlannerPolicy({
-      minChildren: 1,
-      minSourceTokens: 7_999,
-      minSavingsTokens: 1_023,
-      minSavingsRatio: 0.24,
-      maxSummaryTokens: 3_001,
-      minTurnsSinceCreate: 7,
-    })).toEqual(V3_LIMITS.restill);
-  });
-
-  it("applies a tightened minChildren at its exact boundary", () => {
-    const fixture = restillFixture(3);
-    const context: V3MutationPlannerContext = {
-      ...fixture.context,
-      restillPolicy: { minChildren: 3 },
-    };
-    expect(planV3BlockMutation(blockRequest(context, fixture.refs, "children:exact", 11), context))
-      .toMatchObject({ ok: true, targetTier: "T3" });
-    expect(planV3BlockMutation(blockRequest(context, fixture.refs.slice(0, 2), "children:below", 11), context))
-      .toMatchObject({ ok: false, code: "restill-ineligible", path: "$.blockRefs" });
-  });
-
-  it("applies a tightened minSourceTokens at its exact boundary", () => {
-    const fixture = restillFixture();
-    const context: V3MutationPlannerContext = {
-      ...fixture.context,
-      restillPolicy: { minSourceTokens: 9_000 },
-    };
-    const exact = tokenMetadata("T3", {
-      sourceTokensLower: 9_000,
-      sourceTokensUpper: 9_000,
-      replacementTokensUpper: 6_000,
-    });
-    const below = tokenMetadata("T3", {
-      sourceTokensLower: 8_999,
-      sourceTokensUpper: 8_999,
-      replacementTokensUpper: 5_999,
-    });
-    expect(planV3BlockMutation(blockRequest(context, fixture.refs, "source:exact", 11, exact), context))
-      .toMatchObject({ ok: true, targetTier: "T3" });
-    expect(planV3BlockMutation(blockRequest(context, fixture.refs, "source:below", 11, below), context))
-      .toMatchObject({ ok: false, code: "restill-ineligible", path: "$.blockRefs" });
-  });
-
-  it("applies a tightened minSavingsTokens at its exact boundary", () => {
-    const fixture = restillFixture();
-    const context: V3MutationPlannerContext = {
-      ...fixture.context,
-      restillPolicy: { minSavingsTokens: 3_000 },
-    };
-    const exact = tokenMetadata("T3", {
-      sourceTokensLower: 10_000,
-      sourceTokensUpper: 10_000,
-      replacementTokensUpper: 7_000,
-    });
-    const below = tokenMetadata("T3", {
-      sourceTokensLower: 10_000,
-      sourceTokensUpper: 10_000,
-      replacementTokensUpper: 7_001,
-    });
-    expect(planV3BlockMutation(blockRequest(context, fixture.refs, "savings:exact", 11, exact), context))
-      .toMatchObject({ ok: true, targetTier: "T3" });
-    expect(planV3BlockMutation(blockRequest(context, fixture.refs, "savings:below", 11, below), context))
-      .toMatchObject({ ok: false, code: "restill-ineligible", path: "$.blockRefs" });
-  });
-
-  it("applies a tightened minSavingsRatio at its exact boundary", () => {
-    const fixture = restillFixture();
-    const context: V3MutationPlannerContext = {
-      ...fixture.context,
-      restillPolicy: { minSavingsRatio: 0.30 },
-    };
-    const exact = tokenMetadata("T3", {
-      sourceTokensLower: 10_000,
-      sourceTokensUpper: 10_000,
-      replacementTokensUpper: 7_000,
-    });
-    const below = tokenMetadata("T3", {
-      sourceTokensLower: 10_000,
-      sourceTokensUpper: 10_000,
-      replacementTokensUpper: 7_001,
-    });
-    expect(planV3BlockMutation(blockRequest(context, fixture.refs, "ratio:exact", 11, exact), context))
-      .toMatchObject({ ok: true, targetTier: "T3" });
-    expect(planV3BlockMutation(blockRequest(context, fixture.refs, "ratio:below", 11, below), context))
-      .toMatchObject({ ok: false, code: "restill-ineligible", path: "$.blockRefs" });
-  });
-
-  it("applies a tightened maxSummaryTokens at its exact boundary", () => {
-    const fixture = restillFixture();
-    const context: V3MutationPlannerContext = {
-      ...fixture.context,
-      restillPolicy: { maxSummaryTokens: 2_000 },
-    };
-    const exact = tokenMetadata("T3", { summaryTokensUpper: 2_000 });
-    const above = tokenMetadata("T3", { summaryTokensUpper: 2_001 });
-    expect(planV3BlockMutation(blockRequest(context, fixture.refs, "summary:exact", 11, exact), context))
-      .toMatchObject({ ok: true, targetTier: "T3" });
-    expect(planV3BlockMutation(blockRequest(context, fixture.refs, "summary:above", 11, above), context))
-      .toMatchObject({ ok: false, code: "restill-ineligible", path: "$.blockRefs" });
-  });
-
-  it("applies a tightened minTurnsSinceCreate at its exact boundary", () => {
-    const fixture = restillFixture();
-    const context: V3MutationPlannerContext = {
-      ...fixture.context,
-      restillPolicy: { minTurnsSinceCreate: 10 },
-    };
-    expect(planV3BlockMutation(blockRequest(context, fixture.refs, "turns:exact", 13), context))
-      .toMatchObject({ ok: true, targetTier: "T3" });
-    expect(planV3BlockMutation(blockRequest(context, fixture.refs, "turns:below", 12), context))
-      .toMatchObject({ ok: false, code: "restill-ineligible", path: "$.blockRefs" });
-  });
 });
 
 describe("v3 decompression and exact recompression planning", () => {

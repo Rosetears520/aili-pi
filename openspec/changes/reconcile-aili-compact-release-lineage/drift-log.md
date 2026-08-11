@@ -104,3 +104,75 @@ This cannot be repaired as test tuning. The product contract must choose whether
 The first implementation attempt dynamically removed AILI protocol from a second ordinal domain. Controlled production proved that Session visibility/normalization timing can shift those derived ordinals after persistence, producing overlap between an existing block interval and later source despite disjoint entry IDs. The implementation was reverted.
 
 The user selected authoritative raw intervals plus bounded gap proofs. Each non-empty adjacent-child gap will bind child IDs, boundary leaf IDs, count, proof version, and canonical digest. Planner, pure replay, and BranchIndex replay must independently derive and classify the immutable gap; the transaction declaration cannot authorize itself. This adds closed-schema/replay semantics and therefore returns affected work to DEFINE for final test-plan acceptance.
+
+## 2026-08-07 — Raw-domain, ownership, source-binding, and replay-performance correction
+
+The release review found four coupled gaps in the partial raw-gap implementation: it derived raw ordinals from record-shaped messages in some paths but not others; it treated a complete same-name tool pair as AILI-owned without handler provenance; BranchIndex proof replay read mutable Session-owned message bodies and accepted structure-only replay seeds; and controlled official-Pi AgentSession lineage timed out with CPU-bound repeated full-history replay while its counters did not record every traversal.
+
+The user selected a complete hardening revision. The replacement contract makes every `type:"message"` entry consume one raw epoch ordinal, introduces closed replayable handler attestations without secrets/HMAC, verifies gaps through immutable source-digested epoch snapshots and source-bound replay seeds, binds structural block content into catalog identity, and requires revision-scoped indexed/bounded replay with truthful counters and atomic non-PASS timeout artifacts. The only transparent outcomes are successful closed status, successful transaction-bound compact, and a closed handler-attested compact rejection; rejected status, permission denial, unknown-tool, and every other result remain non-transparent. This changes persistent/replay and verification boundaries, so BUILD remains stopped until the revised final test plan is strictly validated and explicitly accepted.
+
+## 2026-08-08 — Controlled hierarchy economics correction
+
+The repaired controlled AgentSession path completed all 16 T1 and four T2 transactions, then the first T3 was rejected by the ordinary strict token-benefit gate. The fixture had selected two 512-character T2 summaries and proposed an 8,000-character T3 summary. Production economics correctly prices the immediate projected child recap pairs that Pi would send in the next context; it does not and must not credit recursive raw leaves or historical tool-result text.
+
+The user initially selected a fixture-data correction, not an economics-policy change. Further capacity review showed that neither the 16/23 nor the intermediate 29-transaction topology can meet the unchanged 8,000-token restill source floor under conservative lower/upper token bounds. The selected revision therefore raises the semantic-summary target/hard ceiling to 15,000/18,000 characters and uses a 28 T1 → 14 T2 → 7 T3 → one seven-child restill hierarchy. It preserves the existing economics thresholds, immediate-child representation, watchdog/budget rules, and the 512-to-8,000 higher-tier rejection. This changes product capacity and controlled release evidence, so affected BUILD remains stopped until strict validation and explicit final test-plan acceptance.
+
+## 2026-08-09 — ACP-style bounded provider-frontier revision
+
+### Evidence
+
+The accepted 28 → 14 → 7 → 1 controlled AgentSession hierarchy retains roughly 8.96 million raw characters through 224 provider/context transformations before parent tiers. A bounded descriptor-cache repair passed focused BranchIndex/indexed-projector/performance checks but the full controlled worker did not complete inside its 120-second matrix contract. A temporary trace reached only T1 14 after 60 seconds. The exact dominant frame remains unverified, but repeated projection of a growing provider-facing history is sufficient evidence that another local cache adjustment cannot establish the current architectural contract.
+
+Public prior-art review found that DCP expands earlier summaries and protected output into later compression requests, while ACP keeps active T1/T2/T3 blocks, consumes children at parent creation, and exposes recap/search/decompression. Both use the active agent model to supply a tool summary rather than a dedicated summary model. Upstream code, hooks, prompts, state, configuration, runtime compatibility, and license reuse remain out of scope and unverified for AILI.
+
+### Decision
+
+The user selected ACP-style compression behavior for an AILI-owned provider frontier. AILI will retain its complete source-bound proof ledger, but provider requests will contain protected recent raw content and bounded block descriptors by default. Full summaries are resolved only through explicit current recap/decompression selections that fit the model request budget. T1/T2/T3/restill continue to use the current agent model, existing Compact tools, atomic child consumption, immediate-child economics, and on-demand exact source recovery. DCP-style recursive summary/protected-output expansion is rejected.
+
+### Effect
+
+This changes projection architecture and verification strategy. BUILD is paused as `BUILD_MATERIAL_DISCOVERY` until the revised proposal, design, specifications, tasks, and final test plan pass strict validation and receive explicit user acceptance. The 15k/18k limits, 28 → 14 → 7 → 1 topology, source-proof/attestation invariants, 10-second phase and 120-second total budgets, and all external-operation gates remain unchanged.
+
+## 2026-08-09 — MiMo dynamic checkpoint and active-block revision
+
+The user rejected the remaining fixed AILI route and selected MiMoCode's dynamic checkpoint/rebuild-first behavior. The accepted design direction is not a direct 90-percent semantic summary or a custom 70/80/90 ladder: it uses MiMo's effective-window thresholds, explicit combined-window reserves, a checkpoint ceiling, one-writer coordination, checkpoint rebuild before native compaction, and threshold reset after rebuild. ACP remains the source for architectural comparison of bounded active-block projection only.
+
+Pi exposes a combined `contextWindow`, not MiMoCode's distinct provider input-capability field. The Pi adaptation therefore uses separate `min(maxTokens, 20_000)` output and recovery reserves and caps checkpoints at an additional 13K below the safe working budget. This delta intentionally introduces no MiMoCode configuration syntax or new user configuration surface. An invalid or reserve-exhausted context disables automatic recovery rather than guessing.
+
+This supersedes fixed T1/T2/T3/restill new writes, tier-specific economics, and the exact 50-transaction release fixture. Those records remain readable only for rollback and source-proof compatibility. The source-bound ledger, protocol attestation, immutable epoch snapshots, bounded retrieval, protected tail, and exact Pi external-operation gates remain unchanged. BUILD stays paused until the rewritten contract strict-validates and the user accepts the final test plan.
+
+## 2026-08-09 — Full-candidate release-gate reconciliation
+
+The user selected the complete current working tree as the `0.2.0` release candidate after safe-local readiness checks found a compatibility-evidence hash drift and fifteen stale or non-pass release/live rows. This is a verification-scope change: the earlier targeted MiMo/ACP test plan remains valid implementation evidence but cannot establish stable release readiness.
+
+The release contract therefore replaces the retired controlled 50-transaction/tier evidence requirement with current candidate-bound controlled active-block and MiMo recovery evidence. Fresh predecessor lookup, installed rollback, representative-provider boundary capture, human review, commit, push, tag, publication, and release retain their separate exact approval gates. No historical artifact may be relabelled or hash-edited to satisfy the new candidate.
+
+## 2026-08-10 — Review-driven simplicity and release-gate correction proposed
+
+### Evidence
+
+A bounded read-only review of the active AILI Compact scope found that release validation returns an empty error list when the retired `redesign-aili-compact-lifecycle` proposal is absent, despite this change owning the active candidate contract. It also found that the combined legacy/v3 catalog appends every v3 block before every legacy block, contradicting the required semantic-leaf ordering before the provider frontier caps descriptors at 32. The frontier's incomplete selection identity/counter work is already task 2.15 scope and remains required hardening.
+
+The review also found a stale human-review wrapper incompatible with the current live-artifact validator and retaining retired tier evidence, plus a 0–256 promotion-oracle loop that repeatedly exercises the same five replay paths while correlating child count and protocol kind. The independent raw-gap oracle itself remains necessary. The existing full-history indexed projector appears private-test-only, but external compatibility is unverified.
+
+### Proposal status and effect
+
+The user requested that these findings first be recorded as a proposal, then accepted that remediation direction for DEFINE write-back. The proposal preserves source-proof, attestation, snapshot, and independent replay defenses; it proposes current-contract release gating, semantic-order correction, current human-review evidence, explicit oracle boundary/table coverage, and a consumer audit before any legacy projector removal.
+
+This changes release-validation behavior and the verification strategy, so the previous full-candidate test-plan acceptance is no longer current for affected work. No runtime, test, validator, generated-artifact, dependency, external/provider, installation, Git, or publication mutation is authorized by this proposal alone.
+
+### Oracle matrix refinement
+
+The first 2.15a implementation expanded the prior correlated 257-row loop into a 450-row all-cardinality cross product. Although it made dimensions explicit, it increased repeated replay work and contradicted the remediation goal. The user selected the recommended 60-row matrix: child cardinalities `2` and `16`, six bounded gap lengths, and all five protocol classifications. Minimum/maximum cardinalities exercise one and fifteen adjacent gaps; focused active-block coverage retains ordinary two-to-sixteen behavior. This does not weaken independent planner/direct/pure/cold-index/append-index agreement.
+
+## 2026-08-11 — Default Compact ownership returned to Pi
+
+The user selected Pi native compaction as the default and made AILI Compact an explicit opt-in experiment. The runtime default is now `enabled=false`; the current user-global AILI config is also disabled, while Pi `compaction.enabled` is explicitly true. Disabled AILI continues to return original provider messages and exact `undefined` from compaction hooks, leaving native threshold, overflow recovery, retry, and manual `/compact` ownership with Pi.
+
+This supersedes the older default-enabled/exclusive-owner assumptions in the historical reversible-context-compression contract. The current release candidate cannot be declared contract-complete until the active specification and release evidence are reconciled with this opt-in boundary. No commit, tag, publish, or release operation was authorized.
+
+## 2026-08-11 — AILI Compact removed from the 0.2.0 runtime
+
+The user selected complete removal of AILI Compact from the supported 0.2.0 distribution and authorized the stable release. `registerAiliCompact` is no longer reachable from the single Extension entry; `/aili-compact`, all `aili_compact*`/restore/search tools, provider projection, Session/compaction hooks, widgets, and Compact Doctor evidence are absent. Pi native compaction is the sole supported context-compaction path.
+
+The historical implementation and focused tests remain in the repository for a possible future redesign, but they are frozen and are not active release evidence. Compact-specific live, migration, rollback, quality, performance, sanitizer, and human-review evidence no longer block `validate:release`. The old live manifest remains diagnostic-only because its harness was owned by the removed Compact feature; deterministic current-source evidence continues to gate the persistent Agent adapter through compatibility hashes and focused tests.

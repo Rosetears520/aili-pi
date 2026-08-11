@@ -6,57 +6,85 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it } from "vitest";
 
 import { readAiliCompactCandidateBinding } from "../../scripts/aili-compact-release-evidence.js";
+import { AILI_COMPACT_ENTRY, digest } from "../../src/runtime/aili-compact/contracts.js";
 import { registerAiliCompact } from "../../src/runtime/aili-compact/index.js";
-import { sourceDigest } from "../../src/runtime/aili-compact/contracts.js";
+import { classifyTransparentPromotionGaps } from "../../src/runtime/aili-compact/promotion-gaps.js";
+import { QUALITY_EVALUATOR_VERSION } from "../../src/runtime/aili-compact/quality.js";
 import { reduceCompactState } from "../../src/runtime/aili-compact/reducer.js";
+import { TOKEN_ESTIMATOR_VERSION } from "../../src/runtime/aili-compact/safe-planning.js";
+import { planV3BlockMutation, v3BlockSourceDigest } from "../../src/runtime/aili-compact/v3-mutations.js";
 import { buildV3RuntimeView } from "../../src/runtime/aili-compact/v3-runtime.js";
+import { AILI_COMPACT_SCHEMA_V3, applyV3Transaction, v3MessageLeafDigest, v3SummaryDigest } from "../../src/runtime/aili-compact/v3.js";
 
 const REPORT_PATH = join(process.cwd(), "artifacts", "test-results", "aili-compact-fake-provider.json");
 const RAW_SENTINEL = "FAKE_PROVIDER_RAW_BODY_SENTINEL_9281";
 const QUALITY_SECRET = "PRIVATE-BLOCKER-BODY-7291";
 const SUFFIX_MARKER = "AILI Compact provider-only guidance";
-const RAW_FILLER_CHARS = 80_000;
-const T1_SUMMARY_CHARS = 8_000;
-const T2_SUMMARY_CHARS = 3_500;
-const T3_SUMMARY_CHARS = 100;
-const TAIL_ADVANCE_CHARS = 9_000;
-const HIERARCHY_RECENT_PARTS = 7;
+const RAW_FILLER_CHARS = 2_000;
+const ACTIVE_SUMMARY_CHARS = 3_000;
+const COMPOSITION_SUMMARY_CHARS = 1_200;
+const FRONTIER_ACTIVE_BLOCKS = 33;
 
 type Handler = (event: any, context: any) => any;
 type RegisteredTool = { name: string; execute: (...args: any[]) => Promise<any> };
 type RegisteredCommand = (args: string, context: any) => Promise<void>;
-
 type RuntimeHarness = ReturnType<typeof extensionHarness>;
 
-describe("AILI Compact registered fake-provider end-to-end matrix", () => {
-  it("proves state contracts without credentials and keeps live overflow explicitly Unverified", async () => {
-    const project = mkdtempSync(join(tmpdir(), "aili-compact-fake-provider-"));
+type AttestedFixture = {
+  project: string;
+  entries: any[];
+  childBlockIds: string[];
+  parentBlockId: string;
+  attestedGapMessageCount: number;
+  rejectedProtocolKinds: string[];
+};
+
+describe("AILI Compact registered fake-provider active-block matrix", () => {
+  it("proves local active-block contracts without credentials, network, or provider execution", async () => {
+    const root = mkdtempSync(join(tmpdir(), "aili-compact-fake-provider-"));
     try {
-      writeDefaultProjectConfig(project);
+      const suffixProject = join(root, "suffix");
+      writeProjectConfig(suffixProject, false);
+      const suffixEvidence = await proveExactRangeAndTransientSuffix(suffixProject);
 
-      const suffixEvidence = await proveExactRangeAndTransientSuffix(project);
-      const hierarchy = await buildRegisteredTierHierarchy(project);
-      const checkpointEvidence = proveCheckpointCoverageAndGap(hierarchy);
-      const replayEvidence = await proveReloadForkDecompressRecompress(project, hierarchy);
-      const faultEvidence = await proveQualityAndStaleFaults(project, hierarchy);
-      const calibrationEvidence = await proveCalibrationInvalidation(project, hierarchy);
-      const stormEvidence = await proveStormGuardAndInterruptedReload(project);
-      const indexFallbackEvidence = await proveCorruptIndexExactFallback(project);
-      const legacyUpgradeEvidence = await proveExplicitLegacyUpgrade(project);
+      const activeProject = join(root, "attested-active-blocks");
+      writeProjectConfig(activeProject, false, false);
+      const attested = await proveClosedAttestedTierlessReplacement(activeProject);
 
-      const durableSession = JSON.stringify(hierarchy.entries);
+      const selectionEvidence = await proveTwoToSixteenSelectionAndLegacyRead(root);
+      const legacyEvidence = await proveLegacyTierReadCompatibility(root);
+
+      const frontierProject = join(root, "frontier");
+      writeProjectConfig(frontierProject, false);
+      const frontierEvidence = await proveBoundedProviderFrontierNoRawLeak(frontierProject);
+
+      const faultEvidence = await proveQualityAndStaleFaults(root, attested);
+
+      const stormProject = join(root, "storm");
+      writeProjectConfig(stormProject, false);
+      const stormEvidence = await proveStormGuardAndInterruptedReload(stormProject);
+
+      const corruptProject = join(root, "corrupt-index");
+      writeProjectConfig(corruptProject, false);
+      const indexFallbackEvidence = await proveCorruptIndexExactFallback(corruptProject);
+
+      const durableSession = JSON.stringify(attested.entries);
       expect(durableSession).not.toContain(SUFFIX_MARKER);
       expect(durableSession).not.toContain("aili-compact-provider-suffix");
-      const migrationOutput = JSON.stringify(structuredClone(hierarchy.entries));
-      expect(migrationOutput).not.toContain(SUFFIX_MARKER);
-      expect(migrationOutput).not.toContain("aili-compact-provider-suffix");
 
       const candidateBinding = await readAiliCompactCandidateBinding(process.cwd());
+      const attestedEvidence = {
+        sourceBackedTierless: true,
+        exactTransactionAttestation: true,
+        atomicReplacement: true,
+        attestedGapMessageCount: attested.attestedGapMessageCount,
+        rejectedProtocolKinds: attested.rejectedProtocolKinds,
+      };
       const report = {
         schema: "aili.compact.fake-provider-evidence.v1",
         verdict: "PASS",
         ...candidateBinding,
-        scope: "registered-extension-state-contracts-only",
+        scope: "registered-fake-provider-active-block-contracts-only",
         sanitized: true,
         credentialsUsed: false,
         networkUsed: false,
@@ -68,70 +96,24 @@ describe("AILI Compact registered fake-provider end-to-end matrix", () => {
           platform: process.platform,
           arch: process.arch,
         },
-        rows: {
-          exactSafeRangeAndSuffix: { status: "PASS", ...suffixEvidence },
-          registeredT1ToT3: {
-            status: "PASS",
-            t1Count: hierarchy.t1.length,
-            t2Count: hierarchy.t2.length,
-            t3Count: 1,
-            maximalTiers: checkpointEvidence.maximalTiers,
-            structuralLineage: true,
-            textualLineageRequired: false,
-            fixtureChars: {
-              rawFillerPerT1: RAW_FILLER_CHARS,
-              t1Summary: T1_SUMMARY_CHARS,
-              t2Summary: T2_SUMMARY_CHARS,
-              t3Summary: T3_SUMMARY_CHARS,
-              tailAdvance: TAIL_ADVANCE_CHARS,
-              hierarchyRecentTail: TAIL_ADVANCE_CHARS * HIERARCHY_RECENT_PARTS,
-            },
-            fixtureUtf8Bytes: {
-              rawSourcePerT1: Buffer.byteLength(rawBody(1), "utf8"),
-              t1Summary: Buffer.byteLength(t1Summary(1), "utf8"),
-              t2Summary: Buffer.byteLength(aggregateSummary("t2", [t1Summary(1), t1Summary(2)], T2_SUMMARY_CHARS), "utf8"),
-              t3Summary: Buffer.byteLength(aggregateSummary("t3", [t1Summary(1), t1Summary(2)], T3_SUMMARY_CHARS), "utf8"),
-            },
-            economicsBindings: {
-              t1: hierarchy.t1.map(tokenEconomicsEvidence),
-              t2: hierarchy.t2.map(tokenEconomicsEvidence),
-              t3: [tokenEconomicsEvidence(hierarchy.t3)],
-            },
-          },
-          qualityOmission: { status: "PASS", ...faultEvidence.quality },
-          staleCatalog: { status: "PASS", ...faultEvidence.stale },
-          reloadForkReplay: { status: "PASS", ...replayEvidence },
-          checkpointCoverage: { status: "PASS", ...checkpointEvidence },
-          calibrationInvalidation: { status: "PASS", ...calibrationEvidence },
-          suffixNonPersistence: {
-            status: "PASS",
-            sessionEntries: false,
-            referenceOutput: false,
-            exactSearchMatches: 0,
-            migrationOutput: false,
-          },
-          stormGuard: { status: "PASS", ...stormEvidence },
-          interruptedRescueReload: {
-            status: "PASS",
-            stateBeforeReload: stormEvidence.interruptedStateBeforeReload,
-            stateAfterReload: stormEvidence.stateAfterReload,
-            fabricatedSuccessCount: stormEvidence.fabricatedSuccessCount,
-          },
-          corruptIndexFallback: { status: "PASS", ...indexFallbackEvidence },
-          explicitLegacyUpgrade: { status: "PASS", ...legacyUpgradeEvidence },
-        },
+        rows: [
+          { id: "closed-handler-envelopes", status: "PASS", ...attestedEvidence },
+          { id: "source-backed-tierless-selection", status: "PASS", ...selectionEvidence },
+          { id: "legacy-tier-read-compatibility", status: "PASS", ...legacyEvidence },
+          { id: "bounded-provider-frontier", status: "PASS", ...frontierEvidence },
+          { id: "suffix-non-persistence", status: "PASS", ...suffixEvidence },
+          { id: "quality-and-stale-negative-cases", status: "PASS", ...faultEvidence },
+          { id: "storm-guard-and-interrupted-reload", status: "PASS", ...stormEvidence },
+          { id: "corrupt-index-fail-closed", status: "PASS", ...indexFallbackEvidence },
+        ],
         limitations: {
           productionAgentSessionRealOverflow: {
             status: "Unverified",
             reason: "No real provider context-length failure, production retry ordering, or continued live work was exercised.",
           },
-          productionCheckpointPersistenceAndContinuation: {
-            status: "Unverified",
-            reason: "The fake harness verified the returned checkpoint state only and did not fabricate or persist a CompactionEntry.",
-          },
           providerClaims: {
             status: "Unverified",
-            reason: "Fake evidence does not prove provider tokenization, summary semantics, cache hits, HTTP behavior, Pi internal ordering, or UI behavior.",
+            reason: "Fake evidence does not prove provider tokenization, HTTP behavior, Pi internal ordering, or UI behavior.",
           },
         },
         sanitizer: {
@@ -145,13 +127,13 @@ describe("AILI Compact registered fake-provider end-to-end matrix", () => {
       expect(serialized).not.toContain(RAW_SENTINEL);
       expect(serialized).not.toContain(QUALITY_SECRET);
       expect(serialized).not.toContain(SUFFIX_MARKER);
-      expect(serialized).not.toContain(project);
+      expect(serialized).not.toContain(root);
       expect(serialized).not.toMatch(/(?:sk-[a-z0-9_-]{12,}|bearer\s+[a-z0-9._-]{12,})/i);
       expect(report.limitations.productionAgentSessionRealOverflow.status).toBe("Unverified");
       mkdirSync(join(process.cwd(), "artifacts", "test-results"), { recursive: true });
       writeFileSync(REPORT_PATH, serialized, "utf8");
     } finally {
-      rmSync(project, { recursive: true, force: true });
+      rmSync(root, { recursive: true, force: true });
     }
   }, 120_000);
 });
@@ -166,8 +148,6 @@ async function proveExactRangeAndTransientSuffix(project: string) {
   const exact = exactRange(status, "m000001");
   expect(exact).toMatchObject({ startRef: "m000001", endRef: "m000001", orderedRefs: ["m000001"] });
 
-  // Enter PRESSURE after startup so the current cycle has not already spent its
-  // one semantic attempt or escalated to checkpoint-only recovery.
   usage.tokens = 90_000;
   usage.contextWindow = 128_000;
   const projected = runtime.handlers.get("context")!({ type: "context", messages: providerMessages(entries) }, ctx);
@@ -193,348 +173,285 @@ async function proveExactRangeAndTransientSuffix(project: string) {
   };
 }
 
-async function buildRegisteredTierHierarchy(project: string) {
-  const entries = compressibleBranch("hierarchy", 7);
+async function proveClosedAttestedTierlessReplacement(project: string): Promise<AttestedFixture> {
+  const entries: any[] = [];
+  appendMessage(entries, "active-root-request", "user", "continue with the current request");
+  const firstSourceId = "active-source-one";
+  appendMessage(entries, firstSourceId, "assistant", rawBody(1));
+  const seededFirst = appendSeedActiveBlock(entries, "active-seeded-one", firstSourceId, 1);
+  expect(seededFirst.payload).not.toHaveProperty("tier");
+
   const runtime = extensionHarness();
   const ctx = extensionContext(project, entries, { tokens: 100, contextWindow: 128_000 });
   runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
 
-  const t1 = [] as any[];
-  for (let index = 1; index <= 7; index += 1) {
-    const summary = t1Summary(index);
-    const topic = `Historical batch ${index}`;
-    const status = await compactStatus(runtime, ctx);
-    const ref = `m${String(index).padStart(6, "0")}`;
-    const range = exactRange(status, ref);
-    expect(range.orderedRefs).toEqual([ref]);
-    const params = {
-      mode: "message",
-      catalogId: status.references.catalogId,
-      topic,
-      summaryMaxChars: Math.max(256, `[${topic}]\n${summary}`.length),
-      items: [{ messageRef: ref, topic, summary }],
-    };
-    mutationCall(entries, `t1-call-${index}`, "aili_compact", params);
-    const appendedBeforeCompact = runtime.appended.length;
-    const result = await runtime.tools.get("aili_compact")!
-      .execute(`t1-call-${index}`, params, undefined, undefined, ctx);
-    expect(result.isError, result.content[0].text).not.toBe(true);
-    expect(runtime.appended).toHaveLength(appendedBeforeCompact + 1);
-    expect(result.details.contextTx).toMatchObject({
-      tag: "semantic-create",
-      payload: {
-        tier: "T1",
-        source: { kind: "messages", entryIds: [`hierarchy-source-${index}`] },
-        quality: { status: expect.stringMatching(/^accepted/) },
-      },
-    });
-    persistTransaction(runtime, entries, `t1-custom-${index}`, result.details.contextTx, `t1-result-${index}`, `t1-call-${index}`);
-    t1.push(result.details.contextTx);
-    if (index < 7) {
-      // One ordinary post-turn message advances the protected tail. AILI's own
-      // protocol messages are deliberately ignored by planning and therefore
-      // cannot make a published recommendation self-expire.
-      const tailContent = tailAdvanceBody(index);
-      entries.push({
-        id: `hierarchy-tail-advance-${index}`,
-        type: "message",
-        message: { role: "assistant", content: tailContent },
-      });
-      const appendedBeforeLifecycle = runtime.appended.length;
-      runtime.handlers.get("before_agent_start")!({
-        type: "before_agent_start",
-        prompt: `continue ordinary work ${index}`,
-        systemPrompt: "PI BASE",
-        systemPromptOptions: {},
-      }, ctx);
-      const projected = runtime.handlers.get("context")!({
-        type: "context",
-        messages: providerMessages(entries),
-      }, ctx);
-      expect(projected.messages).toEqual(expect.any(Array));
-      runtime.handlers.get("message_end")!({
-        type: "message_end",
-        message: {
-          role: "assistant",
-          content: tailContent,
-          stopReason: "stop",
-        },
-      }, ctx);
-      expect(runtime.appended).toHaveLength(appendedBeforeLifecycle);
-    }
+  await invokeStatus(runtime, ctx, entries, "active-gap-status", true);
+  const gapRejection = await invokeCompact(runtime, ctx, entries, "active-gap-rejection", invalidBlockParams("attested gap rejection"));
+  expect(gapRejection.result.isError).toBe(true);
+  assertClosedCompactEnvelope(gapRejection.result, "active-gap-rejection", "rejected");
+  persistReturnedToolResult(entries, "active-gap-rejection", "aili_compact", gapRejection.result);
+
+  const secondSourceId = "active-source-two";
+  appendMessage(entries, secondSourceId, "assistant", rawBody(2));
+  appendMessage(entries, "active-current", "user", "continue after the attested planning gap");
+  for (let index = 0; index < 16; index += 1) {
+    appendMessage(entries, `active-recent-${index + 1}`, "assistant", `recent protected filler ${index + 1} ${"f".repeat(5_000)}`);
+  }
+  const seededSecond = appendSeedActiveBlock(entries, "active-seeded-two", secondSourceId, 2);
+  expect(seededSecond.payload).not.toHaveProperty("tier");
+  const seededView = v3View(entries);
+  if (!seededView.state.blocks.has(seededFirst.payload.blockId) || !seededView.state.blocks.has(seededSecond.payload.blockId)) {
+    throw new Error(`seeded active blocks were not replayed: ${JSON.stringify(seededView.replay.diagnostics)}`);
   }
 
-  const t2a = await appendParent(runtime, entries, ctx, "t2-call-a", [t1[0], t1[1]], aggregateSummary("t2-a", [t1[0].payload.summary, t1[1].payload.summary], T2_SUMMARY_CHARS));
-  const t2b = await appendParent(runtime, entries, ctx, "t2-call-b", [t1[2], t1[3]], aggregateSummary("t2-b", [t1[2].payload.summary, t1[3].payload.summary], T2_SUMMARY_CHARS));
-  const t2c = await appendParent(runtime, entries, ctx, "t2-call-c", [t1[4], t1[5]], aggregateSummary("t2-c", [t1[4].payload.summary, t1[5].payload.summary], T2_SUMMARY_CHARS));
-  const t3 = await appendParent(runtime, entries, ctx, "t3-call", [t2a, t2b], aggregateSummary("t3", [t2a.payload.summary, t2b.payload.summary], T3_SUMMARY_CHARS));
+  const preCompositionEntries = structuredClone(entries);
+  const childBlockIds = [seededFirst.payload.blockId, seededSecond.payload.blockId];
+  const validProof = classifyCurrentPromotionGap(preCompositionEntries, childBlockIds, seededView);
+  expect(validProof.ok).toBe(true);
+  if (!validProof.ok) throw new Error(`expected handler-attested gap: ${validProof.reason}`);
+  expect(validProof.proofs).toHaveLength(1);
+  expect(validProof.proofs[0]!.messageCount).toBeGreaterThan(0);
 
-  const view = v3View(entries);
-  expect(view.replay.diagnostics).toEqual([]);
-  expect(view.replay.maximalActiveBlocks.map((block) => block.tier)).toEqual(["T3", "T2", "T1"]);
-  expect(view.state.blocks.get(t3.payload.blockId)?.source).toEqual({
-    kind: "blocks",
-    childBlockIds: [t2a.payload.blockId, t2b.payload.blockId],
-  });
-  expect(t3.payload.summary).not.toContain(t2a.payload.summary);
-  expect(t3.payload.summary).not.toContain(t2b.payload.summary);
-  return { project, runtime, ctx, entries, t1, t2: [t2a, t2b, t2c], t3 };
-}
+  const firstStatusResultId = "active-gap-status:result";
+  const firstStatusCallId = "active-gap-status";
+  const rejectedProtocolKinds = ["name-shaped", "permission-denied", "unknown", "mixed"];
+  const nameShaped = structuredClone(preCompositionEntries);
+  toolResultEntry(nameShaped, firstStatusResultId).message.content = "{}";
+  expect(classifyCurrentPromotionGap(nameShaped, childBlockIds, seededView).ok).toBe(false);
 
-async function appendParent(
-  runtime: RuntimeHarness,
-  entries: any[],
-  ctx: any,
-  callId: string,
-  children: any[],
-  summary: string,
-) {
-  const view = v3View(entries);
-  const blockRefs = children.map((transaction) => {
-    const ref = view.blockRefById.get(transaction.payload.blockId);
-    if (!ref) throw new Error(`missing active child ref for ${transaction.payload.blockId}`);
-    return ref;
+  const permissionDenied = structuredClone(preCompositionEntries);
+  const denied = toolResultEntry(permissionDenied, firstStatusResultId).message;
+  denied.isError = true;
+  denied.content = "permission denied";
+  expect(classifyCurrentPromotionGap(permissionDenied, childBlockIds, seededView).ok).toBe(false);
+
+  const unknown = structuredClone(preCompositionEntries);
+  toolCallEntry(unknown, firstStatusCallId).message.content[0].name = "foreign_planning_tool";
+  toolResultEntry(unknown, firstStatusResultId).message.toolName = "foreign_planning_tool";
+  expect(classifyCurrentPromotionGap(unknown, childBlockIds, seededView).ok).toBe(false);
+
+  const mixed = structuredClone(preCompositionEntries);
+  toolCallEntry(mixed, firstStatusCallId).message.content.push({
+    type: "toolCall", id: "mixed-sibling", name: "aili_compact_status", arguments: {},
   });
-  const params = {
-    mode: "blocks",
-    catalogId: view.catalog.catalogId,
-    topic: `Structural aggregate ${callId}`,
-    summaryMaxChars: Math.max(256, summary.length),
-    blockRefs,
-    summary,
-  };
-  mutationCall(entries, callId, "aili_compact", params);
-  const appendedBeforeCompact = runtime.appended.length;
-  const result = await runtime.tools.get("aili_compact")!.execute(callId, params, undefined, undefined, ctx);
-  expect(result.isError, result.content[0].text).not.toBe(true);
-  expect(runtime.appended).toHaveLength(appendedBeforeCompact + 1);
-  expect(result.details.contextTx).toMatchObject({
+  expect(classifyCurrentPromotionGap(mixed, childBlockIds, seededView).ok).toBe(false);
+
+  const compositionStatus = await invokeStatus(runtime, ctx, entries, "active-compose-status", true);
+  const activeGroup = activeGroups(compositionStatus.result).find((group) => group.blockRefs.length === 2);
+  expect(activeGroup).toBeDefined();
+  const selectedRefs = activeGroup!.blockRefs;
+  const selectedBefore = v3View(entries);
+  const selectedIds = selectedRefs.map((ref) => selectedBefore.blockByRef.get(ref)?.blockId);
+  expect(selectedIds).toEqual(childBlockIds);
+  expect(selectedIds.every((id) => selectedBefore.state.blocks.get(id!)?.active === true)).toBe(true);
+
+  const appendedBefore = runtime.appended.length;
+  const composed = await invokeCompact(runtime, ctx, entries, "active-compose", blockParams(compositionStatus.result, selectedRefs, "attested active replacement"));
+  expect(composed.result.isError, textOf(composed.result.content)).not.toBe(true);
+  const composedEnvelope = assertClosedCompactEnvelope(composed.result, "active-compose", "success");
+  expect(runtime.appended).toHaveLength(appendedBefore + 1);
+  expect(composedEnvelope.transaction).toMatchObject({
     tag: "semantic-create",
-    payload: {
-      tier: children[0].payload.tier === "T1" ? "T2" : "T3",
-      source: { kind: "blocks", childBlockIds: children.map((transaction) => transaction.payload.blockId) },
-      quality: { status: expect.stringMatching(/^accepted/) },
-    },
+    payload: { source: { kind: "blocks", childBlockIds }, quality: { override: "quality-disabled" } },
   });
-  persistTransaction(runtime, entries, `${callId}-custom`, result.details.contextTx, `${callId}-result`, callId);
-  return result.details.contextTx;
-}
+  expect(composedEnvelope.transaction.payload).not.toHaveProperty("tier");
+  expect(v3View(entries).state.blocks.get(childBlockIds[0]!)?.active).toBe(true);
 
-function proveCheckpointCoverageAndGap(hierarchy: Awaited<ReturnType<typeof buildRegisteredTierHierarchy>>) {
-  const { runtime, entries, ctx, t1, t2, t3 } = hierarchy;
-  const beforeCompact = runtime.handlers.get("session_before_compact")!;
-  const appendedBeforeCheckpoint = runtime.appended.length;
-  const result = beforeCompact(beforeCompactEvent(entries, "hierarchy-current"), ctx);
-  expect(runtime.appended).toHaveLength(appendedBeforeCheckpoint);
-  expect(entries.some((entry: any) => entry.type === "compaction")).toBe(false);
-  expect(result).toMatchObject({
-    compaction: {
-      firstKeptEntryId: "hierarchy-current",
-      details: {
-        ailiCompact: {
-          kind: "major-gc-v3",
-          blockIds: [t3.payload.blockId, t2[2].payload.blockId, t1[6].payload.blockId],
-          tiers: ["T3", "T2", "T1"],
-          leafCount: 7,
-        },
-      },
-    },
-  });
-  expect(result.compaction.summary).toContain(`[T3 ${t3.payload.blockId}]`);
-  expect(result.compaction.summary).not.toContain(`[T2 ${t2[0].payload.blockId}]`);
-  expect(result.compaction.summary).not.toContain(`[T1 ${t1[0].payload.blockId}]`);
+  persistAcceptedCompact(entries, "active-compose", composed.result, composedEnvelope);
+  const composedView = v3View(entries);
+  const parentBlockId = composedEnvelope.transaction.payload.blockId;
+  const parent = composedView.state.blocks.get(parentBlockId);
+  expect(composedView.replay.diagnostics).toEqual([]);
+  expect(composedView.state.blocks.get(childBlockIds[0]!)?.active).toBe(false);
+  expect(composedView.state.blocks.get(childBlockIds[1]!)?.active).toBe(false);
+  expect(parent).toMatchObject({ active: true, leafCount: 2, source: { kind: "blocks", childBlockIds } });
+  expect(parent).not.toHaveProperty("tier");
 
-  const gapEntries = structuredClone(entries);
-  gapEntries.push({ id: "uncovered-gap", type: "message", message: { role: "assistant", content: "uncovered gap" } });
-  gapEntries.push({ id: "kept-after-gap", type: "message", message: { role: "user", content: "continue" } });
-  const gapCtx = extensionContext(hierarchy.project, gapEntries, { tokens: 127_000, contextWindow: 128_000 });
-  const gapRuntime = extensionHarness();
-  gapRuntime.handlers.get("session_start")!({ type: "session_start" }, gapCtx);
-  const gap = gapRuntime.handlers.get("session_before_compact")!(beforeCompactEvent(gapEntries, "kept-after-gap"), gapCtx);
-  expect(gap).toBeUndefined();
-  expect(gapEntries.some((entry: any) => entry.type === "compaction")).toBe(false);
-  const continued = gapRuntime.handlers.get("context")!({
-    type: "context",
-    messages: providerMessages(gapEntries),
-  }, gapCtx);
-  expect(continued.messages).toEqual(expect.any(Array));
-  expect(JSON.stringify(continued.messages)).toContain("uncovered gap");
-  expect(gapRuntime.appended).toEqual([]);
+  const malformed = await invokeCompact(runtime, ctx, entries, "active-malformed-rejection", invalidBlockParams("closed rejection"));
+  expect(malformed.result.isError).toBe(true);
+  const malformedEnvelope = assertClosedCompactEnvelope(malformed.result, "active-malformed-rejection", "rejected");
+  expect(malformedEnvelope).not.toHaveProperty("transaction");
+  persistReturnedToolResult(entries, "active-malformed-rejection", "aili_compact", malformed.result);
+
   return {
-    maximalTiers: ["T3", "T2", "T1"],
-    maximalBlockCount: 3,
-    coveredLeafCount: 7,
-    gapReturn: "undefined",
-    postFallbackContextContinued: true,
-    actualNativeHostRetry: "Unverified",
-    syntheticCompactionEntryUsed: false,
+    project,
+    entries,
+    childBlockIds,
+    parentBlockId,
+    attestedGapMessageCount: validProof.proofs[0]!.messageCount,
+    rejectedProtocolKinds,
   };
 }
 
-async function proveReloadForkDecompressRecompress(
-  project: string,
-  hierarchy: Awaited<ReturnType<typeof buildRegisteredTierHierarchy>>,
-) {
-  const entries = structuredClone(hierarchy.entries);
-  const rawNeedle = rawBody(7).slice(0, 96);
-  const blockId = hierarchy.t1[6].payload.blockId;
-  const reload = extensionHarness();
-  const reloadCtx = extensionContext(project, entries, { tokens: 100, contextWindow: 128_000 });
-  reload.handlers.get("session_start")!({ type: "session_start" }, reloadCtx);
-  const projectedBefore = reload.handlers.get("context")!({ type: "context", messages: providerMessages(entries) }, reloadCtx);
-  expect(JSON.stringify(projectedBefore.messages)).not.toContain(rawNeedle);
+async function proveTwoToSixteenSelectionAndLegacyRead(root: string) {
+  const acceptedChildCounts: number[] = [];
+  for (const childCount of [2, 16]) {
+    const project = join(root, `selection-${childCount}`);
+    writeProjectConfig(project, false, false, false);
+    const fixture = seededActiveBlockFixture(project, `selection-${childCount}`, childCount, false);
+    const status = await invokeStatus(fixture.runtime, fixture.ctx, fixture.entries, `selection-${childCount}-status`, true);
+    const group = activeGroups(status.result).find((candidate) => candidate.blockRefs.length === childCount);
+    expect(group).toBeDefined();
 
-  let view = v3View(entries);
-  const blockRef = view.blockRefById.get(blockId)!;
-  const params = { catalogId: view.catalog.catalogId, blockRefs: [blockRef], depth: "raw" };
-  mutationCall(entries, "reload-decompress", "aili_decompress", params);
-  const decompressed = await reload.tools.get("aili_decompress")!
-    .execute("reload-decompress", params, undefined, undefined, reloadCtx);
-  expect(decompressed.isError, decompressed.content[0].text).not.toBe(true);
-  persistTransaction(reload, entries, "reload-decompress-custom", decompressed.details.contextTx, "reload-decompress-result", "reload-decompress");
+    const before = v3View(fixture.entries);
+    const childIds = group!.blockRefs.map((ref) => before.blockByRef.get(ref)?.blockId);
+    expect(childIds.every((id) => before.state.blocks.get(id!)?.active === true)).toBe(true);
+    const one = planTierlessBlockReplacement(before, group!.blockRefs.slice(0, 1), `selection-${childCount}-one`);
+    expect(one.ok).toBe(false);
+    if (!one.ok) expect(one.code).toBe("invalid-request");
+    const seventeen = planTierlessBlockReplacement(
+      before,
+      [...group!.blockRefs, ...Array.from({ length: 17 - group!.blockRefs.length }, (_, index) => `b${String(90 + index).padStart(6, "0")}`)],
+      `selection-${childCount}-seventeen`,
+    );
+    expect(seventeen.ok).toBe(false);
+    if (!seventeen.ok) expect(seventeen.code).toBe("invalid-request");
 
-  const forkEntries = structuredClone(entries);
-  const fork = extensionHarness();
-  const forkCtx = extensionContext(project, forkEntries, { tokens: 100, contextWindow: 128_000 });
-  fork.handlers.get("session_start")!({ type: "session_start" }, forkCtx);
-  const restored = fork.handlers.get("context")!({ type: "context", messages: providerMessages(forkEntries) }, forkCtx);
-  expect(JSON.stringify(restored.messages)).toContain(rawNeedle);
-
-  view = v3View(forkEntries);
-  const currentRef = view.blockRefById.get(blockId)!;
-  await fork.commands.get("aili-compact")!(`recompress ${currentRef}`, forkCtx);
-  const recompressTx = fork.appended.at(-1)?.data as any;
-  expect(recompressTx).toMatchObject({
-    tag: "recompress",
-    payload: { rootBlockIds: [blockId], decompressionTxId: "reload-decompress", reason: "recompress" },
-  });
-  forkEntries.push({ id: "fork-recompress-custom", type: "custom", customType: "aili-compact", data: recompressTx });
-
-  const reopened = extensionHarness();
-  const reopenedCtx = extensionContext(project, forkEntries, { tokens: 100, contextWindow: 128_000 });
-  reopened.handlers.get("session_start")!({ type: "session_start" }, reopenedCtx);
-  const recompressed = reopened.handlers.get("context")!({ type: "context", messages: providerMessages(forkEntries) }, reopenedCtx);
-  expect(JSON.stringify(recompressed.messages)).not.toContain(rawNeedle);
-  expect(v3View(forkEntries).state.blocks.get(blockId)?.active).toBe(true);
+    const planned = planTierlessBlockReplacement(before, group!.blockRefs, `selection-${childCount}-commit`);
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) throw new Error(`${planned.code}:${planned.path}`);
+    if (planned.transaction.tag !== "semantic-create") throw new Error(`unexpected transaction:${planned.transaction.tag}`);
+    const plannedBlockId = planned.transaction.payload.blockId;
+    expect(planned.transaction.payload).toMatchObject({ source: { kind: "blocks", childBlockIds: childIds } });
+    expect(planned.transaction.payload).not.toHaveProperty("tier");
+    const applied = applyV3Transaction(before.state, planned.transaction, { expectedCatalogId: before.catalog.catalogId });
+    expect(applied.ok).toBe(true);
+    if (!applied.ok) throw new Error(`${applied.code}:${applied.path}`);
+    expect(childIds.every((id) => applied.value.state.blocks.get(id!)?.active === false)).toBe(true);
+    expect(applied.value.state.blocks.get(plannedBlockId)).toMatchObject({ active: true });
+    acceptedChildCounts.push(childCount);
+  }
   return {
-    restartProjection: true,
-    rawDecompression: true,
-    forkReplay: true,
-    exactRecompression: true,
-    sourceIdsPreserved: true,
+    tierlessWrites: true,
+    sourceBacked: true,
+    acceptedChildCounts,
+    rejectedChildCounts: [1, 17],
+    atomicReplacement: true,
   };
 }
 
-async function proveQualityAndStaleFaults(
-  project: string,
-  hierarchy: Awaited<ReturnType<typeof buildRegisteredTierHierarchy>>,
-) {
+async function proveLegacyTierReadCompatibility(root: string) {
+  const project = join(root, "legacy-tier-read");
+  writeProjectConfig(project, false, false, false);
+  const fixture = seededActiveBlockFixture(project, "legacy-tier-read", 2, true);
+  await invokeStatus(fixture.runtime, fixture.ctx, fixture.entries, "legacy-tier-status", true);
+  const recap = await fixture.runtime.tools.get("aili_context_recap")!
+    .execute("legacy-tier-read", {}, undefined, undefined, fixture.ctx);
+  expect(recap.isError).not.toBe(true);
+  const recapBody = JSON.parse(textOf(recap.content));
+  const legacyRef = v3View(fixture.entries).blockRefById.get(fixture.legacyBlockId!)!;
+  expect(recapBody.activeBlocks.find((block: any) => block.blockRef === legacyRef)).toMatchObject({
+    schema: "v3",
+    legacyTieredReadOnly: true,
+  });
+  return { legacyTieredReadOnly: true, readableBlockCount: 1, newTieredWriteRequired: false };
+}
+
+async function proveBoundedProviderFrontierNoRawLeak(project: string) {
+  const fixture = seededActiveBlockFixture(project, "frontier", FRONTIER_ACTIVE_BLOCKS, false);
+  const projected = fixture.runtime.handlers.get("context")!({ type: "context", messages: providerMessages(fixture.entries) }, fixture.ctx);
+  expect(projected.messages).toEqual(expect.any(Array));
+  expect(projected.messages.length).toBeGreaterThan(0);
+  const projectedBody = JSON.stringify(projected.messages);
+  expect(projectedBody).not.toContain(RAW_SENTINEL);
+  expect(projectedBody).not.toContain(rawBody(1).slice(0, 96));
+
+  const status = await compactStatus(fixture.runtime, fixture.ctx);
+  const counters = status.index.counters;
+  expect(status.references.lifecycle.activeBlockCount).toBe(FRONTIER_ACTIVE_BLOCKS);
+  expect(counters.providerFrontierDescriptorDerivations).toBeLessThanOrEqual(32);
+  expect(counters.providerFrontierOmittedRawMessages).toBeGreaterThan(0);
+  expect(counters.providerFrontierOmittedRawBytes).toBeGreaterThan(0);
+
+  const view = v3View(fixture.entries);
+  const selectedRefs = view.catalog.blocks
+    .filter((block) => block.active && !block.queryOnly && view.state.blocks.get(block.blockId)?.tier === undefined)
+    .slice(0, 16)
+    .map((block) => block.ref);
+  const recap = await fixture.runtime.tools.get("aili_context_recap")!
+    .execute("frontier-recap-16", { blockRefs: selectedRefs }, undefined, undefined, fixture.ctx);
+  expect(recap.isError).toBe(true);
+  const recapFailure = JSON.parse(textOf(recap.content));
+  expect(recapFailure).toMatchObject({ code: "frontier-unknown-context", expanded: false });
+  expect(JSON.stringify(recapFailure)).not.toContain(RAW_SENTINEL);
+
+  return {
+    activeLedgerBlocks: FRONTIER_ACTIVE_BLOCKS,
+    defaultDescriptorCap: 32,
+    observedDescriptorDerivations: counters.providerFrontierDescriptorDerivations,
+    omittedRawMessages: counters.providerFrontierOmittedRawMessages,
+    omittedRawBytes: counters.providerFrontierOmittedRawBytes,
+    requestedRecapCount: selectedRefs.length,
+    unknownContextRejected: true,
+    rawSourceLeaked: false,
+    automaticFullSummaryExpansion: false,
+  };
+}
+
+async function proveQualityAndStaleFaults(root: string, active: AttestedFixture) {
+  const qualityProject = join(root, "quality");
+  writeProjectConfig(qualityProject, true);
   const qualityEntries = compressibleBranch("quality", 1, `${QUALITY_SECRET} error failed must remain private ${"q".repeat(120_000)}`);
   const qualityRuntime = extensionHarness();
-  const qualityCtx = extensionContext(project, qualityEntries, { tokens: 100, contextWindow: 50_000 });
+  const qualityCtx = extensionContext(qualityProject, qualityEntries, { tokens: 100, contextWindow: 50_000 });
   qualityRuntime.handlers.get("session_start")!({ type: "session_start" }, qualityCtx);
   const qualityStatus = await compactStatus(qualityRuntime, qualityCtx);
-  expect(exactRange(qualityStatus, "m000001").orderedRefs).toEqual(["m000001"]);
+  const qualityRange = onlySafeRange(qualityStatus);
   const qualityParams = {
     mode: "message",
     catalogId: qualityStatus.references.catalogId,
     topic: "Redacted quality rejection",
-    items: [{ messageRef: "m000001", topic: "Redacted quality rejection", summary: "A harmless recap" }],
+    items: [{ messageRef: qualityRange.orderedRefs[0], topic: "Redacted quality rejection", summary: "A harmless recap" }],
   };
-  mutationCall(qualityEntries, "quality-omission", "aili_compact", qualityParams);
-  const qualityResult = await qualityRuntime.tools.get("aili_compact")!
-    .execute("quality-omission", qualityParams, undefined, undefined, qualityCtx);
-  expect(qualityResult.isError).toBe(true);
-  expect(qualityResult.content[0].text).toContain("quality-rejected");
-  expect(qualityResult.content[0].text).toContain("missing-hard-fact");
-  expect(qualityResult.content[0].text).not.toContain(QUALITY_SECRET);
+  const qualityResult = await invokeCompact(qualityRuntime, qualityCtx, qualityEntries, "quality-omission", qualityParams);
+  expect(qualityResult.result.isError).toBe(true);
+  const qualityEnvelope = assertClosedCompactEnvelope(qualityResult.result, "quality-omission", "rejected");
+  expect(JSON.stringify(qualityEnvelope.result)).toContain("quality-rejected");
+  expect(JSON.stringify(qualityEnvelope.result)).toContain("missing-hard-fact");
+  expect(textOf(qualityResult.result.content)).not.toContain(QUALITY_SECRET);
   expect(qualityRuntime.appended).toEqual([]);
 
+  const staleProject = join(root, "stale");
+  writeProjectConfig(staleProject, true);
   const staleEntries = compressibleBranch("stale", 1);
   const staleRuntime = extensionHarness();
-  const staleCtx = extensionContext(project, staleEntries, { tokens: 100, contextWindow: 50_000 });
+  const staleCtx = extensionContext(staleProject, staleEntries, { tokens: 100, contextWindow: 50_000 });
   staleRuntime.handlers.get("session_start")!({ type: "session_start" }, staleCtx);
   const staleStatus = await compactStatus(staleRuntime, staleCtx);
-  expect(exactRange(staleStatus, "m000001").orderedRefs).toEqual(["m000001"]);
-  const staleTopic = "Stale catalog";
-  const staleSummary = "Stale catalog recap";
-  const staleParams = {
+  const staleRange = onlySafeRange(staleStatus);
+  const staleResult = await invokeCompact(staleRuntime, staleCtx, staleEntries, "stale-call", {
     mode: "message",
     catalogId: "0".repeat(64),
-    topic: staleTopic,
+    topic: "Stale catalog",
     summaryMaxChars: 256,
-    items: [{ messageRef: "m000001", topic: staleTopic, summary: staleSummary }],
-  };
-  mutationCall(staleEntries, "stale-call", "aili_compact", staleParams);
-  const staleResult = await staleRuntime.tools.get("aili_compact")!
-    .execute("stale-call", staleParams, undefined, undefined, staleCtx);
-  expect(staleStatus.references.catalogId).not.toBe(staleParams.catalogId);
-  expect(staleResult.isError).toBe(true);
-  const staleFailure = JSON.parse(staleResult.content[0].text);
-  expect(staleFailure).toMatchObject({
-    code: "source-summary-scope-mismatch",
-    freshRanges: [{ startRef: "m000001", endRef: "m000001" }],
+    items: [{ messageRef: staleRange.orderedRefs[0], topic: "Stale catalog", summary: "Stale catalog recap" }],
   });
+  expect(staleResult.result.isError).toBe(true);
+  const staleEnvelope = assertClosedCompactEnvelope(staleResult.result, "stale-call", "rejected");
+  expect(staleEnvelope.result).toMatchObject({ code: "source-summary-scope-mismatch" });
   expect(staleRuntime.appended).toEqual([]);
 
-  const staleCatalogEntries = structuredClone(hierarchy.entries);
+  const staleCatalogEntries = structuredClone(active.entries);
   const staleCatalogRuntime = extensionHarness();
-  const staleCatalogCtx = extensionContext(project, staleCatalogEntries, { tokens: 100, contextWindow: 128_000 });
+  const staleCatalogCtx = extensionContext(active.project, staleCatalogEntries, { tokens: 100, contextWindow: 128_000 });
   staleCatalogRuntime.handlers.get("session_start")!({ type: "session_start" }, staleCatalogCtx);
   const staleCatalogView = v3View(staleCatalogEntries);
-  const staleBlockRef = staleCatalogView.blockRefById.get(hierarchy.t3.payload.blockId)!;
-  const staleCatalogParams = { catalogId: "0".repeat(64), blockRefs: [staleBlockRef], depth: "raw" };
-  mutationCall(staleCatalogEntries, "stale-catalog-decompress", "aili_decompress", staleCatalogParams);
+  const staleBlockRef = staleCatalogView.blockRefById.get(active.parentBlockId)!;
+  mutationCall(staleCatalogEntries, "stale-catalog-decompress", "aili_decompress", {
+    catalogId: "0".repeat(64), blockRefs: [staleBlockRef], depth: "raw",
+  });
   const staleCatalogResult = await staleCatalogRuntime.tools.get("aili_decompress")!
-    .execute("stale-catalog-decompress", staleCatalogParams, undefined, undefined, staleCatalogCtx);
+    .execute("stale-catalog-decompress", { catalogId: "0".repeat(64), blockRefs: [staleBlockRef], depth: "raw" }, undefined, undefined, staleCatalogCtx);
   expect(staleCatalogResult.isError).toBe(true);
-  expect(JSON.parse(staleCatalogResult.content[0].text)).toMatchObject({ code: "stale-catalog" });
+  expect(JSON.parse(textOf(staleCatalogResult.content))).toMatchObject({ code: "stale-catalog" });
   expect(staleCatalogRuntime.appended).toEqual([]);
 
   return {
-    quality: { rejectedBeforeAppend: true, outputRedacted: true, code: "missing-hard-fact" },
-    stale: {
-      injectedFaults: ["message-scope-stale-catalog", "block-operation-stale-catalog"],
-      messageScopeReturnedError: "source-summary-scope-mismatch",
-      blockOperationReturnedError: "stale-catalog",
-      boundedFreshRangeCount: staleFailure.freshRanges.length,
-      partialMutationCount: 0,
-      mutationFailClosed: true,
-    },
-  };
-}
-
-async function proveCalibrationInvalidation(
-  project: string,
-  hierarchy: Awaited<ReturnType<typeof buildRegisteredTierHierarchy>>,
-) {
-  const entries = structuredClone(hierarchy.entries);
-  const runtime = extensionHarness();
-  const ctx = extensionContext(project, entries, { tokens: 100, contextWindow: 128_000 });
-  runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
-  const beforeView = v3View(entries);
-  const beforeLineage = lineageShape(beforeView);
-  runtime.handlers.get("context")!({ type: "context", messages: providerMessages(entries) }, ctx);
-  runtime.handlers.get("message_end")!({
-    type: "message_end",
-    message: { role: "assistant", content: "settled", stopReason: "stop", usage: { input: 100_000, output: 10, cacheRead: 0, cacheWrite: 0 } },
-  }, ctx);
-  const first = await compactStatus(runtime, ctx);
-  expect(first.tokenCalibration).toMatchObject({ providerId: "openai", modelId: "gpt-4.1", sampleCount: 1 });
-
-  ctx.model = fakeModel("anthropic", "claude-fake", "anthropic-messages");
-  const changedProjection = runtime.handlers.get("context")!({ type: "context", messages: providerMessages(entries) }, ctx);
-  const second = await compactStatus(runtime, ctx);
-  expect(second.tokenCalibration).toMatchObject({ providerId: "anthropic", modelId: "claude-fake", sampleCount: 0 });
-  expect(JSON.stringify(changedProjection.messages)).toContain(hierarchy.t3.payload.summary.slice(0, 128));
-  expect(lineageShape(v3View(entries))).toEqual(beforeLineage);
-  return {
-    priorIdentity: "openai/gpt-4.1/aili.token-bounds.v1",
-    nextIdentity: "anthropic/claude-fake/aili.token-bounds.v1",
-    priorSamples: 1,
-    nextSamples: 0,
-    replayPreserved: true,
-    lineagePreserved: true,
+    qualityRejectedBeforeAppend: true,
+    qualityOutputRedacted: true,
+    staleCatalogRejected: true,
+    staleBlockOperationRejected: true,
+    partialMutationCount: 0,
   };
 }
 
@@ -543,18 +460,13 @@ async function proveStormGuardAndInterruptedReload(project: string) {
   const runtime = extensionHarness();
   const ctx = extensionContext(project, entries, { tokens: 99_000, contextWindow: 100_000 });
   runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
-  for (let index = 0; index < 8; index += 1) {
-    runtime.handlers.get("agent_settled")!({ type: "agent_settled" }, ctx);
-  }
+  for (let index = 0; index < 8; index += 1) runtime.handlers.get("agent_settled")!({ type: "agent_settled" }, ctx);
   expect(ctx.compactCalls).toHaveLength(1);
   expect(runtime.appended).toEqual([]);
   const interrupted = await compactStatus(runtime, ctx);
   expect(interrupted.checkpointCoordinatorState).not.toBe("idle");
   expect(interrupted.deterministicCheckpointCount).toBe(0);
 
-  // Simulate a process/session reload while the host callback is lost. Runtime
-  // coordinator state is intentionally non-durable and must not fabricate a
-  // completed checkpoint when the same immutable branch is reopened.
   const reopened = extensionHarness();
   const reopenedCtx = extensionContext(project, entries, { tokens: 100, contextWindow: 100_000 });
   reopened.handlers.get("session_start")!({ type: "session_start" }, reopenedCtx);
@@ -579,11 +491,7 @@ async function proveCorruptIndexExactFallback(project: string) {
   const runtime = extensionHarness();
   const ctx = extensionContext(project, entries, { tokens: 100, contextWindow: 128_000 });
   runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
-
-  // The append claims an ancestry that cannot follow the indexed tip. The
-  // registered context path must reject the corrupt index update and return the
-  // exact provider message array rather than a partially projected variant.
-  entries.push({
+  appendEntry(entries, {
     id: "index-corrupt-append",
     parentId: "not-the-indexed-tip",
     type: "message",
@@ -602,94 +510,90 @@ async function proveCorruptIndexExactFallback(project: string) {
   };
 }
 
-async function proveExplicitLegacyUpgrade(project: string) {
-  const schemas = ["aili.compact.tx.v1", "aili.compact.tx.v2"] as const;
-  const upgraded: Array<{ schema: string; legacyBlockId: string; v3BlockId: string }> = [];
-  for (const schema of schemas) {
-    const suffix = schema.endsWith("v1") ? "v1" : "v2";
-    const entries = legacyUpgradeBranch(suffix, schema);
-    const runtime = extensionHarness();
-    const ctx = extensionContext(project, entries, { tokens: 100, contextWindow: 50_000 });
-    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
-    let view = v3View(entries);
-    const legacyBlockId = `legacy-${suffix}-block`;
-    const legacyRef = view.blockRefById.get(legacyBlockId)!;
-    expect(view.blockByRef.get(legacyRef)?.family).toBe("legacy");
+function seededActiveBlockFixture(project: string, prefix: string, activeCount: number, includeLegacy: boolean) {
+  const entries: any[] = [];
+  if (includeLegacy) appendMessage(entries, `${prefix}-legacy-source`, "assistant", `legacy source ${"l".repeat(4_000)}`);
+  const activeSources = Array.from({ length: activeCount }, (_, index) => {
+    const id = `${prefix}-source-${index + 1}`;
+    appendMessage(entries, id, "assistant", rawBody(index + 1));
+    return id;
+  });
+  for (let index = 0; index < 16; index += 1) appendMessage(entries, `${prefix}-tail-${index + 1}`, "assistant", `recent tail ${index + 1} ${"t".repeat(5_000)}`);
+  appendMessage(entries, `${prefix}-current`, "user", "continue with the protected current request");
 
-    const decompressParams = { catalogId: view.catalog.catalogId, blockRefs: [legacyRef], depth: "raw" };
-    mutationCall(entries, `legacy-${suffix}-decompress`, "aili_decompress", decompressParams);
-    const decompressed = await runtime.tools.get("aili_decompress")!
-      .execute(`legacy-${suffix}-decompress`, decompressParams, undefined, undefined, ctx);
-    expect(decompressed.isError, decompressed.content[0].text).not.toBe(true);
-    expect(decompressed.details.contextTx).toMatchObject({ kind: "decompress", deactivateBlockIds: [legacyBlockId] });
-    expect(runtime.appended).toEqual([]);
-    entries.push(successfulResult(
-      `legacy-${suffix}-decompress-result`,
-      decompressed.details.contextTx,
-      `legacy-${suffix}-decompress`,
-      "aili_decompress",
-    ));
-    expect(reduceCompactState(entries).blocks.get(legacyBlockId)?.active).toBe(false);
-
-    // Re-open the registered extension over the persisted session entries.
-    // This is the host boundary that proves the explicit legacy decompression
-    // survives replay before the exact raw source is offered for v3 creation.
-    const reopened = extensionHarness();
-    const reopenedCtx = extensionContext(project, entries, { tokens: 100, contextWindow: 50_000 });
-    reopened.handlers.get("session_start")!({ type: "session_start" }, reopenedCtx);
-    reopened.handlers.get("before_agent_start")!({
-      type: "before_agent_start",
-      prompt: `continue explicit ${suffix} upgrade`,
-      systemPrompt: "PI BASE",
-      systemPromptOptions: {},
-    }, reopenedCtx);
-    reopened.handlers.get("context")!({ type: "context", messages: providerMessages(entries) }, reopenedCtx);
-
-    const status = await compactStatus(reopened, reopenedCtx);
-    const exact = exactRange(status, "m000001");
-    expect(exact.orderedRefs).toEqual(["m000001"]);
-    const topic = `Explicit ${suffix} upgrade`;
-    const summary = t1Summary(suffix === "v1" ? 101 : 102);
-    const params = {
-      mode: "message",
-      catalogId: status.references.catalogId,
-      topic,
-      summaryMaxChars: Math.max(256, `[${topic}]\n${summary}`.length),
-      items: [{ messageRef: "m000001", topic, summary }],
-    };
-    mutationCall(entries, `legacy-${suffix}-v3-create`, "aili_compact", params);
-    const compacted = await reopened.tools.get("aili_compact")!
-      .execute(`legacy-${suffix}-v3-create`, params, undefined, undefined, reopenedCtx);
-    expect(compacted.isError, compacted.content[0].text).not.toBe(true);
-    expect(compacted.details.contextTx).toMatchObject({
-      tag: "semantic-create",
-      payload: {
-        tier: "T1",
-        source: { kind: "messages", entryIds: [`legacy-${suffix}-source`] },
-      },
-    });
-    expect(JSON.stringify(compacted.details.contextTx.payload.source)).not.toContain(legacyBlockId);
-    persistTransaction(
-      reopened,
-      entries,
-      `legacy-${suffix}-v3-custom`,
-      compacted.details.contextTx,
-      `legacy-${suffix}-v3-result`,
-      `legacy-${suffix}-v3-create`,
-    );
-    view = v3View(entries);
-    expect(view.replay.diagnostics).toEqual([]);
-    expect([...view.state.blocks.values()].flatMap((block) => block.source.kind === "blocks" ? block.source.childBlockIds : []))
-      .not.toContain(legacyBlockId);
-    upgraded.push({ schema, legacyBlockId, v3BlockId: compacted.details.contextTx.payload.blockId });
+  let legacyBlockId: string | undefined;
+  if (includeLegacy) {
+    legacyBlockId = `${prefix}-legacy-tiered`;
+    appendSeedActiveBlock(entries, legacyBlockId, `${prefix}-legacy-source`, 1, "T1");
   }
-  return {
-    schemas: upgraded.map(({ schema }) => schema),
-    explicitDecompressionCount: upgraded.length,
-    reloadBeforeExactRawCount: upgraded.length,
-    exactRawT1Count: upgraded.length,
-    directLegacyChildCount: 0,
-  };
+  const activeBlockIds = activeSources.map((sourceId, index) => {
+    const blockId = `${prefix}-active-${index + 1}`;
+    appendSeedActiveBlock(entries, blockId, sourceId, index + 2);
+    return blockId;
+  });
+  const view = v3View(entries);
+  expect(view.replay.diagnostics).toEqual([]);
+  expect(activeBlockIds.every((id) => view.state.blocks.get(id)?.tier === undefined)).toBe(true);
+  if (legacyBlockId) expect(view.state.blocks.get(legacyBlockId)?.tier).toBe("T1");
+
+  const runtime = extensionHarness();
+  const ctx = extensionContext(project, entries, { tokens: 100, contextWindow: 128_000 });
+  runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+  return { entries, runtime, ctx, activeBlockIds, legacyBlockId };
+}
+
+function appendSeedActiveBlock(entries: any[], blockId: string, sourceEntryId: string, createdAt: number, tier?: "T1") {
+  const view = v3View(entries);
+  const summary = activeSummary(blockId);
+  const transaction = {
+    header: {
+      schema: AILI_COMPACT_SCHEMA_V3,
+      txId: `seed-${blockId}`,
+      sessionId: view.state.sessionId,
+      branchLeafId: view.state.branchLeafId,
+      epochId: view.state.epochId,
+      catalogId: view.catalog.catalogId,
+      createdAt,
+      projectionVersion: view.state.projectionVersion,
+    },
+    tag: "semantic-create",
+    payload: {
+      blockId,
+      ...(tier ? { tier } : {}),
+      topic: blockId,
+      runId: `seed-${blockId}`,
+      anchorEntryId: sourceEntryId,
+      createdTurnOrdinal: createdAt,
+      summary,
+      summaryDigest: v3SummaryDigest(summary),
+      source: { kind: "messages", entryIds: [sourceEntryId], firstEntryId: sourceEntryId, lastEntryId: sourceEntryId },
+      leafDigest: v3MessageLeafDigest([sourceEntryId]),
+      leafCount: 1,
+      tokens: {
+        estimatorVersion: TOKEN_ESTIMATOR_VERSION,
+        providerId: "openai",
+        modelId: "gpt-4.1",
+        sourceTokensLower: 20_000,
+        sourceTokensUpper: 20_000,
+        replacementTokensUpper: 1_000,
+        steadySavingsTokensLower: 19_000,
+        oneTimeCostTokensUpper: 1_000,
+        breakEvenTurnsUpper: 1,
+        savingsRatio: 0.95,
+        summaryTokensUpper: 1_000,
+      },
+      quality: {
+        status: "accepted",
+        evaluatorVersion: QUALITY_EVALUATOR_VERSION,
+        sourceFactDigest: digest([sourceEntryId]),
+        hardFactCount: 1,
+        coveredHardFactCount: 1,
+        warningCodes: [],
+      },
+    },
+  } as const;
+  appendEntry(entries, { id: `seed-entry-${blockId}`, type: "custom", customType: AILI_COMPACT_ENTRY, data: transaction });
+  return transaction;
 }
 
 function extensionHarness() {
@@ -709,11 +613,7 @@ function extensionHarness() {
   return { tools, commands, handlers, appended };
 }
 
-function extensionContext(
-  project: string,
-  entries: any[],
-  usage: { tokens: number; contextWindow: number },
-) {
+function extensionContext(project: string, entries: any[], usage: { tokens: number; contextWindow: number }) {
   const statuses: string[] = [];
   const notifications: string[] = [];
   const compactCalls: Array<{ onComplete?: (result?: unknown) => void; onError?: (error: Error) => void }> = [];
@@ -758,97 +658,14 @@ function fakeModel(provider: string, id: string, api: string) {
 
 function compressibleBranch(prefix: string, sourceCount: number, firstBody?: string): any[] {
   if (!Number.isSafeInteger(sourceCount) || sourceCount < 1 || sourceCount > 8) throw new Error("invalid fake source count");
-  const sources = Array.from({ length: sourceCount }, (_, index) => ({
-    id: `${prefix}-source-${index + 1}`,
-    type: "message",
-    message: { role: "assistant", content: index === 0 && firstBody !== undefined ? firstBody : rawBody(index + 1) },
-  }));
-  const recentFillers = Array.from({ length: 8 - sourceCount }, (_, index) => ({
-    id: `${prefix}-recent-${index + 1}`,
-    type: "message",
-    message: {
-      role: "assistant",
-      content: prefix === "hierarchy"
-        ? Array.from({ length: HIERARCHY_RECENT_PARTS }, (_, part) => tailAdvanceBody(100 + part)).join("")
-        : `recent protected filler ${index + 1} ${"f".repeat(5_000)}`,
-    },
-  }));
-  return [
-    ...sources,
-    { id: `${prefix}-current`, type: "message", message: { role: "user", content: "continue with the current request" } },
-    ...recentFillers,
-  ];
-}
-
-function legacyUpgradeBranch(
-  suffix: "v1" | "v2",
-  schema: "aili.compact.tx.v1" | "aili.compact.tx.v2",
-): any[] {
-  const source = {
-    id: `legacy-${suffix}-source`,
-    type: "message",
-    message: { role: "assistant", content: rawBody(suffix === "v1" ? 201 : 202) },
-  };
-  const entries: any[] = [
-    source,
-    {
-      id: `legacy-${suffix}-task-call`,
-      type: "message",
-      message: { role: "assistant", content: [{ type: "toolCall", id: `legacy-${suffix}-task`, name: "task", arguments: { task: "boundary" } }] },
-    },
-    {
-      id: `legacy-${suffix}-task-result`,
-      type: "message",
-      message: {
-        role: "toolResult",
-        toolCallId: `legacy-${suffix}-task`,
-        toolName: "task",
-        content: "protected task boundary",
-        details: { status: "accepted", agentId: `legacy-${suffix}-agent`, jobId: `legacy-${suffix}-job` },
-      },
-    },
-    ...Array.from({ length: 7 }, (_, index) => ({
-      id: `legacy-${suffix}-tail-${index + 1}`,
-      type: "message",
-      message: { role: "assistant", content: `recent tail ${index + 1} ${"t".repeat(5_000)}` },
-    })),
-    { id: `legacy-${suffix}-current`, type: "message", message: { role: "user", content: "continue after legacy history" } },
-  ];
-  const blockId = `legacy-${suffix}-block`;
-  const block = {
-    id: blockId,
-    kind: "semantic",
-    epochId: "root",
-    sourceEntryIds: [source.id],
-    sourceDigest: sourceDigest(entries, [source.id]),
-    summary: `Legacy ${suffix} recap.`,
-    active: true,
-    ...(schema === "aili.compact.tx.v2" ? {
-      mode: "message",
-      topic: `Legacy ${suffix}`,
-      batchTopic: `Legacy ${suffix}`,
-      anchorEntryId: source.id,
-      runId: `legacy-${suffix}-run`,
-      childBlockIds: [],
-      generation: "young",
-      survivedCount: 0,
-      age: 0,
-    } : {}),
-  };
-  const transaction = {
-    schema,
-    id: `legacy-${suffix}-create`,
-    kind: "compact",
-    epochId: "root",
-    blocks: [block],
-  };
-  mutationCall(entries, `legacy-${suffix}-create`, "aili_compact", {});
-  entries.push(successfulResult(
-    `legacy-${suffix}-create-result`,
-    transaction,
-    `legacy-${suffix}-create`,
-    "aili_compact",
-  ));
+  const entries: any[] = [];
+  for (let index = 0; index < sourceCount; index += 1) {
+    appendMessage(entries, `${prefix}-source-${index + 1}`, "assistant", index === 0 && firstBody !== undefined ? firstBody : rawBody(index + 1));
+  }
+  appendMessage(entries, `${prefix}-current`, "user", "continue with the current request");
+  for (let index = 0; index < 8 - sourceCount; index += 1) {
+    appendMessage(entries, `${prefix}-recent-${index + 1}`, "assistant", `recent protected filler ${index + 1} ${"f".repeat(5_000)}`);
+  }
   return entries;
 }
 
@@ -856,92 +673,248 @@ function rawBody(index: number): string {
   return `${RAW_SENTINEL}-${index}-${"源".repeat(RAW_FILLER_CHARS)}`;
 }
 
-function t1Summary(index: number): string {
-  return (`retained historical batch ${index} ${"史".repeat(T1_SUMMARY_CHARS)}`).slice(0, T1_SUMMARY_CHARS);
+function activeSummary(label: string): string {
+  return (`active source-backed summary ${label} ${"史".repeat(ACTIVE_SUMMARY_CHARS)}`).slice(0, ACTIVE_SUMMARY_CHARS);
 }
 
-function tailAdvanceBody(index: number): string {
-  const variedTokens = Array.from(
-    { length: 1_500 },
-    (_, offset) => `tail_${index}_${offset.toString(36)}_qz`,
-  ).join(" ");
-  return (`ordinary continued work ${index} ${variedTokens}`).slice(0, TAIL_ADVANCE_CHARS);
-}
-
-function tokenEconomicsEvidence(transaction: any) {
-  const tokens = transaction.payload.tokens;
+function blockParams(status: any, blockRefs: string[], topic: string) {
   return {
-    tier: transaction.payload.tier,
-    estimatorVersion: tokens.estimatorVersion,
-    providerId: tokens.providerId,
-    modelId: tokens.modelId,
-    sourceTokensLower: tokens.sourceTokensLower,
-    sourceTokensUpper: tokens.sourceTokensUpper,
-    replacementTokensUpper: tokens.replacementTokensUpper,
-    steadySavingsTokensLower: tokens.steadySavingsTokensLower,
-    breakEvenTurnsUpper: tokens.breakEvenTurnsUpper,
-    savingsRatio: tokens.savingsRatio,
-    summaryTokensUpper: tokens.summaryTokensUpper,
+    mode: "blocks",
+    catalogId: status.references.catalogId,
+    topic,
+    blockRefs,
+    summary: (`${topic} ${"a".repeat(COMPOSITION_SUMMARY_CHARS)}`).slice(0, COMPOSITION_SUMMARY_CHARS),
+    summaryMaxChars: 18_000,
   };
 }
 
-function aggregateSummary(label: string, childSummaries: string[], length: number): string {
-  const anchors = childSummaries.map((summary) => summary.slice(0, 512)).join("\n");
-  return (`${anchors}\n${label} ${"a".repeat(length)}`).slice(0, length);
+function planTierlessBlockReplacement(view: ReturnType<typeof v3View>, blockRefs: string[], transactionId: string) {
+  const children = blockRefs.flatMap((ref) => {
+    const blockId = view.blockByRef.get(ref)?.blockId;
+    const block = blockId ? view.state.blocks.get(blockId) : undefined;
+    return block ? [block] : [];
+  });
+  const summary = (`planner ${transactionId} ${"a".repeat(COMPOSITION_SUMMARY_CHARS)}`).slice(0, COMPOSITION_SUMMARY_CHARS);
+  const sourceDigest = children.length > 0
+    ? v3BlockSourceDigest(view.catalog.catalogId, children)
+    : "0".repeat(64);
+  const sourceTokens = Math.max(20_000, children.length * 20_000);
+  const replacementTokens = 1_000;
+  const tokens = {
+    estimatorVersion: TOKEN_ESTIMATOR_VERSION,
+    providerId: "openai",
+    modelId: "gpt-4.1",
+    sourceTokensLower: sourceTokens,
+    sourceTokensUpper: sourceTokens,
+    replacementTokensUpper: replacementTokens,
+    steadySavingsTokensLower: sourceTokens - replacementTokens,
+    oneTimeCostTokensUpper: 1_000,
+    breakEvenTurnsUpper: 1,
+    savingsRatio: (sourceTokens - replacementTokens) / sourceTokens,
+    summaryTokensUpper: replacementTokens,
+  };
+  return planV3BlockMutation({
+    operation: "compact",
+    semantics: "active-block",
+    mode: "blocks",
+    catalogId: view.catalog.catalogId,
+    transactionId,
+    blockId: `planned-${transactionId}`,
+    blockRefs,
+    topic: `Planned ${transactionId}`,
+    summary,
+    summaryMaxChars: 18_000,
+    runId: `run-${transactionId}`,
+    createdAt: 1_000,
+    createdTurnOrdinal: 1_000,
+    benefit: {
+      sourceDigest,
+      summaryDigest: v3SummaryDigest(summary),
+      orderedRefs: blockRefs,
+      decision: {
+        eligible: true,
+        reasons: [],
+        semantics: "active-block",
+        pressureStage: "NORMAL",
+        horizonTurns: 0,
+        saturated: false,
+        sourceLower: sourceTokens,
+        sourceUpper: sourceTokens,
+        replacementUpper: replacementTokens,
+        steadySavingsLower: sourceTokens - replacementTokens,
+        oneTimeCostUpper: 1_000,
+        breakEvenTurnsUpper: 1,
+        netSavingsLower: sourceTokens - replacementTokens,
+        savingsRatio: (sourceTokens - replacementTokens) / sourceTokens,
+      },
+      tokens,
+    },
+    quality: { override: "quality-disabled" },
+  }, {
+    state: view.state,
+    catalog: view.mutationCatalog,
+    protectedIntervals: [],
+    promotionGapEntries: [],
+  });
 }
 
-function mutationCall(entries: any[], id: string, name: "aili_compact" | "aili_decompress", args: Record<string, unknown>) {
-  entries.push({
+function invalidBlockParams(topic: string) {
+  return {
+    mode: "blocks",
+    catalogId: "0".repeat(64),
+    topic,
+    blockRefs: ["b000001"],
+    summary: "invalid block cardinality",
+    summaryMaxChars: 18_000,
+  };
+}
+
+async function compactStatus(runtime: RuntimeHarness, ctx: any) {
+  const result = await runtime.tools.get("aili_compact_status")!.execute("status", {}, undefined, undefined, ctx);
+  return assertClosedStatusEnvelope(result, "status").result;
+}
+
+async function invokeStatus(runtime: RuntimeHarness, ctx: any, entries: any[], callId: string, persist: boolean) {
+  if (persist) mutationCall(entries, callId, "aili_compact_status", {});
+  const result = await runtime.tools.get("aili_compact_status")!.execute(callId, {}, undefined, undefined, ctx);
+  const envelope = assertClosedStatusEnvelope(result, callId);
+  if (persist) persistReturnedToolResult(entries, callId, "aili_compact_status", result);
+  return { result: envelope.result, envelope };
+}
+
+async function invokeCompact(runtime: RuntimeHarness, ctx: any, entries: any[], callId: string, params: any) {
+  mutationCall(entries, callId, "aili_compact", params);
+  const result = await runtime.tools.get("aili_compact")!.execute(callId, params, undefined, undefined, ctx);
+  return { result, envelope: parsePlanningEnvelope(result) };
+}
+
+function assertClosedStatusEnvelope(result: any, callId: string) {
+  const envelope = parsePlanningEnvelope(result);
+  expect(Object.keys(envelope).sort()).toEqual(["attestation", "result"]);
+  expect(result.isError).not.toBe(true);
+  expect(envelope.attestation).toMatchObject({
+    owner: "aili-compact",
+    implementationId: "aili.compact.runtime.v3",
+    toolName: "aili_compact_status",
+    toolCallId: callId,
+    outcome: "success",
+    resultDigest: digest({ result: envelope.result, transaction: null }),
+  });
+  return envelope;
+}
+
+function assertClosedCompactEnvelope(result: any, callId: string, outcome: "success" | "rejected") {
+  const envelope = parsePlanningEnvelope(result);
+  const hasTransaction = Object.prototype.hasOwnProperty.call(envelope, "transaction");
+  expect(Object.keys(envelope).sort()).toEqual(outcome === "success" ? ["attestation", "result", "transaction"] : ["attestation", "result"]);
+  expect(result.isError === true).toBe(outcome === "rejected");
+  expect(envelope.attestation).toMatchObject({
+    owner: "aili-compact",
+    implementationId: "aili.compact.runtime.v3",
+    toolName: "aili_compact",
+    toolCallId: callId,
+    outcome,
+    resultDigest: digest({ result: envelope.result, transaction: hasTransaction ? envelope.transaction : null }),
+  });
+  if (outcome === "success") {
+    expect(envelope.attestation).toMatchObject({ transactionId: callId, transactionDigest: digest(envelope.transaction) });
+    expect(result.details?.contextTx).toEqual(envelope.transaction);
+  } else {
+    expect(envelope).not.toHaveProperty("transaction");
+  }
+  return envelope;
+}
+
+function parsePlanningEnvelope(result: any): any {
+  const text = textOf(result.content);
+  const envelope = JSON.parse(text);
+  expect(envelope).toEqual(expect.any(Object));
+  expect(envelope.attestation).toEqual(expect.any(Object));
+  return envelope;
+}
+
+function persistAcceptedCompact(entries: any[], callId: string, result: any, envelope: any) {
+  expect(result.details?.contextTx).toEqual(envelope.transaction);
+  appendEntry(entries, { id: `${callId}:custom`, type: "custom", customType: AILI_COMPACT_ENTRY, data: result.details.contextTx });
+  return persistReturnedToolResult(entries, callId, "aili_compact", result);
+}
+
+function persistReturnedToolResult(entries: any[], callId: string, toolName: string, result: any) {
+  const id = `${callId}:result`;
+  appendEntry(entries, {
+    id,
+    type: "message",
+    message: {
+      role: "toolResult",
+      toolCallId: callId,
+      toolName,
+      content: structuredClone(result.content),
+      isError: result.isError === true,
+      ...(result.details ? { details: structuredClone(result.details) } : {}),
+    },
+  });
+  return id;
+}
+
+function mutationCall(entries: any[], id: string, name: string, args: Record<string, unknown>) {
+  appendEntry(entries, {
     id: `assistant:${id}`,
     type: "message",
     message: { role: "assistant", content: [{ type: "toolCall", id, name, arguments: args }] },
   });
 }
 
-function persistTransaction(
-  runtime: RuntimeHarness,
-  entries: any[],
-  customEntryId: string,
-  transaction: any,
-  resultEntryId: string,
-  toolCallId: string,
-) {
-  expect(runtime.appended.at(-1)).toMatchObject({ customType: "aili-compact", data: transaction });
-  entries.push({ id: customEntryId, type: "custom", customType: "aili-compact", data: transaction });
-  entries.push(successfulResult(resultEntryId, transaction, toolCallId));
+function appendMessage(entries: any[], id: string, role: "assistant" | "user", content: string) {
+  appendEntry(entries, { id, type: "message", message: { role, content } });
 }
 
-function successfulResult(
-  id: string,
-  transaction: any,
-  toolCallId: string,
-  explicitToolName?: "aili_compact" | "aili_decompress",
-) {
-  const toolName = explicitToolName
-    ?? (transaction.tag === "decompress" || transaction.kind === "decompress" ? "aili_decompress" : "aili_compact");
-  return {
-    id,
-    type: "message",
-    message: {
-      role: "toolResult",
-      toolCallId,
-      toolName,
-      content: [],
-      isError: false,
-      details: { contextTx: transaction },
-    },
-  };
+function appendEntry(entries: any[], entry: any) {
+  if (entry.parentId === undefined) entry.parentId = entries.at(-1)?.id ?? null;
+  entries.push(entry);
+  return entry;
 }
 
-async function compactStatus(runtime: RuntimeHarness, ctx: any) {
-  const result = await runtime.tools.get("aili_compact_status")!.execute("status", {}, undefined, undefined, ctx);
-  return JSON.parse(result.content[0].text);
+function toolCallEntry(entries: any[], callId: string) {
+  const entry = entries.find((candidate) => candidate.id === `assistant:${callId}`);
+  if (!entry) throw new Error(`missing tool call ${callId}`);
+  return entry;
+}
+
+function toolResultEntry(entries: any[], resultId: string) {
+  const entry = entries.find((candidate) => candidate.id === resultId);
+  if (!entry) throw new Error(`missing tool result ${resultId}`);
+  return entry;
+}
+
+function classifyCurrentPromotionGap(entries: any[], childBlockIds: string[], sourceView = v3View(entries)) {
+  const view = sourceView;
+  const children = childBlockIds.map((blockId) => view.state.blocks.get(blockId)!);
+  return classifyTransparentPromotionGaps(entries, view.state.blocks, children, {
+    sessionId: view.state.sessionId,
+    branchLeafId: view.state.branchLeafId,
+    epochId: view.state.epochId,
+    revision: view.state.projectionVersion,
+  });
+}
+
+function activeGroups(status: any): Array<{ semantics: "active-block"; blockRefs: string[]; action: "compact" }> {
+  const groups = status.references?.lifecycle?.activeBlockGroups;
+  return Array.isArray(groups)
+    ? groups.filter((group: any) => group?.semantics === "active-block" && group.action === "compact" && Array.isArray(group.blockRefs))
+    : [];
 }
 
 function exactRange(status: any, ref: string) {
   const range = status.references.safeRanges.find((candidate: any) => candidate.orderedRefs.includes(ref));
   if (!range) throw new Error(`missing exact safe range for ${ref}: ${JSON.stringify(status.references.safeRangeDiagnostics)}`);
   return range;
+}
+
+function onlySafeRange(status: any) {
+  const ranges = status.references?.safeRanges ?? [];
+  const candidates = ranges.filter((range: any) => Array.isArray(range.orderedRefs) && range.orderedRefs.length === 1);
+  if (candidates.length !== 1) throw new Error(`expected one exact source range: ${JSON.stringify({ ranges, diagnostics: status.references?.safeRangeDiagnostics })}`);
+  return candidates[0];
 }
 
 function providerMessages(entries: any[]) {
@@ -952,40 +925,21 @@ function v3View(entries: any[]) {
   return buildV3RuntimeView(entries, reduceCompactState(entries), { sessionId: "fake-provider-session" });
 }
 
-function beforeCompactEvent(entries: any[], firstKeptEntryId: string) {
-  return {
-    type: "session_before_compact",
-    reason: "threshold",
-    willRetry: false,
-    branchEntries: entries,
-    preparation: {
-      firstKeptEntryId,
-      tokensBefore: 120_000,
-      messagesToSummarize: [],
-      turnPrefixMessages: [],
-    },
-    signal: new AbortController().signal,
-  };
+function textOf(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content.flatMap((part) => part && typeof part === "object" && "text" in part && typeof part.text === "string" ? [part.text] : []).join("");
 }
 
-function lineageShape(view: ReturnType<typeof v3View>) {
-  return [...view.state.blocks.values()].map((block) => ({
-    id: block.blockId,
-    tier: block.tier,
-    source: block.source,
-    leafDigest: block.leafDigest,
-    leafCount: block.leafCount,
-  }));
-}
-
-function writeDefaultProjectConfig(project: string) {
+function writeProjectConfig(project: string, qualityEnabled: boolean, planningEnabled = true, indexEnabled = true) {
   mkdirSync(join(project, ".pi"), { recursive: true });
   writeFileSync(join(project, ".pi", "aili-compact.jsonc"), JSON.stringify({
     enabled: true,
     manualMode: false,
     compress: { summaryHardMaxChars: 12_000 },
-    planning: { enabled: true },
-    quality: { enabled: true, warningPolicy: "record" },
+    planning: { enabled: planningEnabled },
+    index: { enabled: indexEnabled },
+    quality: { enabled: qualityEnabled, warningPolicy: "record" },
     providerSuffix: { enabled: true },
     checkpoint: { autoRescue: true, deterministic: true },
     protection: {

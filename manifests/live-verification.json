@@ -1,40 +1,74 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 4,
+  "capturedAt": "2026-08-04T10:56:50.472Z",
   "platform": "linux",
-  "piVersion": "0.81.1",
-  "subagentVersion": "0.4.8",
-  "status": "passed",
-  "approvedScope": "On 2026-07-24, the user authorized two bounded live probes after repository-local compatibility verification: an omitted-backend, agentless child restricted to reading package.json, and an explicit-headless credential guard child restricted to a disposable .env sentinel. Both probes used only their declared temporary artifact roots and completed without business-file changes.",
+  "piVersion": "0.82.1",
+  "runtime": "aili-persistent-agents-v1",
+  "package": {
+    "name": "@rosetears/aili-pi",
+    "version": "0.2.0",
+    "source": "current workspace package"
+  },
+  "status": "NON_PASS",
+  "artifact": {
+    "path": "artifacts/test-results/persistent-agent-framework/live-smoke-2026-08-02-pi-0.82.1.json",
+    "sha256": "06f87a2fe57eb5e2fc3e209a2e601ad7e1530799043032a99393e79e72b00460"
+  },
+  "harness": {
+    "path": "tests/integration/aili-compact-live-release-gated.test.ts",
+    "sha256": "328c41c84765c8ca4e7fe44b7f5e74c0fbebcc94fedcd95bf89dbfe6c45060fb"
+  },
+  "cleanup": {
+    "status": "PASS"
+  },
   "probes": [
     {
-      "id": "generic-subagent-fixtures",
-      "command": "npx vitest run tests/unit/subagents.test.ts tests/integration/generic-subagent.test.ts",
-      "status": "passed",
+      "id": "provider-turn",
+      "status": "PASS",
       "changedFiles": 0,
-      "backendRequest": "matrix",
-      "resolvedBackend": "headless"
+      "evidence": "artifacts/test-results/persistent-agent-framework/live-smoke-2026-08-02-pi-0.82.1.json"
     },
     {
-      "id": "generic-agentless-default-path",
-      "command": "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
-      "status": "passed",
+      "id": "child-sandbox",
+      "status": "NON_PASS",
       "changedFiles": 0,
-      "backendRequest": "omitted",
-      "resolvedBackend": "headless"
+      "evidence": "artifacts/test-results/persistent-agent-framework/live-smoke-2026-08-02-pi-0.82.1.json"
     },
     {
-      "id": "generic-credential-guard-explicit-headless",
-      "command": "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
-      "status": "passed",
+      "id": "external-workspace-lifecycle",
+      "status": "PASS",
       "changedFiles": 0,
-      "backendRequest": "explicit-headless",
-      "resolvedBackend": "headless"
+      "evidence": "artifacts/test-results/persistent-agent-framework/live-smoke-2026-08-02-pi-0.82.1.json"
     }
   ],
   "implementation": {
-    "src/runtime/subagents.ts": "9f09e0e8a380d026d82b0842f2c687da2f3529b43a7ef6d1a6aad47d71190d48",
-    "tests/unit/subagents.test.ts": "16fc1fbd1759befeed03a2428294c28d662022622c61a6444e23b365dc7447aa",
-    "tests/integration/live-subagent.test.ts": "b88750f74b203cdbdb9d0e453e16f720ff4d8e4591ca140e0a3c7e1d8428868c"
+    "src/runtime/native-integrations.ts": "67cd00dd3e7d3b053991fd75d4a2863551f4eae4d7d6e30973cea0fbc3556d80",
+    "src/runtime/persistent-agents/child-sandbox.ts": "b61f32e1b732502cf4acca2af74ee78f95fe63f4be7012b9efe1594d49a427f9",
+    "src/runtime/persistent-agents/hub.ts": "8ce4924ee053e7a92c94c6696a211f15fc9f2b20cb2821864124b15871de63f9",
+    "src/runtime/persistent-agents/live-evidence-contract.ts": "176fe6ebb36a832a7ff5ed5239ef23726de5da3679cf6aa8427353d2da07c2da",
+    "src/runtime/persistent-agents/model-selection.ts": "b1426db27fa217ba2282af7cfa264da28cf3c1d5569eface27901651cfdf5165",
+    "src/runtime/persistent-agents/output-delivery.ts": "547e07451d8a5c9373065a73646ab2f590e22453c81e39b4f4c5112322d62aef",
+    "src/runtime/persistent-agents/permission.ts": "48b30508491bca7fcd04d82b30d9dde1423499c2f02c014074c3f030c7ebd8ba",
+    "src/runtime/persistent-agents/policy.ts": "8d2afb8197cabc91e640f29458f1f564a5b783f1f4a316d6380e944bb55a9e49",
+    "src/runtime/persistent-agents/production.ts": "f789a7caa336b3521fb869732e07e30be799ae6c537702349f86ab086b2ce084",
+    "src/runtime/persistent-agents/runtime.ts": "f07ed46b519980d4ef454ab3a2243f42a79f9e4f4e2525ed738b2c12d83da076",
+    "src/runtime/persistent-agents/scheduler.ts": "f7c010ca66b5c55b03ca4b50e07bff571dfe6f8ce44d1564a615f5bc88c9190a",
+    "src/runtime/persistent-agents/session-factory.ts": "ad7e06b2199c633d105ff967aa84e0c17c5bc5f5b1ec02d084d171c22940ab19",
+    "src/runtime/persistent-agents/storage.ts": "4bfdc33b719327e5c65583dbba8641cdfa6f1cb56eba4b63d925eaa6d6dceff5",
+    "src/runtime/persistent-agents/task-coordinator.ts": "2d821d7a174f5a9000558394539fcfbfa28796abdc0bf6dc75103c2f3d89f870",
+    "src/runtime/persistent-agents/task-registration.ts": "c437fe63cede1eec636a75205742cbdd7a4770da50427bcbc53748f5f191de32",
+    "src/runtime/persistent-agents/task-schema.ts": "a09e48fd3a9a1b2a002b24d02d7d080c8dd92b285e8c97f36a82bd59c6981d11",
+    "src/runtime/persistent-agents/types.ts": "59eecd1601e946ad34c11d01942bb5f8262f1de21ff25de613fc3da80ede1f01",
+    "src/runtime/persistent-agents/workspace.ts": "4dea3a6f5de693bcac09ac4d5391263a8e6c1e8e4b360aaad5a9700bb8c3c00c",
+    "src/vendor/pi-permission-modes/index.ts": "dbf32a96e2d8273568996c5ed7726333a076d6f3148745e091626a06f08d037b",
+    "tests/integration/package-runtime.test.ts": "de58a74fd6625c09181e557926be89b4abcf4fa11b82336ccd9e14668ee61936",
+    "tests/integration/persistent-agent-production.test.ts": "bf42b55878cff6e45ce65e8326514e4c8848995692c8313493162135922e13df",
+    "tests/integration/persistent-agent-runtime.test.ts": "e2c904a02afe3f0810fe0109b2f9b78cb20ee1f8e4cfa3a38dc648df3d437389",
+    "tests/integration/persistent-agent-task-collision.test.ts": "d80427843e3cd5473a588b86eac00a034f5f632024097dab75fc9252efbcfa98",
+    "tests/unit/persistent-agent-child-sandbox.test.ts": "65717b0a8cbcf4a6b94a08e70b08d0b43e51efb1adaef1b008012758e9c32f06",
+    "tests/unit/persistent-agent-permission.test.ts": "a6f2da25560564e17fdc317fcf33c5f8b6ace6422dde6c800d87db5269f7c16d",
+    "tests/unit/persistent-agent-policy.test.ts": "e6058f6e442984895355bce2b6f7dec4296aa4efeacf219add7e117cf7f1585b",
+    "tests/unit/persistent-agent-task-registration.test.ts": "8d21e642169afb9fe67469355a0cd9f7a12a018ecbc107b25f5fae7a613d30c3"
   },
-  "credentialHandling": "The explicit-headless credential guard probe used only a disposable .env sentinel. It completed with changedFiles=0; the sentinel was absent from the model-visible result and every temporary artifact before cleanup."
+  "credentialHandling": "Existing Pi authentication was referenced through the configured agent directory; no credential value, raw provider transcript, raw prompt, or provider payload is durable evidence."
 }

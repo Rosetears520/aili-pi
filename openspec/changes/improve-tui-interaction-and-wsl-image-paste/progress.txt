@@ -1,0 +1,17 @@
+# Progress: improve-tui-interaction-and-wsl-image-paste
+
+## Current reconciled status
+
+This change remains independent from `integrate-upstream-formal-agent-protocols`. It does not inherit acceptance, completion, release readiness, or operation authority from the umbrella change.
+
+Repository artifacts record historical DEFINE and implementation activity from 2026-07-29, but `tasks.md` and the final acceptance checklist in `test-plan.md` remain unchecked. Those historical notes are therefore candidate evidence, not current lifecycle authority. The change must be reconciled separately before anyone marks its tasks, BUILD, SHIP, or release state complete.
+
+## Historical candidate evidence
+
+The recorded implementation scope covered the Zentui scrollbar and cross-viewport selection, independent Matrix Rain preference, WSL2 Alt+V keybinding integration, bootstrap wiring, README guidance, and focused tests. The cited files were `extensions/zentui/config.ts`, `extensions/zentui/fixed-editor/types.ts`, `extensions/zentui/fixed-editor/index.ts`, `extensions/zentui/fixed-editor/compositor.ts`, `extensions/zentui/settings-command.ts`, `extensions/matrix/index.ts`, `scripts/merge-global-keybindings.mjs`, `scripts/bootstrap.sh`, `README.md`, and directly related tests.
+
+Historical command records reported 37 focused Zentui/Matrix tests, 24 bootstrap tests, typecheck, a later 564-test full-suite rerun, package validation, npm dry-run inventory, strict OpenSpec validation, and scoped whitespace checks as passing at that time. These results are not fresh evidence for the current candidate tree and do not update the unchecked task or acceptance artifacts by themselves.
+
+## Remaining limitations and gates
+
+All six real WSL2/restarted-TUI manual rows remain unverified. No exact real HOME, clipboard, PowerShell, terminal, provider, dependency, lockfile, Git, install, publish, or release operation is authorized by this file. A separate resume must establish the current contract, acceptance, task state, current candidate diff, and fresh verification before changing this proposal's lifecycle status.

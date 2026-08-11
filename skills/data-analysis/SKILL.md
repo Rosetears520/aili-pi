@@ -44,10 +44,12 @@ Do not use for:
 
 ```text
 STATUS: ANALYZED | PARTIAL | BLOCKED
-CONFIDENCE: high | medium | low
 
 QUESTION:
 - <analysis question>
+
+EVIDENCE LIMITS:
+- <sampling, freshness, missing metadata, or causal limitations>
 
 DATA PROVENANCE:
 - Source:

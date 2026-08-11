@@ -37,8 +37,9 @@ export type Phase = "requesting" | "thinking" | "working" | "tool";
 type Timer = ReturnType<typeof setTimeout>;
 
 export interface MatrixConfig {
-  version: 2;
+  version: 3;
   enabled: boolean;
+  rainEnabled: boolean;
   fps: number;
   density: number;
   height: 4;
@@ -59,8 +60,10 @@ export interface Drop {
 type ConfigLoadResult = { config: MatrixConfig; migrated: boolean; warning?: string };
 
 const DEFAULT_CONFIG: MatrixConfig = {
-  version: 2,
-  enabled: true,
+  version: 3,
+  // Animation is opt-in: repeated full-width terminal redraws can make streaming lag.
+  enabled: false,
+  rainEnabled: true,
   fps: 12,
   density: 0.65,
   height: 4,
@@ -107,8 +110,9 @@ function isSafeRegularFile(path: string): boolean {
 function parseConfig(value: unknown): MatrixConfig {
   const parsed = isRecord(value) ? value : {};
   return {
-    version: 2,
+    version: 3,
     enabled: typeof parsed.enabled === "boolean" ? parsed.enabled : DEFAULT_CONFIG.enabled,
+    rainEnabled: typeof parsed.rainEnabled === "boolean" ? parsed.rainEnabled : DEFAULT_CONFIG.rainEnabled,
     fps: clamp(Math.round(Number(parsed.fps) || DEFAULT_CONFIG.fps), 8, 18),
     density: clamp(Number(parsed.density) || DEFAULT_CONFIG.density, 0.45, 0.95),
     height: 4,
@@ -140,7 +144,11 @@ export function loadRoseMatrixConfig(
   if (existsSync(path)) {
     if (!isSafeRegularFile(path)) return { config: { ...DEFAULT_CONFIG }, migrated: false, warning: "Rose Matrix config is unsafe; using runtime defaults." };
     try {
-      return { config: parseConfig(JSON.parse(readFileSync(path, "utf8"))), migrated: false };
+      const parsed = JSON.parse(readFileSync(path, "utf8"));
+      const config = parseConfig(parsed);
+      const migrated = !isRecord(parsed) || parsed.version !== 3 || typeof parsed.rainEnabled !== "boolean";
+      if (migrated) writeConfigAtomically(path, config);
+      return { config, migrated };
     } catch {
       return { config: { ...DEFAULT_CONFIG }, migrated: false, warning: "Rose Matrix config is corrupt; using runtime defaults." };
     }
@@ -346,8 +354,13 @@ function isAssistantMessage(message: unknown): boolean {
   return isRecord(message) && message.role === "assistant";
 }
 
-export default function roseMatrixExtension(pi: ExtensionAPI): void {
-  const loaded = loadRoseMatrixConfig();
+export default function roseMatrixExtension(
+  pi: ExtensionAPI,
+  paths: { configPath?: string; legacyPath?: string } = {},
+): void {
+  const configPath = paths.configPath ?? CONFIG_PATH;
+  const legacyPath = paths.legacyPath ?? LEGACY_CONFIG_PATH;
+  const loaded = loadRoseMatrixConfig(configPath, legacyPath);
   const config = loaded.config;
   let activeContext: ExtensionContext | undefined;
   let phase: Phase = "requesting";
@@ -433,19 +446,21 @@ export default function roseMatrixExtension(pi: ExtensionAPI): void {
     render(width: number): string[] {
       const safeWidth = Math.max(1, width);
       const appearance = currentAppearance ?? "dark";
-      const key = `${safeWidth}:${frame}:${phase}:${appearance}:${totalOutputTokens() ?? 0}`;
+      const key = `${safeWidth}:${frame}:${phase}:${appearance}:${config.rainEnabled}:${totalOutputTokens() ?? 0}`;
       if (key === cachedKey) return cachedLines;
-      let drops = dropsByWidth.get(safeWidth);
-      if (!drops) {
-        drops = createDrops(safeWidth, config.density, 4);
-        if (dropsByWidth.size >= 4) dropsByWidth.delete(dropsByWidth.keys().next().value ?? safeWidth);
-        dropsByWidth.set(safeWidth, drops);
-      }
       const elapsedMs = Math.max(0, performance.now() - startedAt);
       cachedLines = [
         renderRoseShimmer(safeWidth, phase, elapsedMs, totalOutputTokens(), appearance),
-        ...renderRoseMatrix(safeWidth, 4, elapsedMs / 1000, phase, drops, appearance),
       ];
+      if (config.rainEnabled) {
+        let drops = dropsByWidth.get(safeWidth);
+        if (!drops) {
+          drops = createDrops(safeWidth, config.density, 4);
+          if (dropsByWidth.size >= 4) dropsByWidth.delete(dropsByWidth.keys().next().value ?? safeWidth);
+          dropsByWidth.set(safeWidth, drops);
+        }
+        cachedLines.push(...renderRoseMatrix(safeWidth, 4, elapsedMs / 1000, phase, drops, appearance));
+      }
       cachedKey = key;
       return cachedLines;
     },
@@ -549,9 +564,23 @@ export default function roseMatrixExtension(pi: ExtensionAPI): void {
     if (deprecated) ctx.ui.notify("/sakura-matrix is deprecated; use /rose-matrix.", "warning");
     if (command === "on" || command === "off") {
       config.enabled = command === "on";
-      writeConfigAtomically(CONFIG_PATH, config);
+      writeConfigAtomically(configPath, config);
       if (!config.enabled) stop();
       ctx.ui.notify(`Rose Matrix ${config.enabled ? "enabled" : "disabled"}`, "info");
+      return;
+    }
+    if (command === "rain") {
+      if (value !== "on" && value !== "off") {
+        ctx.ui.notify("Usage: /rose-matrix rain <on|off>", "error");
+        return;
+      }
+      config.rainEnabled = value === "on";
+      dropsByWidth.clear();
+      frame += 1;
+      invalidate();
+      writeConfigAtomically(configPath, config);
+      requestRender?.();
+      ctx.ui.notify(`Rose Code Rain ${config.rainEnabled ? "enabled" : "disabled"}`, "info");
       return;
     }
     if (command === "preview") {
@@ -566,7 +595,7 @@ export default function roseMatrixExtension(pi: ExtensionAPI): void {
       const fps = Number(value);
       if (!Number.isFinite(fps) || fps < 8 || fps > 18) { ctx.ui.notify("Usage: /rose-matrix fps <8-18>", "error"); return; }
       config.fps = Math.round(fps);
-      writeConfigAtomically(CONFIG_PATH, config);
+      writeConfigAtomically(configPath, config);
       ctx.ui.notify(`Rose Matrix FPS: ${config.fps}`, "info");
       return;
     }
@@ -575,22 +604,22 @@ export default function roseMatrixExtension(pi: ExtensionAPI): void {
       if (!Number.isFinite(density) || density < 0.45 || density > 0.95) { ctx.ui.notify("Usage: /rose-matrix density <0.45-0.95>", "error"); return; }
       config.density = Math.round(density * 100) / 100;
       dropsByWidth.clear();
-      writeConfigAtomically(CONFIG_PATH, config);
+      writeConfigAtomically(configPath, config);
       ctx.ui.notify(`Rose Matrix density: ${config.density}`, "info");
       return;
     }
     if (command === "appearance") {
       if (value !== "auto" && value !== "dark" && value !== "light") { ctx.ui.notify("Usage: /rose-matrix appearance <auto|dark|light>", "error"); return; }
       config.appearance = value;
-      writeConfigAtomically(CONFIG_PATH, config);
+      writeConfigAtomically(configPath, config);
       currentAppearance = resolveAppearance(config.appearance, ctx.ui.theme.name);
       invalidate();
       ctx.ui.notify(`Rose Matrix appearance: ${value}`, "info");
       return;
     }
-    ctx.ui.notify(`Rose Matrix: ${config.enabled ? "on" : "off"} · ${config.fps} FPS · 4 lines · density ${config.density} · ${config.appearance}`, "info");
+    ctx.ui.notify(`Rose Matrix: ${config.enabled ? "on" : "off"} · rain ${config.rainEnabled ? "on" : "off"} · ${config.fps} FPS · ${config.rainEnabled ? "5" : "1"} lines · density ${config.density} · ${config.appearance}`, "info");
   };
 
-  pi.registerCommand("rose-matrix", { description: "Rose Matrix: status, on, off, preview, fps <8-18>, density <0.45-0.95>, appearance <auto|dark|light>", handler: (args, ctx) => handleCommand(args, ctx) });
+  pi.registerCommand("rose-matrix", { description: "Rose Matrix: status, on, off, rain <on|off>, preview, fps <8-18>, density <0.45-0.95>, appearance <auto|dark|light>", handler: (args, ctx) => handleCommand(args, ctx) });
   pi.registerCommand("sakura-matrix", { description: "Deprecated alias for /rose-matrix", handler: (args, ctx) => handleCommand(args, ctx, true) });
 }

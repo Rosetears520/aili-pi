@@ -13,6 +13,9 @@ import {
   auditBranchIndexReplayHealth,
   branchIndexPureReplayFallback,
   coldBuildBranchIndex,
+  createVerifiedV3ReplaySeed,
+  getBranchPromotionGapIndex,
+  verifyBranchPromotionGapSource,
   getBranchV3LifecycleReplay,
   getIndexedBlock,
   listBranchMessageReferences,
@@ -43,7 +46,10 @@ import {
   type V3Transaction,
   type V3BlockSource,
 } from "../../src/runtime/aili-compact/v3.js";
-import { transparentPromotionGapDigest } from "../../src/runtime/aili-compact/promotion-gaps.js";
+import {
+  classifyTransparentPromotionGaps,
+  createAiliPlanningResultEnvelope,
+} from "../../src/runtime/aili-compact/promotion-gaps.js";
 
 const FACT_DIGEST = "f".repeat(64);
 
@@ -69,6 +75,8 @@ describe("AILI Compact BranchIndex v3 replay", () => {
 
     expect(appended.counters).toEqual(expect.objectContaining({
       preTipEntryVisits: 0,
+      proofRawSlotVisits: 0,
+      gapIndexBuilds: 0,
       fullReducerRuns: 0,
       fullRebuilds: 0,
       transactionReplayRuns: 1,
@@ -107,7 +115,13 @@ describe("AILI Compact BranchIndex v3 replay", () => {
     const statusCall = message("gap:status-call", "assistant", [
       { type: "toolCall", id: "gap:status-call", name: "aili_compact_status" },
     ], left.id);
-    const statusResult = message("gap:status-result", "toolResult", "ok", statusCall.id, {
+    const statusResult = message("gap:status-result", "toolResult", JSON.stringify(createAiliPlanningResultEnvelope({
+      toolName: "aili_compact_status",
+      toolCallId: statusCall.id,
+      identity: { sessionId: "session", branchLeafId: "leaf", epochId: "root", revision: "projection-v3" },
+      outcome: "success",
+      result: "ok",
+    })), statusCall.id, {
       toolCallId: statusCall.id,
       toolName: "aili_compact_status",
     });
@@ -125,15 +139,12 @@ describe("AILI Compact BranchIndex v3 replay", () => {
     state = applied(state, second, secondCatalogId, new Map([[right.id, 4]]));
     entries.push(custom("gap:second", second));
     const parentCatalogId = publicCatalogId(entries, state);
-    const proof = {
-      version: 1 as const,
-      leftChildBlockId: "gap:t1-left",
-      rightChildBlockId: "gap:t1-right",
-      leftLeafEntryId: left.id,
-      rightLeafEntryId: right.id,
-      messageCount: 2,
-      gapDigest: transparentPromotionGapDigest(sourceEntries.slice(1, 3), 2),
-    };
+    const classified = classifyTransparentPromotionGaps(sourceEntries, state.blocks, [
+      state.blocks.get("gap:t1-left")!, state.blocks.get("gap:t1-right")!,
+    ], { sessionId: state.sessionId, branchLeafId: state.branchLeafId, epochId: state.epochId, revision: state.projectionVersion });
+    expect(classified).toMatchObject({ ok: true });
+    if (!classified.ok) return;
+    const proof = classified.proofs[0]!;
     const parentTransaction = parent(
       state,
       parentCatalogId,
@@ -147,6 +158,13 @@ describe("AILI Compact BranchIndex v3 replay", () => {
     const built = coldBuildBranchIndex({ key: key(parentEntry.id), entries });
     expect(built.ok).toBe(true);
     if (!built.ok) return;
+    expect(built.counters).toEqual(expect.objectContaining({
+      preTipEntryVisits: 0,
+      proofRawSlotVisits: 2,
+      gapIndexBuilds: 0,
+      gapIndexBuildRawSlotVisits: 4,
+      rawSlotVisits: 4,
+    }));
     const indexedReplay = getBranchV3LifecycleReplay(built.snapshot);
     const pureReplay = reduceV3LifecycleState(entries);
     expect(indexedReplay.diagnostics).toEqual([]);
@@ -161,6 +179,177 @@ describe("AILI Compact BranchIndex v3 replay", () => {
     expect(indexedReplay.diagnostics).toEqual(pureReplay.diagnostics);
     expect(auditBranchIndexReplayHealth(built.snapshot, entries).healthy).toBe(true);
     expect(firstState.blocks.get("gap:t1-left")?.firstLeafOrdinal).toBe(1);
+
+    const forgedSources = [
+      { name: "omitted", source: { ...parentTransaction.payload.source, transparentGaps: undefined } },
+      { name: "endpoint", source: { ...parentTransaction.payload.source, transparentGaps: [{ ...proof, rightLeafEntryId: "wrong:right" }] } },
+      { name: "count", source: { ...parentTransaction.payload.source, transparentGaps: [{ ...proof, messageCount: 1 }] } },
+      { name: "digest", source: { ...parentTransaction.payload.source, transparentGaps: [{ ...proof, gapDigest: "0".repeat(64) }] } },
+      { name: "snapshot", source: { ...parentTransaction.payload.source, transparentGaps: [{ ...proof, sourceSnapshotDigest: "0".repeat(64) }] } },
+    ];
+    for (const forged of forgedSources) {
+      const transaction: V3Transaction = {
+        ...parentTransaction,
+        payload: { ...parentTransaction.payload, source: forged.source },
+      };
+      const forgedEntries = [
+        ...entries.slice(0, -1),
+        custom(`gap:forged-${forged.name}`, transaction),
+      ];
+      const pure = reduceV3LifecycleState(forgedEntries);
+      expect(pure.acceptedTransactionCount).toBe(2);
+      expect(pure.diagnostics).toEqual([
+        expect.objectContaining({ phase: "apply", code: "invalid-promotion-gap", path: "$.payload.source.transparentGaps" }),
+      ]);
+
+      const forgedIndex = coldBuildBranchIndex({ key: key(forgedEntries.at(-1)!.id), entries: forgedEntries });
+      expect(forgedIndex.ok).toBe(true);
+      if (!forgedIndex.ok) continue;
+      const indexed = getBranchV3LifecycleReplay(forgedIndex.snapshot);
+      expect(indexed.acceptedTransactionCount).toBe(2);
+      expect(indexed.diagnostics).toEqual(pure.diagnostics);
+    }
+
+    const ordinaryAppend = message("gap:ordinary-append", "user", "ordinary append", parentEntry.id);
+    const appended = appendBranchIndex(built.snapshot, {
+      entries: [ordinaryAppend],
+      expectedParentId: built.snapshot.tipEntryId,
+      expectedPriorDigest: built.snapshot.sourceDigest,
+      nextBranchLeafId: ordinaryAppend.id,
+    });
+    expect(appended.ok).toBe(true);
+    if (!appended.ok) return;
+
+    const currentEntries = [...entries, ordinaryAppend];
+    let rawReads = 0;
+    for (const entry of currentEntries) {
+      if (entry.type !== "message") continue;
+      let body = entry.message;
+      Object.defineProperty(entry, "message", {
+        configurable: true,
+        enumerable: true,
+        get() { rawReads += 1; return body; },
+        set(value: unknown) { body = value; },
+      });
+    }
+    ((right.message as Record<string, unknown>).content) = "mutated";
+    rawReads = 0;
+    expect(verifyBranchPromotionGapSource(appended.snapshot, currentEntries)).toEqual({ checked: true, matches: false });
+    expect(rawReads).toBe(4);
+  });
+
+  it("rejects attestation and protocol-classification proof mismatches in pure and indexed replay", () => {
+    for (const kind of ["attestation", "classification"] as const) {
+      const entries = rawGapProofFixture(kind);
+      const pure = reduceV3LifecycleState(entries);
+      expect(pure.acceptedTransactionCount).toBe(2);
+      expect(pure.diagnostics).toEqual([
+        expect.objectContaining({ phase: "apply", code: "invalid-promotion-gap", path: "$.payload.source.transparentGaps" }),
+      ]);
+
+      const built = coldBuildBranchIndex({ key: key(entries.at(-1)!.id), entries });
+      expect(built.ok).toBe(true);
+      if (!built.ok) continue;
+      const indexed = getBranchV3LifecycleReplay(built.snapshot);
+      expect(indexed.acceptedTransactionCount).toBe(2);
+      expect(indexed.diagnostics).toEqual(pure.diagnostics);
+    }
+  });
+
+  it("bounds an appended two-slot promotion proof without rebuilding an unrelated raw epoch", () => {
+    const entries: BranchSessionEntry[] = Array.from({ length: 300 }, (_, index) =>
+      message(`pre-gap:${index + 1}`, "assistant", `unrelated:${index + 1}`),
+    );
+    const left = message("bounded:left", "assistant", "left");
+    const statusCall = message("bounded:status-call", "assistant", [
+      { type: "toolCall", id: "bounded:status-call", name: "aili_compact_status" },
+    ]);
+    const statusResult = message("bounded:status-result", "toolResult", JSON.stringify(createAiliPlanningResultEnvelope({
+      toolName: "aili_compact_status",
+      toolCallId: statusCall.id,
+      identity: { sessionId: "session", branchLeafId: "leaf", epochId: "root", revision: "projection-v3" },
+      outcome: "success",
+      result: "ok",
+    })), undefined, { toolCallId: statusCall.id, toolName: "aili_compact_status" });
+    const right = message("bounded:right", "assistant", "right");
+    entries.push(left, statusCall, statusResult, right);
+
+    let state = empty();
+    const leftCatalogId = publicCatalogId(entries, state);
+    const leftTransaction = t1(state, "bounded:t1-left", left.id, 1, leftCatalogId);
+    state = applied(state, leftTransaction, leftCatalogId, new Map([[left.id, 301]]));
+    entries.push(custom("bounded:left-entry", leftTransaction));
+    const rightCatalogId = publicCatalogId(entries, state);
+    const rightTransaction = t1(state, "bounded:t1-right", right.id, 2, rightCatalogId);
+    state = applied(state, rightTransaction, rightCatalogId, new Map([[right.id, 304]]));
+    entries.push(custom("bounded:right-entry", rightTransaction));
+    const parentCatalogId = publicCatalogId(entries, state);
+    const rawEntries = entries.slice(0, 304);
+    const classified = classifyTransparentPromotionGaps(rawEntries, state.blocks, [
+      state.blocks.get("bounded:t1-left")!, state.blocks.get("bounded:t1-right")!,
+    ], { sessionId: state.sessionId, branchLeafId: state.branchLeafId, epochId: state.epochId, revision: state.projectionVersion });
+    expect(classified).toMatchObject({ ok: true, proofs: [expect.objectContaining({ messageCount: 2 })] });
+    if (!classified.ok) return;
+    const parentEntry = custom("bounded:parent", parent(
+      state,
+      parentCatalogId,
+      ["bounded:t1-left", "bounded:t1-right"],
+      "bounded:t2",
+      classified.proofs,
+    ), entries.at(-1)?.id);
+    const prefix = coldBuildBranchIndex({ key: key(entries.at(-1)!.id), entries });
+    expect(prefix.ok).toBe(true);
+    if (!prefix.ok) return;
+
+    const appended = appendBranchIndex(prefix.snapshot, {
+      entries: [parentEntry],
+      expectedParentId: prefix.snapshot.tipEntryId,
+      expectedPriorDigest: prefix.snapshot.sourceDigest,
+      nextBranchLeafId: parentEntry.id,
+    });
+    expect(appended.ok).toBe(true);
+    if (!appended.ok) return;
+    const rawTraversal = appended.counters.rawSlotVisits
+      + appended.counters.gapIndexBuildRawSlotVisits
+      + appended.counters.proofRawSlotVisits;
+    expect(appended.counters).toEqual(expect.objectContaining({
+      fullRebuilds: 0,
+      gapIndexBuilds: 0,
+      rawSlotVisits: 0,
+      proofRawSlotVisits: 2,
+      rawEpochSlotStorageCopyVisits: 0,
+      rawEpochPrefixStorageCopyVisits: 0,
+    }));
+    expect(rawTraversal).toBeLessThanOrEqual(256);
+    expect(appended.counters.rawEpochSlotStorageIterationVisits).toBeLessThanOrEqual(256);
+    expect(appended.counters.rawEpochPrefixStorageIterationVisits).toBeLessThanOrEqual(256);
+    expect(getBranchV3LifecycleReplay(appended.snapshot).acceptedTransactionCount).toBe(3);
+  });
+
+  it("builds one full revision-scoped promotion index for a 16-child status lineage", () => {
+    const entries = Array.from({ length: 16 }, (_, index) =>
+      message(`status:${index + 1}`, "assistant", `source:${index + 1}`),
+    );
+    let state = empty();
+    for (let index = 0; index < 16; index += 1) {
+      const source = entries[index]!;
+      const catalogId = publicCatalogId(entries, state);
+      const transaction = t1(state, `status:t1:${index + 1}`, source.id, index + 1, catalogId);
+      state = applied(state, transaction, catalogId, new Map([[source.id, index + 1]]));
+      entries.push(custom(`status:entry:${index + 1}`, transaction));
+    }
+    const built = coldBuildBranchIndex({ key: key(entries.at(-1)!.id), entries });
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+    const first = getBranchPromotionGapIndex(built.snapshot);
+    const second = getBranchPromotionGapIndex(built.snapshot);
+    expect(first.index).toBeDefined();
+    expect(first.counters).toEqual(expect.objectContaining({
+      gapIndexBuilds: 1,
+      gapIndexBuildRawSlotVisits: 0,
+      rawEpochSlotStorageIterationVisits: 0,
+    }));
+    expect(second.counters).toEqual(expect.objectContaining({ gapIndexBuilds: 0, gapIndexBuildRawSlotVisits: 0 }));
   });
 
   it("incrementally replays one-level decompression and exact recompression without stale active-parent edges", () => {
@@ -209,6 +398,35 @@ describe("AILI Compact BranchIndex v3 replay", () => {
     }));
     expect(getBranchV3LifecycleReplay(afterRecompress.snapshot).state?.catalogId).toBe(state.catalogId);
     expect(auditBranchIndexReplayHealth(afterRecompress.snapshot, entries).healthy).toBe(true);
+    const controlCatalogId = publicCatalogId(entries, state);
+    const control: V3Transaction = {
+      header: header(state, "tx:control", 6, controlCatalogId),
+      tag: "control",
+      payload: {
+        action: "manual-on",
+        targetBlockIds: [],
+        provenance: { kind: "explicit-user", id: "request:control" },
+        reason: "manual-on",
+      },
+    };
+    state = applied(state, control, controlCatalogId);
+    const controlEntry = custom("v3:control", control, entries.at(-1)!.id);
+    const afterControl = appendBranchIndex(afterRecompress.snapshot, {
+      entries: [controlEntry],
+      expectedParentId: afterRecompress.snapshot.tipEntryId,
+      nextBranchLeafId: controlEntry.id,
+    });
+    expect(afterControl.ok).toBe(true);
+    if (!afterControl.ok) return;
+    entries = [...entries, controlEntry];
+    expect(getBranchV3LifecycleReplay(afterControl.snapshot).state?.catalogId).toBe(state.catalogId);
+    for (const result of [afterDecompress, afterRecompress, afterControl]) {
+      expect(result.counters).toEqual(expect.objectContaining({
+        preTipEntryVisits: 0,
+        proofRawSlotVisits: 0,
+        gapIndexBuilds: 0,
+      }));
+    }
   });
 
   it("validates the public catalog across indexed message, v3, and legacy block reference families", () => {
@@ -237,6 +455,41 @@ describe("AILI Compact BranchIndex v3 replay", () => {
     expect(auditBranchIndexReplayHealth(appended.snapshot, [...prefixEntries, transactionEntry]).healthy).toBe(true);
   });
 
+  it("orders mixed legacy and v3 blocks by source before accepting the next v3 transaction", () => {
+    const legacyEntries = legacyRepairFixture({ deactivated: false });
+    const firstSource = message("mixed:v3-source-a", "assistant", "first v3 source", legacyEntries.at(-1)!.id);
+    const firstCatalogId = publicCatalogId([...legacyEntries, firstSource], empty());
+    const first = t1(empty(), "mixed:v3-a", firstSource.id, 1, firstCatalogId);
+    const stateAfterFirst = applied(empty(), first, firstCatalogId, new Map([[firstSource.id, 4]]));
+    const firstEntry = custom("mixed:v3-a-entry", first, firstSource.id);
+    const prefixEntries = [...legacyEntries, firstSource, firstEntry];
+    const prefix = coldBuildBranchIndex({ key: key(firstEntry.id), entries: prefixEntries });
+    expect(prefix.ok).toBe(true);
+    if (!prefix.ok) return;
+
+    const secondSource = message("mixed:v3-source-b", "assistant", "next v3 source", firstEntry.id);
+    const secondCatalogId = publicCatalogId([...prefixEntries, secondSource], stateAfterFirst);
+    const second = t1(stateAfterFirst, "mixed:v3-b", secondSource.id, 2, secondCatalogId);
+    const expectedState = applied(stateAfterFirst, second, secondCatalogId, new Map([[secondSource.id, 5]]));
+    const secondEntry = custom("mixed:v3-b-entry", second, secondSource.id);
+    const appended = appendBranchIndex(prefix.snapshot, {
+      entries: [secondSource, secondEntry],
+      expectedParentId: prefix.snapshot.tipEntryId,
+      expectedPriorDigest: prefix.snapshot.sourceDigest,
+      nextBranchLeafId: secondEntry.id,
+    });
+    expect(appended.ok).toBe(true);
+    if (!appended.ok) return;
+
+    const replay = getBranchV3LifecycleReplay(appended.snapshot);
+    expect(second.header.catalogId).toBe(secondCatalogId);
+    expect(replay).toEqual(expect.objectContaining({ acceptedTransactionCount: 2, diagnostics: [] }));
+    expect(replay.state?.catalogId).toBe(expectedState.catalogId);
+    const health = auditBranchIndexReplayHealth(appended.snapshot, [...prefixEntries, secondSource, secondEntry]);
+    expect(health.healthy).toBe(true);
+    expect(health.indexedDigest).toBe(health.oracleDigest);
+  });
+
   it("seeds a new epoch with archived v3 state and accepts a new T1 without losing query-only history", () => {
     const oldSource = message("epoch:old-source", "assistant", "archived source");
     let rootState = empty();
@@ -249,23 +502,42 @@ describe("AILI Compact BranchIndex v3 replay", () => {
       type: "compaction",
       parentId: oldEntry.id,
     };
-    const seed = reduceV3LifecycleState([oldSource, oldEntry, boundary]);
-    expect(seed.state).toEqual(expect.objectContaining({ epochId: boundary.id }));
-    expect(seed.archivedQueryOnlyBlocks.map((block) => block.blockId)).toEqual(["epoch:old-block"]);
+    const seedReplay = reduceV3LifecycleState([oldSource, oldEntry, boundary]);
+    expect(seedReplay.state).toEqual(expect.objectContaining({ epochId: boundary.id }));
+    expect(seedReplay.archivedQueryOnlyBlocks.map((block) => block.blockId)).toEqual(["epoch:old-block"]);
 
     const newSource = message("epoch:new-source", "assistant", "new epoch source", boundary.id);
     const fullPrefix = [oldSource, oldEntry, boundary, newSource];
-    const nextState = seed.state!;
+    const nextState = seedReplay.state!;
     const nextCatalogId = deriveRuntimeCatalogIdForState(fullPrefix, reduceCompactState(fullPrefix), nextState);
     const newTransaction = t1(nextState, "epoch:new-block", newSource.id, 2, nextCatalogId);
     const newEntry = custom("epoch:new-transaction", newTransaction, newSource.id);
+    const nextKey = { ...key(newEntry.id), epochId: boundary.id };
+    const seed = createVerifiedV3ReplaySeed({
+      key: nextKey,
+      sourcePrefix: [oldSource, oldEntry, boundary],
+      replay: seedReplay,
+    });
+    const callerSeed = structuredClone(seed);
     const built = coldBuildBranchIndex({
-      key: { ...key(newEntry.id), epochId: boundary.id },
+      key: nextKey,
       entries: [newSource],
-      v3ReplaySeed: seed,
+      v3ReplaySeed: callerSeed,
+      v3ReplaySeedSourcePrefix: [oldSource, oldEntry, boundary],
     });
     expect(built.ok).toBe(true);
     if (!built.ok) return;
+    const callerSeedState = callerSeed.replay.state!;
+    const callerSeedBlock = callerSeedState.blocks.get("epoch:old-block")!;
+    callerSeedBlock.summary = "caller-mutated-seed-block";
+    (callerSeedState.blocks as Map<string, typeof callerSeedBlock>).set("caller-forged-block", callerSeedBlock);
+    const installedColdReplay = getBranchV3LifecycleReplay(built.snapshot);
+    expect(installedColdReplay.state?.blocks.get("epoch:old-block")?.summary).toBe("summary:epoch:old-block");
+    expect(installedColdReplay.state?.blocks.has("caller-forged-block")).toBe(false);
+    const coldSeedHealth = auditBranchIndexReplayHealth(built.snapshot, [newSource]);
+    expect(coldSeedHealth.healthy).toBe(true);
+    expect(coldSeedHealth.fallback.v3.state?.blocks.get("epoch:old-block")?.summary).toBe("summary:epoch:old-block");
+    expect(coldSeedHealth.fallback.v3.state?.blocks.has("caller-forged-block")).toBe(false);
     const indexedCatalogId = deriveRuntimeCatalogId({
       stateCatalogId: nextState.catalogId,
       epochId: nextState.epochId,
@@ -288,10 +560,16 @@ describe("AILI Compact BranchIndex v3 replay", () => {
     expect(replay.archivedQueryOnlyBlocks).toEqual([
       expect.objectContaining({ blockId: "epoch:old-block", queryOnly: true, deactivationReason: "epoch" }),
     ]);
-    expect(auditBranchIndexReplayHealth(appended.snapshot, [newSource, newEntry])).toEqual(expect.objectContaining({
+    const seededHealth = auditBranchIndexReplayHealth(appended.snapshot, [newSource, newEntry]);
+    expect(seededHealth).toEqual(expect.objectContaining({
       healthy: true,
       indexedDigest: expect.any(String),
       oracleDigest: expect.any(String),
+    }));
+    expect(seededHealth.counters).toEqual(expect.objectContaining({
+      pureAuditRuns: 1,
+      seedReplayRuns: 1,
+      fullReducerRuns: 1,
     }));
     expect(replay.state?.catalogId).toBe(applied(
       nextState,
@@ -299,6 +577,68 @@ describe("AILI Compact BranchIndex v3 replay", () => {
       nextCatalogId,
       new Map([[newSource.id, 1]]),
     ).catalogId);
+    expect(built.counters).toEqual(expect.objectContaining({
+      seedValidationRuns: 1,
+      seedValidationEntryVisits: 3,
+      seedReplayRuns: 1,
+    }));
+  });
+
+  it("rejects a structurally valid archived replay unless every source, boundary, branch, epoch, and digest binding matches", () => {
+    const oldSource = message("seed:old-source", "assistant", "archived source");
+    let state = empty();
+    const oldTransaction = t1(state, "seed:old-block", oldSource.id, 1, publicCatalogId([oldSource], state));
+    state = applied(state, oldTransaction, oldTransaction.header.catalogId, new Map([[oldSource.id, 1]]));
+    const oldEntry = custom("seed:old-transaction", oldTransaction, oldSource.id);
+    const boundary: BranchSessionEntry = { id: "seed:boundary", type: "compaction", parentId: oldEntry.id };
+    const sourcePrefix = [oldSource, oldEntry, boundary];
+    const seedKey = { ...key("seed:new-source"), epochId: boundary.id };
+    const replay = reduceV3LifecycleState(sourcePrefix);
+    const verified = createVerifiedV3ReplaySeed({ key: seedKey, sourcePrefix, replay });
+    const newSource = message("seed:new-source", "assistant", "new source", boundary.id);
+
+    expect(coldBuildBranchIndex({
+      key: seedKey,
+      entries: [newSource],
+      v3ReplaySeed: verified,
+      v3ReplaySeedSourcePrefix: sourcePrefix,
+    }).ok).toBe(true);
+
+    const variants = [
+      (seed: typeof verified, prefix: BranchSessionEntry[]) => { seed.sourcePrefixDigest = "0".repeat(64); return { seed, prefix }; },
+      (seed: typeof verified, prefix: BranchSessionEntry[]) => { seed.epochBoundary.entryId = "other-boundary"; return { seed, prefix }; },
+      (seed: typeof verified, prefix: BranchSessionEntry[]) => { seed.epochBoundary.branchLeafId = "other-branch"; return { seed, prefix }; },
+      (seed: typeof verified, prefix: BranchSessionEntry[]) => { seed.projectionVersion = "other-projection"; return { seed, prefix }; },
+      (seed: typeof verified, prefix: BranchSessionEntry[]) => { seed.replayVersion = "other-replay"; return { seed, prefix }; },
+      (seed: typeof verified, prefix: BranchSessionEntry[]) => {
+        seed.replay.state = createEmptyV3State({
+          sessionId: "session", branchLeafId: "leaf", epochId: boundary.id, projectionVersion: "projection-v3",
+        });
+        seed.replay.acceptedTransactionCount = 0;
+        seed.replay.maximalActiveBlocks = [];
+        seed.replay.archivedQueryOnlyBlocks = [];
+        return { seed, prefix };
+      },
+      (seed: typeof verified, prefix: BranchSessionEntry[]) => {
+        prefix[0] = message("seed:old-source", "assistant", "altered source");
+        return { seed, prefix };
+      },
+    ];
+    for (const mutate of variants) {
+      const invalid = mutate(structuredClone(verified), structuredClone(sourcePrefix) as BranchSessionEntry[]);
+      expect(coldBuildBranchIndex({
+        key: seedKey,
+        entries: [newSource],
+        v3ReplaySeed: invalid.seed,
+        v3ReplaySeedSourcePrefix: invalid.prefix,
+      })).toEqual(expect.objectContaining({ ok: false, code: "invalid-scope" }));
+    }
+    expect(coldBuildBranchIndex({
+      key: { ...seedKey, epochId: "other-epoch" },
+      entries: [newSource],
+      v3ReplaySeed: verified,
+      v3ReplaySeedSourcePrefix: sourcePrefix,
+    })).toEqual(expect.objectContaining({ ok: false, code: "invalid-scope" }));
   });
 
   it("keeps malformed and stale v3 transactions diagnostic-only with no partial indexed state", () => {
@@ -372,7 +712,11 @@ describe("AILI Compact BranchIndex repair oracle fallback", () => {
     expect(repaired.ok).toBe(true);
     if (!repaired.ok) return;
 
-    expect(repaired.counters).toEqual(expect.objectContaining({ fullReducerRuns: 1, fallbacks: 1 }));
+    expect(repaired.counters).toEqual(expect.objectContaining({
+      fullReducerRuns: 1,
+      fallbacks: 1,
+      preTipEntryVisits: beforeRepair.length + 1,
+    }));
     expect(getIndexedBlock(repaired.snapshot, "legacy:block")).toEqual(expect.objectContaining({
       schema: "legacy", active: true,
     }));
@@ -506,6 +850,64 @@ function parent(
   });
 }
 
+function rawGapProofFixture(kind: "attestation" | "classification"): BranchSessionEntry[] {
+  const left = message(`raw-${kind}:left`, "assistant", "left");
+  const validCall = message(`raw-${kind}:status-call`, "assistant", [
+    { type: "toolCall", id: `raw-${kind}:status-call`, name: "aili_compact_status" },
+  ], left.id);
+  const validResult = message(`raw-${kind}:status-result`, "toolResult", JSON.stringify(createAiliPlanningResultEnvelope({
+    toolName: "aili_compact_status",
+    toolCallId: validCall.id,
+    identity: { sessionId: "session", branchLeafId: "leaf", epochId: "root", revision: "projection-v3" },
+    outcome: "success",
+    result: "ok",
+  })), validCall.id, {
+    toolCallId: validCall.id,
+    toolName: "aili_compact_status",
+  });
+  const actualCall = kind === "classification"
+    ? message(validCall.id, "assistant", [{ type: "toolCall", id: validCall.id, name: "read" }], left.id)
+    : validCall;
+  const actualResult = kind === "classification"
+    ? message(validResult.id, "toolResult", "ok", actualCall.id, { toolCallId: actualCall.id, toolName: "read" })
+    : message(validResult.id, "toolResult", JSON.stringify(createAiliPlanningResultEnvelope({
+      toolName: "aili_compact_status",
+      toolCallId: validCall.id,
+      identity: { sessionId: "session", branchLeafId: "other-leaf", epochId: "root", revision: "projection-v3" },
+      outcome: "success",
+      result: "ok",
+    })), actualCall.id, {
+      toolCallId: actualCall.id,
+      toolName: "aili_compact_status",
+    });
+  const right = message(`raw-${kind}:right`, "assistant", "right", actualResult.id);
+  const entries: BranchSessionEntry[] = [left, actualCall, actualResult, right];
+
+  let state = empty();
+  const firstCatalogId = publicCatalogId(entries, state);
+  const first = t1(state, `raw-${kind}:t1-left`, left.id, 1, firstCatalogId);
+  state = applied(state, first, firstCatalogId, new Map([[left.id, 1]]));
+  entries.push(custom(`raw-${kind}:first`, first));
+  const secondCatalogId = publicCatalogId(entries, state);
+  const second = t1(state, `raw-${kind}:t1-right`, right.id, 2, secondCatalogId);
+  state = applied(state, second, secondCatalogId, new Map([[right.id, 4]]));
+  entries.push(custom(`raw-${kind}:second`, second));
+
+  const classified = classifyTransparentPromotionGaps([left, validCall, validResult, right], state.blocks, [
+    state.blocks.get(`raw-${kind}:t1-left`)!, state.blocks.get(`raw-${kind}:t1-right`)!,
+  ], { sessionId: state.sessionId, branchLeafId: state.branchLeafId, epochId: state.epochId, revision: state.projectionVersion });
+  if (!classified.ok) throw new Error(`valid proof fixture failed: ${classified.reason}`);
+  const parentCatalogId = publicCatalogId(entries, state);
+  entries.push(custom(`raw-${kind}:parent`, parent(
+    state,
+    parentCatalogId,
+    [`raw-${kind}:t1-left`, `raw-${kind}:t1-right`],
+    `raw-${kind}:t2`,
+    classified.proofs,
+  )));
+  return entries;
+}
+
 function applied(
   state: V3LifecycleState,
   transaction: V3Transaction,
@@ -551,7 +953,7 @@ function v3Hierarchy(): {
   };
 }
 
-function legacyRepairFixture(): BranchSessionEntry[] {
+function legacyRepairFixture({ deactivated = true }: { deactivated?: boolean } = {}): BranchSessionEntry[] {
   const source = message("legacy:source", "assistant", "legacy source");
   const block: CompactBlock = {
     id: "legacy:block", kind: "semantic", epochId: "root", sourceEntryIds: [source.id],
@@ -566,7 +968,7 @@ function legacyRepairFixture(): BranchSessionEntry[] {
     schema: AILI_COMPACT_SCHEMA, id: "legacy:gc", kind: "control", epochId: "root",
     lifecycleUpdates: [{ blockId: block.id, active: false, deactivationReason: "gc" }],
   };
-  return [
+  const entries: BranchSessionEntry[] = [
     source,
     message("legacy:create-call", "assistant", [{ type: "toolCall", id: "legacy:create", name: "aili_compact", arguments: {} }], source.id),
     {
@@ -576,6 +978,6 @@ function legacyRepairFixture(): BranchSessionEntry[] {
         details: { contextTx: create },
       },
     },
-    custom("legacy:gc-entry", gc, "legacy:create-result"),
   ];
+  return deactivated ? [...entries, custom("legacy:gc-entry", gc, "legacy:create-result")] : entries;
 }

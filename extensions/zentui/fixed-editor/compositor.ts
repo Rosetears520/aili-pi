@@ -83,6 +83,43 @@ function sanitizeLine(line: string, width: number): string {
 	return visibleWidth(line) > width ? truncateToWidth(line, width, "", true) : line;
 }
 
+const SCROLLBAR_TRACK = "\x1b[38;2;100;112;143m│\x1b[0m";
+const SCROLLBAR_THUMB = "\x1b[1;38;2;199;91;122m┃\x1b[0m";
+const SELECTION_AUTO_SCROLL_MS = 70;
+
+function replaceRightmostCell(line: string, width: number, cell: string): string {
+	if (width <= 0) return "";
+	const contentWidth = Math.max(0, width - 1);
+	const content = truncateToWidth(line, contentWidth, "", true);
+	return `${content}${" ".repeat(Math.max(0, contentWidth - visibleWidth(content)))}${cell}`;
+}
+
+export function renderTranscriptScrollbar(
+	lines: string[],
+	width: number,
+	viewportStart: number,
+	totalRows: number,
+	viewportRows: number,
+): string[] {
+	if (width < 2 || viewportRows < 2 || totalRows <= viewportRows) return lines;
+	const maxStart = Math.max(1, totalRows - viewportRows);
+	const thumbHeight = Math.max(
+		1,
+		Math.min(viewportRows, Math.round((viewportRows / Math.max(totalRows, 1)) * viewportRows)),
+	);
+	const thumbTravel = Math.max(0, viewportRows - thumbHeight);
+	const thumbTop = Math.round(
+		(clampScrollOffset(viewportStart, maxStart) / maxStart) * thumbTravel,
+	);
+	return lines.map((line, row) =>
+		replaceRightmostCell(
+			line,
+			width,
+			row >= thumbTop && row < thumbTop + thumbHeight ? SCROLLBAR_THUMB : SCROLLBAR_TRACK,
+		),
+	);
+}
+
 /** Replace full-screen clears with clears limited to the scrollable transcript. */
 function constrainScreenClears(data: string, scrollBottom: number): string {
 	let injected = false;
@@ -138,9 +175,14 @@ export class TerminalSplitCompositor {
 	private visibleRootStart = 0;
 	/** Height of the scrollable region in last render. */
 	private visibleScrollableRows = 0;
+	private visibleColumns = 0;
+	private scrollbarVisible = false;
 
 	/** Selection state for app-level drag-to-select. */
 	private readonly selection = new SelectionState();
+	private dragPointer: { row: number; col: number } | null = null;
+	private selectionAutoScrollTimer: ReturnType<typeof setInterval> | null = null;
+	private selectionAutoScrollDirection: -1 | 0 | 1 = 0;
 	/** Timer for right-click context menu mouse reporting pause. */
 	private mouseResumeTimer: ReturnType<typeof setTimeout> | null = null;
 	private cursorVisible = true;
@@ -241,6 +283,7 @@ export class TerminalSplitCompositor {
 	dispose(): void {
 		if (this.disposed) return;
 		this.disposed = true;
+		this.clearSelectionInteraction();
 		if (!this.installed) return;
 		this.clearInputListener();
 		if (this.mouseResumeTimer) {
@@ -261,6 +304,7 @@ export class TerminalSplitCompositor {
 	}
 
 	private rollbackInstallation(): void {
+		this.clearSelectionInteraction();
 		this.clearInputListener();
 		if (this.emergencyCleanup) {
 			process.removeListener("exit", this.emergencyCleanup);
@@ -436,8 +480,25 @@ export class TerminalSplitCompositor {
 		this.visibleRootStart = start;
 		this.visibleScrollableRows = scrollableRows;
 
-		// Apply selection highlight to visible lines.
-		return visible.map((line, i) => highlightSelection(line, start + i, this.selection));
+		// Apply selection highlight before overlaying the application scrollbar.
+		const highlighted = visible.map((line, i) =>
+			highlightSelection(line, start + i, this.selection),
+		);
+		this.visibleColumns = Math.max(1, width);
+		this.scrollbarVisible =
+			this.getConfig().scrollbar &&
+			this.visibleColumns >= 2 &&
+			scrollableRows >= 2 &&
+			lines.length > scrollableRows;
+		return this.scrollbarVisible
+			? renderTranscriptScrollbar(
+				highlighted,
+				this.visibleColumns,
+				start,
+				lines.length,
+				scrollableRows,
+			)
+			: highlighted;
 	}
 
 	private handleInput(data: string): { consume?: boolean; data?: string } | undefined {
@@ -458,7 +519,7 @@ export class TerminalSplitCompositor {
 
 		if (keyboard.action === "jumpBottom") {
 			this.scrollOffset = 0;
-			this.selection.clear();
+			this.clearSelectionInteraction();
 			this.capabilities.requestRender?.();
 			return undefined; // Let Enter propagate to the editor.
 		}
@@ -471,13 +532,13 @@ export class TerminalSplitCompositor {
 
 		if (keyboard.action === "pageUp") {
 			const before = this.scrollOffset;
-			this.selection.clear();
+			this.clearSelectionInteraction();
 			this.scrollBy(scrollableRows);
 			return this.scrollOffset !== before ? { consume: true } : undefined;
 		}
 		if (keyboard.action === "pageDown") {
 			const before = this.scrollOffset;
-			this.selection.clear();
+			this.clearSelectionInteraction();
 			this.scrollBy(-scrollableRows);
 			return this.scrollOffset !== before ? { consume: true } : undefined;
 		}
@@ -488,13 +549,21 @@ export class TerminalSplitCompositor {
 	private handleMouseEvent(ev: { button: string; action: string; col: number; row: number }): void {
 		// Wheel scroll.
 		if (ev.button === "wheel-up" && ev.action === "press") {
-			this.selection.clear();
-			this.scrollBy(3);
+			if (this.selection.isDragging) {
+				this.dragPointer = { row: ev.row, col: ev.col };
+				this.scrollSelectionBy(3);
+			} else {
+				this.scrollBy(3);
+			}
 			return;
 		}
 		if (ev.button === "wheel-down" && ev.action === "press") {
-			this.selection.clear();
-			this.scrollBy(-3);
+			if (this.selection.isDragging) {
+				this.dragPointer = { row: ev.row, col: ev.col };
+				this.scrollSelectionBy(-3);
+			} else {
+				this.scrollBy(-3);
+			}
 			return;
 		}
 
@@ -506,7 +575,7 @@ export class TerminalSplitCompositor {
 			if (selectedText) {
 				void copyToClipboard(selectedText);
 			}
-			this.selection.clear();
+			this.clearSelectionInteraction();
 			this.pauseMouseReporting();
 			this.capabilities.requestRender?.();
 			return;
@@ -515,28 +584,35 @@ export class TerminalSplitCompositor {
 		// Only left button is used for drag-select.
 		if (ev.button !== "left") return;
 
-		// Ignore clicks in the cluster region (below scrollable area).
-		if (ev.row > this.visibleScrollableRows) return;
-
-		// Map screen row to transcript line index.
-		const lineIndex = this.visibleRootStart + ev.row - 1;
-		const col = Math.max(0, ev.col - 1);
-
 		if (ev.action === "press") {
-			this.selection.start(lineIndex, col);
+			if (ev.row > this.visibleScrollableRows) return;
+			if (this.scrollbarVisible && ev.col >= this.visibleColumns) return;
+			const point = this.getSelectionPoint(ev.row, ev.col, false);
+			if (!point) return;
+			this.clearSelectionInteraction();
+			this.dragPointer = { row: ev.row, col: ev.col };
+			this.selection.start(point.line, point.col);
 			this.capabilities.requestRender?.();
 			return;
 		}
 		if (ev.action === "drag" && this.selection.isDragging) {
-			this.selection.extend(lineIndex, col + 1);
+			this.dragPointer = { row: ev.row, col: ev.col };
+			const point = this.getSelectionPoint(ev.row, ev.col, true);
+			if (point) this.selection.extend(point.line, point.col);
+			this.startSelectionAutoScroll(
+				ev.row <= 1 ? 1 : ev.row >= this.visibleScrollableRows ? -1 : 0,
+			);
 			this.capabilities.requestRender?.();
 			return;
 		}
 		if (ev.action === "release" && this.selection.isDragging) {
-			this.selection.extend(lineIndex, col + 1);
+			this.stopSelectionAutoScroll();
+			const point = this.getSelectionPoint(ev.row, ev.col, true);
+			if (point) this.selection.extend(point.line, point.col);
 			this.selection.setDragging(false);
 			const text = this.selection.getSelectedText(this.rootLines);
 			this.selection.clear();
+			this.dragPointer = null;
 			this.capabilities.requestRender?.();
 			if (text) {
 				void copyToClipboard(text);
@@ -544,6 +620,82 @@ export class TerminalSplitCompositor {
 			}
 			return;
 		}
+	}
+
+	private getViewportStart(offset = this.scrollOffset): number {
+		return Math.max(0, this.rootLines.length - this.visibleScrollableRows - offset);
+	}
+
+	private getSelectionPoint(
+		row: number,
+		col: number,
+		includeCell: boolean,
+		offset = this.scrollOffset,
+	): { line: number; col: number } | null {
+		if (this.rootLines.length === 0 || this.visibleScrollableRows <= 0) return null;
+		const clampedRow = Math.max(1, Math.min(row, this.visibleScrollableRows));
+		const line = Math.max(
+			0,
+			Math.min(
+				this.rootLines.length - 1,
+				this.getViewportStart(offset) + clampedRow - 1,
+			),
+		);
+		const contentColumns = Math.max(
+			0,
+			this.scrollbarVisible ? this.visibleColumns - 1 : this.visibleColumns,
+		);
+		return {
+			line,
+			col: Math.max(0, Math.min(col - 1 + (includeCell ? 1 : 0), contentColumns)),
+		};
+	}
+
+	private scrollSelectionBy(delta: number): void {
+		const nextOffset = clampScrollOffset(this.scrollOffset + delta, this.maxScrollOffset);
+		if (nextOffset === this.scrollOffset) return;
+		this.scrollOffset = nextOffset;
+		if (this.dragPointer) {
+			const point = this.getSelectionPoint(
+				this.dragPointer.row,
+				this.dragPointer.col,
+				true,
+				nextOffset,
+			);
+			if (point) this.selection.extend(point.line, point.col);
+		}
+		this.capabilities.requestRender?.();
+	}
+
+	private stopSelectionAutoScroll(): void {
+		if (this.selectionAutoScrollTimer) {
+			clearInterval(this.selectionAutoScrollTimer);
+			this.selectionAutoScrollTimer = null;
+		}
+		this.selectionAutoScrollDirection = 0;
+	}
+
+	private startSelectionAutoScroll(direction: -1 | 0 | 1): void {
+		if (direction === this.selectionAutoScrollDirection) return;
+		this.stopSelectionAutoScroll();
+		if (direction === 0) return;
+		this.selectionAutoScrollDirection = direction;
+		this.selectionAutoScrollTimer = setInterval(() => {
+			if (!this.selection.isDragging || !this.dragPointer) {
+				this.stopSelectionAutoScroll();
+				return;
+			}
+			const before = this.scrollOffset;
+			this.scrollSelectionBy(direction);
+			if (this.scrollOffset === before) this.stopSelectionAutoScroll();
+		}, SELECTION_AUTO_SCROLL_MS);
+		this.selectionAutoScrollTimer.unref?.();
+	}
+
+	private clearSelectionInteraction(): void {
+		this.stopSelectionAutoScroll();
+		this.dragPointer = null;
+		this.selection.clear();
 	}
 
 	/** Temporarily disable mouse reporting so the terminal's native context menu works. */
@@ -707,6 +859,7 @@ export class TerminalSplitCompositor {
 	}
 
 	private restoreForExit(): void {
+		this.clearSelectionInteraction();
 		try {
 			this.restoreTerminalState();
 		} catch {

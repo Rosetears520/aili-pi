@@ -14,15 +14,16 @@ import {
   resolveMessageReference,
   type CompactReferenceCatalog,
 } from "./references.js";
+import { SEMANTIC_SUMMARY_LIMITS } from "./summary-limits.js";
 
 export const MUTATION_LIMITS = {
   maxBatch: 16,
   maxBlockRefs: 16,
   maxTopicChars: 200,
-  defaultSummaryChars: 6_000,
-  minSummaryLimit: 256,
-  maxSummaryLimit: 10_000,
-  hardSummaryChars: 10_000,
+  defaultSummaryChars: SEMANTIC_SUMMARY_LIMITS.targetChars,
+  minSummaryLimit: SEMANTIC_SUMMARY_LIMITS.minChars,
+  maxSummaryLimit: SEMANTIC_SUMMARY_LIMITS.hardMaxChars,
+  hardSummaryChars: SEMANTIC_SUMMARY_LIMITS.hardMaxChars,
   maxPreviewBytes: 2_000,
   maxPruneTools: 64,
   maxPruneRefs: 64,

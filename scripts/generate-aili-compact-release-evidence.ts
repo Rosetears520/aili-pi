@@ -6,15 +6,18 @@ import { pathToFileURL } from "node:url";
 import {
   AILI_COMPACT_RELEASE_ARTIFACTS,
   AILI_COMPACT_RELEASE_INDEX,
+  AILI_COMPACT_CONTROLLED_PRODUCTION_HARNESS,
   AILI_COMPACT_LIVE_HARNESS,
   AILI_COMPACT_LIVE_CAPTURE_PATH,
+  AILI_COMPACT_REVIEWED_LIVE_PATH,
   readAiliCompactCandidateBinding,
   scanAiliReleaseEvidence,
+  validateAiliCompactControlledProductionArtifact,
   validateAiliCompactReviewedLiveArtifact,
   type AiliCompactCandidateBinding,
+  type AiliCompactControlledProductionBinding,
   type AiliCompactLiveRuntimeBinding,
 } from "./aili-compact-release-evidence.ts";
-import { COMPACT_HUMAN_REVIEW_CANDIDATE_PATH } from "./live-release-support.ts";
 
 const DEFAULT_ROOT = resolve(import.meta.dirname, "..");
 const ACP_VERSION = "1.14.3";
@@ -56,18 +59,28 @@ function candidateBound(
   binding: AiliCompactCandidateBinding,
   liveHarnessSha256: string,
   liveRuntimeBinding: AiliCompactLiveRuntimeBinding,
+  controlledProductionBinding: AiliCompactControlledProductionBinding,
   sourceCaptureBody: string,
-  candidateArtifactBody: string,
+  reviewedLiveBody: string,
 ): boolean {
   const expected = AILI_COMPACT_RELEASE_ARTIFACTS[id];
+  if (id === "controlledProduction") {
+    return value?.schema === expected.schema
+      && value.packageVersion === binding.packageVersion
+      && value.piVersion === binding.piVersion
+      && validateAiliCompactControlledProductionArtifact(value, controlledProductionBinding);
+  }
   const base = value?.schema === expected.schema
     && passed(value)
     && value.packageVersion === binding.packageVersion
     && value.piVersion === binding.piVersion
     && value.implementationSha256 === binding.implementationSha256;
-  return base && (id !== "live" || validateAiliCompactReviewedLiveArtifact(
-    value!, sourceCaptureBody, candidateArtifactBody, liveHarnessSha256, liveRuntimeBinding,
-  ));
+  if (id !== "live") return base;
+  let reviewedLive: JsonRecord | undefined;
+  try { reviewedLive = record(JSON.parse(reviewedLiveBody) as unknown); } catch { return false; }
+  return base && !!reviewedLive && validateAiliCompactReviewedLiveArtifact(
+    reviewedLive, sourceCaptureBody, liveHarnessSha256, liveRuntimeBinding,
+  );
 }
 
 /**
@@ -81,19 +94,28 @@ export async function generateAiliCompactReleaseEvidence(
 ): Promise<GeneratedAiliCompactReleaseEvidence> {
   const projectRoot = resolve(root);
   const binding = await readAiliCompactCandidateBinding(projectRoot);
-  const [provenanceText, sbomText, noticesText, liveHarnessText, piExecutableText, productionEntryText] = await Promise.all([
+  const [provenanceText, sbomText, noticesText, liveHarnessText, piExecutableText, productionEntryText, compactImplementationText, controlledHarnessText, piAgentSessionText] = await Promise.all([
     readText(projectRoot, "manifests/provenance.json"),
     readText(projectRoot, "manifests/sbom.json"),
     readText(projectRoot, "THIRD_PARTY_NOTICES.md"),
     readText(projectRoot, AILI_COMPACT_LIVE_HARNESS),
     readText(projectRoot, "node_modules/@earendil-works/pi-coding-agent/dist/cli.js"),
     readText(projectRoot, "extensions/index.ts"),
+    readText(projectRoot, "src/runtime/aili-compact/index.ts"),
+    readText(projectRoot, AILI_COMPACT_CONTROLLED_PRODUCTION_HARNESS),
+    readText(projectRoot, "node_modules/@earendil-works/pi-coding-agent/dist/core/agent-session.js"),
   ]);
   const liveHarnessSha256 = sha256(liveHarnessText);
   const liveRuntimeBinding = { piExecutableSha256: sha256(piExecutableText), productionEntrySha256: sha256(productionEntryText) };
-  const [sourceCaptureBody, candidateArtifactBody] = await Promise.all([
+  const controlledProductionBinding = {
+    compactImplementationSha256: sha256(compactImplementationText),
+    productionEntrySha256: sha256(productionEntryText),
+    piAgentSessionSha256: sha256(piAgentSessionText),
+    harnessSha256: sha256(controlledHarnessText),
+  };
+  const [sourceCaptureBody, reviewedLiveBody] = await Promise.all([
     readText(projectRoot, AILI_COMPACT_LIVE_CAPTURE_PATH).catch(() => ""),
-    readText(projectRoot, COMPACT_HUMAN_REVIEW_CANDIDATE_PATH).catch(() => ""),
+    readText(projectRoot, AILI_COMPACT_REVIEWED_LIVE_PATH).catch(() => ""),
   ]);
   const provenanceManifest = record(JSON.parse(provenanceText) as unknown);
   const acp = (Array.isArray(provenanceManifest?.sources) ? provenanceManifest.sources : [])
@@ -175,7 +197,7 @@ export async function generateAiliCompactReleaseEvidence(
   }
   const requiredIds = Object.keys(AILI_COMPACT_RELEASE_ARTIFACTS) as ArtifactId[];
   const candidateReady = requiredIds.every((id) => candidateBound(
-    id, values.get(id), binding, liveHarnessSha256, liveRuntimeBinding, sourceCaptureBody, candidateArtifactBody,
+    id, values.get(id), binding, liveHarnessSha256, liveRuntimeBinding, controlledProductionBinding, sourceCaptureBody, reviewedLiveBody,
   ));
   const index: JsonRecord = {
     schema: "aili.compact.release-evidence.v1",

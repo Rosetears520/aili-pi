@@ -41,7 +41,7 @@ describe("AILI Compact configuration", () => {
       autoCooling: false,
       cachePanel: true,
       customPrompts: false,
-      compress: { mode: "range", summaryMaxChars: 6_000, summaryHardMaxChars: 10_000, minSourceChars: 5_000, minSavingsChars: 1_000 },
+      compress: { mode: "range", summaryMaxChars: 15_000, summaryHardMaxChars: 18_000, minSourceChars: 5_000, minSavingsChars: 1_000 },
       protection: { tools: ["write", "aili_*"], recentUserMessages: 4 },
       nudges: { minContextPercent: 40, maxContextPercent: 60, emergencyPercent: 98 },
       strategies: { dedupe: { enabled: true }, purgeErrors: { enabled: true, graceTurns: 5 } },
@@ -51,11 +51,11 @@ describe("AILI Compact configuration", () => {
       planning: { enabled: true },
       quality: { enabled: true, warningPolicy: "record" },
       providerSuffix: { enabled: true, maxChars: 2_048, maxTokens: 512 },
-      tokenEconomics: { minSavingsRatio: 0.20, minSteadySavingsTokens: { T1: 256, T2: 512, T3: 768 }, maxBreakEvenTurns: { NORMAL: 8, PRESSURE: 4, FORCE_SEMANTIC: 1 } },
-      tiers: { enabled: true, restill: { enabled: true, minChildren: 2, minSourceTokens: 8_000, minSavingsTokens: 1_024, minSavingsRatio: 0.25, maxSummaryTokens: 3_000, minTurnsSinceCreate: 8 } },
       index: { enabled: true, snapshotLru: 4 },
     });
+    expect(DEFAULT_COMPACT_CONFIG.enabled).toBe(false);
     expect(resolveCompactConfig(undefined, undefined)).toEqual(DEFAULT_COMPACT_CONFIG);
+    expect(resolveCompactConfig(undefined, { enabled: true }).enabled).toBe(true);
   });
 
   it("rejects unknown, malformed, wrong-type, range and cross-threshold values without applying them", () => {
@@ -63,14 +63,31 @@ describe("AILI Compact configuration", () => {
       { enabled: "no", unknown: true, compress: { summaryMaxChars: 20_000 } },
       { nudges: { minContextPercent: 80, maxContextPercent: 20 } },
     );
-    expect(result.config.enabled).toBe(true);
-    expect(result.config.compress.summaryMaxChars).toBe(6_000);
+    expect(result.config.enabled).toBe(false);
+    expect(result.config.compress.summaryMaxChars).toBe(15_000);
     expect(result.config.nudges).toMatchObject({ minContextPercent: 45, maxContextPercent: 55, emergencyPercent: 98 });
     expect(result.diagnostics).toEqual(expect.arrayContaining([
       "config-invalid-type:global:enabled",
       "config-unknown-key:global:unknown",
       "config-out-of-range:global:compress.summaryMaxChars",
       "config-invalid-thresholds:project:nudges",
+    ]));
+  });
+
+  it("uses a 15,000-character semantic target and accepts only an 18,000-character configured ceiling", () => {
+    const exact = resolveCompactConfigResult({
+      compress: { summaryMaxChars: 18_000, summaryHardMaxChars: 18_000 },
+    }, undefined);
+    expect(exact.config.compress).toMatchObject({ summaryMaxChars: 18_000, summaryHardMaxChars: 18_000 });
+    expect(exact.diagnostics).toEqual([]);
+
+    const oversized = resolveCompactConfigResult({
+      compress: { summaryMaxChars: 18_001, summaryHardMaxChars: 18_001 },
+    }, undefined);
+    expect(oversized.config.compress).toMatchObject({ summaryMaxChars: 15_000, summaryHardMaxChars: 18_000 });
+    expect(oversized.diagnostics).toEqual(expect.arrayContaining([
+      "config-out-of-range:global:compress.summaryMaxChars",
+      "config-out-of-range:global:compress.summaryHardMaxChars",
     ]));
   });
 
@@ -96,7 +113,7 @@ describe("AILI Compact configuration", () => {
     ]));
   });
 
-  it("applies v0.2 safety defaults and accepts only tightening overrides", () => {
+  it("rejects retired tier and tier-specific economics configuration", () => {
     const result = resolveCompactConfigResult({
       planning: { enabled: false },
       protection: { preserveRecentAtoms: 12, preserveRecentTokens: 20_000, preserveRecentTokenCapRatio: 0.2, preserveLastUserMessage: false },
@@ -107,11 +124,13 @@ describe("AILI Compact configuration", () => {
     expect(result.config).toMatchObject({
       planning: { enabled: false },
       protection: { preserveRecentAtoms: 12, preserveRecentTokens: 20_000, preserveRecentTokenCapRatio: 0.2, preserveLastUserMessage: true },
-      tokenEconomics: { minSavingsRatio: 0.3, minSteadySavingsTokens: { T1: 512 }, maxBreakEvenTurns: { NORMAL: 4 } },
-      tiers: { restill: { minSourceTokens: 10_000, minTurnsSinceCreate: 12 } },
       index: { snapshotLru: 2 },
     });
-    expect(result.diagnostics).toContain("config-invalid-unsafe-protection");
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      "config-invalid-unsafe-protection",
+      "config-unknown-key:global:tokenEconomics",
+      "config-unknown-key:global:tiers",
+    ]));
   });
 
   it("reports malformed JSONC and keeps the valid file contribution", () => {

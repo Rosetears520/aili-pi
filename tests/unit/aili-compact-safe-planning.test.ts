@@ -164,6 +164,19 @@ describe("AILI Compact safe range planning", () => {
     expect(plan.diagnostics).toEqual([]);
   });
 
+  it("fails closed instead of advertising the unknown-ordinal catalog sentinel", () => {
+    const entries = assistants(14);
+    const sourceOrdinals = new Map(entries.map((item, index) => [
+      item.id,
+      item.id === "a-4" ? Number.MAX_SAFE_INTEGER : index + 1,
+    ]));
+    const plan = planSafeRanges({ entries, sourceOrdinals, contextWindow: 1 });
+
+    expect(plan.protectedAtoms).toContainEqual({ atomId: "a000004", reasons: ["missing-ref"] });
+    expect(plan.ranges.flatMap((range) => range.orderedRefs)).not.toContain("m000004");
+    expect(plan.diagnostics).toEqual(["source-ordinal-gap:a000004"]);
+  });
+
   it("requires exact range or ordered-message scope equality", () => {
     const plan = planSafeRanges({ entries: assistants(10), contextWindow: 1 });
     const range = plan.ranges[0]!;

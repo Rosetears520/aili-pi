@@ -11,7 +11,9 @@ import {
   MAX_TRANSPARENT_PROMOTION_GAP_MESSAGES,
   classifyTransparentPromotionGaps,
   type TransparentPromotionGapV1,
+  type PromotionGapIndexV1,
 } from "./promotion-gaps.js";
+import { SEMANTIC_SUMMARY_LIMITS } from "./summary-limits.js";
 
 export const AILI_COMPACT_SCHEMA_V3 = "aili.compact.tx.v3" as const;
 
@@ -19,7 +21,8 @@ export const V3_LIMITS = {
   maxIdentifierChars: 256,
   maxProjectionVersionChars: 128,
   maxTopicChars: 200,
-  maxSummaryChars: 10_000,
+  minSummaryChars: SEMANTIC_SUMMARY_LIMITS.minChars,
+  maxSummaryChars: SEMANTIC_SUMMARY_LIMITS.hardMaxChars,
   maxMessageLeaves: 256,
   minChildBlocks: 2,
   maxChildBlocks: 16,
@@ -124,7 +127,8 @@ export type V3QualityMetadata = V3AcceptedQualityMetadata | V3UnevaluatedQuality
 
 export interface V3SemanticCreatePayload {
   blockId: string;
-  tier: V3Tier;
+  /** Legacy records retain their tier; new active-block writes intentionally omit it. */
+  tier?: V3Tier;
   topic: string;
   runId: string;
   anchorEntryId: string;
@@ -200,7 +204,7 @@ export interface V3ExplicitDecompression {
   depth: "one" | "raw";
   closureDigest: string;
   leafDigest: string;
-  tier: V3Tier;
+  tier?: V3Tier;
   qualityDigest: string;
   projectionVersion: string;
 }
@@ -216,7 +220,7 @@ export interface V3SemanticBlock {
   projectionVersion: string;
   createdAt: number;
   createdTurnOrdinal: number;
-  tier: V3Tier;
+  tier?: V3Tier;
   topic: string;
   runId: string;
   anchorEntryId: string;
@@ -256,6 +260,12 @@ export interface V3TransitionContext {
   expectedCatalogId?: string;
   /** Immutable current-epoch entries used to rederive block-promotion gap proofs. */
   promotionGapEntries?: readonly SessionLikeEntry[];
+  /** Revision-scoped immutable index used by BranchIndex replay. */
+  promotionGapIndex?: PromotionGapIndexV1;
+  /** Exact raw prefix available before the transaction entry. */
+  promotionGapRawSlotLimit?: number;
+  /** Counts only raw slots read from a declared transparent proof range. */
+  onProofRawSlotVisit?: () => void;
 }
 
 export type V3ErrorCode =
@@ -312,7 +322,7 @@ const HEADER_KEYS = ["branchLeafId", "catalogId", "createdAt", "epochId", "proje
 const SEMANTIC_KEYS = ["anchorEntryId", "blockId", "createdTurnOrdinal", "leafCount", "leafDigest", "quality", "runId", "source", "summary", "summaryDigest", "tier", "tokens", "topic"] as const;
 const MESSAGE_SOURCE_KEYS = ["entryIds", "firstEntryId", "kind", "lastEntryId"] as const;
 const BLOCK_SOURCE_KEYS = ["childBlockIds", "kind", "transparentGaps"] as const;
-const TRANSPARENT_GAP_KEYS = ["gapDigest", "leftChildBlockId", "leftLeafEntryId", "messageCount", "rightChildBlockId", "rightLeafEntryId", "version"] as const;
+const TRANSPARENT_GAP_KEYS = ["gapDigest", "leftChildBlockId", "leftLeafEntryId", "messageCount", "rightChildBlockId", "rightLeafEntryId", "sourceSnapshotDigest", "version"] as const;
 const TOKEN_KEYS = ["breakEvenTurnsUpper", "estimatorVersion", "modelId", "oneTimeCostTokensUpper", "providerId", "replacementTokensUpper", "savingsRatio", "sourceTokensLower", "sourceTokensUpper", "steadySavingsTokensLower", "summaryTokensUpper"] as const;
 const ACCEPTED_QUALITY_KEYS = ["coveredHardFactCount", "evaluatorVersion", "hardFactCount", "sourceFactDigest", "status", "warningCodes"] as const;
 const UNEVALUATED_QUALITY_KEYS = ["override", "status"] as const;
@@ -331,8 +341,18 @@ export function v3MessageLeafDigest(entryIds: readonly string[]): string {
   return digest([AILI_COMPACT_SCHEMA_V3, "message-leaves", ...entryIds]);
 }
 
-export function v3ParentLeafDigest(tier: V3Tier, leafCount: number, childLeafDigests: readonly string[]): string {
-  return digest([AILI_COMPACT_SCHEMA_V3, "parent-leaves", tier, leafCount, ...childLeafDigests]);
+export function v3ParentLeafDigest(tier: V3Tier | undefined, leafCount: number, childLeafDigests: readonly string[]): string {
+  return digest([AILI_COMPACT_SCHEMA_V3, "parent-leaves", tier ?? "active", leafCount, ...childLeafDigests]);
+}
+
+/**
+ * catalogId is a precondition over the catalog being derived, so including it
+ * here would make the structural identity self-referential. All other
+ * persisted creating-transaction content remains bound.
+ */
+function v3CreatingTransactionDigest(transaction: V3Transaction | undefined): string {
+  if (!transaction) return digest(null);
+  return digest({ ...transaction, header: { ...transaction.header, catalogId: null } });
 }
 
 export function parseV3Transaction(input: unknown): V3Result<V3Transaction> {
@@ -390,8 +410,14 @@ export function deriveV3CatalogId(state: Omit<V3LifecycleState, "catalogId"> | V
       blockId: block.blockId,
       tier: block.tier,
       epochId: block.epochId,
+      transactionId: block.transactionId,
+      creatingTransactionDigest: v3CreatingTransactionDigest(state.transactions.get(block.transactionId)),
+      source: block.source,
+      summaryDigest: block.summaryDigest,
       leafDigest: block.leafDigest,
       leafCount: block.leafCount,
+      tokens: block.tokens,
+      quality: block.quality,
       active: block.active,
       queryOnly: block.queryOnly,
       deactivationReason: block.deactivationReason ?? null,
@@ -479,7 +505,7 @@ export function validateV3LifecycleState(state: V3LifecycleState): V3Result<true
     if (mapId !== block.blockId) return fail("invalid-field", `${path}.blockId`, undefined);
     if (block.sessionId !== state.sessionId) return fail("session-mismatch", `${path}.sessionId`, undefined);
     if (block.branchLeafId !== state.branchLeafId) return fail("branch-mismatch", `${path}.branchLeafId`, undefined);
-    if (!includes(V3_TIERS, block.tier)) return fail("invalid-field", `${path}.tier`, undefined);
+    if (block.tier !== undefined && !includes(V3_TIERS, block.tier)) return fail("invalid-field", `${path}.tier`, undefined);
     if (block.summaryDigest !== v3SummaryDigest(block.summary)) return fail("digest-mismatch", `${path}.summaryDigest`, undefined);
     const token = parseTokenMetadata(block.tokens, `${path}.tokens`, block.tier);
     if (!token.ok) return token;
@@ -591,7 +617,7 @@ function parseSemanticPayload(value: unknown): V3Result<V3SemanticCreatePayload>
   const extra = unknownField(value, SEMANTIC_KEYS, path, undefined);
   if (extra) return extra;
   if (!boundedString(value.blockId, V3_LIMITS.maxIdentifierChars)) return fail("invalid-field", `${path}.blockId`, undefined);
-  if (!includes(V3_TIERS, value.tier)) return fail("invalid-field", `${path}.tier`, undefined);
+  if (value.tier !== undefined && !includes(V3_TIERS, value.tier)) return fail("invalid-field", `${path}.tier`, undefined);
   if (!boundedString(value.topic, V3_LIMITS.maxTopicChars)) return fail("invalid-field", `${path}.topic`, undefined);
   if (!boundedString(value.runId, V3_LIMITS.maxIdentifierChars)) return fail("invalid-field", `${path}.runId`, undefined);
   if (!boundedString(value.anchorEntryId, V3_LIMITS.maxIdentifierChars)) return fail("invalid-field", `${path}.anchorEntryId`, undefined);
@@ -602,7 +628,7 @@ function parseSemanticPayload(value: unknown): V3Result<V3SemanticCreatePayload>
   if (!positiveSafeInteger(value.leafCount)) return fail("invalid-field", `${path}.leafCount`, undefined);
   const source = parseSemanticSource(value.source);
   if (!source.ok) return source;
-  if ((value.tier === "T1") !== (source.value.kind === "messages")) return fail("invalid-tier-source", `${path}.source`, undefined);
+  if (value.tier !== undefined && (value.tier === "T1") !== (source.value.kind === "messages")) return fail("invalid-tier-source", `${path}.source`, undefined);
   if (source.value.kind === "messages") {
     if (value.leafCount !== source.value.entryIds.length) return fail("leaf-count-mismatch", `${path}.leafCount`, undefined);
     if (value.leafDigest !== v3MessageLeafDigest(source.value.entryIds)) return fail("leaf-digest-mismatch", `${path}.leafDigest`, undefined);
@@ -614,7 +640,7 @@ function parseSemanticPayload(value: unknown): V3Result<V3SemanticCreatePayload>
   if (!quality.ok) return quality;
   return ok({
     blockId: value.blockId,
-    tier: value.tier,
+    ...(value.tier === undefined ? {} : { tier: value.tier }),
     topic: value.topic,
     runId: value.runId,
     anchorEntryId: value.anchorEntryId,
@@ -657,7 +683,7 @@ function parseSemanticSource(value: unknown): V3Result<V3SemanticSource> {
   return fail("invalid-source", `${path}.kind`, undefined);
 }
 
-function parseTokenMetadata(value: unknown, path: string, tier: V3Tier): V3Result<V3TokenMetadata> {
+function parseTokenMetadata(value: unknown, path: string, tier: V3Tier | undefined): V3Result<V3TokenMetadata> {
   if (!isRecord(value)) return fail("token-metadata-invalid", path, undefined);
   const extra = unknownField(value, TOKEN_KEYS, path, "token-metadata-invalid");
   if (extra) return extra;
@@ -684,10 +710,12 @@ function parseTokenMetadata(value: unknown, path: string, tier: V3Tier): V3Resul
   const savings = Math.max(0, sourceTokensLower - replacementTokensUpper);
   if (steadySavingsTokensLower !== savings || savings === 0) return fail("token-metadata-invalid", `${path}.steadySavingsTokensLower`, undefined);
   if (breakEvenTurnsUpper !== Math.ceil(oneTimeCostTokensUpper / savings)) return fail("token-metadata-invalid", `${path}.breakEvenTurnsUpper`, undefined);
-  const minimum = tier === "T1" ? 256 : tier === "T2" ? 512 : 768;
+  const minimum = tier === "T1" ? 256 : tier === "T2" ? 512 : tier === "T3" ? 768 : 256;
   const expectedRatio = savings / Math.max(1, sourceTokensUpper);
   if (Math.abs(value.savingsRatio - expectedRatio) > Number.EPSILON * 8) return fail("token-metadata-invalid", `${path}.savingsRatio`, undefined);
-  if (savings < minimum || value.savingsRatio < 0.20) return fail("token-metadata-invalid", path, undefined);
+  if (savings === 0 || (tier !== undefined && (savings < minimum || value.savingsRatio < 0.20))) {
+    return fail("token-metadata-invalid", path, undefined);
+  }
   return ok({
     estimatorVersion,
     providerId,
@@ -852,7 +880,10 @@ function applySemanticCreate(
 
   if (payload.source.kind === "messages") {
     const ordinals = payload.source.entryIds.map((id) => context.messageOrdinals?.get(id));
-    if (ordinals.some((ordinal) => ordinal === undefined)) return fail("message-ordinal-missing", "$.payload.source.entryIds", undefined);
+    if (ordinals.some((ordinal) => ordinal === undefined
+      || !Number.isSafeInteger(ordinal)
+      || ordinal < 1
+      || ordinal >= Number.MAX_SAFE_INTEGER)) return fail("message-ordinal-missing", "$.payload.source.entryIds", undefined);
     const exact = ordinals as number[];
     if (exact.some((ordinal, index) => index > 0 && ordinal !== exact[index - 1]! + 1)) {
       return fail("non-contiguous-source", "$.payload.source.entryIds", undefined);
@@ -869,14 +900,16 @@ function applySemanticCreate(
       if (child.queryOnly || child.epochId !== state.epochId) return fail("query-only-child", `$.payload.source.childBlockIds.${childId}`, undefined);
       children.push(child);
     }
-    if (new Set(children.map((child) => child.tier)).size !== 1) return fail("mixed-tier", "$.payload.source.childBlockIds", undefined);
+    if (payload.tier !== undefined && new Set(children.map((child) => child.tier)).size !== 1) return fail("mixed-tier", "$.payload.source.childBlockIds", undefined);
     if (children.some((child) => child.quality.status === "unevaluated")) {
       return fail("quality-metadata-invalid", "$.payload.source.childBlockIds", undefined);
     }
     const childTier = children[0]!.tier;
-    const validTier = (payload.tier === "T2" && childTier === "T1")
-      || (payload.tier === "T3" && (childTier === "T2" || childTier === "T3"));
-    if (!validTier) return fail("invalid-tier-transition", "$.payload.tier", undefined);
+    if (payload.tier !== undefined) {
+      const validTier = (payload.tier === "T2" && childTier === "T1")
+        || (payload.tier === "T3" && (childTier === "T2" || childTier === "T3"));
+      if (!validTier) return fail("invalid-tier-transition", "$.payload.tier", undefined);
+    }
     const canonical = [...children].sort((left, right) => left.firstLeafOrdinal - right.firstLeafOrdinal || left.blockId.localeCompare(right.blockId));
     if (canonical.some((child, index) => child.blockId !== children[index]!.blockId)) {
       return fail("non-canonical-child-order", "$.payload.source.childBlockIds", undefined);
@@ -884,7 +917,7 @@ function applySemanticCreate(
     for (let index = 1; index < children.length; index += 1) {
       if (children[index]!.firstLeafOrdinal <= children[index - 1]!.lastLeafOrdinal) return fail("non-contiguous-children", "$.payload.source.childBlockIds", undefined);
     }
-    const gapVerification = verifyPromotionGapProofs(state.blocks, children, payload.source, context.promotionGapEntries);
+    const gapVerification = verifyPromotionGapProofs(state.blocks, children, payload.source, context, transaction.header);
     if (gapVerification) {
       return gapVerification;
     }
@@ -931,7 +964,7 @@ function applySemanticCreate(
     projectionVersion: transaction.header.projectionVersion,
     createdAt: transaction.header.createdAt,
     createdTurnOrdinal: payload.createdTurnOrdinal,
-    tier: payload.tier,
+    ...(payload.tier === undefined ? {} : { tier: payload.tier }),
     topic: payload.topic,
     runId: payload.runId,
     anchorEntryId: payload.anchorEntryId,
@@ -1099,7 +1132,7 @@ function validateBlockStructure(
   path: string,
 ): V3Failure | undefined {
   if (block.source.kind === "messages") {
-    if (block.tier !== "T1") return fail("invalid-tier-source", `${path}.source`, undefined);
+    if (block.tier !== undefined && block.tier !== "T1") return fail("invalid-tier-source", `${path}.source`, undefined);
     if (block.leafCount !== block.source.entryIds.length) return fail("leaf-count-mismatch", `${path}.leafCount`, undefined);
     if (block.leafDigest !== v3MessageLeafDigest(block.source.entryIds)) return fail("leaf-digest-mismatch", `${path}.leafDigest`, undefined);
     if (block.anchorEntryId !== block.source.firstEntryId
@@ -1113,9 +1146,9 @@ function validateBlockStructure(
   const missingIndex = children.findIndex((child) => child === undefined);
   if (missingIndex >= 0) return fail("missing-child", `${path}.source.childBlockIds.${block.source.childBlockIds[missingIndex]}`, undefined);
   const exact = children as V3SemanticBlock[];
-  if (new Set(exact.map((child) => child.tier)).size !== 1) return fail("mixed-tier", `${path}.source.childBlockIds`, undefined);
+  if (block.tier !== undefined && new Set(exact.map((child) => child.tier)).size !== 1) return fail("mixed-tier", `${path}.source.childBlockIds`, undefined);
   const childTier = exact[0]!.tier;
-  if (!((block.tier === "T2" && childTier === "T1") || (block.tier === "T3" && (childTier === "T2" || childTier === "T3")))) {
+  if (block.tier !== undefined && !((block.tier === "T2" && childTier === "T1") || (block.tier === "T3" && (childTier === "T2" || childTier === "T3")))) {
     return fail("invalid-tier-transition", `${path}.tier`, undefined);
   }
   for (let index = 1; index < exact.length; index += 1) {
@@ -1254,7 +1287,8 @@ function parseTransparentPromotionGaps(value: unknown, sourcePath: string): V3Re
       || !boundedString(candidate.rightLeafEntryId, V3_LIMITS.maxIdentifierChars)
       || !positiveSafeInteger(candidate.messageCount)
       || candidate.messageCount > V3_LIMITS.maxTransparentPromotionGapMessages
-      || typeof candidate.gapDigest !== "string" || !HASH_PATTERN.test(candidate.gapDigest)) {
+      || typeof candidate.gapDigest !== "string" || !HASH_PATTERN.test(candidate.gapDigest)
+      || typeof candidate.sourceSnapshotDigest !== "string" || !HASH_PATTERN.test(candidate.sourceSnapshotDigest)) {
       return fail("invalid-promotion-gap", itemPath, undefined);
     }
     proofs.push({
@@ -1265,6 +1299,7 @@ function parseTransparentPromotionGaps(value: unknown, sourcePath: string): V3Re
       rightLeafEntryId: candidate.rightLeafEntryId,
       messageCount: candidate.messageCount,
       gapDigest: candidate.gapDigest,
+      sourceSnapshotDigest: candidate.sourceSnapshotDigest,
     });
   }
   return ok(proofs);
@@ -1274,12 +1309,25 @@ function verifyPromotionGapProofs(
   blocks: ReadonlyMap<string, V3SemanticBlock>,
   children: readonly V3SemanticBlock[],
   source: V3BlockSource,
-  entries: readonly SessionLikeEntry[] | undefined,
+  context: Pick<V3TransitionContext, "promotionGapEntries" | "promotionGapIndex" | "promotionGapRawSlotLimit" | "onProofRawSlotVisit">,
+  header: V3Header,
 ): V3Failure | undefined {
   const hasRawGap = children.some((child, index) => index > 0 && child.firstLeafOrdinal !== children[index - 1]!.lastLeafOrdinal + 1);
   if (!hasRawGap) return source.transparentGaps === undefined ? undefined : fail("invalid-promotion-gap", "$.payload.source.transparentGaps", undefined);
-  if (!entries) return fail("invalid-promotion-gap", "$.payload.source.transparentGaps", undefined);
-  const classified = classifyTransparentPromotionGaps(entries, blocks, children);
+  const classified = context.promotionGapIndex
+    ? context.promotionGapIndex.classify(blocks, children, {
+      ...(context.promotionGapRawSlotLimit === undefined ? {} : { rawSlotLimit: context.promotionGapRawSlotLimit }),
+      ...(context.onProofRawSlotVisit ? { onProofRawSlotVisit: context.onProofRawSlotVisit } : {}),
+    })
+    : context.promotionGapEntries
+      ? classifyTransparentPromotionGaps(context.promotionGapEntries, blocks, children, {
+        sessionId: header.sessionId,
+        branchLeafId: header.branchLeafId,
+        epochId: header.epochId,
+        revision: header.projectionVersion,
+      })
+      : undefined;
+  if (!classified) return fail("invalid-promotion-gap", "$.payload.source.transparentGaps", undefined);
   if (!classified.ok || !proofsEqual(source.transparentGaps ?? [], classified.proofs)) {
     return fail("invalid-promotion-gap", "$.payload.source.transparentGaps", undefined);
   }
@@ -1307,7 +1355,8 @@ function proofsEqual(left: readonly TransparentPromotionGapV1[], right: readonly
       && proof.leftLeafEntryId === expected.leftLeafEntryId
       && proof.rightLeafEntryId === expected.rightLeafEntryId
       && proof.messageCount === expected.messageCount
-      && proof.gapDigest === expected.gapDigest;
+      && proof.gapDigest === expected.gapDigest
+      && proof.sourceSnapshotDigest === expected.sourceSnapshotDigest;
   });
 }
 

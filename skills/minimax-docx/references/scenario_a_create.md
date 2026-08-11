@@ -1,5 +1,7 @@
 # Scenario A: Creating a New DOCX from Scratch
 
+> OpenXML fallback reference. Use it only after `SKILL.md` selects the fallback because installed OfficeCLI help does not confirm the complete simple create operation or the requested document requires complex structure/preservation. The fallback setup/env gate applies before using these instructions.
+
 ## When to Use
 
 Use Scenario A when:
@@ -11,7 +13,7 @@ Do NOT use when: the user already has a DOCX they want to modify (→ Scenario B
 
 ---
 
-## Step-by-Step Workflow
+## OpenXML Fallback Workflow
 
 ### 1. Determine Document Type
 
@@ -144,7 +146,7 @@ dotnet run ... validate --xsd business-rules.xsd   # if applying a template
 
 ## Content Configuration JSON Format
 
-The CLI `create` command accepts a JSON config:
+The local OpenXML CLI `create` command accepts a JSON config:
 
 ```json
 {

@@ -305,6 +305,230 @@ export const DEFAULT_PRESSURE_BUDGET: Readonly<PressureBudget> = Object.freeze({
   hostReserveTokens: 8_192,
 });
 
+export type MiMoContextPolicyStatus = "enabled" | "disabled";
+export type MiMoContextPolicyDisabledReason = "invalid" | "zero" | "reserve-exhausted";
+export type MiMoPressureLevel = 0 | 1 | 2 | 3;
+
+export interface MiMoContextPolicyInput {
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  observedTokens?: number | null;
+  fallbackTokens?: number;
+}
+
+/** Pure provider-window policy; it never writes checkpoints or invokes compaction. */
+export interface MiMoContextPolicy {
+  readonly status: MiMoContextPolicyStatus;
+  readonly disabledReason?: MiMoContextPolicyDisabledReason;
+  readonly contextWindow: number;
+  readonly maxOutputTokens: number;
+  readonly outputReserveTokens: number;
+  readonly recoveryReserveTokens: number;
+  readonly safeBudgetTokens: number;
+  readonly recoveryThresholdTokens: number;
+  readonly checkpointCeilingTokens: number;
+  readonly checkpointThresholdTokens: readonly number[];
+  readonly contextTokens: number;
+  readonly source: UsageEstimateSource;
+  readonly pressureLevel: MiMoPressureLevel;
+}
+
+export function resolveMiMoContextPolicy(input: MiMoContextPolicyInput): MiMoContextPolicy {
+  const usage = resolveUsageEstimate(input.observedTokens, input.fallbackTokens);
+  const contextWindow = input.contextWindow;
+  const maxOutputTokens = input.maxOutputTokens;
+  if (!validToken(contextWindow) || !validToken(maxOutputTokens)) {
+    return disabledMiMoContextPolicy(usage, "invalid");
+  }
+  if (contextWindow === 0 || maxOutputTokens === 0) {
+    return disabledMiMoContextPolicy(usage, "zero", contextWindow, maxOutputTokens);
+  }
+
+  const outputReserveTokens = Math.min(maxOutputTokens, 20_000);
+  const recoveryReserveTokens = Math.min(maxOutputTokens, 20_000);
+  const safeBudgetTokens = contextWindow - outputReserveTokens - recoveryReserveTokens;
+  if (safeBudgetTokens <= 0) {
+    return disabledMiMoContextPolicy(usage, "reserve-exhausted", contextWindow, maxOutputTokens);
+  }
+
+  const checkpointCeilingTokens = safeBudgetTokens - 13_000;
+  const checkpointThresholdTokens = Object.freeze(applyCheckpointCeiling(
+    defaultCheckpointThresholds(safeBudgetTokens),
+    checkpointCeilingTokens,
+  ));
+  return {
+    status: "enabled",
+    contextWindow,
+    maxOutputTokens,
+    outputReserveTokens,
+    recoveryReserveTokens,
+    safeBudgetTokens,
+    recoveryThresholdTokens: safeBudgetTokens,
+    checkpointCeilingTokens,
+    checkpointThresholdTokens,
+    contextTokens: usage.contextTokens,
+    source: usage.source,
+    pressureLevel: resolveMiMoPressureLevel(safeBudgetTokens, usage.contextTokens),
+  };
+}
+
+export interface MiMoCheckpointSnapshot {
+  readonly sourceBinding: string;
+  readonly thresholdTokens: number;
+  readonly safeBudgetTokens: number;
+}
+
+export type MiMoCheckpointFailure = "deterministic" | "transient" | "unclassified";
+export type MiMoRecoveryAction = "none" | "rebuild" | "native-fallback";
+
+/** Select bounded rebuild before the one native fallback for a recovery request. */
+export function resolveMiMoRecoveryAction(input: {
+  requested: boolean;
+  checkpoint: MiMoCheckpointSnapshot | undefined;
+  sourceBinding: string | undefined;
+}): MiMoRecoveryAction {
+  if (!input.requested) return "none";
+  return input.sourceBinding !== undefined
+    && input.checkpoint?.sourceBinding === input.sourceBinding
+    ? "rebuild"
+    : "native-fallback";
+}
+
+interface PendingMiMoCheckpoint {
+  snapshot: MiMoCheckpointSnapshot;
+  retry: boolean;
+  retryAtTokens?: number;
+}
+
+interface MiMoFinalRetryGate {
+  thresholdTokens: number;
+  safeBudgetTokens: number;
+  retryAtTokens: number;
+}
+
+/**
+ * Tracks the latest prepared recovery boundary for one session. The extension
+ * supplies the source binding and owns any persisted representation; this
+ * helper only prevents duplicate threshold preparation and stale reuse.
+ */
+export class MiMoCheckpointTracker {
+  private settled = new Set<number>();
+  private current?: MiMoCheckpointSnapshot;
+  private pending?: PendingMiMoCheckpoint;
+  private retry?: MiMoFinalRetryGate;
+
+  /**
+   * Reserves one newly crossed threshold without replacing the last usable
+   * checkpoint. The caller commits it only after its durable checkpoint record
+   * was appended successfully.
+   */
+  prepare(policy: MiMoContextPolicy, sourceBinding: string): MiMoCheckpointSnapshot | undefined {
+    if (policy.status !== "enabled" || !sourceBinding || this.pending) return undefined;
+    if (this.retry && this.retry.safeBudgetTokens === policy.safeBudgetTokens) {
+      const finalThreshold = policy.checkpointThresholdTokens.at(-1);
+      if (finalThreshold === this.retry.thresholdTokens && policy.contextTokens >= this.retry.retryAtTokens) {
+        const snapshot = Object.freeze({
+          sourceBinding,
+          thresholdTokens: finalThreshold,
+          safeBudgetTokens: policy.safeBudgetTokens,
+        });
+        this.pending = { snapshot, retry: true };
+        this.retry = undefined;
+        return this.snapshotPending();
+      }
+      return undefined;
+    }
+    this.retry = undefined;
+    const threshold = policy.checkpointThresholdTokens
+      .filter((value) => value <= policy.contextTokens)
+      .at(-1);
+    if (threshold === undefined || this.settled.has(threshold)) return undefined;
+    const snapshot = Object.freeze({
+      sourceBinding,
+      thresholdTokens: threshold,
+      safeBudgetTokens: policy.safeBudgetTokens,
+    });
+    this.pending = {
+      snapshot,
+      retry: false,
+      retryAtTokens: finalCheckpointRetryAt(policy, threshold),
+    };
+    return this.snapshotPending();
+  }
+
+  /** Commits a checkpoint only after the owner has durably recorded it. */
+  commit(snapshot: MiMoCheckpointSnapshot): boolean {
+    if (!this.pending || !sameMiMoCheckpoint(this.pending.snapshot, snapshot)) return false;
+    this.settled.add(snapshot.thresholdTokens);
+    this.current = this.pending.snapshot;
+    this.pending = undefined;
+    return true;
+  }
+
+  /** Drops an uncommitted writer while preserving the latest usable checkpoint. */
+  reject(snapshot: MiMoCheckpointSnapshot, failure: MiMoCheckpointFailure = "unclassified"): void {
+    if (!this.pending || !sameMiMoCheckpoint(this.pending.snapshot, snapshot)) return;
+    const pending = this.pending;
+    this.pending = undefined;
+    this.settled.add(snapshot.thresholdTokens);
+    if (failure === "transient" && !pending.retry && pending.retryAtTokens !== undefined) {
+      this.retry = {
+        thresholdTokens: snapshot.thresholdTokens,
+        safeBudgetTokens: snapshot.safeBudgetTokens,
+        retryAtTokens: pending.retryAtTokens,
+      };
+    }
+  }
+
+  /** Compatibility helper for callers that own no durable write boundary. */
+  observe(policy: MiMoContextPolicy, sourceBinding: string): MiMoCheckpointSnapshot | undefined {
+    const prepared = this.prepare(policy, sourceBinding);
+    if (!prepared || !this.commit(prepared)) return undefined;
+    return this.snapshot();
+  }
+
+  snapshot(): MiMoCheckpointSnapshot | undefined {
+    return this.current ? { ...this.current } : undefined;
+  }
+
+  private snapshotPending(): MiMoCheckpointSnapshot | undefined {
+    return this.pending ? { ...this.pending.snapshot } : undefined;
+  }
+
+  matches(sourceBinding: string): boolean {
+    return this.current?.sourceBinding === sourceBinding;
+  }
+
+  /** A failed rebuild cannot bypass the bounded native fallback. */
+  invalidate(sourceBinding: string): boolean {
+    if (!this.matches(sourceBinding)) return false;
+    this.current = undefined;
+    return true;
+  }
+
+  reset(): void {
+    this.settled.clear();
+    this.current = undefined;
+    this.pending = undefined;
+    this.retry = undefined;
+  }
+}
+
+function sameMiMoCheckpoint(left: MiMoCheckpointSnapshot, right: MiMoCheckpointSnapshot): boolean {
+  return left.sourceBinding === right.sourceBinding
+    && left.thresholdTokens === right.thresholdTokens
+    && left.safeBudgetTokens === right.safeBudgetTokens;
+}
+
+function finalCheckpointRetryAt(policy: MiMoContextPolicy, thresholdTokens: number): number | undefined {
+  const thresholds = policy.checkpointThresholdTokens;
+  if (thresholdTokens !== thresholds.at(-1)) return undefined;
+  const previousThreshold = thresholds.at(-2) ?? 0;
+  const normalStep = thresholdTokens - previousThreshold;
+  const retryAtTokens = Math.min(policy.checkpointCeilingTokens, thresholdTokens + normalStep);
+  return retryAtTokens > thresholdTokens ? retryAtTokens : undefined;
+}
+
 export interface PressureObservation {
   stage: PressureStage;
   headroomTokens: number;
@@ -315,11 +539,13 @@ export interface PressureObservation {
   pressureAt: number;
   forceSemanticAt: number;
   hardCheckpointAt: number;
+  mimo: MiMoContextPolicy;
 }
 
 export function observePressure(input: {
   contextTokens?: number | null;
   contextWindow?: number;
+  maxOutputTokens?: number;
   fallbackTokens?: number;
   overflow?: boolean;
   budget?: Partial<PressureBudget>;
@@ -337,23 +563,45 @@ export function observePressure(input: {
   const fallback = validToken(input.fallbackTokens) ? input.fallbackTokens! : undefined;
   const contextTokens = observed ?? fallback ?? contextWindow;
   const source: UsageEstimateSource = observed !== undefined ? "observed" : fallback !== undefined ? "fallback" : "Unverified";
-  const hardCheckpointAt = Math.min(
+  const mimo = resolveMiMoContextPolicy({
+    contextWindow: input.contextWindow,
+    maxOutputTokens: input.maxOutputTokens,
+    observedTokens: input.contextTokens,
+    fallbackTokens: input.fallbackTokens,
+  });
+  const legacyHardCheckpointAt = Math.min(
     Math.max(0, contextWindow - budget.hostReserveTokens),
     Math.floor(contextWindow * 0.90),
   );
-  const forceSemanticAt = Math.max(0, hardCheckpointAt - semanticAttemptBudget);
-  const pressureAt = Math.max(0, forceSemanticAt - semanticAttemptBudget);
+  const hardCheckpointAt = mimo.status === "enabled" ? mimo.recoveryThresholdTokens : legacyHardCheckpointAt;
+  // Named stages remain a presentation/suffix compatibility surface. For a
+  // resolved MiMo policy they are derived from the dynamic safe budget, never
+  // the prior fixed reserve ladder and never a recovery authorization.
+  const pressureAt = mimo.status === "enabled"
+    ? percentageFloor(mimo.safeBudgetTokens, 50)
+    : Math.max(0, hardCheckpointAt - semanticAttemptBudget * 2);
+  const forceSemanticAt = mimo.status === "enabled"
+    ? percentageFloor(mimo.safeBudgetTokens, 70)
+    : Math.max(0, hardCheckpointAt - semanticAttemptBudget);
   const stage: PressureStage = input.overflow === true
     ? "OVERFLOW_RECOVERY"
-    : contextWindow === 0
-      ? "NORMAL"
-    : contextTokens >= hardCheckpointAt
-      ? "CHECKPOINT_REQUIRED"
-      : contextTokens >= forceSemanticAt
-        ? "FORCE_SEMANTIC"
-        : contextTokens >= pressureAt
-          ? "PRESSURE"
-          : "NORMAL";
+    : mimo.status === "enabled"
+      ? contextTokens >= mimo.recoveryThresholdTokens
+        ? "CHECKPOINT_REQUIRED"
+        : mimo.pressureLevel >= 2
+          ? "FORCE_SEMANTIC"
+          : mimo.pressureLevel === 1
+            ? "PRESSURE"
+            : "NORMAL"
+      : input.maxOutputTokens !== undefined || contextWindow === 0
+        ? "NORMAL"
+        : contextTokens >= hardCheckpointAt
+          ? "CHECKPOINT_REQUIRED"
+          : contextTokens >= forceSemanticAt
+            ? "FORCE_SEMANTIC"
+            : contextTokens >= pressureAt
+              ? "PRESSURE"
+              : "NORMAL";
   return {
     stage,
     headroomTokens: Math.max(0, hardCheckpointAt - contextTokens),
@@ -364,6 +612,7 @@ export function observePressure(input: {
     pressureAt,
     forceSemanticAt,
     hardCheckpointAt,
+    mimo,
   };
 }
 
@@ -418,8 +667,11 @@ export class PressureCycle {
   }
 
   resetForVerifiedDrop(tuple: RecoveryTuple, observation: PressureObservation): boolean {
-    if (observation.source !== "observed"
-      || observation.contextTokens > Math.max(0, observation.forceSemanticAt - observation.semanticAttemptBudget)) return false;
+    if (observation.source !== "observed") return false;
+    const resetThreshold = observation.mimo.status === "enabled"
+      ? observation.pressureAt
+      : Math.max(0, observation.forceSemanticAt - observation.semanticAttemptBudget);
+    if (observation.contextTokens >= resetThreshold) return false;
     this.value = freshCycle(tuple, this.value.serial + 1);
     return true;
   }
@@ -560,6 +812,81 @@ function cloneTuple(value: RecoveryTuple): RecoveryTuple {
 
 function sameTuple(left: RecoveryTuple, right: RecoveryTuple): boolean {
   return left.sessionId === right.sessionId && left.branchId === right.branchId && left.epochId === right.epochId;
+}
+
+function resolveUsageEstimate(observedValue: number | null | undefined, fallbackValue: number | undefined): {
+  contextTokens: number;
+  source: UsageEstimateSource;
+} {
+  const observedCandidate = observedValue ?? undefined;
+  const observed = validToken(observedCandidate) ? observedCandidate : undefined;
+  const fallback = validToken(fallbackValue) ? fallbackValue : undefined;
+  if (observed !== undefined) return { contextTokens: observed, source: "observed" };
+  if (fallback !== undefined) return { contextTokens: fallback, source: "fallback" };
+  return { contextTokens: 0, source: "Unverified" };
+}
+
+function disabledMiMoContextPolicy(
+  usage: { contextTokens: number; source: UsageEstimateSource },
+  disabledReason: MiMoContextPolicyDisabledReason,
+  contextWindow = 0,
+  maxOutputTokens = 0,
+): MiMoContextPolicy {
+  return {
+    status: "disabled",
+    disabledReason,
+    contextWindow,
+    maxOutputTokens,
+    outputReserveTokens: 0,
+    recoveryReserveTokens: 0,
+    safeBudgetTokens: 0,
+    recoveryThresholdTokens: 0,
+    checkpointCeilingTokens: 0,
+    checkpointThresholdTokens: Object.freeze([]),
+    contextTokens: usage.contextTokens,
+    source: usage.source,
+    pressureLevel: 0,
+  };
+}
+
+function defaultCheckpointThresholds(safeBudgetTokens: number): number[] {
+  const percentages = safeBudgetTokens < 25_000
+    ? []
+    : safeBudgetTokens <= 200_000
+      ? [20, 40, 60, 80]
+      : safeBudgetTokens <= 500_000
+        ? [10, 20, 30, 40, 50, 60, 70, 80, 90]
+        : [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90];
+  return percentages.map((percentage) => percentageFloor(safeBudgetTokens, percentage));
+}
+
+function applyCheckpointCeiling(thresholds: readonly number[], checkpointCeilingTokens: number): number[] {
+  if (checkpointCeilingTokens <= 0) return [];
+  const resolved: number[] = [];
+  for (const threshold of thresholds) {
+    if (threshold <= checkpointCeilingTokens) {
+      resolved.push(threshold);
+      continue;
+    }
+    resolved.push(checkpointCeilingTokens);
+    break;
+  }
+  return resolved;
+}
+
+function resolveMiMoPressureLevel(safeBudgetTokens: number, contextTokens: number): MiMoPressureLevel {
+  if (contextTokens < percentageCeiling(safeBudgetTokens, 50)) return 0;
+  if (contextTokens < percentageCeiling(safeBudgetTokens, 70)) return 1;
+  if (contextTokens < percentageCeiling(safeBudgetTokens, 85)) return 2;
+  return 3;
+}
+
+function percentageFloor(total: number, percentage: number): number {
+  return Math.floor(total / 100) * percentage + Math.floor((total % 100) * percentage / 100);
+}
+
+function percentageCeiling(total: number, percentage: number): number {
+  return Math.floor(total / 100) * percentage + Math.ceil((total % 100) * percentage / 100);
 }
 
 function validToken(value: unknown): value is number {

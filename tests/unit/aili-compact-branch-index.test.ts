@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AILI_COMPACT_SCHEMA_V2, digest, type CompactTransaction } from "../../src/runtime/aili-compact/contracts.js";
+import { AILI_COMPACT_SCHEMA_V2, canonicalJson, digest, type CompactTransaction } from "../../src/runtime/aili-compact/contracts.js";
 import {
   alignBranchProviderMessages,
   appendBranchIndex,
@@ -154,6 +154,40 @@ describe("AILI Compact BranchIndex cold and incremental paths", () => {
       entries: [message("first", "user", "valid", null), message("second", "assistant", "invalid", null)],
       nextBranchLeafId: "second",
     })).toEqual(expect.objectContaining({ ok: false, code: "invalid-entry", diagnostic: "invalid parent for second" }));
+  });
+
+  it("keeps malformed, impossible, and tip-mismatched lineage fail-closed around the null-root exception", () => {
+    const malformed = (id: string, parentId: unknown): BranchSessionEntry => ({
+      id,
+      type: "message",
+      parentId,
+      message: { role: "assistant", content: "invalid parent" },
+    } as BranchSessionEntry);
+    for (const parentId of ["", 1]) {
+      expect(coldBuildBranchIndex({ key: key(`cold-${String(parentId)}`), entries: [malformed(`cold-${String(parentId)}`, parentId)] }))
+        .toEqual(expect.objectContaining({ ok: false, code: "invalid-entry" }));
+    }
+
+    const empty = coldBuildBranchIndex({ key: key("empty"), entries: [] });
+    expect(empty.ok).toBe(true);
+    if (!empty.ok) return;
+    for (const parentId of ["", 1]) {
+      expect(appendBranchIndex(empty.snapshot, { entries: [malformed(`empty-${String(parentId)}`, parentId)] }))
+        .toEqual(expect.objectContaining({ ok: false, code: "invalid-entry", snapshot: empty.snapshot }));
+    }
+
+    const nonEmpty = coldBuildBranchIndex({ key: key("root"), entries: [message("root", "user", "root", null)] });
+    expect(nonEmpty.ok).toBe(true);
+    if (!nonEmpty.ok) return;
+    expect(appendBranchIndex(nonEmpty.snapshot, {
+      entries: [message("wrong-tip", "assistant", "invalid", "other")],
+    })).toEqual(expect.objectContaining({ ok: false, code: "parent-tip-mismatch", snapshot: nonEmpty.snapshot }));
+    expect(appendBranchIndex(nonEmpty.snapshot, {
+      entries: [
+        message("first-child", "assistant", "valid", "root"),
+        message("impossible-child", "assistant", "invalid", "other"),
+      ],
+    })).toEqual(expect.objectContaining({ ok: false, code: "impossible-lineage", snapshot: nonEmpty.snapshot }));
   });
 
   it("builds a hand-audited scoped snapshot within the cold budget", () => {
@@ -500,6 +534,40 @@ describe("AILI Compact BranchIndex derived invalidation and scoped lookup", () =
     const nextClean = alignBranchProviderMessages(built.snapshot, cleanProviderInput);
     expect(nextClean.diagnostic).toBeUndefined();
     expect([...nextClean.byEntryId.keys()]).toEqual(["e1", "e2"]);
+  });
+
+  it("reuses indexed raw metadata for repeated structured-clone provider inputs", () => {
+    const entries = [
+      message("cached-user", "user", `question ${"x".repeat(512_000)}`),
+      message("cached-assistant", "assistant", "answer", "cached-user"),
+    ];
+    const built = coldBuildBranchIndex({ key: key("cached-assistant"), entries });
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+
+    const firstInput = structuredClone(entries.map((entry) => entry.message as Record<string, unknown>));
+    const first = alignBranchProviderMessages(built.snapshot, firstInput);
+    expect(first.diagnostic).toBeUndefined();
+    expect(first.counters).toMatchObject({
+      providerMessagePasses: 1,
+      providerMessageVisits: 2,
+      providerMessageCacheHits: 0,
+      providerMessageCacheMisses: 2,
+    });
+    expect(first.descriptors.map((descriptor) => descriptor.canonical)).toEqual([undefined, undefined]);
+
+    const secondInput = structuredClone(entries.map((entry) => entry.message as Record<string, unknown>));
+    const second = alignBranchProviderMessages(built.snapshot, secondInput);
+    expect(second.diagnostic).toBeUndefined();
+    expect(second.counters).toMatchObject({
+      providerMessagePasses: 1,
+      providerMessageVisits: 2,
+      providerMessageCacheHits: 2,
+      providerMessageCacheMisses: 0,
+    });
+    expect(second.messages).toEqual(secondInput);
+    expect(second.messages[0]).toBe(secondInput[0]);
+    expect(second.canonicalMessages).toBe(canonicalJson(secondInput));
   });
 
   it("uses scoped map paging and keeps healthy provider requests at one pass", () => {

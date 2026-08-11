@@ -2,9 +2,50 @@
   "schemaVersion": 1,
   "source": {
     "repository": "https://github.com/Rosetears520/aili-workflows.git",
-    "commit": "7eb35f357ad489f5841ee10dac1e44549c1bdb76",
-    "tree": "d578cb6e427873b5d15e1a9c624cfd28c190d76c",
-    "contentHash": "1e2e9bcaa182a947372ee96ab2c1b9ad945dbf2bec995437223bbc07610a6ecc"
+    "commit": "bb1fedacc46d71045daa6257d121f2b71ba29d54",
+    "tree": "52b9bcb51c96c0883b22b7308d5a27f514a95181",
+    "contentHash": "8c0fdf99900574bedae57ee375b22d7dfa7f1ff2f6821ad7b7f79c3ad31708b5",
+    "release": {
+      "package": "rose-aili",
+      "version": "0.4.2",
+      "npmGitHead": "bb1fedacc46d71045daa6257d121f2b71ba29d54",
+      "tarballSha256": "df7c67af6acaa7e5080e81f5c7fab6b9dc77b5a24397a26240a527370cad206f",
+      "protocols": {
+        "agentSelection": {
+          "protocol": "aili-agent-selection/v1",
+          "path": ".agents/skills/parallel-subagent-dispatch/references/agent-selection-matrix.md",
+          "sha256": "562951ec896b351983223a4a04833c260d9570307a1688dbaf7032055ee4161d",
+          "bytes": 7788
+        },
+        "formalTaskBoard": {
+          "protocol": "aili-task-board/v1",
+          "path": ".agents/skills/aili-delivery-flow/references/formal-task-board.md",
+          "sha256": "04343832b5cdfbde65f53f0a981a5f0e7c6e1b3507e65e5fdfbf2b3f696af58b",
+          "bytes": 10037
+        }
+      },
+      "canonicalSpecialists": [
+        "code-scout",
+        "doc-researcher",
+        "web-researcher",
+        "spec-miner",
+        "plan-auditor",
+        "implementer",
+        "test-engineer",
+        "test-coverage-reviewer",
+        "pr-test-analyzer",
+        "code-reviewer",
+        "security-auditor",
+        "silent-failure-reviewer",
+        "convergence-reviewer",
+        "browser-qa-runner",
+        "e2e-artifact-runner",
+        "web-performance-auditor",
+        "ai-regression-scout",
+        "agent-evaluator",
+        "opensource-sanitizer"
+      ]
+    }
   },
   "allowedStatuses": [
     "native",
@@ -16,12 +57,12 @@
     {
       "name": "academic-paper-review",
       "sourcePath": ".agents/skills/academic-paper-review",
-      "sourceHash": "06aeb1182525b2137887a3ba74a91f8dede0ea572774f262d46cf1710da4a218",
+      "sourceHash": "9536c0913c9b0d5ed5bb862c921c2f800fdbf735ac0e926e80a1d42f24346f4d",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "9dda08a1fdf23bd8f85ac1b460e32c1a9d44b2a07b591187a7de55e9e58b642e",
-          "bytes": 3903
+          "sha256": "6eebd32010b11e4d64537549c313efa6e466fad7801cbf208e7d70a25d6630ca",
+          "bytes": 3959
         }
       ],
       "triggers": {
@@ -37,7 +78,7 @@
             {
               "path": "SKILL.md",
               "lines": [
-                81
+                83
               ]
             }
           ]
@@ -164,11 +205,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -198,11 +239,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -211,17 +252,17 @@
     {
       "name": "aili-delivery-flow",
       "sourcePath": ".agents/skills/aili-delivery-flow",
-      "sourceHash": "71f21f68ea38f5d5370270c5b1857107ad14fc4dfcedf11e8d795c86cd7b03b7",
+      "sourceHash": "5c204655d2063db0416fff201f63fcacce6707237d9976aeea9f8cad01604f06",
       "files": [
         {
           "path": "references/artifact-contracts.md",
-          "sha256": "ad49ff713e2bef32f92ea22ca36c474db8a1436994b28166ac871294a63dd891",
-          "bytes": 17148
+          "sha256": "c7062e86dda8818a152d56cd9f5e5e96812de744293e53736dcb5ab9357e0164",
+          "bytes": 18496
         },
         {
           "path": "references/backend-routing.md",
-          "sha256": "e365f7ae3bc6fd1db93a07fd4742c4f96fec4a8eb1c211ba6f78b8666decb599",
-          "bytes": 9271
+          "sha256": "882b02d587e2334723ac1e9543947d2af1843badb4c970a87d51e880406e1771",
+          "bytes": 9989
         },
         {
           "path": "references/build-execution-loop.md",
@@ -235,18 +276,23 @@
         },
         {
           "path": "references/direct-vs-delegated-work.md",
-          "sha256": "1152eb7b7e416c2326bd1b7897c65f784bf28c20d7e6a560f27b88ec3459a4fc",
-          "bytes": 2968
+          "sha256": "2b3cc4d4c3d5795906bc6abfed30d7cec9a6cca159f40c64cc04a88a1de039ad",
+          "bytes": 4111
+        },
+        {
+          "path": "references/formal-task-board.md",
+          "sha256": "04343832b5cdfbde65f53f0a981a5f0e7c6e1b3507e65e5fdfbf2b3f696af58b",
+          "bytes": 10037
         },
         {
           "path": "references/implementation-packages.md",
-          "sha256": "f97a902dbb8bbdf9204b0a4d5cc8c3c6127ce801f1528e47471dabc1797787e0",
-          "bytes": 7175
+          "sha256": "404ee38cd0e1c697008e56c53081e68fe87b2765d9dfbe8e66d38316a31f776f",
+          "bytes": 9473
         },
         {
           "path": "references/lifecycle.md",
-          "sha256": "120b4bb2d67765129dd3174caf0c203603fe15cff9294607bc6451b22e59386b",
-          "bytes": 24175
+          "sha256": "bed3b0f42ddd398b6f9f997b4280785ac1150b31b0a4b5409bd9d883c44b0c45",
+          "bytes": 25757
         },
         {
           "path": "references/protocols/acceptance-test-plan.md",
@@ -275,8 +321,8 @@
         },
         {
           "path": "references/protocols/implementation-package.md",
-          "sha256": "0261dc9e6c18bc30b2b1ca5cde3131d4742edf3494e22fc159d06f3e3349fede",
-          "bytes": 4060
+          "sha256": "5574d22fd04919ce7d53f83e19d60e766a39c4c8bee545051412e441e67be5ae",
+          "bytes": 4599
         },
         {
           "path": "references/protocols/research-evidence-pack.md",
@@ -285,8 +331,8 @@
         },
         {
           "path": "references/protocols/review-report.md",
-          "sha256": "9b5b4a38d977a774a7ba337fdf6ba07bf0fbb9074aaae2c37a445cb1d314532b",
-          "bytes": 1585
+          "sha256": "b4703360323807a6b32892ddbaed7023fa17c6137128ffc84b542dc892f1c2f5",
+          "bytes": 1744
         },
         {
           "path": "references/protocols/spec-draft.md",
@@ -295,13 +341,13 @@
         },
         {
           "path": "references/protocols/subagent-result.md",
-          "sha256": "a77ddc57af158b0539e0e90f4cb71273436654eda8c6a4aef3cdd890d3141adf",
-          "bytes": 3376
+          "sha256": "b3611e21a387c12a6645ac34d3ef66bcf7142a27db2d69b8487ebea4e0aed302",
+          "bytes": 3897
         },
         {
           "path": "references/protocols/subagent-task-packet.md",
-          "sha256": "63ebdc1ebda3bc1748c5286a37d56e1ca04a4e207302c2a2fd8327bf5ed647b4",
-          "bytes": 2125
+          "sha256": "7a26d010fae194277310c9a404f51eb77cd99ef23e60d96170a46a92ef56e9fd",
+          "bytes": 3553
         },
         {
           "path": "references/protocols/worktree-context.md",
@@ -325,8 +371,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "8b4ed6ce855b16e5c7db7ac32a12106de031c8da79ae02e004a9bcc30b46180f",
-          "bytes": 14225
+          "sha256": "38b797cbf959b19d554fb6cdc09ea67f090c5730e2f8302a1f9d4f8a8ddecfcb",
+          "bytes": 16004
         }
       ],
       "triggers": {
@@ -349,9 +395,9 @@
             {
               "path": "references/backend-routing.md",
               "lines": [
-                24,
-                28,
-                40
+                26,
+                30,
+                42
               ]
             },
             {
@@ -361,10 +407,41 @@
               ]
             },
             {
+              "path": "references/implementation-packages.md",
+              "lines": [
+                46
+              ]
+            },
+            {
               "path": "references/lifecycle.md",
               "lines": [
-                15,
-                108
+                21,
+                116
+              ]
+            },
+            {
+              "path": "references/protocols/implementation-package.md",
+              "lines": [
+                62
+              ]
+            },
+            {
+              "path": "references/protocols/review-report.md",
+              "lines": [
+                3
+              ]
+            },
+            {
+              "path": "references/protocols/subagent-result.md",
+              "lines": [
+                64
+              ]
+            },
+            {
+              "path": "references/protocols/subagent-task-packet.md",
+              "lines": [
+                35,
+                38
               ]
             },
             {
@@ -378,7 +455,8 @@
             {
               "path": "SKILL.md",
               "lines": [
-                106
+                54,
+                112
               ]
             }
           ]
@@ -390,19 +468,20 @@
             {
               "path": "references/artifact-contracts.md",
               "lines": [
-                9,
-                15,
-                27,
-                35,
-                41,
-                43,
-                59,
-                112,
+                18,
+                24,
+                36,
+                44,
+                50,
+                52,
+                68,
                 114,
-                120,
                 122,
-                123,
-                124
+                124,
+                130,
+                132,
+                133,
+                134
               ]
             },
             {
@@ -411,7 +490,10 @@
                 8,
                 22,
                 23,
-                28
+                24,
+                25,
+                30,
+                31
               ]
             },
             {
@@ -426,35 +508,64 @@
             {
               "path": "references/direct-vs-delegated-work.md",
               "lines": [
-                7,
-                9,
-                18,
-                30
+                11,
+                17,
+                19,
+                28,
+                40
+              ]
+            },
+            {
+              "path": "references/formal-task-board.md",
+              "lines": [
+                1,
+                3,
+                11,
+                13,
+                15,
+                25,
+                26,
+                27,
+                44,
+                46,
+                85,
+                87,
+                89,
+                91,
+                99,
+                116,
+                118,
+                147
               ]
             },
             {
               "path": "references/implementation-packages.md",
               "lines": [
-                13,
-                17,
-                22,
-                29,
-                36,
-                43
+                7,
+                15,
+                19,
+                24,
+                30,
+                31,
+                33,
+                46,
+                48,
+                49
               ]
             },
             {
               "path": "references/lifecycle.md",
               "lines": [
                 7,
-                33,
-                35,
                 39,
                 41,
-                51,
-                111,
-                115,
-                117
+                43,
+                47,
+                49,
+                59,
+                119,
+                123,
+                125
               ]
             },
             {
@@ -480,12 +591,14 @@
             {
               "path": "references/protocols/implementation-package.md",
               "lines": [
-                14,
-                32,
-                34,
-                35,
-                38,
-                53
+                5,
+                7,
+                23,
+                41,
+                43,
+                44,
+                47,
+                62
               ]
             },
             {
@@ -498,17 +611,18 @@
               "path": "references/protocols/subagent-result.md",
               "lines": [
                 3,
-                53,
-                55,
-                57
+                57,
+                64,
+                67
               ]
             },
             {
               "path": "references/protocols/subagent-task-packet.md",
               "lines": [
                 1,
-                21,
-                23
+                34,
+                35,
+                38
               ]
             },
             {
@@ -545,11 +659,15 @@
             {
               "path": "SKILL.md",
               "lines": [
-                48,
-                86,
-                89,
-                93,
-                115
+                18,
+                50,
+                52,
+                54,
+                92,
+                94,
+                95,
+                99,
+                121
               ]
             }
           ]
@@ -561,7 +679,7 @@
             {
               "path": "references/artifact-contracts.md",
               "lines": [
-                35
+                44
               ]
             },
             {
@@ -573,7 +691,7 @@
             {
               "path": "SKILL.md",
               "lines": [
-                50
+                56
               ]
             }
           ]
@@ -585,16 +703,17 @@
             {
               "path": "references/artifact-contracts.md",
               "lines": [
-                11,
-                47,
-                75,
-                76,
-                82,
-                95,
-                99,
+                20,
+                56,
+                84,
+                85,
+                91,
                 104,
-                105,
-                122
+                108,
+                113,
+                114,
+                115,
+                132
               ]
             },
             {
@@ -605,11 +724,12 @@
                 17,
                 20,
                 21,
-                24,
-                29,
-                34,
-                38,
-                40
+                22,
+                26,
+                31,
+                36,
+                40,
+                42
               ]
             },
             {
@@ -619,20 +739,27 @@
               ]
             },
             {
+              "path": "references/formal-task-board.md",
+              "lines": [
+                13,
+                14
+              ]
+            },
+            {
               "path": "references/implementation-packages.md",
               "lines": [
-                43
+                49
               ]
             },
             {
               "path": "references/lifecycle.md",
               "lines": [
                 11,
-                54,
                 62,
-                65,
-                108,
-                117
+                70,
+                73,
+                116,
+                125
               ]
             },
             {
@@ -651,7 +778,7 @@
             {
               "path": "references/protocols/implementation-package.md",
               "lines": [
-                37
+                46
               ]
             },
             {
@@ -663,7 +790,7 @@
             {
               "path": "references/protocols/subagent-result.md",
               "lines": [
-                27
+                35
               ]
             },
             {
@@ -684,8 +811,8 @@
             {
               "path": "SKILL.md",
               "lines": [
-                104,
-                106
+                110,
+                112
               ]
             }
           ]
@@ -697,14 +824,14 @@
             {
               "path": "references/artifact-contracts.md",
               "lines": [
-                43,
-                60
+                52,
+                69
               ]
             },
             {
               "path": "references/backend-routing.md",
               "lines": [
-                36
+                38
               ]
             },
             {
@@ -717,27 +844,33 @@
             {
               "path": "references/direct-vs-delegated-work.md",
               "lines": [
-                34
+                44
+              ]
+            },
+            {
+              "path": "references/formal-task-board.md",
+              "lines": [
+                145
               ]
             },
             {
               "path": "references/implementation-packages.md",
               "lines": [
-                38,
-                44
+                42,
+                50
               ]
             },
             {
               "path": "references/lifecycle.md",
               "lines": [
                 7,
-                28,
-                44,
-                88,
-                102,
-                111,
-                112,
-                113
+                34,
+                52,
+                96,
+                110,
+                119,
+                120,
+                121
               ]
             },
             {
@@ -749,13 +882,13 @@
             {
               "path": "references/protocols/subagent-result.md",
               "lines": [
-                52
+                63
               ]
             },
             {
               "path": "references/protocols/subagent-task-packet.md",
               "lines": [
-                24
+                39
               ]
             },
             {
@@ -779,11 +912,11 @@
             {
               "path": "SKILL.md",
               "lines": [
-                66,
-                79,
-                89,
-                93,
-                102
+                72,
+                85,
+                95,
+                99,
+                108
               ]
             }
           ]
@@ -796,14 +929,14 @@
         "repo.read"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "src/runtime/subagents.ts",
+      "adapterOwner": "src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
         "npm run verify:roles",
-        "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/persistent-agent-task-collision.test.ts tests/integration/package-runtime.test.ts",
+        "vitest run tests/unit/persistent-agent-task-registration.test.ts",
+        "npm run test:doctor"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -1024,11 +1157,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1257,11 +1390,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1304,11 +1437,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1379,11 +1512,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1448,11 +1581,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1513,11 +1646,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1570,11 +1703,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1618,11 +1751,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1631,12 +1764,12 @@
     {
       "name": "consulting-analysis",
       "sourcePath": ".agents/skills/consulting-analysis",
-      "sourceHash": "7fbc4a31028069af12cc6748a80b6da2bd89bc5e254d62ac8db7be110a75dd4b",
+      "sourceHash": "4e726aca82be532302ed2d165ebb5a57973d8f2fb3cd8bd886d9f519fef2b825",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "f2c25b8777ea8c9c226465f2a372f65d6259f78017819e376b636e34ae5e1b53",
-          "bytes": 2798
+          "sha256": "a09e4bbbf8b65f4a865dc73b5e426ecd409cf49d05eab76037e6a4b85b207ffc",
+          "bytes": 2869
         }
       ],
       "triggers": {
@@ -1652,7 +1785,7 @@
             {
               "path": "SKILL.md",
               "lines": [
-                69
+                71
               ]
             }
           ]
@@ -1665,11 +1798,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1760,11 +1893,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1794,11 +1927,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1807,12 +1940,12 @@
     {
       "name": "data-analysis",
       "sourcePath": ".agents/skills/data-analysis",
-      "sourceHash": "66e8092ad9fa5f8e3bdc61472bc11ec29b0cc65b8b36f2acb73c2636135a8e0c",
+      "sourceHash": "6387cb58150aafa540ff7527afc581ded90bb5dcf1075b8405da1927d4eb52b8",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "f5a068e30db986cdbef4f3810397bfbc045508483c473c22220665f1f91256ac",
-          "bytes": 2964
+          "sha256": "4f9e99afca7c9d8a83e311904f8c560329b50656cc161fe31fe453503088a9df",
+          "bytes": 3015
         }
       ],
       "triggers": {
@@ -1830,7 +1963,7 @@
             {
               "path": "SKILL.md",
               "lines": [
-                74
+                76
               ]
             }
           ]
@@ -1843,11 +1976,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1892,11 +2025,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -1976,11 +2109,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -2010,11 +2143,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -2023,12 +2156,12 @@
     {
       "name": "evidence-scoped-retrospective",
       "sourcePath": ".agents/skills/evidence-scoped-retrospective",
-      "sourceHash": "5a7a4042761a1d8f33d44fd79ff156d9643b39296339d06e4e1e8b107971a62d",
+      "sourceHash": "9486d771d43b2153b5a8bc909c2b99c44938b0a08c2c833620f03f383278d521",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "1d89db2466a0eb58f3d3c0dc2a57be1fdeb97e1e6ce98125e799b38a34772521",
-          "bytes": 9912
+          "sha256": "6d2fb7c892e48c61d29fa208b6cdbee011026831ab22a935f94dc3f5e42a8294",
+          "bytes": 10028
         }
       ],
       "triggers": {
@@ -2107,11 +2240,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -2143,11 +2276,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3042,11 +3175,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3191,11 +3324,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3322,11 +3455,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3539,11 +3672,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3647,11 +3780,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3711,14 +3844,103 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
+      "unverified": []
+    },
+    {
+      "name": "i-have-adhd",
+      "sourcePath": ".agents/skills/i-have-adhd",
+      "sourceHash": "23d1a0ac44d126a7ac87b3da86829db5880e5aaa410e0a0f4476b9560e36086e",
+      "files": [
+        {
+          "path": "references/upstream/ayghri-i-have-adhd/34f746dda9664fb5ea52149be5dbab2adc6e60d3/LICENSE",
+          "sha256": "8acbb618089b738404f76ac60fca1aaa995d9a87995eddf95f0b777acd7f7d2c",
+          "bytes": 1069
+        },
+        {
+          "path": "references/upstream/ayghri-i-have-adhd/34f746dda9664fb5ea52149be5dbab2adc6e60d3/NOTICE.md",
+          "sha256": "c68df76d56a4b7c2df88688434de9e37d65be34cb3978899651dc54f1ff6cb45",
+          "bytes": 571
+        },
+        {
+          "path": "references/upstream/ayghri-i-have-adhd/34f746dda9664fb5ea52149be5dbab2adc6e60d3/SKILL.upstream.md",
+          "sha256": "cae8c063977214b372c6897b7c93ac8faa573214a8635896f767e3bac092adf8",
+          "bytes": 6848
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "05b30ad826d452b3c9608f72e7e3cc9b1f1308dd5ad24bfc33c59921eb8ce995",
+          "bytes": 4309
+        }
+      ],
+      "triggers": {
+        "description": "Shape one current response into an ADHD-friendly, action-first, low-friction format when the user explicitly invokes i-have-adhd, asks for ADHD mode, or directly requests this response style; do not trigger from ordinary coding, planning, documentation, or concise questions without a style request.",
+        "nearMissDeclared": true,
+        "stopOutcomes": [
+          "complete"
+        ]
+      },
+      "backendAnchors": [
+        {
+          "id": "tool.subagent",
+          "disposition": "mapped through subagent.dispatch or blocked",
+          "occurrences": [
+            {
+              "path": "references/upstream/ayghri-i-have-adhd/34f746dda9664fb5ea52149be5dbab2adc6e60d3/SKILL.upstream.md",
+              "lines": [
+                82,
+                113,
+                127
+              ]
+            },
+            {
+              "path": "SKILL.md",
+              "lines": [
+                26,
+                37,
+                42,
+                50,
+                75
+              ]
+            }
+          ]
+        },
+        {
+          "id": "external.side-effect",
+          "disposition": "retained behind explicit capability and operation gates",
+          "occurrences": [
+            {
+              "path": "references/upstream/ayghri-i-have-adhd/34f746dda9664fb5ea52149be5dbab2adc6e60d3/LICENSE",
+              "lines": [
+                8
+              ]
+            },
+            {
+              "path": "references/upstream/ayghri-i-have-adhd/34f746dda9664fb5ea52149be5dbab2adc6e60d3/SKILL.upstream.md",
+              "lines": [
+                40
+              ]
+            }
+          ]
+        }
+      ],
+      "requiredCapabilities": [],
+      "optionalCapabilities": [],
+      "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "verification": [
+        "snapshot-hash:verified",
+        "vitest run tests/integration/i-have-adhd-compatibility.test.ts"
+      ],
+      "status": "native",
+      "reason": "The exact skill snapshot is covered by verified Pi native discovery and on-demand behavior evidence.",
       "unverified": []
     },
     {
@@ -3812,11 +4034,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -3879,11 +4101,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -4037,7 +4259,7 @@
     {
       "name": "local-review-gate",
       "sourcePath": ".agents/skills/local-review-gate",
-      "sourceHash": "10bb4ca8023c080f280eafbc05ed95178984773940331950f42f24c9aaeb93f0",
+      "sourceHash": "f5bd45630aa6f584bccfc98469cdd56eec600e7fc84b1cb0fde4e441faacc842",
       "files": [
         {
           "path": "references/addyosmani-code-review-rubric.md",
@@ -4076,8 +4298,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "0ac136a5b9dd00d2d0e0b3bef0dc02af5085256625963e3f91c9677e1d4b0ec1",
-          "bytes": 17667
+          "sha256": "5f4a188cf5333286bfcf488bcfd0722629e65afad99cfae151c88bd31fc022ba",
+          "bytes": 17704
         }
       ],
       "triggers": {
@@ -4306,14 +4528,14 @@
         "repo.read"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "src/runtime/subagents.ts",
+      "adapterOwner": "src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
         "npm run verify:roles",
-        "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/persistent-agent-task-collision.test.ts tests/integration/package-runtime.test.ts",
+        "vitest run tests/unit/persistent-agent-task-registration.test.ts",
+        "npm run test:doctor"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -4322,7 +4544,7 @@
     {
       "name": "mature-project-pattern-research",
       "sourcePath": ".agents/skills/mature-project-pattern-research",
-      "sourceHash": "37eca46198f84370b56395c2b70b288578799d03bef457c3bd1364fb44bc7a5a",
+      "sourceHash": "b0cd5a4ca55f9bfe718fadcd8271f087f5bd222a71d0324f9f56ee692b80c7c3",
       "files": [
         {
           "path": "references/research-rubric.md",
@@ -4331,8 +4553,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "e2777e0007f5df13dba51e4d6644c9e19dea9b9b5596dfa7278c25bebcda3e14",
-          "bytes": 9059
+          "sha256": "5353ce3ebde06392991140c9b81a65bacf1bd8fcf77f8dfe6b8c03e52f8ea4c9",
+          "bytes": 9165
         }
       ],
       "triggers": {
@@ -4403,7 +4625,7 @@
     {
       "name": "minimax-docx",
       "sourcePath": ".agents/skills/minimax-docx",
-      "sourceHash": "c6dc6098a4dbe63b264d6c3f6faad948c49b604dc38f16f387d72158e7572a1b",
+      "sourceHash": "9105f42187fa7961980fb0300221a2d1ff442bcd88df632170c6d805fcb56a3c",
       "files": [
         {
           "path": "assets/styles/academic_styles.xml",
@@ -4502,18 +4724,18 @@
         },
         {
           "path": "references/scenario_a_create.md",
-          "sha256": "4be8e1f88b2993a43b74854a78533233b385a84d5b3c1510be86bed2f6af567e",
-          "bytes": 7841
+          "sha256": "1e502d1c006b8f9bd96ba72c447da524e5feac242b0286f1ed249936b069aa72",
+          "bytes": 8163
         },
         {
           "path": "references/scenario_b_edit_content.md",
-          "sha256": "f04c35eec63b6e5df6b1b6d1a06a1feb26c920262686941ff705642c55e6cc4a",
-          "bytes": 7947
+          "sha256": "84062e00b32900b1b2049b748572e105b1750e4d1d70a203c5d4f4109efc42ca",
+          "bytes": 8401
         },
         {
           "path": "references/scenario_c_apply_template.md",
-          "sha256": "3602c5cad48ef0f3e2ed08113be2a7ce36e9b8cadb5987bc9a5a9f06e2f6d335",
-          "bytes": 18408
+          "sha256": "d954cf73d58d0bcad4a7ea481c0a5675a92e9f4d8c1f98d891e770fb0c752739",
+          "bytes": 18723
         },
         {
           "path": "references/track_changes_guide.md",
@@ -4772,15 +4994,19 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "5dd1b0aee777e47a9b1528ba9409bcd7eb6060c82da903a3edcc5acd5516f0c4",
-          "bytes": 17227
+          "sha256": "24ee010744bdf0c3b0a0f5e100f92d188c058fd359bfa543f20a6a11682b9e3a",
+          "bytes": 21377
         }
       ],
       "triggers": {
         "description": ">",
         "nearMissDeclared": true,
         "stopOutcomes": [
-          "complete"
+          "complete",
+          "need-user",
+          "need-evidence",
+          "blocked",
+          "Unverified"
         ]
       },
       "backendAnchors": [
@@ -4816,12 +5042,15 @@
             {
               "path": "SKILL.md",
               "lines": [
-                32,
-                35,
-                36,
-                66,
-                164,
-                227
+                37,
+                49,
+                53,
+                56,
+                57,
+                88,
+                182,
+                210,
+                253
               ]
             }
           ]
@@ -4947,6 +5176,13 @@
                 393,
                 399,
                 475
+              ]
+            },
+            {
+              "path": "SKILL.md",
+              "lines": [
+                29,
+                36
               ]
             }
           ]
@@ -5175,17 +5411,17 @@
     {
       "name": "minimax-xlsx",
       "sourcePath": ".agents/skills/minimax-xlsx",
-      "sourceHash": "49bafbcd5642583b91cadb6dcf3cea05098b60988d399a50592552f640c26ae0",
+      "sourceHash": "30f009b6733ecfe39c752e9d9c9848803ad67a9bcb45c00488417ac26aab1de8",
       "files": [
         {
           "path": "references/create.md",
-          "sha256": "56ca500af2a9880ee72148f07000486512c6022fbcee20afd1c202874653c3b9",
-          "bytes": 24602
+          "sha256": "4bbf2fe9289da27ee191b48a21e1622413d3a644cccdb44a18ccacb8d1f6eac9",
+          "bytes": 24918
         },
         {
           "path": "references/edit.md",
-          "sha256": "515cbce48c43abc769140bc3ca8bb1b72506d035d68eaf134e6a030cb5041f4e",
-          "bytes": 24474
+          "sha256": "45ab10fa01136e6661dbb94a2910fdfd935ef8fea824c34bbecc095df2a4abe0",
+          "bytes": 24777
         },
         {
           "path": "references/fix.md",
@@ -5204,13 +5440,13 @@
         },
         {
           "path": "references/read-analyze.md",
-          "sha256": "78fc8f0c982ae36e3c3141a0d7e2d93a9d85b6c04c1a57645001628ac32c59a4",
-          "bytes": 4299
+          "sha256": "7f1f9979a72573e0185c44a8870980244910e7bb334c1fc5ee77fd8346ebb99d",
+          "bytes": 4408
         },
         {
           "path": "references/validate.md",
-          "sha256": "fee73ec103df50dcc88c1cfd5ce769c24ef85570fd90dab1dacf45239261da08",
-          "bytes": 30153
+          "sha256": "98bb5fcbabac583d95e64312630b25af9036b20c3b32cf17835e99be2d3dd460",
+          "bytes": 30369
         },
         {
           "path": "scripts/formula_check.py",
@@ -5264,8 +5500,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "aad385ddf6664dfb73c134407292c0db9114af8598b77d0e74097a8b0a2fb334",
-          "bytes": 10056
+          "sha256": "0859c1faf68a2e52a0f09cde9a5ee31f6914bff5856cd7f0c1cdc7a3d12b9bc7",
+          "bytes": 14626
         },
         {
           "path": "templates/minimal_xlsx/_rels/.rels",
@@ -5304,10 +5540,14 @@
         }
       ],
       "triggers": {
-        "description": "\"Create, edit, analyze, format, or validate Excel/XLSX/CSV spreadsheets, formulas, and workbooks.\"",
+        "description": "\"Create, edit, analyze, format, or validate Excel/XLSX/CSV spreadsheets with managed OfficeCLI first and pandas/XML preservation-aware fallbacks.\"",
         "nearMissDeclared": true,
         "stopOutcomes": [
-          "complete"
+          "complete",
+          "need-user",
+          "need-evidence",
+          "blocked",
+          "Unverified"
         ]
       },
       "backendAnchors": [
@@ -5315,12 +5555,6 @@
           "id": "tool.subagent",
           "disposition": "mapped through subagent.dispatch or blocked",
           "occurrences": [
-            {
-              "path": "references/edit.md",
-              "lines": [
-                9
-              ]
-            },
             {
               "path": "references/fix.md",
               "lines": [
@@ -5330,23 +5564,24 @@
             {
               "path": "references/validate.md",
               "lines": [
-                616
+                618
               ]
             },
             {
               "path": "SKILL.md",
               "lines": [
                 8,
-                21,
-                23,
-                45,
-                50,
-                55,
-                74,
-                89,
-                100,
-                111,
-                143
+                40,
+                42,
+                65,
+                70,
+                75,
+                94,
+                109,
+                120,
+                131,
+                163,
+                183
               ]
             }
           ]
@@ -5358,12 +5593,12 @@
             {
               "path": "references/validate.md",
               "lines": [
-                279,
-                290,
-                294,
-                299,
-                330,
-                335
+                281,
+                292,
+                296,
+                301,
+                332,
+                337
               ]
             },
             {
@@ -5381,6 +5616,13 @@
               "path": "scripts/xlsx_reader.py",
               "lines": [
                 41
+              ]
+            },
+            {
+              "path": "SKILL.md",
+              "lines": [
+                28,
+                35
               ]
             }
           ]
@@ -5536,11 +5778,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -5549,12 +5791,17 @@
     {
       "name": "parallel-subagent-dispatch",
       "sourcePath": ".agents/skills/parallel-subagent-dispatch",
-      "sourceHash": "34db1c517c67693791292bd51203a4f8c1e253e1c4ad52b6d2ed91a600dcf93b",
+      "sourceHash": "189ec2df0c8b13ada312a16f7de42717fe52ae47749d39ebf6f94b7d5012f423",
       "files": [
         {
+          "path": "references/agent-selection-matrix.md",
+          "sha256": "562951ec896b351983223a4a04833c260d9570307a1688dbaf7032055ee4161d",
+          "bytes": 7788
+        },
+        {
           "path": "SKILL.md",
-          "sha256": "0572f6b1208d9e73a6bdb2e027ecf5fd9c9d8f43fd96294364498d66bfb0c2bf",
-          "bytes": 4471
+          "sha256": "e9c8471744a76c6747eed8fe11f0dff89796ae669bff4a7d5b7d742b0424e4fe",
+          "bytes": 5652
         }
       ],
       "triggers": {
@@ -5566,19 +5813,63 @@
       },
       "backendAnchors": [
         {
-          "id": "tool.subagent",
-          "disposition": "mapped through subagent.dispatch or blocked",
+          "id": "backend.opencode",
+          "disposition": "retained as current adapter evidence; Pi must map the capability",
           "occurrences": [
             {
               "path": "SKILL.md",
               "lines": [
-                11,
-                15,
-                22,
-                29,
-                37,
-                44,
-                58
+                45
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tool.subagent",
+          "disposition": "mapped through subagent.dispatch or blocked",
+          "occurrences": [
+            {
+              "path": "references/agent-selection-matrix.md",
+              "lines": [
+                17,
+                30
+              ]
+            },
+            {
+              "path": "SKILL.md",
+              "lines": [
+                19,
+                26,
+                35,
+                43,
+                45,
+                51,
+                67
+              ]
+            }
+          ]
+        },
+        {
+          "id": "backend.openspec",
+          "disposition": "retained as an artifact backend contract; no completion authority",
+          "occurrences": [
+            {
+              "path": "references/agent-selection-matrix.md",
+              "lines": [
+                14
+              ]
+            }
+          ]
+        },
+        {
+          "id": "external.side-effect",
+          "disposition": "retained behind explicit capability and operation gates",
+          "occurrences": [
+            {
+              "path": "references/agent-selection-matrix.md",
+              "lines": [
+                26,
+                31
               ]
             }
           ]
@@ -5591,14 +5882,14 @@
         "repo.read"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "src/runtime/subagents.ts",
+      "adapterOwner": "src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
         "npm run verify:roles",
-        "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/persistent-agent-task-collision.test.ts tests/integration/package-runtime.test.ts",
+        "vitest run tests/unit/persistent-agent-task-registration.test.ts",
+        "npm run test:doctor"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -5678,11 +5969,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -5787,11 +6078,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -5800,44 +6091,604 @@
     {
       "name": "pptx-generator",
       "sourcePath": ".agents/skills/pptx-generator",
-      "sourceHash": "59de58199cefb9ffc9eaa7344f24bbc6fcdc83553a1399da501dfe39628da26c",
+      "sourceHash": "d3deb80a3f0cf7e1c0509b92ff8d952f31897ad0a15a608021d8e142052d6dd1",
       "files": [
         {
+          "path": "references/content-planning.md",
+          "sha256": "73120c1d058d82f003397c343bc3834797ba7ef760badc8fab5c6e5099fac726",
+          "bytes": 12447
+        },
+        {
+          "path": "references/delivery-readiness.md",
+          "sha256": "d9f0631c569a44d3c126a920e705e216bfde4c9f8401c2b8293f7ca5248efa74",
+          "bytes": 2486
+        },
+        {
+          "path": "references/design-contract.md",
+          "sha256": "9036dd546b9549f798787e42715f007af653adbdd8519b7bc42327539979e767",
+          "bytes": 1574
+        },
+        {
           "path": "references/design-system.md",
-          "sha256": "8a225af2ebd3bfa979616da74b7ec34395712fe1a8195e5613214aa291211996",
-          "bytes": 16159
+          "sha256": "e80263f87b942356420f3c547b07e21c3c0c776fb3d1acd578e9bf3d729e3438",
+          "bytes": 17690
         },
         {
           "path": "references/editing.md",
-          "sha256": "5385ef88e7d081c43ee488ca308174743678314d53f6afc5df9b932390dcb3bf",
-          "bytes": 6577
+          "sha256": "48882a58b9bc8ab44ce07bf89c8f6d8ea5e98184cf60437ca0c799654ad3eb87",
+          "bytes": 7309
+        },
+        {
+          "path": "references/font-policy.md",
+          "sha256": "808dbc1cedd2a3d04fc75b5be8dad99aeec0fc3bcd40a3ad280d8ea288c7b0fb",
+          "bytes": 2382
+        },
+        {
+          "path": "references/human-design-playbook.md",
+          "sha256": "1fa96bd96016ea647d61cef1400fdb56a5b6835866300f7f892fe2fe77527202",
+          "bytes": 5263
+        },
+        {
+          "path": "references/intake-and-blockers.md",
+          "sha256": "c63f2fddf58899f0abb21d9461d14284261e63379ba05593a883102b0a884139",
+          "bytes": 2098
+        },
+        {
+          "path": "references/learning-notes-01-foundations.md",
+          "sha256": "595042fcb86702850e56ef006434a873e2eba6b96ea97c52f7b21f9dcf91128e",
+          "bytes": 7726
+        },
+        {
+          "path": "references/learning-notes-02-workplace-content-design.md",
+          "sha256": "d057da1e3f928e3fce2a2998d3628d5268b2795cdc43f0fb86334fba8eab3204",
+          "bytes": 15323
+        },
+        {
+          "path": "references/learning-notes-03-workplace-specialized-slides.md",
+          "sha256": "034945d25bb97609216e59c42d8a1c14787ce40679e52572d299befdc379754b",
+          "bytes": 12755
+        },
+        {
+          "path": "references/learning-notes-04-layout-formulas.md",
+          "sha256": "4bd7affc8d11392376a28d2d32003268aa0d427d90419652460a3eb46e5a4a5b",
+          "bytes": 8798
+        },
+        {
+          "path": "references/learning-notes-05-specialized-case-practice.md",
+          "sha256": "2fcfe9ec984a4b86b1b52d8dd02ab1551e8d63fb0b06cb971456d675bcbbf99c",
+          "bytes": 10031
+        },
+        {
+          "path": "references/learning-notes-06-advanced-design.md",
+          "sha256": "cf8e002289023c1fed69a6e8035d4d582eb71e7b637408d8bbd3c54bf2255e02",
+          "bytes": 9535
+        },
+        {
+          "path": "references/officecli-adapter.md",
+          "sha256": "7ebb9745bfb285eecf11e2f7645fe678d62ef62da814b952db8e9eb50f1b72fa",
+          "bytes": 4298
         },
         {
           "path": "references/pitfalls.md",
-          "sha256": "247a8eb1860524fdd0d8a3365a791490c162d4a58677eb3f329d4dd682ce0257",
-          "bytes": 3849
+          "sha256": "1cc41503b20f3cba66a7e26784eca3d58980e0b2b482bebfff006bcf30359933",
+          "bytes": 7741
         },
         {
           "path": "references/pptxgenjs.md",
-          "sha256": "4b66df00dd581c2eeadb140fd9bbad71daea6fb48b424f97b993f8521e41d470",
-          "bytes": 12752
+          "sha256": "7e6275a004f546eb592e60505a62bc11a2dd64611b4e48d6d6471ef1c1b8393f",
+          "bytes": 13392
         },
         {
           "path": "references/slide-types.md",
-          "sha256": "fa2c0da76d420463990317dc5932e607cea5e126389ca391e3e5718629b0cb38",
-          "bytes": 15790
+          "sha256": "254ad42840e41b6c5eecdd6919ee333840ca693cf6b8989e48edce5c450676b1",
+          "bytes": 16642
+        },
+        {
+          "path": "references/visual-review.md",
+          "sha256": "3e6323e2fbdd34427d2c5e4ec686d3efb31b5d9abd2716a96f5012a48a3d7733",
+          "bytes": 2025
+        },
+        {
+          "path": "references/workspace.md",
+          "sha256": "773f363dac3462f697cf547f69c47f8e8c34b95f96d879182108696337496614",
+          "bytes": 3853
+        },
+        {
+          "path": "schemas/asset-manifest.schema.json",
+          "sha256": "60d20d8d64b2af27f9d3c5ddf2c4687e8d1935a237d2ccc34a8cf7dd81bc24b4",
+          "bytes": 968
+        },
+        {
+          "path": "schemas/asset-plan.schema.json",
+          "sha256": "04e1167cda870d06a9b20680073c667cf2703f99d07b78cb9338f4e3466870ad",
+          "bytes": 886
+        },
+        {
+          "path": "schemas/build-report.schema.json",
+          "sha256": "9bb817c3281ab73b9bedb6210083faff70de52b24992376465ae051a607977da",
+          "bytes": 3258
+        },
+        {
+          "path": "schemas/design-brief.schema.json",
+          "sha256": "054a680f32708a227650e0d62150cef69a72f442ae6eb1cbbb23534c6a1e40b5",
+          "bytes": 722
+        },
+        {
+          "path": "schemas/design-contract.schema.json",
+          "sha256": "f9cd944768e2096dba9c86c4a632dcf57e9995dce4f9915444921d039f6a8675",
+          "bytes": 1682
+        },
+        {
+          "path": "schemas/evidence-manifest.schema.json",
+          "sha256": "554f73e527eae14b3467f0f113c99a25cd85e2f26c69b3f33b960e13004357fa",
+          "bytes": 806
+        },
+        {
+          "path": "schemas/evidence-plan.schema.json",
+          "sha256": "fe12803589e6a009920565abfdfda2496d2b078826ecf3191f41e073f22fe453",
+          "bytes": 939
+        },
+        {
+          "path": "schemas/font-audit.schema.json",
+          "sha256": "679fb956b53a7783d5bdb24343ce490c20ae64bcc3e0ebaa743115201c7bfe63",
+          "bytes": 1736
+        },
+        {
+          "path": "schemas/font-contract.schema.json",
+          "sha256": "ed46c6248433f614e27a75b7789a7961ea937172ece5730ec439dc365a5c7f96",
+          "bytes": 1282
+        },
+        {
+          "path": "schemas/font-environment.schema.json",
+          "sha256": "98e475fa78f3c52385c4a81ae37a76e4dad327ca2600e1aa8b9a876e036067a0",
+          "bytes": 2698
+        },
+        {
+          "path": "schemas/intake.schema.json",
+          "sha256": "69b289acbe0056f4b9ed352dfacb88a67f0a69d99894b526ad2f87a9e651cdc2",
+          "bytes": 2089
+        },
+        {
+          "path": "schemas/layout-preflight.schema.json",
+          "sha256": "d55cea5347ce2fe4c6b65a5857492ef01a709b4a0cd1b0238238daf26fb8700d",
+          "bytes": 1943
+        },
+        {
+          "path": "schemas/outline.schema.json",
+          "sha256": "e19564583d0bf11c45d5353279ad97da60e0159fb7595561aa3b29b2e185b989",
+          "bytes": 2125
+        },
+        {
+          "path": "schemas/readiness-report.schema.json",
+          "sha256": "43e58b42fdad85e83adeb4ad6f4f81b3595804d49bc944ab6a5699fbc2d98260",
+          "bytes": 1291
+        },
+        {
+          "path": "schemas/render-manifest.schema.json",
+          "sha256": "8cc4324ae034cd3bf14361f8c73fd6427533b5d7faa2dee3041d50a1b24e3f8c",
+          "bytes": 2326
+        },
+        {
+          "path": "schemas/source-manifest.schema.json",
+          "sha256": "086c608541909e3e8608acddb1a2a5fb8434383e31c0e026a0530156995aff15",
+          "bytes": 1289
+        },
+        {
+          "path": "schemas/style-lock.schema.json",
+          "sha256": "d3599fd7ca140622e3db83499eec11074d52ab53ade1aed238196e94772f5731",
+          "bytes": 1193
+        },
+        {
+          "path": "schemas/template-profile.schema.json",
+          "sha256": "cde455ec289f1a0f811ec473b76e77a720ce811d34d8244713fa90eb4971717f",
+          "bytes": 2839
+        },
+        {
+          "path": "schemas/template-style-confirmation.schema.json",
+          "sha256": "e087d5dab7560262b43bf7bf96e7bd4b4bf990584b1315b6da98d8873d4fb573",
+          "bytes": 2273
+        },
+        {
+          "path": "schemas/visual-review.schema.json",
+          "sha256": "cfcc909e3a0ed556527ca902724bae5c88134d3a0df48b6a82378af998d3d8c3",
+          "bytes": 4882
+        },
+        {
+          "path": "schemas/workspace.schema.json",
+          "sha256": "2f08da894ce146224e372dbc97f8c171528f5c23b490d17dffbba9a42886bd27",
+          "bytes": 1657
+        },
+        {
+          "path": "scripts/apply_text_autofit.py",
+          "sha256": "8f0182ac799da351a56a8346ff132fdfc2fbbdf7a151091812eb7a21a6156635",
+          "bytes": 7018
+        },
+        {
+          "path": "scripts/build_workspace.py",
+          "sha256": "918b9c6f615403e235582bd89ff9dd8764f1db2dd698217370697136a4517c69",
+          "bytes": 21437
+        },
+        {
+          "path": "scripts/compile_plan.py",
+          "sha256": "3fa327d6a05a06bf5acbddcbfbd6c86716ebab5b2b424c81ba3a4eb87492a6b4",
+          "bytes": 15675
+        },
+        {
+          "path": "scripts/emit_visual_review_packet.py",
+          "sha256": "6419da832c2c57c42c59a5d6d3be0489bb985d837354eb6a75f5a1550e052459",
+          "bytes": 8083
+        },
+        {
+          "path": "scripts/init_workspace.py",
+          "sha256": "4c98cd3bdcb0bae3d6a8c658b14ae09a4af827659afabef3962b7d01003eff7b",
+          "bytes": 4661
+        },
+        {
+          "path": "scripts/inventory_fonts.py",
+          "sha256": "da56be0071fac5b470d78232e620a86bc83d805689b774f1a91c93504efc54ec",
+          "bytes": 7657
+        },
+        {
+          "path": "scripts/lock_style_proof.py",
+          "sha256": "d34b7f1030b0ef373d9ae13ff55c56dae942b5410e76bf3630b37647c73e2dcf",
+          "bytes": 1995
+        },
+        {
+          "path": "scripts/officecli_adapter.py",
+          "sha256": "0d9fbaaff70059c6a68dfcde8e9654fa4881697271efe13fbc902dfbc5546763",
+          "bytes": 12804
+        },
+        {
+          "path": "scripts/probe_officecli.py",
+          "sha256": "ad922b047ce13e7ea9fe9b1ba4843c07a48ea10f1f9ef91faf9ed49c25a69f36",
+          "bytes": 842
+        },
+        {
+          "path": "scripts/profile_template.py",
+          "sha256": "2e469aa6d0856d4cf2c4574ee94f366f4d4ab6e493512dbae1ff9ab66888efdf",
+          "bytes": 13619
+        },
+        {
+          "path": "scripts/render_with_officecli.py",
+          "sha256": "ea42dcd095dde024ea8150e36fa6a128bb1e9530cc23727af90dd0f91bf29d45",
+          "bytes": 15870
+        },
+        {
+          "path": "scripts/report_delivery_readiness.py",
+          "sha256": "125dd426763a4957c96a85cda15f96c26fb4b2d99129ea4b3bf7be8623c95fe9",
+          "bytes": 16776
+        },
+        {
+          "path": "scripts/report_font_audit.py",
+          "sha256": "ef343944541b8c914dbef8cd6261405c38998c9e6fdbb6caf249675c82f274c9",
+          "bytes": 6936
+        },
+        {
+          "path": "scripts/report_layout_preflight.py",
+          "sha256": "0ff9f43332fd5b850e870e8695a25ed4df6b5d78c7b00158fee6e1b8135c53ca",
+          "bytes": 12199
+        },
+        {
+          "path": "scripts/report_workspace_readiness.py",
+          "sha256": "a9ecff24262500b84d0f52e66f47fcb60af96b26c167c9c07542203b6b1d2f3c",
+          "bytes": 21060
+        },
+        {
+          "path": "scripts/workspace_core.py",
+          "sha256": "b83d150bfe2d116108787927245ddd787e3aecd07cef3c762217d34cbbba5854",
+          "bytes": 26778
         },
         {
           "path": "SKILL.md",
-          "sha256": "56cc917904f17670f89765799ac3ff6ef7c8c16e8588f817062d6e286c0309ed",
-          "bytes": 10170
+          "sha256": "a9f482a9b5d35fb1ac4455340b478b426e2162bd689cbddfe9d044de4715fd6e",
+          "bytes": 13103
+        },
+        {
+          "path": "templates/workspace/from-scratch/asset-plan.json",
+          "sha256": "43c5ceabaec8596bc242f2a9b5a0a7c6b6c063709fdd69cd7c26cb31fd536fc9",
+          "bytes": 45
+        },
+        {
+          "path": "templates/workspace/from-scratch/assets/attribution.csv",
+          "sha256": "87fd77795a638d9f693ad2ff2aa81c6d6a8dff1bb0029e3eb929f2611598d660",
+          "bytes": 37
+        },
+        {
+          "path": "templates/workspace/from-scratch/assets/manifest.json",
+          "sha256": "5d7572aea12757f02e262b10a65d217103152bd1e6ffe835a2347c2fceb251a1",
+          "bytes": 46
+        },
+        {
+          "path": "templates/workspace/from-scratch/assets/originals/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/from-scratch/assets/prepared/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/from-scratch/build/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/from-scratch/design-brief.json",
+          "sha256": "047508dd04bd6448d44c2861b9f4a40dc1594971f793621077ecb6e17733fbf3",
+          "bytes": 164
+        },
+        {
+          "path": "templates/workspace/from-scratch/design-contract.json",
+          "sha256": "115d3c0c89a75089a42ad166fe86f0216bc7c00c2b927631999a292dfd859b80",
+          "bytes": 551
+        },
+        {
+          "path": "templates/workspace/from-scratch/evidence-plan.json",
+          "sha256": "43c5ceabaec8596bc242f2a9b5a0a7c6b6c063709fdd69cd7c26cb31fd536fc9",
+          "bytes": 45
+        },
+        {
+          "path": "templates/workspace/from-scratch/font-contract.json",
+          "sha256": "e1c65f449caa6119bfe537ab366208c6efd76a4cbde65d8f7a6989ce402c0b69",
+          "bytes": 115
+        },
+        {
+          "path": "templates/workspace/from-scratch/font-environment.json",
+          "sha256": "e2f8f19b69b298a0f79312bba1840ab26f686377dedc7f9cc8e5225cb0cd97f4",
+          "bytes": 810
+        },
+        {
+          "path": "templates/workspace/from-scratch/intake.json",
+          "sha256": "5b654949599c7dfec2711f913ad23c9897129f4d00761e183089a6312edc9cbd",
+          "bytes": 166
+        },
+        {
+          "path": "templates/workspace/from-scratch/notes.md",
+          "sha256": "289012585acbf8680604a1c703c53b0303fe56eb2c7bd7fd520a1f347d6f84f1",
+          "bytes": 127
+        },
+        {
+          "path": "templates/workspace/from-scratch/patches/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/from-scratch/per-slide-content-plan.md",
+          "sha256": "9b76dd29b14dc9bacb6a9bdd08df68d56d35d1b2283a85bb148fcb99e912e2b6",
+          "bytes": 379
+        },
+        {
+          "path": "templates/workspace/from-scratch/renders/final/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/from-scratch/renders/r1/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/from-scratch/renders/style-proof/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/from-scratch/reviews/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/from-scratch/scripts/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/from-scratch/sources/manifest.json",
+          "sha256": "0a12ec538c8357746dadc64589fb0f9f9fbe9bc012eefac67bd0d29952a5c7f9",
+          "bytes": 47
+        },
+        {
+          "path": "templates/workspace/from-scratch/sources/originals/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/from-scratch/src/deck.js",
+          "sha256": "5f19dcbe4a43574393421c00cb81ed71a35899753530226d7ae54744415a4fa2",
+          "bytes": 943
+        },
+        {
+          "path": "templates/workspace/from-scratch/src/slides/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/from-scratch/src/theme.js",
+          "sha256": "b9b240e8ede67d2b32e6365d72e68710530def8f0c8b9aa1c399176c4638d093",
+          "bytes": 254
+        },
+        {
+          "path": "templates/workspace/from-scratch/workspace.json",
+          "sha256": "6731f27f2fa197afb5ec6a8092a1022581758a9ab9ff2349f066ec465ed330cc",
+          "bytes": 1451
+        },
+        {
+          "path": "templates/workspace/inspect/build/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/inspect/renders/final/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/inspect/reviews/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/inspect/sources/manifest.json",
+          "sha256": "a9290a48ea230d31ad9295deadce0cf95e280cd88f1d34b46f79c1bfbc13d07a",
+          "bytes": 186
+        },
+        {
+          "path": "templates/workspace/inspect/sources/originals/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/inspect/workspace.json",
+          "sha256": "ff6d7e5cb7427242fa8ae83d89372af377b065406beb3fb43e4c62d823508486",
+          "bytes": 387
+        },
+        {
+          "path": "templates/workspace/template-edit/asset-plan.json",
+          "sha256": "43c5ceabaec8596bc242f2a9b5a0a7c6b6c063709fdd69cd7c26cb31fd536fc9",
+          "bytes": 45
+        },
+        {
+          "path": "templates/workspace/template-edit/assets/attribution.csv",
+          "sha256": "87fd77795a638d9f693ad2ff2aa81c6d6a8dff1bb0029e3eb929f2611598d660",
+          "bytes": 37
+        },
+        {
+          "path": "templates/workspace/template-edit/assets/manifest.json",
+          "sha256": "5d7572aea12757f02e262b10a65d217103152bd1e6ffe835a2347c2fceb251a1",
+          "bytes": 46
+        },
+        {
+          "path": "templates/workspace/template-edit/assets/originals/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/template-edit/assets/prepared/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/template-edit/build/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/template-edit/design-brief.json",
+          "sha256": "e47959161f89cf76a60bd812a49a7d63eda575a33b173f6cf6a1e310b7774f81",
+          "bytes": 180
+        },
+        {
+          "path": "templates/workspace/template-edit/design-contract.json",
+          "sha256": "e51b1abcfc8510311f29738bfb72f5a92888e40d316a14a76151c12487ebf43b",
+          "bytes": 565
+        },
+        {
+          "path": "templates/workspace/template-edit/evidence-plan.json",
+          "sha256": "43c5ceabaec8596bc242f2a9b5a0a7c6b6c063709fdd69cd7c26cb31fd536fc9",
+          "bytes": 45
+        },
+        {
+          "path": "templates/workspace/template-edit/font-contract.json",
+          "sha256": "c6ac8106bcf31bebd026b4240e42bc77dccb85dc18be81bc3fcfd7e73b1d5533",
+          "bytes": 125
+        },
+        {
+          "path": "templates/workspace/template-edit/font-environment.json",
+          "sha256": "4f570062bec18dece3de1afdbeb0032b653591d5602ea2ed929c411da41fab2f",
+          "bytes": 805
+        },
+        {
+          "path": "templates/workspace/template-edit/intake.json",
+          "sha256": "a6a226204b9b079b710551113ecd69f6a85da23955f68ee4fe67bbdac4404b1b",
+          "bytes": 451
+        },
+        {
+          "path": "templates/workspace/template-edit/notes.md",
+          "sha256": "b3875aec7d1efcfa95e9e3cee6a31821d132733979137e532662d8bd0e09e0b1",
+          "bytes": 129
+        },
+        {
+          "path": "templates/workspace/template-edit/patches/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/template-edit/per-slide-content-plan.md",
+          "sha256": "800289dfa30f916b3dbef7b798ffed179c6527e8ec23cd6f1c32a82d9d695871",
+          "bytes": 382
+        },
+        {
+          "path": "templates/workspace/template-edit/renders/final/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/template-edit/renders/r1/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/template-edit/renders/style-proof/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/template-edit/reviews/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/template-edit/scripts/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/template-edit/sources/manifest.json",
+          "sha256": "61c2362e141d7a7f842c076d7e7bdddc67bb13ced7f3549cdc42d5fd516f3d79",
+          "bytes": 356
+        },
+        {
+          "path": "templates/workspace/template-edit/sources/originals/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/template-edit/src/deck.js",
+          "sha256": "d1b873b1a3735e188f380a09bfb53ecb24fc63c84ca45850440ea8c9eef7ebce",
+          "bytes": 1085
+        },
+        {
+          "path": "templates/workspace/template-edit/src/slides/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "templates/workspace/template-edit/src/theme.js",
+          "sha256": "b9b240e8ede67d2b32e6365d72e68710530def8f0c8b9aa1c399176c4638d093",
+          "bytes": 254
+        },
+        {
+          "path": "templates/workspace/template-edit/template-profile.json",
+          "sha256": "109a9aa427039c73e3bb5e7d8d18d18e48dc26b12de9ca46b5a0f3d1d1896cce",
+          "bytes": 244
+        },
+        {
+          "path": "templates/workspace/template-edit/workspace.json",
+          "sha256": "a869707c8bfd29aced1b1f5a0db059e9b86e1ee9cf14421664e8b885c4cd4bda",
+          "bytes": 1860
         }
       ],
       "triggers": {
-        "description": "\"Generate, edit, read, and verify PowerPoint/PPTX presentations and slide decks.\"",
+        "description": "\"Generate, edit, inspect, or verify editable PowerPoint/PPTX decks when a .pptx file is the deliverable; use for template-preserving edits and from-scratch slide production, but not for HTML/SVG mockups, PDF-only reports, or presentation advice that needs no PPTX artifact.\"",
         "nearMissDeclared": true,
         "stopOutcomes": [
-          "complete"
+          "complete",
+          "need-user",
+          "need-evidence",
+          "material-delta",
+          "blocked",
+          "Unverified"
         ]
       },
       "backendAnchors": [
@@ -5846,10 +6697,34 @@
           "disposition": "mapped through subagent.dispatch or blocked",
           "occurrences": [
             {
-              "path": "SKILL.md",
+              "path": "references/content-planning.md",
               "lines": [
-                25,
-                129
+                11
+              ]
+            },
+            {
+              "path": "references/editing.md",
+              "lines": [
+                22,
+                111
+              ]
+            },
+            {
+              "path": "references/learning-notes-05-specialized-case-practice.md",
+              "lines": [
+                248
+              ]
+            },
+            {
+              "path": "scripts/build_workspace.py",
+              "lines": [
+                45
+              ]
+            },
+            {
+              "path": "templates/workspace/from-scratch/notes.md",
+              "lines": [
+                3
               ]
             }
           ]
@@ -5859,17 +6734,47 @@
           "disposition": "retained behind explicit capability and operation gates",
           "occurrences": [
             {
+              "path": "references/learning-notes-02-workplace-content-design.md",
+              "lines": [
+                121
+              ]
+            },
+            {
+              "path": "references/officecli-adapter.md",
+              "lines": [
+                5,
+                7,
+                26
+              ]
+            },
+            {
               "path": "references/pptxgenjs.md",
               "lines": [
-                238
+                248
+              ]
+            },
+            {
+              "path": "scripts/build_workspace.py",
+              "lines": [
+                45
+              ]
+            },
+            {
+              "path": "scripts/officecli_adapter.py",
+              "lines": [
+                134,
+                155,
+                156,
+                157,
+                160,
+                253
               ]
             },
             {
               "path": "SKILL.md",
               "lines": [
-                273,
-                274,
-                275
+                34,
+                86
               ]
             }
           ]
@@ -5919,11 +6824,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -6144,7 +7049,7 @@
     {
       "name": "requirements-grilling",
       "sourcePath": ".agents/skills/requirements-grilling",
-      "sourceHash": "bd7fa157c979d002377746aa01e00d252165bd85c1899fe344a5d2407848d5cf",
+      "sourceHash": "364b5d497a7f1f9571adce621b63a8593a4ea00d6935a1c9e415c414d46e3d41",
       "files": [
         {
           "path": "references/ADR-FORMAT.md",
@@ -6208,8 +7113,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "de1ee202510f8d1fd7175bfd0de561a3f86d5860f94aa6411d5d65b31c70a06b",
-          "bytes": 42837
+          "sha256": "a579838da63c9f47524396d9f894520854870a088c0ab01353b9f14d5df34c36",
+          "bytes": 44484
         }
       ],
       "triggers": {
@@ -6232,7 +7137,7 @@
             {
               "path": "SKILL.md",
               "lines": [
-                78
+                90
               ]
             }
           ]
@@ -6252,17 +7157,17 @@
             {
               "path": "SKILL.md",
               "lines": [
-                84,
-                93,
-                198,
-                252,
-                259,
-                260,
-                384,
-                409,
-                411,
-                422,
-                431
+                96,
+                105,
+                210,
+                264,
+                271,
+                272,
+                396,
+                421,
+                423,
+                434,
+                443
               ]
             }
           ]
@@ -6290,35 +7195,35 @@
                 12,
                 18,
                 41,
-                65,
-                80,
+                77,
                 92,
-                101,
                 104,
-                118,
-                122,
-                124,
-                128,
-                129,
-                138,
+                113,
+                116,
+                130,
+                134,
+                136,
                 140,
-                143,
-                167,
-                174,
-                194,
-                216,
-                226,
+                141,
+                150,
+                152,
+                155,
+                179,
+                186,
+                206,
+                228,
                 238,
-                241,
-                248,
-                259,
-                304,
-                305,
-                376,
+                250,
+                253,
+                260,
+                271,
+                316,
+                317,
                 388,
-                413,
-                431,
-                435
+                400,
+                425,
+                443,
+                447
               ]
             }
           ]
@@ -6348,7 +7253,7 @@
             {
               "path": "SKILL.md",
               "lines": [
-                194
+                206
               ]
             }
           ]
@@ -6361,11 +7266,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -6411,14 +7316,14 @@
         "repo.read"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "src/runtime/subagents.ts",
+      "adapterOwner": "src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
         "npm run verify:roles",
-        "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/persistent-agent-task-collision.test.ts tests/integration/package-runtime.test.ts",
+        "vitest run tests/unit/persistent-agent-task-registration.test.ts",
+        "npm run test:doctor"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -6757,11 +7662,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -6934,11 +7839,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -7462,11 +8367,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -7499,11 +8404,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -7693,11 +8598,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -7706,12 +8611,12 @@
     {
       "name": "strategy-stress-test",
       "sourcePath": ".agents/skills/strategy-stress-test",
-      "sourceHash": "fd38f5a1269757572c172611fee61ee59b6c816b877d4e6f3de14ebde6e0b2fc",
+      "sourceHash": "e5830c4b768915cf14cd4dd652426d97fb8b4e8067c76322e8bf0f2f41313b02",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "2ef4aac0f452c6f8897a64177e2ea09e67ac4260dbb0561e909f430b29f17903",
-          "bytes": 8438
+          "sha256": "8ef9dcbca03aa3331d097ba0f430b38c1e38c992e9f89bb95080fc0370f21d27",
+          "bytes": 8600
         }
       ],
       "triggers": {
@@ -7742,11 +8647,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -7755,12 +8660,12 @@
     {
       "name": "systematic-literature-review",
       "sourcePath": ".agents/skills/systematic-literature-review",
-      "sourceHash": "55738c2bae9dadad2bdf956f144ba5df8f48bdc82bf76f7d72de82dc917f39fa",
+      "sourceHash": "69b423a189daa1fda5a15ce0d30daa614a5e0f5fd1fbfdacdfa4607ad0afcb40",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "93bb864482a920924dee7473a5d3ddd64c998d3f1b36348ba27a9c45189b9081",
-          "bytes": 3500
+          "sha256": "15fdb84e5f5af6474ebc095bf2ea058d69ca10c25d86c2df077f80314a2ada25",
+          "bytes": 3546
         }
       ],
       "triggers": {
@@ -7776,7 +8681,7 @@
             {
               "path": "SKILL.md",
               "lines": [
-                77
+                79
               ]
             }
           ]
@@ -7804,7 +8709,7 @@
     {
       "name": "test-document-generator",
       "sourcePath": ".agents/skills/test-document-generator",
-      "sourceHash": "46fee032b644a030ff893dce1dda6614276f850ce5e61788273177680dcac42b",
+      "sourceHash": "51332a2ccfd18e9f907ce4c58553ee9bec56b682f4de1bbe192c67cab53e464b",
       "files": [
         {
           "path": "references/test-document-template.md",
@@ -7813,8 +8718,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "fd2ff7a687b8372b04ef6378a401f85fcf935b9bd83108fd85ecef2537f53cfa",
-          "bytes": 8929
+          "sha256": "0136df98107802438efa90bb7ec2ef7f24d1c6109ac6f01950cb29e178fb7a9e",
+          "bytes": 9608
         }
       ],
       "triggers": {
@@ -7837,8 +8742,8 @@
             {
               "path": "SKILL.md",
               "lines": [
-                100,
-                149
+                102,
+                152
               ]
             }
           ]
@@ -7850,14 +8755,14 @@
             {
               "path": "SKILL.md",
               "lines": [
-                42,
-                52,
+                44,
                 54,
-                58,
-                59,
-                77,
-                80,
-                100
+                56,
+                60,
+                61,
+                79,
+                82,
+                102
               ]
             }
           ]
@@ -7869,7 +8774,7 @@
             {
               "path": "SKILL.md",
               "lines": [
-                109
+                111
               ]
             }
           ]
@@ -7882,11 +8787,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -7974,11 +8879,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
@@ -8086,11 +8991,11 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.81.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",

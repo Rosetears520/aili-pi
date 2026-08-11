@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/evidence-plan.schema.json",
+  "title": "PPTX evidence plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "items"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "slide_ids", "claim", "source_ids", "status"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "slide_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "claim": {"type": "string", "minLength": 1},
+          "source_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "status": {"enum": ["planned", "supported", "unverified", "need-user"]}
+        }
+      }
+    }
+  }
+}

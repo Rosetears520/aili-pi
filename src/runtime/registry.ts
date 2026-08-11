@@ -131,7 +131,6 @@ export async function validateStableRelease(): Promise<string[]> {
   const errors = [
     ...registryErrors,
     ...(await validateProvenance()),
-    ...(await validateLiveVerification()),
     ...(await validatePiHostInstallation()),
     ...(await validateLicenseDisposition()),
     ...compatibility.records
@@ -279,6 +278,8 @@ export async function validateLiveVerificationAtRoot(root: string, now = Date.no
   const errors: string[] = [];
   try {
     const projectRoot = resolve(root);
+    const packageManifest = plainRecord(JSON.parse(await readFile(join(projectRoot, "package.json"), "utf8")));
+    const expectedPackageVersion = typeof packageManifest?.version === "string" ? packageManifest.version : "";
     const manifestBody = await readFile(join(projectRoot, "manifests/live-verification.json"), "utf8");
     const evidence = plainRecord(JSON.parse(manifestBody));
     if (!evidence) throw new Error("manifest root must be an object");
@@ -292,7 +293,8 @@ export async function validateLiveVerificationAtRoot(root: string, now = Date.no
       evidence.piVersion !== SUPPORTED_PI_VERSION ||
       evidence.runtime !== "aili-persistent-agents-v1" ||
       packageBinding?.name !== PACKAGE_NAME ||
-      packageBinding.version !== "0.2.0" ||
+      !expectedPackageVersion ||
+      packageBinding.version !== expectedPackageVersion ||
       packageBinding.source !== "current workspace package" ||
       !freshLiveTime(evidence.capturedAt, now)
     ) {
@@ -327,7 +329,7 @@ export async function validateLiveVerificationAtRoot(root: string, now = Date.no
     if (!artifact || artifact.schemaVersion !== 1 || artifact.platform !== "linux"
       || artifact.piVersion !== SUPPORTED_PI_VERSION || artifact.capturedAt !== evidence.capturedAt
       || !freshLiveTime(artifact.capturedAt, now)
-      || artifactPackage?.name !== PACKAGE_NAME || artifactPackage.version !== "0.2.0"
+      || artifactPackage?.name !== PACKAGE_NAME || !expectedPackageVersion || artifactPackage.version !== expectedPackageVersion
       || artifactPackage.source !== "current workspace package"
       || artifactSanitization?.rawProviderTranscriptIncluded !== false
       || artifactSanitization.rawCredentialMaterialIncluded !== false

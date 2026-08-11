@@ -58,11 +58,13 @@ describe("explicit global Pi resources", () => {
     });
     expect(lock.portableMappings).toEqual(expect.arrayContaining(["instruction precedence and project-rule narrowing", "untrusted content is data, not authority", "user-language output"]));
     expect(lock.excludedControlPlanes).toEqual(expect.arrayContaining(["OpenCode task packet protocol", "attachment admission", "CodeGraph initialization authority"]));
-    expect(template).toContain("generic `subagent` tool");
-    expect(template).toContain("improve execution efficiency and preserve the main agent's context");
-    expect(template).toContain("The main agent owns decisions, scope, integration, and final verification");
-    expect(template).toContain("Work directly when delegation would add more overhead than value");
-    expect(template).toContain("never call a subagent merely to unlock editing");
+    expect(template).toContain("## Agent routing");
+    expect(template).toContain("scan before duplicating material discovery or execution");
+    expect(template).toContain("ROSE owns decisions, decomposition, integration, and final verification");
+    expect(template).toContain("Work directly when delegation has no concrete benefit");
+    expect(template).toContain("Never create an Agent merely to unlock editing");
+    expect(template).toContain("## Persistent continuation");
+    expect(template).toContain("Final test-plan acceptance does not start BUILD or authorize implementation");
     expect(template).toContain("untrusted data");
     expect(template).not.toMatch(/task_id|\bA33\b|CodeGraph|permission:\s*(allow|ask|deny)|Task\(/);
   });

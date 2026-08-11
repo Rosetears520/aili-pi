@@ -589,3 +589,417 @@ push=Published the exact commit to `origin/feature/reconcile-aili-compact-raw-ga
 verification=Before commit, `npm run typecheck` passed and the four raw-gap unit owners passed 51/51. The staged high-signal credential scan found only fixture/test literals; no private-key, GitHub-token, AWS-key, or real provider secret pattern was identified. `git diff --cached --check` reported only intentional Markdown trailing spaces in accepted contract metadata.
 boundary=The worktree still contains 185 unstaged/untracked paths outside the selected snapshot. No cleanup, reset, stash, force-push, tag, publish, or release operation ran. Controlled AgentSession verification remains timed out/Unverified; tasks 2.8 and 2.9 remain unchecked.
 next_action=Review the pushed branch using `branch-summary.md`; do not treat the pushed snapshot as release-ready until the controlled-production blocker and remaining release gates are resolved.
+
+[2026-08-07] BUILD material discovery: raw-domain, ownership, source-binding, and replay-performance release blockers
+phase=BUILD_MATERIAL_DISCOVERY
+status=blocked
+evidence=Two fresh read-only scouts confirmed divergent raw ordinal definitions for non-record `type:"message"` entries; name-only planning-protocol ownership; BranchIndex proof reads from mutable Session-owned references with structure-only replay seeds; and repeated pure/runtime/index work that can materialize full history on the controlled AgentSession path. The existing 300-second timeout, surviving near-101-percent-CPU worker, and missing Compact artifact are NON_PASS evidence for release gating, not a slow pass or environment-only issue.
+decision=User selected the complete hardening direction: canonical raw slots for every message entry, replayable closed handler attestation without HMAC, immutable source-bound snapshot/seed/catalog binding, revision-scoped promotion-gap indexing, truthful traversal counters, and controlled watchdog/non-PASS artifacts.
+scope=DEFINE revision updates proposal, design, tiered-lifecycle/branch-index requirements, tasks, test plan, release gates, drift, and this ledger. It does not authorize runtime/test/harness edits, dependency or lockfile changes, network/provider use, Git operations, commit, push, tag, publish, or release.
+next_action=Strict-validate the revised artifacts and obtain one explicit final-test-plan acceptance before resuming affected BUILD.
+
+[2026-08-07] DEFINE full hardening revision validated
+phase=DEFINE
+status=awaiting-final-test-plan-acceptance
+artifacts=Updated proposal/design, tiered-lifecycle and branch-index requirements, tasks, test plan, release gates, drift log, and this progress ledger for raw-domain parity, handler attestation, immutable source-bound replay, structural catalog identity, and bounded replay performance.
+verification=`openspec validate reconcile-aili-compact-release-lineage --strict` passed after the revision.
+boundary=No affected runtime/test/harness edit, dependency or lockfile operation, network/provider operation, Git operation, commit, push, tag, publish, or release occurred under this DEFINE revision.
+next_action=Obtain one explicit acceptance of the revised final test plan; without acceptance tasks 2.5, 2.7-2.11, 3.5, and all candidate verification/release gates remain blocked.
+
+[2026-08-07] DEFINE audit correction
+phase=DEFINE
+status=awaiting-final-test-plan-acceptance
+audit=The read-only plan audit required a closed source snapshot proof field, catalog source-digest binding, an oracle non-sharing rule, exact gap and stress bounds, whole-epoch duplicate-ID behavior, atomic PASS failure injection, and a decision for attested rejection transparency.
+decision=User allowed only successful closed status, successful transaction-bound compact, and a closed handler-attested compact rejection to bridge a promotion gap. Rejected status, permission denial, unknown-tool, and all other outcomes are non-transparent.
+correction=The revised artifacts now specify `sourceSnapshotDigest`, 256-slot proof maximum, oracle independence, exact 16/23 stress topology and 2.5x cold-visit bound, global duplicate-ID rejection, and no adoptable PASS artifact after final-assertion/timeout/kill failure.
+next_action=Re-run strict validation and obtain one explicit acceptance of the revised final test plan before affected BUILD resumes.
+
+[2026-08-07] DEFINE revalidation complete
+phase=DEFINE
+status=awaiting-final-test-plan-acceptance
+verification=`openspec validate reconcile-aili-compact-release-lineage --strict` passed; `git diff --check -- openspec/changes/reconcile-aili-compact-release-lineage` produced no diagnostics.
+next_action=Obtain one explicit acceptance of the revised final test plan before affected BUILD resumes.
+
+[2026-08-07] DEFINE acceptance and BUILD resumption
+phase=BUILD
+status=active
+acceptance=User explicitly accepted the full raw-domain, ownership, source-binding, and bounded-replay final test-plan revision and resumed repository-local BUILD.
+scope=Implement tasks 2.5, 2.7-2.11, and 3.5 through task-scoped code/tests and local verification. Dependency/lockfile, provider/network, Git operations, commit, push, tag, publish, and release remain unauthorized.
+next_action=Reconfirm exact production symbols and tests, then implement the raw snapshot/attestation/index package before controlled-production reruns.
+
+[2026-08-08] BUILD controlled hierarchy economics blocker
+phase=BUILD_MATERIAL_DISCOVERY
+status=blocked
+execution=`npm test -- tests/integration/aili-compact-agent-session.test.ts tests/integration/persistent-agent-production.test.ts` reached the first T3 after all 16 T1 and four T2 transactions, then failed in 122.08 seconds. Persistent Agent production passed.
+evidence=The `aili_compact` rejection for T3 was a closed handler-attested `token-benefit-ineligible` result with `no-steady-savings`, `minimum-steady-savings`, `minimum-savings-ratio`, `break-even-horizon`, and `negative-net-savings`. The controlled fixture presents two approximately 512-character T2 tool-result recaps as the T3 source while proposing an approximately 8,000-character T3 summary, so the current economics model correctly rejects it. This is distinct from raw-gap verification; T1 and T2 promotion now advance.
+material_boundary=The accepted 16 T1 -> 4 T2 -> 2 T3 -> 1 restill hierarchy cannot be made to pass by blindly changing summary length. Changing parent-tier economics inputs, thresholds, or the hierarchy evidence requirement changes product behavior or verification strategy and requires DEFINE revision plus final test-plan acceptance.
+authorization_boundary=No provider/network/authentication, dependency/lockfile/version, Git, commit, push, tag, publish, release, or additional affected runtime/test edit is authorized while this material decision is unresolved.
+next_action=Obtain one user decision: open DEFINE for an evidence-faithful parent-tier economics/controlled-hierarchy revision, preserve the current policy and leave the release blocked, or choose a different accepted verification strategy.
+
+[2026-08-08] DEFINE controlled hierarchy economics revision
+phase=DEFINE
+status=awaiting-final-test-plan-acceptance
+decision=User selected preservation of immediate projected-child recap economics and current strict thresholds. The controlled fixture must use economically viable anchored summary surfaces rather than credit recursive raw leaves, historical tool-result text, or a policy override.
+scope=Revise the tiered lifecycle and release-lineage requirements, proposal, design, tasks, final test plan, release gates, drift, and progress. The exact 16 T1 -> 4 T2 -> 2 T3 -> 1 restill topology remains required; the 512-character-T2 to 8,000-character-T3 request remains a required rejection.
+authorization_boundary=No affected runtime/test edit, provider/network/authentication call, dependency/lockfile/version operation, Git operation, commit, push, tag, publish, or release is authorized until this revision passes strict validation and receives explicit final test-plan acceptance.
+next_action=Strict-validate the controlled-hierarchy economics revision and obtain explicit final test-plan acceptance before resuming affected BUILD.
+
+[2026-08-08] DEFINE hierarchy-capacity correction
+phase=DEFINE
+status=blocked
+evidence=Static review of the unchanged conservative 2-to-6-byte token bounds found that a fixed 16 T1 -> 4 T2 -> 2 T3 -> 1 restill schedule cannot guarantee both the ordinary T3 20-percent savings gate and the restill 8,000-token immediate-source floor under the 10,000-character summary maximum. Actual provider serializer wrappers can only be measured through the existing runtime path; they cannot safely be assumed away.
+correction=The earlier draft assertion that fixed T1 7,580/T2 6,000/T3 8,000/restill 1,000 summary surfaces make all 23 transactions pass is withdrawn pending a material decision. The test-plan draft remains unaccepted and no affected fixture/runtime change is authorized.
+decision_required=Choose whether to change the controlled stress topology while preserving current production economics, change production economics/summary constraints to retain the exact 23-transaction topology, or leave the release blocked. A measurement-only runtime-surface artifact may inform a selected option but does not itself authorize a production policy change.
+next_action=Obtain one user decision on topology versus production economics before correcting the DEFINE artifacts and requesting final test-plan acceptance.
+
+[2026-08-08] DEFINE 18k and 29-transaction feasibility correction
+phase=DEFINE
+status=blocked
+decision=User selected an 18,000-character hard cap and a 16 T1 -> 8 T2 -> 4 T3 -> 1 restill stress topology while preserving the existing economics gates.
+evidence=A fresh static capacity review found that even under an optimistic 18,000-character control-character surface, the four T3 children in that 29-transaction topology can provide at most 4,927 lower-bound source tokens to restill, below the unchanged 8,000-token floor. The current 10,000/12,000 summary/config/quality caps would also each need a coordinated product revision before an 18,000 cap could exist. No fixture implementation may claim that the 29-transaction shape passes.
+decision_required=Choose a larger verified topology that preserves the 8,000-token restill floor, lower the production restill/economics threshold to retain the 29-transaction topology, or retain the release block. The conservative binary capacity lower bound is 28 T1 -> 14 T2 -> 7 T3 -> 1 restill (50 semantic transactions); a smaller nonuniform topology still needs measured proof for all gates.
+next_action=Obtain one user decision before revising the unaccepted economics/topology draft or performing affected BUILD work.
+
+[2026-08-08] DEFINE summary-capacity and 50-transaction revision
+phase=DEFINE
+status=awaiting-final-test-plan-acceptance
+decision=User selected a 15,000-character semantic-summary target, an 18,000-character hard ceiling, and a 28 T1 -> 14 two-child T2 -> 7 two-child T3 -> one seven-child T3 restill topology. Existing immediate-child economics, 20-percent benefit ratio, 8,000-token restill source floor, 3,000-token restill output limit, and age/watchdog/budget gates remain unchanged.
+scope=Synchronize the 18,000-character ceiling across public/runtime/configuration/v3/quality owners; replace the capacity-infeasible 16/23 stress fixture with the 50-transaction controlled hierarchy; preserve the 8/15 release lineage and the uneconomic 512-to-8,000 T3 negative.
+authorization_boundary=No affected runtime/test edit, provider/network/authentication call, dependency/lockfile/version operation, Git operation, commit, push, tag, publish, or release is authorized until strict validation and explicit final test-plan acceptance.
+next_action=Strict-validate this summary-capacity and 50-transaction revision, then obtain explicit final test-plan acceptance before affected BUILD resumes.
+
+[2026-08-08] DEFINE acceptance and BUILD resumption: summary-capacity and 50 transactions
+phase=BUILD
+status=active
+acceptance=User explicitly accepted the strict-validated summary-capacity and controlled-50-transaction final test-plan revision and resumed repository-local BUILD.
+scope=Implement tasks 2.5, 2.7-2.13, and 3.5 through task-scoped local source/tests/validator changes. The 15,000-character summary target, 18,000-character shared ceiling, 28 T1 -> 14 T2 -> 7 T3 -> one seven-child restill topology, restill age, negative cases, and existing economics/watchdog/budget gates are accepted.
+authorization_boundary=No provider/network/authentication call, dependency/lockfile/version operation, Git operation, commit, push, tag, publish, or release is authorized.
+next_action=Confirm exact cap/config/quality and controlled-hierarchy/validator locality, then implement the accepted summary-capacity and controlled-50-transaction packages.
+
+[2026-08-09] BUILD controlled 50-transaction fixture repair blocked
+scope=Repository-local controlled-production fixture and Compact index fast-path only; no provider, network, dependency/lockfile, Git, publication, or release operation ran.
+fixture=The first T2 status now requires the 16-child maximum structural-promotion group derived from MAX_TRANSPARENT_PROMOTION_GAPS=15, while retaining the exact 28 T1 transaction assertion and later 50-transaction topology.
+runtime=The compact tool now reuses a healthy indexed state/view after sync and falls back to full reduction/view construction only when the index is unavailable or unhealthy.
+verification=npm run typecheck PASS. The focused AgentSession integration command exceeded the terminal timeout twice: first after 160 seconds with the group-size repair; then after 180 seconds after the indexed fast-path repair. Neither run emitted a Vitest case result, and no controlled PASS artifact was accepted.
+status=blocked
+blocker=The exact controlled 50-transaction gate remains non-PASS. Current evidence does not isolate whether the stall is a synchronous event-loop block, an unresolved AgentSession idle wait, or another repeated full-branch operation.
+diagnostic=A 45-second Node report shows the Vitest coordinator was mostly idle and waiting on one forked worker process. With console interception disabled, a temporary phase trace completed the two negative cases and T1 1 through T1 14 in 60 seconds, but did not reach T2. The worker continued after SIGTERM and required the user's exact SIGKILL approval; it was then terminated. The exact worker call stack remains Unverified, but the measured pre-T2 progression alone makes the 120-second total budget unsupported.
+analysis=The controlled fixture performs 168 serial plans before parent tiers: each T1 adds about 320,000 raw characters through one source and four spacer exchanges, and its five text plans plus one three-request compact plan produce eight provider/context transformations. Across 28 T1 blocks this is about 8.96 million retained raw characters and 224 transformations. The indexed provider path aligns/canonicalizes the full provider-message surface before it can construct recap replacements, so repeated full-context traversal is the leading evidence-backed slowdown hypothesis; the exact dominant function remains Unverified without a worker profile.
+repair=The indexed provider alignment now reuses immutable raw-slot descriptor metadata for exact structured-clone inputs and materializes canonical bodies only when they survive projection or a fail-open result needs them. Typecheck and focused BranchIndex/indexed-projector/performance suites passed (22 tests). The bounded full controlled-production rerun did not exit within the approved 135-second window and was terminated as its approved isolated test process group; no 50-transaction PASS artifact was produced.
+next_action=Do not make another micro-optimization without deciding whether the accepted provider-facing projection architecture remains appropriate.
+
+[2026-08-09] BUILD_MATERIAL_DISCOVERY — projection architecture
+phase=BUILD
+status=blocked
+decision=Public prior-art review found that both OpenCode DCP and ACP use the current agent model to author a compress-tool summary rather than a separate summary model. DCP expands earlier summaries/protected output into later requests; ACP keeps a bounded active T1/T2/T3 block frontier, consumes children when it creates a parent, and exposes explicit decompress/search paths.
+evidence=The current AILI fixture retains about 8.96 million raw characters over 224 provider/context transformations and cannot meet the accepted 120-second budget after a bounded descriptor-cache repair. The DCP expansion pattern would increase the identified hot-path risk; the ACP-style active-frontier pattern may reduce it, but AILI's stronger source-bound proof ledger and Pi runtime differ from both upstream projects.
+authorization_boundary=Adopting an active provider-facing frontier separated from the source-proof ledger changes Compact architecture and verification strategy. No further affected runtime/test change is authorized until the user selects a direction and accepts the resulting DEFINE revision. No upstream code, hooks, configuration, or assets may be copied; license and runtime compatibility remain unverified.
+next_action=Choose whether to revise the contract for an AILI-owned bounded active-frontier architecture, retain the current architecture for further micro-optimization, or stop the stress-gate work.
+
+[2026-08-09] DEFINE bounded provider-frontier revision
+phase=DEFINE
+status=awaiting-final-test-plan-acceptance
+decision=User selected ACP-style compression behavior for an AILI-owned design: retain the current model as the Compact summary author; create T1/T2/T3 blocks and consume children atomically; keep an authoritative source-bound proof ledger; send protected recent raw plus bounded block descriptors by default; resolve complete current block summaries only through explicit recap/decompression; retain exact on-demand search/decompression. DCP-style summary/protected-output expansion and upstream code, hook, prompt, state, or configuration reuse are excluded.
+contract=The revised proposal/design/specs/tasks/test-plan require at most 32 active block descriptors in the default provider frontier; explicit current 1–16 block recap/decompression expansion subject to model context/reserve and conservative bounds; no automatic unbounded historical raw/full-summary projection; ledger/source/proof/status/replay authority independent from frontier omission; frontier revision/context/configuration invalidation and truthful counters; unchanged 15k/18k limits, 28->14->7->1/50 topology, immediate-child economics, 10-second phase, and 120-second total budget.
+authorization_boundary=This DEFINE decision does not authorize affected runtime/test implementation, provider/network, dependency/lockfile/version, Git, commit, push, tag, publish, or release operations.
+next_action=Strict-validate the bounded provider-frontier revision and request explicit acceptance of its final test-plan.md before resuming BUILD.
+
+[2026-08-09] DEFINE bounded provider-frontier revision validated
+validation=`openspec validate reconcile-aili-compact-release-lineage --strict` PASS; `git diff --check` PASS.
+status=awaiting-final-test-plan-acceptance
+next_action=Request explicit acceptance of `test-plan.md` before any affected BUILD work resumes.
+
+[2026-08-09] BUILD resumed — bounded provider frontier
+phase=BUILD
+status=active
+acceptance=User explicitly accepted the strict-validated bounded provider-frontier final test-plan revision and resumed affected repository-local BUILD.
+scope=Implement task-scoped AILI provider-frontier derivation, explicit bounded recap/decompression selection, ledger/frontier separation, invalidation/counters, controlled AgentSession evidence, and release-evidence reconciliation while retaining the accepted 50-transaction/economics/proof gates.
+authorization_boundary=No provider/network, dependency/lockfile/version, Git, commit, push, tag, publish, or release operation is authorized.
+next_action=Confirm exact projection/recap/index locality and implement the bounded provider-frontier package.
+
+[2026-08-09] BUILD controlled hierarchy parent-economics blocker
+phase=BUILD_MATERIAL_DISCOVERY
+status=blocked
+execution=The focused controlled 50-transaction AgentSession test now completes all 28 T1 transactions in 68.84 seconds after the global transparent-candidate overflow no longer invalidates a healthy BranchIndex. The first T2 is then rejected by the unchanged production handler with `token-benefit-ineligible` and `no-steady-savings`, `minimum-steady-savings`, `minimum-savings-ratio`, `break-even-horizon`, and `negative-net-savings`; no PASS artifact was written.
+evidence=The fixture performed an explicit two-child `aili_context_recap` before the T2 mutation. Production economics correctly prices two immediate `v3RecapProjection` call/result pairs (`economics.ts:392-405`), rather than recursive raw leaves or historical provider context. A 12,000-character CJK T2 replacement has a conservative upper token bound that remains uneconomic against the immediate child source lower bound. The accepted contract keeps unchanged economics and describes 12,000-to-18,000 controlled anchored parent surfaces only when actual production gates accept them.
+decision_required=Choose whether DEFINE may calibrate the controlled T3-parent surface below the current 12,000-character target band while preserving all existing economics/proof gates, retain the target band and leave the hierarchy/release blocked, or revise production economics/summary policy.
+authorization_boundary=No further affected runtime/test/contract change, provider/network, dependency/lockfile/version, Git, publication, or release operation is authorized until this material capacity decision is resolved.
+next_action=Obtain one user decision on the controlled parent-summary capacity boundary before continuing affected BUILD work.
+
+[2026-08-09] BUILD parent-economics calibration
+phase=BUILD_MATERIAL_DISCOVERY
+status=blocked
+execution=A disposable local production-AgentSession calibration created four T1 children and attempted two 12,000-character ASCII T2 parents after explicit `aili_context_recap`; it completed in 4.34 seconds with no network/provider call.
+evidence=The first T2 still returned the closed `token-benefit-ineligible` result, so the lowest-byte surface within the accepted 12,000-to-18,000 character band did not pass the unchanged immediate-child economics gate. T3 was not attempted because neither T2 parent appended. The temporary probe was removed; no PASS artifact was written.
+next_action=The remaining decision is unchanged: permit a below-12,000 controlled-parent calibration through DEFINE while retaining the 15,000 default, 18,000 hard cap, and all production economics/proof gates; otherwise retain the release block or revise production policy.
+
+[2026-08-09] DEFINE controlled-parent capacity decision
+phase=BUILD
+status=accepted-resume
+decision=The user removed the 12,000-character lower bound for controlled parent summary surfaces. They retain the 15,000-character product default, shared 18,000-character hard ceiling, and all production economics/source-proof gates.
+validation=`openspec validate reconcile-aili-compact-release-lineage --strict` passed locally after the revised artifacts were reread.
+acceptance=The user accepted the revised final test plan and requested completion. This resumes only task-scoped repository-local BUILD; provider/network, dependency/lockfile, Git, publication, and release operations remain separately governed.
+next_action=Calibrate a below-12,000-character parent against the real local AgentSession path, then resume the controlled 50-transaction matrix only if it accepts unchanged economics.
+
+[2026-08-09] BUILD hierarchy economics second capacity blocker
+phase=BUILD_MATERIAL_DISCOVERY
+status=blocked
+execution=The accepted no-lower-bound parent calibration was run through the real local AgentSession path with explicit recap and no network/provider call. An 8,000-character ASCII T2 parent appended; a 3,000-character ASCII T3 parent over two such T2 children returned the unchanged closed `token-benefit-ineligible` result. The focused probe passed in 6.09 seconds; its temporary test-only code was removed. No PASS artifact was written.
+evidence=Lowering the T2 surface can satisfy T2 economics, but the next T3 must be smaller still. That direction conflicts with the unchanged seven-child restill `minSourceTokens=8000` floor because restill prices only its immediate T3 recap pairs. The 50-transaction hierarchy therefore remains non-PASS under the currently accepted economics/topology; the 18,000-character ceiling change alone cannot complete it.
+decision_required=DEFINE must choose one coherent product/verification policy: change the restill source floor, change the hierarchy topology/child economy, or keep all current economics/topology and leave the controlled hierarchy/release blocked. No affected BUILD mutation continues before that decision and revised final-test-plan acceptance.
+
+[2026-08-09] DEFINE ACP-route comparison
+phase=DEFINE
+status=comparison-ready-no-implementation-acceptance
+decision=The user clarified that ACP is architectural prior art for compression flow, not a source-copy target. No ACP code, prompts, configuration, state schema, or dependency was copied.
+evidence=Reviewed `ranxianglei/opencode-acp` v1.14.13 at `35a0400a1456ed1b51fb1235d78cc3775edbb267`. The detailed comparison and Pi adaptation proposal is `acp-route-comparison.md`; it contrasts model-selected range/block compression, active-block request pruning, retrieval, and true-limit cleanup with the current fixed 50-transaction immediate-economics hierarchy.
+next_action=Obtain a user decision on whether to replace the fixed hierarchy with the proposed ACP-inspired Pi route, then revise the affected design/spec/test-plan before any BUILD work resumes.
+
+[2026-08-09] DEFINE MiMo 90-percent fallback research
+phase=DEFINE
+status=proposal-ready-no-implementation-acceptance
+attachment_identity=source=https://github.com/XiaomiMiMo/MiMo-Code; ref=main; commit=eef8206d80441117a28b0c208730c9c375c7be04; destination=.worktrees/mimo-code/acp-route-research; purpose=read-only architecture research
+evidence=MiMoCode uses a reserved safe working budget, prepares checkpoint state at percentage thresholds, prefers checkpoint rebuild while retaining a bounded tail, and falls back to compaction only when rebuild is unavailable. It does not directly create a semantic summary merely because usage reaches 90 percent.
+proposal=`mimo-90-percent-fallback-proposal.md` defines the requested Pi-owned 90-percent force path: 70/80-percent preparation, a 90-percent checkpoint-rebuild attempt, a bounded existing Pi recovery fallback, one-cycle locking, evidence-based re-arm, and no full-history restoration. No MiMoCode source, prompts, configuration, state, dependency, or runtime code was copied.
+next_action=Resolve the listed reserve/checkpoint/re-arm/diagnostic decisions, revise the active contract and final test plan, then obtain explicit acceptance before BUILD.
+
+[2026-08-09] DEFINE MiMo dynamic checkpoint decision
+phase=DEFINE
+status=contract-revision-in-progress
+decision=The user selected MiMoCode's dynamic checkpoint/rebuild-first route rather than AILI's fixed 70/80/90 pressure stages or the 50-transaction T1/T2/T3/restill hierarchy. ACP remains architectural prior art for the bounded active-block projection only.
+evidence=MiMoCode research at eef8206d80441117a28b0c208730c9c375c7be04 defines the default effective-window ladders (<25K none; 25K–200K: 20/40/60/80%; >200K–500K: 10–90% by 10; >500K: 5–90% by 5), 50/70/85 pressure classification, bounded combined-window reserves, a 13K checkpoint ceiling, successful-checkpoint rebuild before direct compaction, and threshold reset after rebuild.
+adaptation=Pi will use its observed contextWindow plus maxTokens-derived 20K-capped output and recovery reserves, with no new user configuration surface in this DEFINE delta. The 90% threshold is preparation only on windows above 200K; recovery runs at the safe budget or provider overflow. No MiMoCode source, prompts, configuration syntax, state schema, dependencies, or runtime code was copied.
+next_action=Replace fixed tier/economics requirements and their release tests with active-block plus dynamic checkpoint/rebuild requirements, strict-validate, and request final test-plan acceptance before BUILD.
+
+[2026-08-09] DEFINE minimal test-plan revision
+phase=DEFINE
+status=awaiting-final-test-plan-acceptance
+decision=The user requested a simpler test plan. The current plan limits this revision to exact checkpoint-ladder/budget/writer/rebuild tests, bounded active-block frontier/selection tests, and one legacy v3 read-compatibility regression.
+out_of_scope=The former 50-transaction hierarchy, fuzz/differential tests, benchmark/watchdog matrices, full-release validation, live provider calls, package operations, and upstream reuse are not gates for this revision.
+evidence=`test-plan.md` now names four focused commands only: strict OpenSpec validation, the direct recovery/frontier/extension/AgentSession Vitest files, typecheck, and diff check.
+next_action=Strict-validate the concise plan and obtain explicit final test-plan acceptance before any BUILD request is considered.
+
+[2026-08-09] DEFINE minimal test-plan accepted
+phase=DEFINE
+status=complete-awaiting-build-intent
+validation=`openspec validate reconcile-aili-compact-release-lineage --strict` passed; `git diff --check -- openspec/changes/reconcile-aili-compact-release-lineage` passed.
+acceptance=The user explicitly accepted `test-plan.md` with the minimal MiMo/ACP test set. This clears the final DEFINE test-plan gate only.
+next_action=Await an explicit user request to BUILD the accepted MiMo dynamic checkpoint and active-block scope. No runtime, dependency, lockfile, provider/network, Git, publication, or release operation is authorized by this acceptance.
+
+[2026-08-09] BUILD material discovery — legacy integration conflict
+phase=DEFINE
+status=targeted-test-revision-awaiting-acceptance
+evidence=The prior minimal command ran two unit files successfully but `tests/integration/aili-compact.test.ts` failed 21 pre-existing status-envelope assertions and `tests/integration/aili-compact-agent-session.test.ts` failed its retired 50-transaction T2 economics assertion. Neither failure validates the accepted MiMo/ACP scope.
+decision=The user selected two dedicated official-Pi integration tests (`aili-compact-mimo-recovery.test.ts` and `aili-compact-active-blocks.test.ts`) instead of repairing the legacy suites.
+next_action=Strict-validate the targeted test-plan revision and obtain final acceptance before BUILD resumes. No runtime or test mutation proceeds under the superseded plan.
+
+[2026-08-09] DEFINE targeted test-plan accepted
+phase=DEFINE
+status=complete-awaiting-build-intent
+validation=`openspec validate reconcile-aili-compact-release-lineage --strict` passed; `git diff --check -- openspec/changes/reconcile-aili-compact-release-lineage` passed.
+acceptance=The user explicitly accepted the targeted MiMo recovery/active-block test plan.
+next_action=Await an explicit request to BUILD the accepted scope. The prior BUILD attempt was stopped by material verification discovery; this acceptance alone does not resume runtime/test edits.
+
+[2026-08-09] BUILD targeted MiMo/ACP implementation started
+phase=BUILD
+status=in-progress
+authorization=The user explicitly authorized implementation of the accepted MiMo dynamic checkpoint/rebuild and ACP active-block scope, with local focused verification.
+scope=Runtime changes and two targeted official-Pi integration tests only. Dependencies, lockfile, provider/network, Git, publication, and release operations remain out of scope.
+baseline=The targeted recovery and provider-frontier unit files passed. The legacy broad integration and 50-transaction lineage suites are known non-target failures and are excluded by the accepted targeted test plan.
+next_action=Implement dynamic checkpoint timing/rebuild-first recovery and active-block behavior, then add and run the two targeted integrations plus the focused unit/type/diff checks.
+
+[2026-08-09] BUILD targeted MiMo/ACP implementation complete
+phase=BUILD
+status=complete-targeted
+implementation=MiMo recovery now derives the accepted safe-budget ladder, persists a prepared checkpoint only after its append succeeds, retains the last usable checkpoint when a newer writer fails, and rebuilds the bounded provider frontier at the safe budget before native compaction. Unavailable MiMo recovery retains one Pi-native overflow fallback.
+implementation=New semantic writes are active blocks without a persisted tier. Legacy T1/T2/T3 records remain readable. Active replacements accept current adjacent active children without hierarchy/restill gates, retain source/quality proof, and update the bounded descriptor frontier without exposing full summaries unless recap is explicitly selected.
+verification=`openspec validate reconcile-aili-compact-release-lineage --strict` PASS; focused Vitest PASS (4 files, 30 tests); `npm run typecheck` PASS; task-scoped `git diff --check` PASS.
+out_of_scope=Known legacy broad integration and 50-transaction hierarchy tests remain excluded by the accepted targeted test plan. No provider/network, dependency/lockfile, Git, publication, or release operation ran.
+next_action=Await a separately requested review, broader regression run, or SHIP/release operation.
+
+[2026-08-09] DEFINE full-candidate release-gate reconciliation started
+phase=DEFINE
+status=active
+decision=The user selected the complete current working tree as the `@rosetears/aili-pi@0.2.0` release candidate and requested release-gate remediation.
+evidence=Safe-local readiness passed package (6 tests), generated (7 tests), and provenance validation plus a 187-file `npm pack --dry-run --ignore-scripts` inventory. `validate:compatibility` failed on a current adapter-evidence hash drift for `tests/integration/persistent-agent-production.test.ts`; `validate:release` and `test:live-release` each reported 15 stale or NON_PASS blockers.
+scope=Reconcile the release validator, controlled active-block/MiMo evidence contract, artifact chain, and final release-candidate verification plan. No runtime, generated-artifact, validator, harness, dependency, lockfile, network/provider, installation, Git, or publication mutation is authorized until this revised plan is accepted and BUILD is explicitly requested.
+next_action=Strict-validate the revised artifacts and request explicit acceptance of the final full-candidate test plan.
+
+[2026-08-09] DEFINE full-candidate release-gate plan validated
+phase=DEFINE
+status=awaiting-final-test-plan-acceptance
+artifacts=release-gates.md; design.md; specs/aili-compact-release-lineage/spec.md; tasks.md; test-plan.md; drift-log.md
+verification=`openspec validate reconcile-aili-compact-release-lineage --strict` PASS; `git diff --check -- openspec/changes/reconcile-aili-compact-release-lineage` PASS.
+acceptance_needed=The user must explicitly accept the `DRAFT_FULL_CANDIDATE_RELEASE_RECONCILIATION` test plan before release-validator, controlled-evidence, generated-artifact, or test changes may begin.
+next_action=Request final test-plan acceptance. No external, installation, Git, publication, or BUILD operation is authorized by the DEFINE draft.
+
+[2026-08-09] DEFINE full-candidate release-gate plan accepted
+phase=DEFINE
+status=complete-awaiting-build-intent
+acceptance=The user explicitly accepted `ACCEPTED_FULL_CANDIDATE_RELEASE_RECONCILIATION`.
+authorization_boundary=Acceptance clears only the DEFINE test-plan gate. Runtime, validator, generated-artifact, and test changes require a new explicit BUILD request; network/provider, installation, Git, and publication operations remain separately gated.
+next_action=Await an explicit BUILD request for the accepted full-candidate release-gate remediation.
+
+[2026-08-10] BUILD task 2.5 root-parent sentinel completed
+scope=BranchIndex null-root boundary and focused Compact unit/official-Pi AgentSession evidence only. No provider/network, dependency/lockfile, installation, Git, publication, generated-artifact, or release operation ran.
+implementation=BranchIndex accepts `parentId: null` only for the first cold-build entry or the first append to an empty snapshot, normalizes that root as parentless, and retains invalid-entry/impossible-lineage/parent-tip-mismatch failures otherwise.
+tests=Added focused unit coverage for empty-string/non-string parents on cold and empty-append paths plus impossible ancestry and parent-tip mismatch. Added a real official-Pi AgentSession case whose actual root is `model_change` with `parentId: null`, whose production Compact status remains healthy, and whose actual controlled-provider input aligns through a fresh BranchIndex pass.
+permission_boundary=The AgentSession case writes only a disposable scratch agent-dir `permission-mode.json` with `tool.{"*":"ask","aili_compact_status":"allow","aili_compact":"allow"}` and activates only those two SDK tools. Shipped permission policy was not modified.
+verification=`npm test -- --run tests/unit/aili-compact-branch-index.test.ts` PASS (18 tests); `npm test -- --run tests/integration/aili-compact-agent-session.test.ts -t "aligns an official Pi null-root Session"` PASS (1 test, 8 skipped); `npm run typecheck` PASS; task-scoped `git diff --check` PASS.
+tasks=2.5 checked. This records bounded task evidence only; it does not establish release readiness or completion of other Compact/release tasks.
+next_action=ROSE may reconcile this task evidence with the remaining accepted BUILD packages.
+
+[2026-08-10] BUILD task 2.7 safe-range ordinal parity completed
+scope=Safe-range ordinal planning, exact-mutation regression coverage, and focused tests only. No provider/network, dependency/lockfile, installation, Git, publication, generated-artifact, or release operation ran.
+implementation=Current and indexed callers already supply mutation-catalog effective source ordinals and safe planning already flushes at every discontinuity. Planning now additionally rejects the Number.MAX_SAFE_INTEGER unknown-ordinal sentinel so it cannot advertise a range that exact mutation validation would reject.
+production_regression=A deterministic official-Pi AgentSession fixture persists AILI status/compact protocol, proves indexed status returns two ordinal-contiguous ranges separated by that persisted protocol, passes its indexed recommendation to current exact mutation planning, and persists the second contiguous T1 transaction. The fixture also proves persisted AILI protocol has no public catalog ref; the focused safe-planning unit retains the public-tail behavior around an omitted ordinal gap.
+verification=Safe-planning unit PASS (14 tests); targeted official-Pi AgentSession regression PASS (1 test, 9 skipped); exact v3 mutation/contiguity units PASS (2 files, 38 tests); npm run typecheck PASS; task-scoped git diff --check PASS.
+tasks=2.7 checked. This is bounded task evidence only and does not establish release readiness or completion of tasks 2.8+.
+next_action=ROSE may reconcile this task evidence with the remaining accepted BUILD packages.
+
+[2026-08-10] BUILD task 2.8 promotion-gap index completed
+scope=Fail-closed raw promotion-gap classification, current-epoch raw ordinals, status/mutation index parity, and focused tests only. No provider/network, dependency/lockfile, installation, Git, publication, generated-artifact, or release operation ran.
+implementation=The current v3 runtime now derives effective source ordinals from the current persisted compaction epoch, so malformed raw history retains one ordinal per message without shifting current-epoch leaves. The shared classifier/index remains the status and mutation verifier; recursive parent counts and leaf digests continue to derive only from semantic children.
+verification=Focused promotion classifier/v3 mutation/pure replay/BranchIndex Vitest PASS (5 files, 61 tests); focused direct source-mutation status integration PASS (2 tests, 1 non-target source-freshness performance test skipped); npm run typecheck PASS; task-scoped git diff --check PASS.
+unverified=The excluded source-freshness performance case currently reads historical raw bodies after an ordinary append (expected 0, observed 632). It belongs to the forbidden task 2.11 snapshot/replay/counter scope and is not used as task 2.8 proof.
+tasks=2.8 checked. This is bounded task evidence only and does not establish release readiness or completion of tasks 2.9+.
+next_action=ROSE may reconcile this task evidence with the remaining accepted BUILD packages.
+
+[2026-08-10] BUILD task 2.9 raw-gap proofs completed
+scope=Closed v3 block-source proof contract and focused planner/pure-replay/BranchIndex replay verification only. No provider/network, dependency/lockfile, installation, Git, publication, generated-artifact, or release operation ran.
+implementation=The existing v3 block-source parser admits only version-1 proofs bounded to 15 proof records and 256 raw messages each. Planner preflight, pure replay, and BranchIndex replay independently recompute the immutable raw-epoch proof and fail closed unless endpoints, count, source snapshot, digest, handler attestation, and protocol classification agree. Proof omission remains accepted only for raw `+1` child adjacency.
+verification=Focused Vitest PASS (5 files, 63 tests): promotion classifier, v3 planner, direct v3 transition, pure replay, and BranchIndex replay. New focused cases reject mismatched planner source identity, omitted non-adjacent proofs, endpoint/count/digest/source-snapshot tampering, wrong handler attestation, and third-party protocol classification in pure and indexed replay. `npm run typecheck` PASS; task-scoped `git diff --check` PASS.
+limits=Task 2.10 handler-owned attestation emission and task 2.11 snapshot/replay performance work remain outside this package. This evidence does not establish release readiness.
+tasks=2.9 checked.
+next_action=ROSE may reconcile this task evidence with the remaining accepted BUILD packages.
+
+[2026-08-10] BUILD task 2.10 handler-owned planning attestations completed
+scope=Only the aili_compact_status and aili_compact handler-return envelope path, its closed v3 transaction validator, focused protocol negatives, and focused integration assertions changed. No provider/network, dependency/lockfile, installation, Git, publication, generated-artifact, or release operation ran.
+implementation=Status returns only a successful closed envelope with no transaction. Compact returns a successful envelope only when its details carry the exact accepted v3 transaction for the current call/session/branch/epoch/projection identity; its canonical transaction digest and ID are persisted. Handler errors and compact success-shaped invalid transaction metadata become closed rejection envelopes with no transaction, including the early manual-permit rejection path.
+verification=Promotion-gap unit PASS (6 tests), including exact v3 digest/schema binding plus name-shaped, permission-denied, unknown, and mixed-protocol negatives. Focused direct handler integration PASS (1 test) for status success and compact rejection. Focused official-Pi AgentSession integration PASS (1 test, 9 skipped) for persisted status success and successful compact transaction/digest binding. npm run typecheck PASS. task-scoped git diff --check PASS.
+unverified=The non-target source-freshness performance case remains failing after an ordinary append (expected zero raw reads, observed 632); it is explicitly task 2.11 snapshot/replay/counter work and was not used for task 2.10 evidence.
+tasks=2.10 checked. This is bounded task evidence only and does not establish release readiness or completion of tasks 2.11+.
+next_action=ROSE may reconcile this task evidence with the remaining accepted BUILD packages.
+
+[2026-08-10] BUILD task 2.11 immutable proof replay completed
+scope=Only BranchIndex immutable raw-proof freshness/index behavior, indexed provider-frontier metadata reuse, structural catalog identity coverage, focused tests, and task/progress records changed. No provider/network, dependency/lockfile, installation, Git, publication, generated-artifact, or release operation ran.
+implementation=Revision-scoped gap indexes retain only immutable raw epoch slots/prefix digests. Source freshness revisits only slots declared by accepted promotion proofs; status candidates do not create an unbounded historical freshness set. Ordinary provider-boundary append reuse reads indexed message-reference metadata rather than Session-owned historical message bodies.
+catalog=Focused v3 coverage proves catalog identity changes when a block proof source snapshot, token metadata, quality metadata, or creating transaction changes.
+verification=`npm test -- tests/unit/aili-compact-v3.test.ts tests/unit/aili-compact-branch-index-v3.test.ts tests/unit/aili-compact-promotion-gaps.test.ts tests/integration/aili-compact-promotion-proof-freshness.test.ts` PASS (4 files, 38 tests); the ordinary-append source-freshness assertion now observes zero historical raw reads. `npm run typecheck` PASS; task-scoped `git diff --check` PASS.
+tasks=2.11 checked. This is bounded task evidence only and does not establish release readiness or completion of tasks 2.12+.
+next_action=ROSE may reconcile this task evidence with the remaining accepted BUILD packages.
+
+[2026-08-10] BUILD task 2.12 tierless active-block writes completed
+scope=New v3 semantic writes, economics, quality/configuration, public compact validation, projection/status surfaces, focused regression coverage, and task/progress records only. No provider/network, dependency/lockfile, installation, Git, publication, generated-artifact, or release operation ran.
+implementation=New semantic mutations and economics use active-block semantics without a persisted tier or restill eligibility. Configuration rejects retired `tiers` and `tokenEconomics` keys; public `aili_compact` input rejects tier-shaped parameters. Quality and semantic summaries use the shared 15,000-character target and 18,000-character hard maximum. Legacy T1/T2/T3 records remain parseable/replayable and projection labels them `legacy-tiered-read-only`.
+verification=Focused task-contract Vitest PASS (4 files, 30 tests); focused owner/unit/integration Vitest PASS (11 files, 108 tests); `npm run typecheck` PASS; task-scoped `git diff --check` PASS.
+excluded=The current `tests/unit/aili-compact-promotion-gap-oracle.test.ts` fails its planner-alignment assertion because its fixture does not supply the handler-owned planning protocol that the task 2.10 validator requires. It is outside task 2.12 and was not used as positive evidence.
+tasks=2.12 checked. This records bounded task evidence only and does not establish release readiness or completion of tasks 2.13+.
+next_action=ROSE may reconcile this task evidence with the remaining accepted BUILD packages.
+
+[2026-08-10] BUILD task 2.10 raw-slot oracle fixture repair
+scope=Only `tests/unit/aili-compact-promotion-gap-oracle.test.ts` and this appended evidence record changed. No production source, dependency/lockfile, provider/network, installation, Git, publication, generated artifact, or release operation ran.
+implementation=The independent compact-success fixture now supplies a closed `aili_compact` envelope containing a typed v3 transaction with exact session/branch/epoch/projection/call identity, and binds both result and transaction digests. The oracle independently verifies the closed transaction/header shape and identity binding; digest-consistent tx-ID, projection, and schema forgeries remain negative alongside the existing attestation negatives. It does not import or call the production promotion classifier, index, or range verifier.
+verification=`npm test -- --run tests/unit/aili-compact-promotion-gap-oracle.test.ts` PASS (3 tests); `npm test -- --run tests/unit/aili-compact-v3.test.ts tests/unit/aili-compact-branch-index-v3.test.ts tests/unit/aili-compact-promotion-gaps.test.ts` PASS (3 files, 35 tests); focused direct handler-envelope test PASS (1 test, 3 skipped); `npm run typecheck` PASS; `git diff --no-index --check -- /dev/null tests/unit/aili-compact-promotion-gap-oracle.test.ts` emitted no whitespace diagnostics.
+limit=The broader `tests/integration/aili-compact-promotion-proof-freshness.test.ts` run has two existing assertions for retired `structuralPromotionGroups` (lines 80 and 156) failing because the tierless active-block lifecycle does not expose that field. This repair did not alter that forbidden integration owner; the focused handler-envelope case in that file passes. This is bounded repair evidence only and does not establish release readiness.
+next_action=ROSE may reconcile this fixture evidence and decide whether the stale integration assertions need their own authorized task-2.13 fixture package.
+
+[2026-08-10] BUILD task 2.13 controlled active-block evidence completed
+scope=Replaced retired fixed-hierarchy fixture assertions and controlled-production evidence schema only; no provider/network, dependency/lockfile, installation, Git, publication, deletion, or generated-artifact regeneration occurred.
+implementation=Freshness status fixtures now construct tierless active blocks and assert activeBlockGroups. Official-Pi active-block integration proves legacy T1 replay, source-bound tierless replacement at both 2 and 16 children, atomic child deactivation, exact recursive leaf digest, and direct 1/17 cardinality rejection. The canonical controlled-production schema is v2 with strict active-block growth/composition/source-proof/legacy-read-only/traversal/retired-gate fields; v1 50-transaction counts, tier economics, restill rejection fields, and extra legacy schema fields fail closed.
+verification=PASS `npm test -- tests/integration/aili-compact-promotion-proof-freshness.test.ts tests/integration/aili-compact-active-blocks.test.ts tests/unit/aili-compact-release-evidence.test.ts tests/unit/aili-compact-branch-index-v3.test.ts tests/unit/aili-compact-v3.test.ts tests/unit/aili-compact-v3-economics.test.ts` (6 files, 87 tests). PASS `npm run typecheck`. BranchIndex proof test asserts observed traversal <=256; active-block source proof test asserts exact digest and atomic state.
+limits=The existing generated controlled-production JSON was intentionally not regenerated or edited, so it remains non-current under the v2 schema until its separately owned artifact operation. No release-ready claim.
+
+[2026-08-10] BUILD task 2.14 provider frontier completed
+scope=Provider-frontier selection binding, indexed provider projection, focused frontier unit coverage, and task progress only. No provider/network, dependency/lockfile, installation, Git, publication, generated-artifact, or release operation ran.
+implementation=The default projection retains protected recent raw and emits at most 32 summary-free descriptors. Explicit current recap selection accepts one through sixteen blocks only. Selection matching now rejects duplicate or incomplete binding fields; retained recap call/result pairs must be exactly one source-bound canonical selection envelope or both are omitted atomically. Invalid selection body, stale/nonactive/source/config/profile/context/reserve binding returns the bounded descriptor default without historical raw restoration.
+atomicity=Focused unit coverage confirms a consumed child descriptor is absent while the replacement descriptor is present and raw recovery remains ledger-only. The existing official-Pi active-block integration confirms ordinary two- and sixteen-child replacement atomically deactivates selected blocks.
+verification=`npm test -- --run tests/unit/aili-compact-provider-frontier.test.ts` PASS (1 file, 6 tests); `npm test -- --run tests/integration/aili-compact-active-blocks.test.ts` PASS (1 file, 2 tests); `npm run typecheck` PASS; task-scoped tracked and untracked `git diff --check` commands emitted no whitespace diagnostics.
+limits=Task 2.15 frontier revision/invalidation counter and broader identity policy work, task 2.16 recovery coordination, release-artifact reconciliation, and release readiness remain outside this task.
+tasks=2.14 checked.
+
+[2026-08-10] DEFINE review-driven remediation proposed
+phase=DEFINE
+status=active-material-delta
+scope=Record the review-driven correction proposal: current-contract release-gate anchoring, mixed legacy/v3 semantic ordering, current human-review evidence, bounded explicit oracle coverage, and conditional obsolete-projector removal.
+effect=The prior `ACCEPTED_FULL_CANDIDATE_RELEASE_RECONCILIATION` test-plan acceptance remains baseline evidence but is not current for affected work. BUILD pauses pending coherent design/task/test-plan updates, strict validation, and fresh explicit acceptance.
+authorization_boundary=This proposal authorizes no runtime, validator, test, generated-artifact, dependency/lockfile, provider/network, installation, Git, or publication mutation.
+next_action=Revise the dependent design, tasks, and test plan, then strict-validate and request fresh final test-plan acceptance.
+
+[2026-08-10] DEFINE review-remediation direction accepted and contract written
+phase=DEFINE
+status=awaiting-final-test-plan-acceptance
+decision=The user accepted the review-remediation direction for current-contract release gating, mixed-schema frontier semantic order, complete frontier selection identity/invalidation, current human-review evidence, explicit bounded oracle coverage, and conditional projector removal after consumer audit.
+artifacts=proposal.md; design.md; tasks.md; test-plan.md; drift-log.md
+authorization_boundary=Direction acceptance authorizes this DEFINE write-back only. It is not final test-plan acceptance and authorizes no affected runtime, validator, test, generated-artifact, dependency/lockfile, provider/network, installation, Git, or publication mutation.
+next_action=Strict-validate the coherent review-remediation contract and request one explicit final test-plan acceptance before affected BUILD resumes.
+
+[2026-08-10] DEFINE review-remediation contract validated
+phase=DEFINE
+status=awaiting-final-test-plan-acceptance
+verification=`openspec validate reconcile-aili-compact-release-lineage --strict` PASS; `git diff --check -- openspec/changes/reconcile-aili-compact-release-lineage` PASS.
+acceptance_needed=The user must explicitly accept `DRAFT_REVIEW_REMEDIATION` before tasks 2.14a, 2.15, 2.15a, 2.15b, or 3.5 may change affected source, validator, human-review, or test code.
+next_action=Request final review-remediation test-plan acceptance. No external, installation, Git, publication, or affected BUILD operation is authorized by this DEFINE draft.
+
+[2026-08-10] DEFINE review-remediation test plan accepted; BUILD resumed
+phase=BUILD
+status=active
+acceptance=The user explicitly accepted `ACCEPTED_REVIEW_REMEDIATION` and requested implementation.
+authorization_boundary=Local task-scoped BUILD is authorized in the complete user-selected candidate worktree. External/provider, installation, dependency/lockfile, Git, and publication operations remain separately gated.
+next_action=Run fresh bounded BUILD packages beginning with task 2.14a, then task 2.15.
+
+[2026-08-10] BUILD task 2.14a mixed-schema frontier order completed
+scope=Unified v3/legacy runtime catalog ordering, default-frontier eligibility, and focused tests only. No dependency/lockfile, provider/network, installation, Git, publication, generated-artifact, or release operation ran.
+implementation=The runtime catalog assigns public references in verified effective semantic-leaf order across v3 and legacy blocks. Lifecycle `active` remains distinct from `frontierEligible`: a legacy block without a verified current source ordinal remains catalog/ledger readable but is omitted only from the default provider frontier. The default projector filters `frontierEligible` before applying the 32-descriptor cap.
+verification=PASS `npm test -- --run tests/unit/aili-compact-v3-runtime-frontier-order.test.ts tests/unit/aili-compact-provider-frontier.test.ts tests/unit/aili-compact-indexed-projector.test.ts tests/unit/aili-compact-v3.test.ts tests/integration/aili-compact-active-blocks.test.ts` (5 files, 31 tests); PASS `npm run typecheck`; scoped `git diff --check` PASS.
+tasks=2.14a checked. This is bounded implementation evidence only; release readiness remains unverified.
+
+[2026-08-10] BUILD task 2.15 frontier selection identity completed
+scope=Provider-frontier selection binding, invalidation, retained recap atomicity, counters, and focused tests only. No dependency/lockfile, provider/network, installation, Git, publication, generated-artifact, or release operation ran.
+implementation=Recap selection now binds branch key, epoch, source/proof revision, descriptor/configuration/model/window/reserve identity, and selected refs. A stale branch/source/proof/config/budget/selection or malformed persisted recap pair drops both recap call/result records and falls back only to the bounded descriptor frontier; omitted historical raw is never restored. Counter values reflect descriptor derivation, selected expansion, invalidation, and fallback work.
+verification=PASS shared focused 5-file/31-test command above; PASS `npm run typecheck`; scoped `git diff --check` PASS.
+tasks=2.15 checked. This is bounded implementation evidence only; release readiness remains unverified.
+next_action=Implement task 2.15a oracle rationalization, then audit task 2.15b before moving to MiMo recovery.
+
+[2026-08-10] BUILD task 2.15a matrix refinement accepted
+phase=BUILD
+decision=The user selected the recommended 60-row oracle boundary matrix: child counts `2` and `16` × gap lengths `0/1/2/255/256/257` × ordinary/valid-attested/third-party/malformed/mixed classifications. Focused active-block tests retain ordinary two-to-sixteen coverage.
+effect=The temporary 450-row cross product is not accepted evidence and must be replaced without changing production source or increasing the existing timeout.
+authorization_boundary=Local task-scoped test-only BUILD is authorized. No external/provider, installation, dependency/lockfile, Git, or publication operation is authorized.
+next_action=Run a fresh task-2.15a test-only repair package, then verify it before considering task completion.
+
+[2026-08-10] BUILD task 2.15a 60-row oracle matrix completed
+scope=The independent promotion-gap oracle test only. No production source, dependency/lockfile, provider/network, installation, Git, publication, generated-artifact, or release operation ran.
+implementation=The oracle uses exactly 60 explicit rows: child counts `2/16` × gap lengths `0/1/2/255/256/257` × ordinary/valid-attested/third-party/malformed/mixed classifications. It retains separate planner, direct-mutation, pure-replay, cold-BranchIndex, and append-BranchIndex assertions with its existing 120-second timeout; focused active-block coverage retains ordinary two-to-sixteen behavior.
+verification=PASS `npm test -- --run tests/unit/aili-compact-promotion-gap-oracle.test.ts tests/unit/aili-compact-promotion-gaps.test.ts tests/unit/aili-compact-v3-mutations.test.ts tests/unit/aili-compact-v3-reducer.test.ts tests/unit/aili-compact-branch-index.test.ts tests/unit/aili-compact-branch-index-v3.test.ts` (6 files, 63 tests); `git diff --no-index --check /dev/null tests/unit/aili-compact-promotion-gap-oracle.test.ts` PASS.
+tasks=2.15a checked. This is bounded test evidence only; release readiness remains unverified.
+next_action=Obtain exact deletion approval for task 2.15b's private-only projector/test removal, or defer it while continuing independent safe-local packages.
+
+[2026-08-10] BUILD task 2.16 MiMo recovery completed
+scope=MiMo recovery policy, checkpoint coordination/source binding, rebuild/fallback runtime wiring, and focused unit/official-Pi integration tests only. No dependency/lockfile, provider/network, Git, publication, generated-artifact, or release operation ran.
+implementation=Recovery resolves combined-window reserves and the 13K checkpoint ceiling, retains one pending writer and the last durable source-bound checkpoint, permits one bounded final transient retry after normal progress, rebuilds current checkpoint projection first, falls back to native compaction only when that checkpoint is missing/stale/failed, and resets after a verified rebuild. No path restores full history.
+verification=PASS `npm test -- --run tests/unit/aili-compact-recovery.test.ts` (24 tests); PASS `npm test -- --run tests/integration/aili-compact-mimo-recovery.test.ts` (2 official-Pi tests); PASS `npm run typecheck`; scoped `git diff --check` PASS. The user explicitly approved test-owned recursive cleanup of `.tmp/aili-compact-mimo-recovery-*`; post-run scratch glob found no remaining matching directories.
+tasks=2.16 checked. This is bounded implementation evidence only; release readiness remains unverified.
+next_action=Obtain exact approval for task 2.15b source/test deletion, then reconcile task 3.5 release evidence.
+
+[2026-08-10] BUILD task 2.15b private-only projector removed
+scope=The audited `projectIndexedProviderMessages` full-history implementation path and its sole private unit test only. The user gave exact deletion approval for `src/runtime/aili-compact/indexed-projector.ts`'s private path and `tests/unit/aili-compact-indexed-projector.test.ts`.
+audit=Repository source, package metadata, extension registration, docs, specs, and tests found no production or supported in-repository owner. Untracked external deep imports remain unverified but are not a supported compatibility contract.
+implementation=Removed the old full-history projector, its private helpers/imports, and its sole private test. Retained `projectIndexedProviderFrontier`, cache identity, descriptor blocks, and their callers.
+verification=No TypeScript reference to `projectIndexedProviderMessages` remains; deleted test path is absent. PASS `npm test -- --run tests/unit/aili-compact-provider-frontier.test.ts tests/unit/aili-compact-v3-runtime-frontier-order.test.ts` (2 files, 9 tests); PASS `npm run typecheck`; scoped `git diff --check` PASS.
+tasks=2.15b checked. This is bounded implementation evidence only; release readiness remains unverified.
+next_action=Reconcile task 3.5 release evidence and validators.
+
+[2026-08-10] BUILD task 3.5 current review evidence reconciliation completed
+scope=Current-contract release-gate source, reviewed-artifact source, stale tier/human-review paths, and focused source tests only. The user explicitly approved deletion of the named stale tier/human-review routes. No generated evidence artifact, dependency/lockfile, provider/network, installation, Git, publication, or release operation ran.
+implementation=The release validator binds the active reconciliation contract and emits bounded current-contract NON_PASS when the retired contract is absent. The reviewed live artifact is now an independent schema binding the validated sanitized capture, exact candidate identity, and human verdict; the writer and generator use the same schema. Retired tier candidate/semantic-review functions, observation route, and private live scenario helpers are removed. Legacy tier replay validation remains controlled-production read compatibility only.
+verification=Focused package unit evidence PASS: `tests/unit/aili-compact-release-evidence.test.ts`, `tests/unit/live-release-support.test.ts`, and `tests/unit/aili-compact-live-observations.test.ts` (3 files, 83 tests). ROSE independently confirmed no stale tier-route symbol remains, inspected the current gate/review schema, ran `npm run typecheck` PASS, and ran scoped `git diff --check` PASS.
+limit=The gated real-provider `tests/integration/aili-compact-live-release-gated.test.ts` was not run: it recursively deletes `/tmp/aili-pi-live-verification` and writes current live artifacts; it may invoke a configured provider when enabled. Those operations remain separately gated and its current execution is Unverified.
+tasks=3.5 checked. This is bounded source reconciliation only; release readiness remains unverified.
+next_action=Prepare safe-local candidate artifact generation/verification for task 4.1 without invoking provider or overwriting external evidence.
+
+[2026-08-11] AILI Compact retired from stable 0.2.0
+phase=SHIP
+approval=User explicitly requested removal, stable publication, and installation of the latest published package.
+scope=Removed Compact from runtime composition and Doctor, added package-surface negative tests, returned all compaction ownership to Pi, removed Compact release-evidence scripts from the public package scripts, and made the Compact-owned live manifest diagnostic-only rather than a stable release gate. Historical source/tests remain frozen for future redesign.
+verification=Focused runtime/package/Doctor tests PASS (4 files, 33 tests); persistent Agent evidence-owner tests PASS (8 files, 56 tests); typecheck PASS. Final generated/package/release/archive checks remain pending before publication.

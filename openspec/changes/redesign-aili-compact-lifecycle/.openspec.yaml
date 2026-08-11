@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-07-27
+# Validation order: materialized base -> base+P0 fix -> base+P0 fix+redesign.

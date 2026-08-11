@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { registerAiliCompact } from "../../src/runtime/aili-compact/index.js";
 import { sourceDigest } from "../../src/runtime/aili-compact/contracts.js";
 import { reduceCompactState } from "../../src/runtime/aili-compact/reducer.js";
@@ -17,9 +17,15 @@ import {
 type RegisteredTool = {
   name: string;
   execute: (...args: any[]) => Promise<any>;
+  parameters?: { anyOf?: Array<Record<string, any>> };
 };
 
 type Handler = (event: any, context: any) => any;
+
+const enabledProject = mkdtempSync(join(tmpdir(), "aili-compact-runtime-enabled-"));
+mkdirSync(join(enabledProject, ".pi"), { recursive: true });
+writeFileSync(join(enabledProject, ".pi", "aili-compact.jsonc"), '{ "enabled": true }');
+afterAll(() => rmSync(enabledProject, { recursive: true, force: true }));
 
 function harness(options: {
   sendUserMessageThrows?: boolean;
@@ -54,7 +60,7 @@ function successfulCompactResult(id: string, contextTx: Record<string, unknown> 
   return { id, type: "message", message: { role: "toolResult", toolCallId, toolName, content: [], isError: false, details: { contextTx } } };
 }
 
-function context(entries: any[], usage?: { tokens: number | null; contextWindow: number }, cwd = "/project", activity = { idle: true, pending: false }) {
+function context(entries: any[], usage?: { tokens: number | null; contextWindow: number }, cwd = enabledProject, activity = { idle: true, pending: false }) {
   const statuses: string[] = [];
   const notifications: string[] = [];
   const widgets: Array<{ key: string; content: string[] | undefined }> = [];
@@ -282,7 +288,7 @@ describe("AILI Compact runtime", () => {
       const project = join(root, "project");
       const promptDirectory = join(project, ".pi", "aili-compact-prompts");
       mkdirSync(promptDirectory, { recursive: true });
-      writeFileSync(join(project, ".pi", "aili-compact.jsonc"), '{ "experimental": { "customPrompts": true } }');
+      writeFileSync(join(project, ".pi", "aili-compact.jsonc"), '{ "enabled": true, "experimental": { "customPrompts": true } }');
       writeFileSync(join(promptDirectory, "system.md"), "Prefer preserving accepted decisions in summaries.");
       const runtime = harness();
       const ctx = context([], undefined, project);
@@ -304,7 +310,7 @@ describe("AILI Compact runtime", () => {
       const project = join(root, "project");
       const promptDirectory = join(project, ".pi", "aili-compact-prompts");
       mkdirSync(promptDirectory, { recursive: true });
-      writeFileSync(join(project, ".pi", "aili-compact.jsonc"), '{ "experimental": { "customPrompts": false } }');
+      writeFileSync(join(project, ".pi", "aili-compact.jsonc"), '{ "enabled": true, "experimental": { "customPrompts": false } }');
       writeFileSync(join(promptDirectory, "system.md"), "This must not be injected.");
       const runtime = harness();
       const ctx = context([], undefined, project);
@@ -321,7 +327,7 @@ describe("AILI Compact runtime", () => {
       const project = join(root, "project");
       const promptDirectory = join(project, ".pi", "aili-compact-prompts");
       mkdirSync(promptDirectory, { recursive: true });
-      writeFileSync(join(project, ".pi", "aili-compact.jsonc"), '{ "experimental": { "customPrompts": true } }');
+      writeFileSync(join(project, ".pi", "aili-compact.jsonc"), '{ "enabled": true, "experimental": { "customPrompts": true } }');
       writeFileSync(join(promptDirectory, "system.md"), "This must be suppressed after off.");
       const entries = [{
         id: "off",
@@ -345,7 +351,7 @@ describe("AILI Compact runtime", () => {
       const promptDirectory = join(project, ".pi", "aili-compact-prompts");
       mkdirSync(promptDirectory, { recursive: true });
       const configPath = join(project, ".pi", "aili-compact.jsonc");
-      writeFileSync(configPath, '{ "experimental": { "customPrompts": false } }');
+      writeFileSync(configPath, '{ "enabled": true, "experimental": { "customPrompts": false } }');
       writeFileSync(join(promptDirectory, "system.md"), "Reloaded session guidance.");
       const runtime = harness();
       const ctx = context([], undefined, project);
@@ -353,7 +359,7 @@ describe("AILI Compact runtime", () => {
       const beforeAgentStart = runtime.handlers.get("before_agent_start")!;
       expect(beforeAgentStart({ type: "before_agent_start", prompt: "question", systemPrompt: "PI BASE", systemPromptOptions: {} }, ctx)).toBeUndefined();
 
-      writeFileSync(configPath, '{ "experimental": { "customPrompts": true } }');
+      writeFileSync(configPath, '{ "enabled": true, "experimental": { "customPrompts": true } }');
       expect(beforeAgentStart({ type: "before_agent_start", prompt: "question", systemPrompt: "PI BASE", systemPromptOptions: {} }, ctx)).toBeUndefined();
       await runtime.commandHandlers.get("aili-compact")!("prompt reload", ctx);
       expect(beforeAgentStart({ type: "before_agent_start", prompt: "question", systemPrompt: "PI BASE", systemPromptOptions: {} }, ctx)).toEqual(expect.objectContaining({
@@ -447,6 +453,54 @@ describe("AILI Compact runtime", () => {
     const recompressed = runtime.handlers.get("context")!({ type: "context", messages: providerMessages(entries) }, ctx);
     expect(JSON.stringify(recompressed.messages)).toContain(ARCHIVED_SUMMARY);
     expect(JSON.stringify(recompressed.messages)).not.toContain(rawSource.slice(0, 200));
+  });
+
+  it("publishes the 18,000-character public semantic-summary schema and tool ceiling", async () => {
+    const runtime = harness();
+    const compact = runtime.tools.find((tool) => tool.name === "aili_compact")!;
+    const schemas = compact.parameters?.anyOf;
+    expect(schemas).toHaveLength(3);
+    expect(schemas?.map((schema) => {
+      const properties = schema.properties as Record<string, any>;
+      const summary = properties.summary ?? properties.ranges?.items?.properties?.summary ?? properties.items?.items?.properties?.summary;
+      return { summaryMax: properties.summaryMaxChars.maximum, summaryMaxLength: summary.maxLength };
+    })).toEqual([
+      { summaryMax: 18_000, summaryMaxLength: 18_000 },
+      { summaryMax: 18_000, summaryMaxLength: 18_000 },
+      { summaryMax: 18_000, summaryMaxLength: 18_000 },
+    ]);
+
+    const entries = v3CompressibleEntries();
+    const source = Array.from({ length: 12_000 }, (_, index) => `item-${index.toString(36).padStart(5, "0")}|`).join("");
+    entries[0].message.content = source;
+    const ctx = context(entries, LOW_PRESSURE_USAGE);
+    const statusResponse = await runtime.tools.find((tool) => tool.name === "aili_compact_status")!
+      .execute("summary-cap-status", {}, undefined, undefined, ctx);
+    const status = (JSON.parse(statusResponse.content[0].text).result ?? JSON.parse(statusResponse.content[0].text)) as any;
+    const summary = source.slice(0, 18_000);
+    const { params } = exactMessageParams(status, summary);
+    const accepted = { ...params, summaryMaxChars: 18_000 };
+    mutationCall(entries, "summary-cap-exact", "aili_compact", accepted);
+    const result = await compact.execute("summary-cap-exact", accepted, undefined, undefined, ctx);
+    expect(result.isError).toBe(true);
+    expect(JSON.parse(result.content[0]?.text ?? "{}").result).toMatchObject({
+      code: "token-benefit-ineligible",
+      reasons: ["minimum-savings-ratio"],
+    });
+
+    const rejectedRuntime = harness();
+    const rejectedEntries = v3CompressibleEntries();
+    const rejectedContext = context(rejectedEntries, LOW_PRESSURE_USAGE);
+    const rejectedStatusResponse = await rejectedRuntime.tools.find((tool) => tool.name === "aili_compact_status")!
+      .execute("summary-cap-status", {}, undefined, undefined, rejectedContext);
+    const rejectedStatus = (JSON.parse(rejectedStatusResponse.content[0].text).result ?? JSON.parse(rejectedStatusResponse.content[0].text)) as any;
+    const rejectedSummary = `${ARCHIVED_SUMMARY}\n${"x".repeat(18_001 - ARCHIVED_SUMMARY.length - 1)}`;
+    const rejectedParams = { ...exactMessageParams(rejectedStatus, rejectedSummary).params, summaryMaxChars: 18_000 };
+    mutationCall(rejectedEntries, "summary-cap-oversized", "aili_compact", rejectedParams);
+    const rejected = await rejectedRuntime.tools.find((tool) => tool.name === "aili_compact")!
+      .execute("summary-cap-oversized", rejectedParams, undefined, undefined, rejectedContext);
+    expect(rejected.isError).toBe(true);
+    expect(rejected.content[0]?.text).toContain('"path":"$.summary"');
   });
 
   it("publishes only complete protocol-atom ranges and rejects a split atom", async () => {
@@ -629,6 +683,24 @@ describe("AILI Compact runtime", () => {
     expect(JSON.stringify(projected.messages)).not.toContain("activation-stable:raw-source");
     expect(JSON.stringify(projected.messages)).toContain("activation-stable:repaired-summary");
     expect(ctx.statuses.at(-1)).not.toContain("repair-branch-moved");
+  });
+
+  it("fails open to the original provider input when the provider frontier is diagnostic", () => {
+    const runtime = harness();
+    const entries = [{
+      id: "oversized-current-request",
+      type: "message",
+      message: { role: "user", content: "x".repeat(10_000) },
+    }];
+    const ctx = context(entries, { tokens: 512, contextWindow: 512 });
+    runtime.handlers.get("session_start")!({ type: "session_start" }, ctx);
+    const messages = providerMessages(entries);
+
+    const result = runtime.handlers.get("context")!({ type: "context", messages }, ctx);
+
+    expect(result.messages).toBe(messages);
+    expect(result.messages).not.toEqual([]);
+    expect(ctx.statuses.at(-1)).toContain("AILI Compact WARN: frontier-over-budget");
   });
 
   it("fails activation exact-raw without partial state when repair append throws", () => {
@@ -841,7 +913,7 @@ describe("AILI Compact runtime", () => {
     try {
       const project = join(root, "project");
       mkdirSync(join(project, ".pi"), { recursive: true });
-      writeFileSync(join(project, ".pi", "aili-compact.jsonc"), '{ "planning": { "enabled": false } }');
+      writeFileSync(join(project, ".pi", "aili-compact.jsonc"), '{ "enabled": true, "planning": { "enabled": false } }');
       const entries = v3CompressibleEntries();
       const runtime = harness();
       const ctx = context(entries, LOW_PRESSURE_USAGE, project);

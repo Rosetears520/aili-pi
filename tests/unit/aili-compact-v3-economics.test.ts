@@ -31,7 +31,7 @@ const exactProfile = resolveTokenBoundProfile("test-provider", "test-model", TOK
 }]);
 
 describe("AILI Compact v3 conservative economics", () => {
-  it("prices an exact T1 range, production recap, full suffix wrapper, and every one-time surface", () => {
+  it("prices a tierless active range, production recap, full suffix wrapper, and every one-time surface", () => {
     const range = exactRange(exactProfile);
     const suffix = buildProviderSuffix({
       planningEnabled: true,
@@ -41,7 +41,6 @@ describe("AILI Compact v3 conservative economics", () => {
       catalogId,
       catalogScopeDigest: scopeDigest,
       safeRanges: [range],
-      targetTier: "T1",
       allowedActions: ["compress"],
       checkpointState: "idle",
     });
@@ -52,9 +51,9 @@ describe("AILI Compact v3 conservative economics", () => {
       catalogId,
       epochId: "epoch",
       projectionVersion: "projection-v3",
-      tier: "T1",
-      topic: "T1 topic",
-      summary: "bounded T1 recap",
+      semantics: "active-block",
+      topic: "active topic",
+      summary: "bounded active recap",
       source: { kind: "messages", range },
     };
     const result = evaluateV3CompactEconomics({
@@ -78,7 +77,7 @@ describe("AILI Compact v3 conservative economics", () => {
     expect(result.replacementMessages).toHaveLength(3);
     expect(result.replacementMessages[1]).toEqual(expect.objectContaining({
       role: "toolResult",
-      content: [{ type: "text", text: expect.stringContaining("mode=message; tier=T1; sources=2") }],
+      content: [{ type: "text", text: expect.stringContaining("mode=message; semantics=active-block; sources=2") }],
     }));
     expect(result.replacementMessages[2]).toEqual(suffix!.message);
     expect(result.replacementSurface.messageCount).toBe(3);
@@ -102,25 +101,22 @@ describe("AILI Compact v3 conservative economics", () => {
     }));
   });
 
-  it.each([
-    { tier: "T2" as const, childTier: "T1" as const },
-    { tier: "T3" as const, childTier: "T2" as const },
-  ])("prices $tier source from the exact production child recap pairs", ({ tier, childTier }) => {
+  it.each(["T1", "T2", "T3"] as const)("prices active-block source from $tier legacy children without tier eligibility", (childTier) => {
     const children = [
       semanticChild(`${childTier}:1`, childTier, 1, "first ".repeat(2_500)),
       semanticChild(`${childTier}:2`, childTier, 2, "second ".repeat(2_500)),
     ];
     const resolved = children.map((block, index) => ({ block, blockRef: `b${String(index + 1).padStart(6, "0")}` }));
     const candidate: V3CompactEconomicsCandidate = {
-      blockId: `block:${tier}`,
+      blockId: `block:active:${childTier}`,
       blockRef: "b000003",
       catalogId,
       epochId: "epoch",
       projectionVersion: "projection-v3",
-      tier,
-      topic: `${tier} topic`,
-      summary: `bounded ${tier} parent recap`,
-      source: { kind: "blocks", sourceDigest: digest([tier, ...children.map((block) => block.blockId)]), children: resolved },
+      semantics: "active-block",
+      topic: "active parent topic",
+      summary: "bounded active parent recap",
+      source: { kind: "blocks", sourceDigest: digest([childTier, ...children.map((block) => block.blockId)]), children: resolved },
     };
     const result = evaluateV3CompactEconomics({
       candidate,
@@ -137,12 +133,12 @@ describe("AILI Compact v3 conservative economics", () => {
     });
     expect(result.sourceMessages).toEqual(exactProjectedSource);
     expect(result.binding.orderedRefs).toEqual(["b000001", "b000002"]);
-    expect(result.binding.sourceDigest).toBe(candidate.source.sourceDigest);
+    expect(result.binding.sourceDigest).toBe(digest([childTier, ...children.map((block) => block.blockId)]));
     expect(result.replacementMessages[1]).toEqual(expect.objectContaining({
-      content: [{ type: "text", text: expect.stringContaining(`mode=blocks; tier=${tier}; sources=2`) }],
+      content: [{ type: "text", text: expect.stringContaining("mode=blocks; semantics=active-block; sources=2") }],
     }));
     expect(result.sourceBounds.lower).toBeGreaterThan(result.replacementBounds.upper);
-    expect(result.decision.tier).toBe(tier);
+    expect(result).toMatchObject({ semantics: "active-block" });
     expect(result.decision.eligible).toBe(true);
   });
 
@@ -154,7 +150,7 @@ describe("AILI Compact v3 conservative economics", () => {
       catalogId,
       epochId: "epoch",
       projectionVersion: "projection-v3",
-      tier: "T1",
+      semantics: "active-block",
       topic: "topic",
       summary: "summary",
       source: { kind: "messages", range: exactRange(fallback) },
@@ -183,6 +179,32 @@ describe("AILI Compact v3 conservative economics", () => {
       saturated: false,
     }));
   });
+
+  it("admits exactly 18,000 semantic-summary characters before economics and rejects 18,001", () => {
+    const candidate: V3CompactEconomicsCandidate = {
+      blockId: "block:summary-cap",
+      blockRef: "b000001",
+      catalogId,
+      epochId: "epoch",
+      projectionVersion: "projection-v3",
+      semantics: "active-block",
+      topic: "topic",
+      summary: "s".repeat(18_000),
+      source: { kind: "messages", range: exactRange(exactProfile) },
+    };
+    expect(evaluateV3CompactEconomics({
+      candidate,
+      profile: exactProfile,
+      pressureStage: "NORMAL",
+      oneTime: oneTimeSurfaces(candidate),
+    })).toEqual(expect.objectContaining({ ok: true }));
+    expect(evaluateV3CompactEconomics({
+      candidate: { ...candidate, summary: "s".repeat(18_001) },
+      profile: exactProfile,
+      pressureStage: "NORMAL",
+      oneTime: oneTimeSurfaces(candidate),
+    })).toEqual(expect.objectContaining({ ok: false, reason: "invalid-candidate" }));
+  });
 });
 
 function exactRange(profile: ResolvedTokenBoundProfile): RecommendedSafeRange {
@@ -209,7 +231,7 @@ function exactRange(profile: ResolvedTokenBoundProfile): RecommendedSafeRange {
 
 function oneTimeSurfaces(candidate: V3CompactEconomicsCandidate) {
   return {
-    discoveryStatusInput: { catalogId: candidate.catalogId, blockRef: candidate.blockRef, tier: candidate.tier },
+    discoveryStatusInput: { catalogId: candidate.catalogId, blockRef: candidate.blockRef, semantics: "active-block" },
     compressionToolCall: {
       role: "assistant",
       content: [{ type: "toolCall", id: "compact-call", name: "aili_compact", arguments: { summary: candidate.summary } }],
@@ -221,7 +243,7 @@ function oneTimeSurfaces(candidate: V3CompactEconomicsCandidate) {
       content: [{ type: "text", text: JSON.stringify({ blockId: candidate.blockId, status: "planned" }) }],
       isError: false,
     },
-    qualityEvaluation: { input: { tier: candidate.tier }, result: { status: "accepted", hardFactCount: 1 } },
+    qualityEvaluation: { input: { semantics: "active-block" }, result: { status: "accepted", hardFactCount: 1 } },
   };
 }
 

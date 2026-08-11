@@ -1,0 +1,7 @@
+{
+  "entries": [
+    { "id": "archived-user", "type": "message", "message": { "role": "user", "content": "archived request" } },
+    { "id": "native-epoch", "type": "compaction" },
+    { "id": "kept-user", "type": "message", "message": { "role": "user", "content": "kept request" } }
+  ]
+}

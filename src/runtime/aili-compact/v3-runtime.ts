@@ -1,5 +1,4 @@
 import { digest, type CompactState, type SessionLikeEntry } from "./contracts.js";
-import { buildProtocolAtoms } from "./protocol-atoms.js";
 import {
   buildReferenceCatalog,
   type CompactBlockReference,
@@ -17,7 +16,11 @@ import type {
   V3BlockCatalogRef,
   V3MutationCatalog,
 } from "./v3-mutations.js";
-import { deriveRuntimeCatalogId } from "./runtime-catalog.js";
+import {
+  buildOrderedRuntimeCatalogBlocks,
+  deriveRuntimeCatalogId,
+  effectiveMessageOrdinalsForEpoch,
+} from "./runtime-catalog.js";
 import type { BranchMessageReference } from "./branch-index.js";
 
 export const V3_PROJECTION_VERSION = "aili.projector.v3" as const;
@@ -29,6 +32,7 @@ export interface V3RuntimeIdentity {
 
 export interface CombinedBlockReference extends CompactBlockReference {
   family: "legacy" | "v3";
+  frontierEligible: boolean;
 }
 
 export interface V3RuntimeView {
@@ -62,7 +66,13 @@ export function buildV3RuntimeView(
     projectionVersion: V3_PROJECTION_VERSION,
   });
   const legacyCatalog = buildReferenceCatalog(entries, legacyState);
-  return assembleV3RuntimeView(legacyCatalog, replay, state, effectiveMessageOrdinals(entries));
+  return assembleV3RuntimeView(
+    legacyCatalog,
+    legacyState,
+    replay,
+    state,
+    effectiveMessageOrdinalsForEpoch(entries, state.epochId),
+  );
 }
 
 /**
@@ -100,20 +110,17 @@ export function buildIndexedV3RuntimeView(
     blocks: legacyBlocks,
   };
   const effectiveOrdinals = new Map(references.map((reference) => [reference.entryId, reference.providerOrdinal] as const));
-  return assembleV3RuntimeView(legacyCatalog, replay, replay.state ?? fallbackState, effectiveOrdinals);
+  return assembleV3RuntimeView(legacyCatalog, legacyState, replay, replay.state ?? fallbackState, effectiveOrdinals);
 }
 
 function assembleV3RuntimeView(
   legacyCatalog: CompactReferenceCatalog,
+  legacyState: CompactState,
   replay: V3LifecycleReplay,
   state: V3LifecycleState,
   effectiveOrdinals: ReadonlyMap<string, number>,
 ): V3RuntimeView {
-  const v3Blocks = [...state.blocks.values()]
-    .filter((block) => block.epochId === state.epochId)
-    .sort((left, right) => left.firstLeafOrdinal - right.firstLeafOrdinal
-      || left.createdAt - right.createdAt
-      || left.blockId.localeCompare(right.blockId));
+  const orderedBlocks = buildOrderedRuntimeCatalogBlocks(legacyCatalog, legacyState, state, effectiveOrdinals);
   const combinedBlocks: CombinedBlockReference[] = [];
   const blockRefById = new Map<string, string>();
   const blockByRef = new Map<string, CombinedBlockReference>();
@@ -127,20 +134,14 @@ function assembleV3RuntimeView(
     blockByRef.set(ref, value);
     if (legacyRef) legacyRefByCombinedRef.set(ref, legacyRef);
   };
-  for (const block of v3Blocks) append({
-    blockId: block.blockId,
-    epochId: block.epochId,
-    active: block.active && !block.queryOnly,
-    queryOnly: block.queryOnly,
-    family: "v3",
-  });
-  for (const block of legacyCatalog.blocks) append({
+  for (const block of orderedBlocks) append({
     blockId: block.blockId,
     epochId: block.epochId,
     active: block.active,
     queryOnly: block.queryOnly,
-    family: "legacy",
-  }, block.ref);
+    family: block.family,
+    frontierEligible: block.frontierEligible,
+  }, block.legacyRef);
 
   const publicCatalogId = deriveRuntimeCatalogId({
     stateCatalogId: state.catalogId,
@@ -164,12 +165,24 @@ function assembleV3RuntimeView(
     messages: legacyCatalog.messages,
     blocks: combinedBlocks,
   };
+  const legacyReferenceOrdinals = new Map(legacyCatalog.blocks.map((block) => [block.blockId, block.ordinal] as const));
+  const legacySourceOrdinal = (blockId: string): number | undefined => {
+    const sourceEntryId = legacyState.blocks.get(blockId)?.sourceEntryIds[0];
+    const ordinal = sourceEntryId === undefined ? undefined : effectiveOrdinals.get(sourceEntryId);
+    if (typeof ordinal !== "number" || !Number.isSafeInteger(ordinal)
+      || ordinal < 0 || ordinal >= Number.MAX_SAFE_INTEGER) return undefined;
+    return ordinal;
+  };
   const mutationBlockRefs: V3BlockCatalogRef[] = combinedBlocks.map((reference) => {
     const block = state.blocks.get(reference.blockId);
     return {
       ref: reference.ref,
       blockId: reference.blockId,
-      effectiveSourceOrdinal: block?.firstLeafOrdinal ?? Number.MAX_SAFE_INTEGER,
+      // Legacy refs remain readable only. Their marker rejects every v3 child/root
+      // selection, but the shared catalog still requires a bounded ordinal.
+      effectiveSourceOrdinal: reference.family === "legacy"
+        ? legacySourceOrdinal(reference.blockId) ?? legacyReferenceOrdinals.get(reference.blockId) ?? reference.ordinal
+        : block?.firstLeafOrdinal ?? Number.MAX_SAFE_INTEGER,
       ...(reference.family === "legacy" ? { legacy: true } : {}),
     };
   });
@@ -218,48 +231,16 @@ export function v3LeafEntryIds(state: V3LifecycleState, blockId: string): readon
   return visit(blockId, new Set());
 }
 
-function stableV3BranchId(
-  entries: readonly SessionLikeEntry[],
+export function stableV3BranchId(
+  _entries: readonly SessionLikeEntry[],
   epochId: string,
   identity: V3RuntimeIdentity,
 ): string {
-  const epochIndex = epochId === "root"
-    ? -1
-    : entries.findIndex((entry) => entry.type === "compaction" && entry.id === epochId);
-  const branchSourceIds = entries.slice(epochIndex + 1)
-    .filter((entry) => entry.type !== "custom" && !isAiliProtocolEntry(entry))
-    .map((entry) => entry.id);
   return `br_${digest({
     sessionId: identity.sessionId,
     sessionPath: identity.sessionPath ?? `session:${identity.sessionId}`,
     epochId,
-    branchSourceIds,
   })}`;
-}
-
-function isAiliProtocolEntry(entry: SessionLikeEntry): boolean {
-  if (entry.type !== "message" || !entry.message || typeof entry.message !== "object") return false;
-  const message = entry.message as Record<string, unknown>;
-  if (typeof message.toolName === "string" && message.toolName.startsWith("aili_")) return true;
-  const parts = [
-    ...(Array.isArray(message.toolCalls) ? message.toolCalls : []),
-    ...(Array.isArray(message.content) ? message.content : []),
-  ];
-  return parts.some((part) => part !== null && typeof part === "object"
-    && typeof (part as Record<string, unknown>).name === "string"
-    && ((part as Record<string, unknown>).name as string).startsWith("aili_"));
-}
-
-function effectiveMessageOrdinals(entries: readonly SessionLikeEntry[]): ReadonlyMap<string, number> {
-  const result = new Map<string, number>();
-  let ordinal = 1;
-  for (const atom of buildProtocolAtoms(entries).atoms) {
-    for (const entryId of atom.entryIds) {
-      result.set(entryId, ordinal);
-      ordinal += 1;
-    }
-  }
-  return result;
 }
 
 function formatBlockRef(ordinal: number): string {

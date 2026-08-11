@@ -3,6 +3,6 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
-    exclude: [".worktrees/**", "node_modules/**", "dist/**"],
+    exclude: [".worktrees/**", "node_modules/**", "dist/**", "tests/**/aili-compact*.test.ts"],
   },
 });

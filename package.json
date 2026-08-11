@@ -1,9 +1,9 @@
 {
   "name": "@rosetears/aili-pi",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "AILI and ROSE distribution for official Pi",
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Rosetears520/aili-pi.git"
@@ -17,12 +17,20 @@
   "files": [
     "extensions/",
     "src/",
+    "!src/runtime/aili-compact/",
+    "docs/",
+    "!docs/aili-compact.md",
     "roles/",
-    "skills/",
     "prompts/",
     "manifests/",
     "upstream/",
     "scripts/",
+    "!scripts/aili-compact-*",
+    "!scripts/apply-aili-compact-*",
+    "!scripts/generate-aili-compact-*",
+    "!scripts/live-release-support.ts",
+    "!scripts/validate-aili-compact-*",
+    "!scripts/validate-live-release.ts",
     "themes/",
     "templates/",
     "install.sh",
@@ -57,7 +65,6 @@
     "node": ">=22.19.0"
   },
   "scripts": {
-    "postinstall": "node scripts/sync-global-skills.mjs --if-pi-managed",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "sync:skills": "node --experimental-strip-types scripts/sync-skills.ts",
@@ -65,7 +72,9 @@
     "validate:skills": "npm run verify:skills",
     "sync:roles": "node --experimental-strip-types scripts/sync-roles.ts",
     "verify:roles": "node --experimental-strip-types scripts/sync-roles.ts --verify",
-    "validate:roles": "npm run verify:roles",
+    "validate:roles": "npm run verify:roles && npm run verify:agent-routing",
+    "sync:agent-routing": "node --experimental-strip-types scripts/sync-agent-routing.ts",
+    "verify:agent-routing": "node --experimental-strip-types scripts/sync-agent-routing.ts --verify",
     "sync:adapters": "node --experimental-strip-types scripts/apply-adapter-evidence.ts",
     "validate:compatibility": "node --experimental-strip-types scripts/apply-adapter-evidence.ts --verify",
     "sync:permission-modes": "node --experimental-strip-types scripts/sync-permission-modes.ts",
@@ -77,34 +86,35 @@
     "test:doctor": "vitest run tests/unit/doctor.test.ts",
     "test:bootstrap": "vitest run tests/bootstrap/bootstrap.test.ts",
     "test:integration": "vitest run tests/integration",
-    "test:audit-redaction": "vitest run tests/unit/permissions.test.ts tests/unit/subagents.test.ts",
+    "test:audit-redaction": "vitest run tests/unit/permission-patterns.test.ts tests/unit/persistent-agent-permission.test.ts tests/unit/persistent-agent-output-delivery.test.ts",
     "test:e2e:linux-clean": "vitest run tests/bootstrap/bootstrap.test.ts && node --experimental-strip-types scripts/local-package-e2e.ts linux",
-    "validate:generated": "vitest run tests/unit/generated.test.ts",
+    "validate:generated": "npm run validate:roles && vitest run tests/unit/generated.test.ts",
     "validate:package": "vitest run tests/unit/package.test.ts"
   },
   "bundledDependencies": [
-    "@narumitw/pi-lsp",
-    "pi-cache-optimizer",
-    "pi-markdown-preview"
+    "pi-cache-optimizer"
   ],
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
     "typebox": "*"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "0.81.1",
+    "@earendil-works/pi-agent-core": "0.82.1",
+    "@earendil-works/pi-ai": "0.82.1",
+    "@earendil-works/pi-coding-agent": "0.82.1",
+    "@earendil-works/pi-tui": "0.82.1",
     "@types/node": "24.12.4",
     "typebox": "1.1.38",
     "typescript": "5.9.3",
     "vitest": "4.1.9"
   },
   "dependencies": {
-    "@agwab/pi-subagent": "0.4.8",
-    "@narumitw/pi-lsp": "0.25.0",
     "pi-cache-optimizer": "2.6.18",
-    "pi-markdown-preview": "0.10.1",
     "pi-permission-modes": "2.2.0",
     "pi-quota-status": "0.3.0",
     "pi-web-access": "0.13.0"
-  }
+  },
+  "bundleDependencies": [
+    "pi-cache-optimizer"
+  ]
 }

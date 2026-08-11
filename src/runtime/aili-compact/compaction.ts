@@ -37,6 +37,7 @@ function isTokenCount(value: number | undefined): value is number {
 
 const MAX_MAJOR_GC_SUMMARY_CHARS = 12_000;
 const MAX_OLD_BLOCK_SUMMARY_CHARS = 3_000;
+const MAX_MAJOR_GC_BLOCK_SUMMARY_CHARS = 10_000;
 
 export interface MajorGcInput {
   entries: readonly SessionLikeEntry[];
@@ -63,10 +64,11 @@ export function planMajorGc(input: MajorGcInput): {
 } | undefined {
   const mergedLimit = validPositiveLimit(input.maxMergedSummaryChars, MAX_MAJOR_GC_SUMMARY_CHARS);
   const previousLimit = validPositiveLimit(input.maxPreviousSummaryChars, mergedLimit);
-  const blockLimit = validPositiveLimit(input.maxBlockSummaryChars, MAX_OLD_BLOCK_SUMMARY_CHARS);
+  const configuredBlockLimit = validPositiveLimit(input.maxBlockSummaryChars, MAX_OLD_BLOCK_SUMMARY_CHARS);
+  const blockLimit = configuredBlockLimit === undefined ? undefined : Math.min(configuredBlockLimit, MAX_MAJOR_GC_BLOCK_SUMMARY_CHARS);
   if (!mergedLimit || mergedLimit > MAX_MAJOR_GC_SUMMARY_CHARS
     || !previousLimit || previousLimit > MAX_MAJOR_GC_SUMMARY_CHARS
-    || !blockLimit || blockLimit > 10_000
+    || !blockLimit
     || !isTokenCount(input.tokensBefore) || !input.firstKeptEntryId) return undefined;
   if (input.previousSummary !== undefined && (typeof input.previousSummary !== "string" || input.previousSummary.length > previousLimit)) return undefined;
 

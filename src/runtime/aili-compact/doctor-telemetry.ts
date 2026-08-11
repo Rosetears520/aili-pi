@@ -168,12 +168,12 @@ function scanLifecycle(legacyState: CompactState, v3: CompactDoctorV3Snapshot | 
   }
   for (const block of v3?.blocks.values() ?? []) {
     schemaBlocks.v3 += 1;
-    allTiers[block.tier] += 1;
+    if (block.tier) allTiers[block.tier] += 1;
     if (block.quality.status === "accepted") acceptedQuality += 1;
     else unevaluatedQuality += 1;
     if (block.active && !block.queryOnly && block.epochId === legacyState.epochId) {
       activeSchemaBlocks.v3 += 1;
-      activeTiers[block.tier] += 1;
+      if (block.tier) activeTiers[block.tier] += 1;
     }
   }
   return {

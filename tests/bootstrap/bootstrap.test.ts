@@ -1,11 +1,15 @@
-import { chmod, cp, mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, cp, lstat, mkdtemp, mkdir, readFile, readdir, readlink, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const INSTALL = join(ROOT, "install.sh");
+const BOOTSTRAP = join(ROOT, "scripts/bootstrap.sh");
+const SETTINGS_MERGER = join(ROOT, "scripts/merge-global-settings.mjs");
+const KEYBINDINGS_MERGER = join(ROOT, "scripts/merge-global-keybindings.mjs");
 const scratch: string[] = [];
 
 afterEach(async () => {
@@ -23,6 +27,7 @@ async function fixture(options: {
   headlessFails?: boolean;
   platform?: string;
   architecture?: string;
+  assertKeybindingApplyAfterInstall?: boolean;
 } = {}) {
   const root = await mkdtemp(join(tmpdir(), "aili-bootstrap-test-"));
   scratch.push(root);
@@ -35,13 +40,15 @@ async function fixture(options: {
   const installer = join(root, "official-installer.sh");
   const fakeCurl = join(bin, "curl");
   const fakeUname = join(bin, "uname");
+  const forbiddenSharedWorkflowCommand = join(root, "forbidden-shared-workflow-command");
   await mkdir(bin);
   await mkdir(home);
+  await symlink(process.execPath, join(bin, "node"));
   await writeFile(template, `#!/bin/sh
 set -eu
 printf '%s\\n' "$*" >> "$FAKE_PI_LOG"
 case " $* " in
-  *" --version "*) printf '%s\\n' "${options.version ?? "0.81.1"}" ;;
+  *" --version "*) printf '%s\\n' "${options.version ?? "0.82.1"}" ;;
   *" --help "*) printf '%s\\n' '${options.help ?? "  --extension <path>\n  --no-extensions\n  --no-skills\n  --no-prompt-templates\n  --mode <mode>\n  --no-session\n  --print, -p\n  --offline\n  --list-models [search]"}' ;;
   *" --list-models "*) [ "${options.headlessFails ? "1" : "0"}" = 0 ] ;;
   *" list "*)
@@ -50,6 +57,11 @@ case " $* " in
     ;;
   *" install "*)
     [ "${options.installFails ? "1" : "0"}" = 0 ] || exit 1
+    if [ "$FAKE_PI_KEYBINDING_ORDER_CHECK" = 1 ]; then
+      [ ! -e "$HOME/.pi/agent/keybindings.json" ] || exit 9
+      mkdir -p "$HOME/.pi/agent"
+      printf '%s\\n' '{"app.clipboard.pasteImage":["shift+v"],"createdBy":"pi-install"}' > "$HOME/.pi/agent/keybindings.json"
+    fi
     printf '%s\\n' "$2" > "$FAKE_PI_STATE"
     ;;
   *" update --self "*) [ "${options.updateFails ? "1" : "0"}" = 0 ] ;;
@@ -88,6 +100,11 @@ case "\${1:-}" in
   *) exit 2 ;;
 esac
 `, { mode: 0o700 });
+  await writeFile(forbiddenSharedWorkflowCommand, `#!/bin/sh
+printf '%s\\n' "$(basename "$0") $*" >> "$FAKE_PI_LOG"
+exit 97
+`, { mode: 0o700 });
+  await Promise.all(["npm", "npx", "rose-aili"].map((name) => cp(forbiddenSharedWorkflowCommand, join(bin, name))));
   if (options.withPi !== false) await cp(template, pi);
   await chmod(pi, options.withPi === false ? 0o600 : 0o700).catch(() => undefined);
   const env = {
@@ -100,12 +117,29 @@ esac
     FAKE_INSTALLER_SOURCE: installer,
     FAKE_UNAME_S: options.platform ?? "Linux",
     FAKE_UNAME_M: options.architecture ?? "x86_64",
+    FAKE_PI_KEYBINDING_ORDER_CHECK: options.assertKeybindingApplyAfterInstall ? "1" : "0",
   };
   return { root, home, log, state, pi, env };
 }
 
 function run(env: NodeJS.ProcessEnv, args: string[] = []) {
   return spawnSync("sh", [INSTALL, ...args], { cwd: ROOT, env, encoding: "utf8" });
+}
+
+function runBootstrap(env: NodeJS.ProcessEnv, args: string[] = []) {
+  return spawnSync("sh", [BOOTSTRAP, ...args], { cwd: ROOT, env, encoding: "utf8" });
+}
+
+function runSettingsMerger(env: NodeJS.ProcessEnv, args: string[] = []) {
+  return spawnSync(process.execPath, [SETTINGS_MERGER, ...args], { cwd: ROOT, env, encoding: "utf8" });
+}
+
+function runKeybindingsMerger(env: NodeJS.ProcessEnv, args: string[] = []) {
+  return spawnSync(process.execPath, [KEYBINDINGS_MERGER, ...args], { cwd: ROOT, env, encoding: "utf8" });
+}
+
+function wslEnvironment(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return { ...env, WSL_DISTRO_NAME: "AILI-Test-WSL" };
 }
 
 describe("thin Unix bootstrap", () => {
@@ -115,21 +149,30 @@ describe("thin Unix bootstrap", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("pi_state=installed aili_state=installed");
     expect(result.stdout).toContain("platform=linux architecture=x86_64");
+    expect(result.stdout).toContain("shared_workflows_status=not-run owner=explicit-user-command");
+    expect(result.stdout).toContain("shared_workflows_install_command=npx -y rose-aili@0.4.2 install");
+    expect(result.stdout).toContain("shared_workflows_update_command=npx -y rose-aili@0.4.2 update");
+    expect(result.stdout).toContain("pi_package_update_command=pi update npm:@rosetears/aili-pi");
+    expect(result.stdout).toContain("pi_package_remove_command=pi remove npm:@rosetears/aili-pi");
     const log = await readFile(fx.log, "utf8");
     expect(log).toContain("official-installer");
     expect(log).toContain("--proto =https --proto-redir =https");
     expect(log).toContain("--connect-timeout 15 --max-time 120 --max-filesize 1048576");
     expect(log).toContain("install npm:@rosetears/aili-pi@latest");
+    expect(log).not.toMatch(/^(?:npm|npx|rose-aili)(?: |$)/m);
+    expect(await lstat(join(fx.home, ".agents/skills")).catch(() => undefined)).toBeUndefined();
   });
 
-  it("preserves existing Pi and unrelated user state on repeat install", async () => {
+  it("validates settings idempotently without changing unrelated user state", async () => {
     const fx = await fixture();
-    const state = join(fx.home, ".pi/agent");
-    await mkdir(state, { recursive: true });
+    const agentState = join(fx.home, ".pi/agent");
+    const settings = join(agentState, "settings.json");
+    await mkdir(agentState, { recursive: true });
+    const originalSettings = '{"theme":"rose","compaction":{"threshold":42}}\n';
+    await writeFile(settings, originalSettings, { mode: 0o640 });
     const files = [
-      join(state, "settings.json"),
-      join(state, "auth.json"),
-      join(state, "sessions/session.jsonl"),
+      join(agentState, "auth.json"),
+      join(agentState, "sessions/session.jsonl"),
       join(fx.home, "project/owned.txt"),
     ];
     for (const [index, file] of files.entries()) {
@@ -138,12 +181,239 @@ describe("thin Unix bootstrap", () => {
     }
     const before = await Promise.all(files.map((file) => readFile(file, "utf8")));
     expect(run(fx.env).status).toBe(0);
+    expect(await readFile(settings, "utf8")).toBe(originalSettings);
+    expect((await stat(settings)).mode & 0o777).toBe(0o640);
+
     expect(run(fx.env).status).toBe(0);
+    expect(await readFile(settings, "utf8")).toBe(originalSettings);
     expect(await Promise.all(files.map((file) => readFile(file, "utf8")))).toEqual(before);
     const log = await readFile(fx.log, "utf8");
     expect(log).not.toContain("official-installer");
     expect(log.match(/install npm:@rosetears\/aili-pi@latest/g)).toHaveLength(2);
     expect((await readFile(fx.state, "utf8")).trim()).toBe("npm:@rosetears/aili-pi@latest");
+  });
+
+  it("leaves missing global settings absent without touching project settings", async () => {
+    const fx = await fixture();
+    const projectSettings = join(fx.root, ".pi/settings.json");
+    await mkdir(resolve(projectSettings, ".."), { recursive: true });
+    await writeFile(projectSettings, '{"compaction":{"enabled":true}}\n');
+
+    const result = runBootstrap(fx.env);
+    expect(result.status).toBe(0);
+    expect(await readFile(join(fx.home, ".pi/agent/settings.json"), "utf8").catch(() => undefined)).toBeUndefined();
+    expect(await readFile(projectSettings, "utf8")).toBe('{"compaction":{"enabled":true}}\n');
+  });
+
+  it.each([
+    ["explicit true", '{"compaction":{"enabled":true,"threshold":42}}\n'],
+    ["unmarked explicit false", '{"compaction":{"enabled":false,"threshold":42}}\n'],
+  ])("preserves %s settings byte-for-byte on validation and refresh", async (_label, original) => {
+    const fx = await fixture();
+    const settings = join(fx.home, ".pi/agent/settings.json");
+    await mkdir(resolve(settings, ".."), { recursive: true });
+    await writeFile(settings, original, { mode: 0o600 });
+
+    expect(runSettingsMerger(fx.env).status).toBe(0);
+    expect(await readFile(settings, "utf8")).toBe(original);
+    expect(runSettingsMerger(fx.env, ["--check"]).status).toBe(0);
+    expect(await readFile(settings, "utf8")).toBe(original);
+  });
+
+  it("validates readable settings without requiring write access", async () => {
+    const fx = await fixture();
+    const agentState = join(fx.home, ".pi/agent");
+    const settings = join(agentState, "settings.json");
+    const original = '{"theme":"rose"}\n';
+    await mkdir(agentState, { recursive: true });
+    await writeFile(settings, original, { mode: 0o600 });
+    await chmod(agentState, 0o500);
+    try {
+      expect(runSettingsMerger(fx.env).status).toBe(0);
+      expect(await readFile(settings, "utf8")).toBe(original);
+    } finally {
+      await chmod(agentState, 0o700);
+    }
+  });
+
+  it.each([
+    ["malformed JSON", '{"theme":'],
+    ["non-object root", '[1,2,3]\n'],
+  ])("fails on %s without changing settings bytes", async (_label, original) => {
+    const fx = await fixture();
+    const settings = join(fx.home, ".pi/agent/settings.json");
+    await mkdir(resolve(settings, ".."), { recursive: true });
+    await writeFile(settings, original, { mode: 0o600 });
+
+    const result = run(fx.env);
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("stage=user-global-settings-validate");
+    expect(await readFile(settings, "utf8")).toBe(original);
+    expect(await readFile(fx.log, "utf8")).not.toContain("install npm:");
+  });
+
+  it("atomically creates the default WSL image-paste bindings when the target is absent", async () => {
+    const fx = await fixture();
+    const target = join(fx.home, ".pi/agent/keybindings.json");
+    const result = runKeybindingsMerger(wslEnvironment(fx.env));
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(await readFile(target, "utf8")).toBe(`{
+  "app.clipboard.pasteImage": [
+    "ctrl+v",
+    "alt+v"
+  ]
+}
+`);
+    expect((await stat(target)).mode & 0o777).toBe(0o600);
+  });
+
+  it("preserves unrelated WSL keybindings and adds only the image-paste action", async () => {
+    const fx = await fixture();
+    const target = join(fx.home, ".pi/agent/keybindings.json");
+    const original = '{"app.editor.undo":["ctrl+z"],"nested":{"enabled":true}}\n';
+    await mkdir(resolve(target, ".."), { recursive: true });
+    await writeFile(target, original, { mode: 0o640 });
+
+    expect(runKeybindingsMerger(wslEnvironment(fx.env), ["--check"]).status).toBe(0);
+    expect(await readFile(target, "utf8")).toBe(original);
+    expect(runKeybindingsMerger(wslEnvironment(fx.env)).status).toBe(0);
+    expect(JSON.parse(await readFile(target, "utf8"))).toEqual({
+      "app.editor.undo": ["ctrl+z"],
+      nested: { enabled: true },
+      "app.clipboard.pasteImage": ["ctrl+v", "alt+v"],
+    });
+  });
+
+  it("preserves an explicit image-paste action and the entire file byte-for-byte", async () => {
+    const fx = await fixture();
+    const target = join(fx.home, ".pi/agent/keybindings.json");
+    const original = '{  "app.clipboard.pasteImage" : ["shift+insert"], "other": null }\n\n';
+    await mkdir(resolve(target, ".."), { recursive: true });
+    await writeFile(target, original, { mode: 0o640 });
+
+    expect(runKeybindingsMerger(wslEnvironment(fx.env), ["--check"]).status).toBe(0);
+    expect(runKeybindingsMerger(wslEnvironment(fx.env)).status).toBe(0);
+    expect(await readFile(target, "utf8")).toBe(original);
+    expect((await stat(target)).mode & 0o777).toBe(0o640);
+  });
+
+  it.each([
+    ["malformed JSON", '{"app.editor.undo":'],
+    ["non-object root", '["ctrl+v"]\n'],
+  ])("fails closed for WSL %s keybindings", async (_label, original) => {
+    const fx = await fixture();
+    const target = join(fx.home, ".pi/agent/keybindings.json");
+    await mkdir(resolve(target, ".."), { recursive: true });
+    await writeFile(target, original, { mode: 0o600 });
+
+    const result = runKeybindingsMerger(wslEnvironment(fx.env), ["--check"]);
+    expect(result.status).toBe(1);
+    expect(await readFile(target, "utf8")).toBe(original);
+  });
+
+  it("rejects symlinked and non-regular WSL keybinding targets", async () => {
+    const linked = await fixture();
+    const linkedTarget = join(linked.home, ".pi/agent/keybindings.json");
+    const destination = join(linked.home, "user-keybindings.json");
+    await mkdir(resolve(linkedTarget, ".."), { recursive: true });
+    await writeFile(destination, '{"user":true}\n');
+    await symlink(destination, linkedTarget);
+
+    const linkedResult = runKeybindingsMerger(wslEnvironment(linked.env), ["--check"]);
+    expect(linkedResult.status).toBe(1);
+    expect(linkedResult.stderr).toContain("symlinks are not allowed");
+    expect((await lstat(linkedTarget)).isSymbolicLink()).toBe(true);
+    expect(await readlink(linkedTarget)).toBe(destination);
+    expect(await readFile(destination, "utf8")).toBe('{"user":true}\n');
+
+    const nonRegular = await fixture();
+    const nonRegularTarget = join(nonRegular.home, ".pi/agent/keybindings.json");
+    await mkdir(nonRegularTarget, { recursive: true });
+    const nonRegularResult = runKeybindingsMerger(wslEnvironment(nonRegular.env), ["--check"]);
+    expect(nonRegularResult.status).toBe(1);
+    expect(nonRegularResult.stderr).toContain("must be a regular file");
+    expect((await stat(nonRegularTarget)).isDirectory()).toBe(true);
+  });
+
+  it("is a non-WSL no-op without validating or changing the target", async () => {
+    const fx = await fixture();
+    const target = join(fx.home, ".pi/agent/keybindings.json");
+    const malformed = '{not-json\n';
+    await mkdir(resolve(target, ".."), { recursive: true });
+    await writeFile(target, malformed, { mode: 0o640 });
+    const moduleUrl = pathToFileURL(KEYBINDINGS_MERGER).href;
+    const program = `
+      import { mergeGlobalKeybindings } from ${JSON.stringify(moduleUrl)};
+      const options = {
+        environment: process.env,
+        platform: "linux",
+        operations: { readFile: async () => "6.8.0-linux" },
+      };
+      const applyResult = await mergeGlobalKeybindings(options);
+      const checkResult = await mergeGlobalKeybindings({ ...options, args: ["--check"] });
+      if (applyResult.status !== "not-wsl" || checkResult.status !== "not-wsl") process.exitCode = 2;
+    `;
+
+    const result = spawnSync(process.execPath, ["--input-type=module", "--eval", program], {
+      cwd: ROOT,
+      env: fx.env,
+      encoding: "utf8",
+    });
+    expect(result.status).toBe(0);
+    expect(await readFile(target, "utf8")).toBe(malformed);
+    expect((await stat(target)).mode & 0o777).toBe(0o640);
+  });
+
+  it("keeps the original target and removes only its own temp after an injected rename failure", async () => {
+    const fx = await fixture();
+    const agentState = join(fx.home, ".pi/agent");
+    const target = join(agentState, "keybindings.json");
+    const original = '{"app.editor.undo":["ctrl+z"]}\n';
+    await mkdir(agentState, { recursive: true });
+    await writeFile(target, original, { mode: 0o640 });
+    const moduleUrl = pathToFileURL(KEYBINDINGS_MERGER).href;
+    const program = `
+      import { mergeGlobalKeybindings } from ${JSON.stringify(moduleUrl)};
+      const failure = Object.assign(new Error("injected rename failure"), { code: "EIO" });
+      await mergeGlobalKeybindings({
+        environment: process.env,
+        operations: { rename: async () => { throw failure; } },
+      });
+    `;
+
+    const result = spawnSync(process.execPath, ["--input-type=module", "--eval", program], {
+      cwd: ROOT,
+      env: wslEnvironment(fx.env),
+      encoding: "utf8",
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("injected rename failure");
+    expect(await readFile(target, "utf8")).toBe(original);
+    expect((await stat(target)).mode & 0o777).toBe(0o640);
+    expect(await readdir(agentState)).toEqual(["keybindings.json"]);
+  });
+
+  it("checks WSL keybindings before package installation and applies only afterward", async () => {
+    const ordered = await fixture({ assertKeybindingApplyAfterInstall: true });
+    const orderedResult = run(wslEnvironment(ordered.env));
+    const orderedTarget = join(ordered.home, ".pi/agent/keybindings.json");
+    expect(orderedResult.status).toBe(0);
+    expect(await readFile(orderedTarget, "utf8")).toBe(
+      '{"app.clipboard.pasteImage":["shift+v"],"createdBy":"pi-install"}\n',
+    );
+
+    const invalid = await fixture();
+    const invalidTarget = join(invalid.home, ".pi/agent/keybindings.json");
+    const malformed = '{"app.clipboard.pasteImage":';
+    await mkdir(resolve(invalidTarget, ".."), { recursive: true });
+    await writeFile(invalidTarget, malformed);
+    const invalidResult = run(wslEnvironment(invalid.env));
+    expect(invalidResult.status).toBe(1);
+    expect(invalidResult.stdout).toContain("stage=user-global-keybindings-validate");
+    expect(await readFile(invalidTarget, "utf8")).toBe(malformed);
+    expect(await readFile(invalid.log, "utf8")).not.toContain("install npm:");
   });
 
   it("updates official Pi only when explicitly requested", async () => {
@@ -157,14 +427,22 @@ describe("thin Unix bootstrap", () => {
     expect(await readFile(update.log, "utf8")).toContain("update --self");
   });
 
+  it("accepts the exact Pi 0.82.1 compatibility floor", async () => {
+    const compatible = await fixture({ version: "0.82.1" });
+    const result = run(compatible.env);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("preflight=pass pi_version=0.82.1");
+    expect(await readFile(compatible.log, "utf8")).toContain("install npm:@rosetears/aili-pi@latest");
+  });
+
   it("fails before package mutation for incompatible Pi and unsupported platforms", async () => {
-    const incompatible = await fixture({ version: "0.80.0" });
+    const incompatible = await fixture({ version: "0.82.0" });
     const versionResult = run(incompatible.env);
     expect(versionResult.status).toBe(1);
     expect(versionResult.stdout).toContain("stage=pi-version-incompatible");
     expect(await readFile(incompatible.log, "utf8")).not.toContain("install npm:");
 
-    const malformed = await fixture({ version: "0.81.0-beta1" });
+    const malformed = await fixture({ version: "0.82.1-beta1" });
     expect(run(malformed.env).stdout).toContain("stage=pi-version-format");
     expect(await readFile(malformed.log, "utf8")).not.toContain("install npm:");
 
@@ -190,6 +468,7 @@ describe("thin Unix bootstrap", () => {
     expect(result.stdout).toContain("repair=pi install npm:@rosetears/aili-pi@latest");
     expect(result.stdout).toContain("optional_destructive_remove=pi remove npm:@rosetears/aili-pi");
     expect(await readFile(fx.pi, "utf8")).toContain("FAKE_PI_LOG");
+    expect(await readFile(join(fx.home, ".pi/agent/settings.json"), "utf8").catch(() => undefined)).toBeUndefined();
 
     const existing = await fixture({ installFails: true });
     await writeFile(existing.state, "npm:@rosetears/aili-pi@latest\n");
@@ -203,6 +482,9 @@ describe("thin Unix bootstrap", () => {
     const result = run(fx.env);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("platform=linux architecture=aarch64");
+    expect(result.stdout).toContain("shared_workflows_status=not-run owner=explicit-user-command");
+    expect(result.stdout).toContain("pi_package_update_command=pi update npm:@rosetears/aili-pi");
+    expect(result.stdout).toContain("pi_package_remove_command=pi remove npm:@rosetears/aili-pi");
     expect(spawnSync(fx.pi, ["list"], { env: fx.env, encoding: "utf8" }).stdout).toContain("npm:@rosetears/aili-pi");
     expect(spawnSync(fx.pi, ["update", "npm:@rosetears/aili-pi"], { env: fx.env, encoding: "utf8" }).status).toBe(0);
     expect(spawnSync(fx.pi, ["remove", "npm:@rosetears/aili-pi"], { env: fx.env, encoding: "utf8" }).status).toBe(0);
@@ -211,6 +493,7 @@ describe("thin Unix bootstrap", () => {
     expect(log).toContain("install npm:@rosetears/aili-pi@latest");
     expect(log).toContain("update npm:@rosetears/aili-pi");
     expect(log).toContain("remove npm:@rosetears/aili-pi");
+    expect(log).not.toMatch(/^(?:npm|npx|rose-aili)(?: |$)/m);
   });
 
   it("fails closed for API, package resource, headless, and update failures", async () => {

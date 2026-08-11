@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { access, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { execFile } from "node:child_process";
@@ -19,6 +20,13 @@ async function exists(path: URL): Promise<boolean> {
 }
 
 describe("generated permission-mode adaptation", () => {
+  it("binds the adapted permission entry hash in the generated lock", async () => {
+    const source = await readFile(new URL("../../src/vendor/pi-permission-modes/index.ts", import.meta.url));
+    const lock = JSON.parse(await readFile(new URL("../../upstream/pi-permission-modes.lock.json", import.meta.url), "utf8"));
+    const recorded = lock.adaptedFiles.find((entry: { path: string }) => entry.path === "src/vendor/pi-permission-modes/index.ts")?.sha256;
+    expect(recorded).toBe(createHash("sha256").update(source).digest("hex"));
+  });
+
   it("matches the exact pi-permission-modes 2.2.0 baseline and declared local diff", async () => {
     const root = new URL("../../", import.meta.url);
     const { stdout } = await execFileAsync(
@@ -109,11 +117,24 @@ describe("generated skill baseline", () => {
       await readFile(new URL("../../manifests/skill-compatibility.json", import.meta.url), "utf8"),
     );
 
-    expect(stdout).toContain("PASS: 64 skills");
+    expect(stdout).toContain("PASS: 65 skills");
     expect(lock.commit).toMatch(/^[0-9a-f]{40}$/);
-    expect(lock.skillCount).toBe(64);
-    expect(compatibility.records).toHaveLength(64);
-    expect(new Set(compatibility.records.map((record: { name: string }) => record.name)).size).toBe(64);
+    expect(lock.skillCount).toBe(65);
+    expect(lock.release).toMatchObject({
+      package: "rose-aili",
+      version: "0.4.2",
+      npmGitHead: "bb1fedacc46d71045daa6257d121f2b71ba29d54",
+      tarballSha256: "df7c67af6acaa7e5080e81f5c7fab6b9dc77b5a24397a26240a527370cad206f",
+      protocols: {
+        agentSelection: { protocol: "aili-agent-selection/v1", sha256: "562951ec896b351983223a4a04833c260d9570307a1688dbaf7032055ee4161d" },
+        formalTaskBoard: { protocol: "aili-task-board/v1", sha256: "04343832b5cdfbde65f53f0a981a5f0e7c6e1b3507e65e5fdfbf2b3f696af58b" },
+      },
+    });
+    expect(lock.release.canonicalSpecialists).toHaveLength(19);
+    expect(lock.release.canonicalSpecialists).not.toContain("general");
+    expect(compatibility.source.release).toEqual(lock.release);
+    expect(compatibility.records).toHaveLength(65);
+    expect(new Set(compatibility.records.map((record: { name: string }) => record.name)).size).toBe(65);
   });
 
   it("fails closed when a generated skill is edited", async () => {

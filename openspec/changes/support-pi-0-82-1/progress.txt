@@ -1,0 +1,64 @@
+BUILD LOCALLY COMPLETE
+
+Scope completed
+
+- Final test plan accepted; exact Pi dependency/package-lock operations approved.
+- Exact development host suite aligned to `@earendil-works/pi-{coding-agent,agent-core,ai,tui}@0.82.1`.
+- Linux bootstrap minimum is 0.82.1; 0.82.0 is rejected before package mutation.
+- Wrapped local and sandboxed Bash forward `ExtensionContext` and expose only current `PI_SESSION_ID`, persistent `PI_SESSION_FILE`, `PI_PROVIDER`, `PI_MODEL`, and `PI_REASONING_LEVEL`; stale inherited values are removed.
+- Codex OAuth GPT-5.6 Sol/Terra/Luna retain Pi-owned 272K metadata. No AILI Provider registration or 372K mapping exists.
+- Persistent Agent parent/child host and model seams were revalidated on installed Pi 0.82.1.
+- Canonical adapter/provenance/SBOM/NOTICE/skill-compatibility outputs were regenerated. The removed legacy subagent provenance manifest was deleted.
+- Prior Pi 0.81.1 live evidence is retained only as stale historical evidence and cannot pass the 0.82.1 release gate.
+
+Fresh deterministic verification
+
+- `npm run typecheck`: PASS.
+- `npm test`: PASS — 55 files passed, 2 skipped; 355 tests passed, 2 skipped.
+- `npm run validate:generated`: PASS.
+- `npm run validate:compatibility`: PASS.
+- `npm run validate:provenance`: PASS.
+- `npm run validate:capabilities`: PASS.
+- `npm run validate:roles`: PASS — 20 profiles.
+- `npm run validate:package`: PASS.
+- `openspec validate support-pi-0-82-1 --strict`: PASS.
+- `git diff --check`: PASS.
+- `npm pack --dry-run --json`: PASS for `@rosetears/aili-pi@0.1.10`.
+
+Expected non-pass / Unverified
+
+- `npm run validate:release`: expected NON_PASS only for fresh persistent-Agent provider/sandbox/external-workspace live evidence and the separate AILI Compact AGPL/MIT license disposition.
+- `UV-TUI-0821-1`: real Linux TUI/editor observation remains Unverified because HOME/TUI operation was not authorized.
+
+Authorization boundaries preserved
+
+- No user HOME/TUI probe, provider call, Git commit/push, publish, or release action was performed.
+- `npm install` reported one high-severity audit finding; no unapproved `npm audit fix` or unrelated dependency upgrade was performed.
+
+POST-UPDATE OBSERVATION
+
+- Global `pi --version` is 0.82.1 and the installed npm AILI package loads headlessly/offline without Extension errors.
+- `pi list` reports published `@rosetears/aili-pi@0.1.12`; this is not the current workspace BUILD (`package.json` remains 0.1.10).
+- Published 0.1.12 still declares/dev-binds Pi 0.81.1 and retains the old wrapped-bash implementation that drops `ExtensionContext`; therefore the newly completed 0.82.1 compatibility BUILD is not installed by `pi update` yet.
+
+## 2026-07-26 superseding local release-candidate evidence
+
+- The workspace is now a local `@rosetears/aili-pi@0.1.13` candidate under `AGPL-3.0-or-later`; this supersedes the earlier current-workspace 0.1.10 and unresolved-license observations without changing the historical 0.1.12 npm facts.
+- Typecheck, full tests, deterministic validators, strict OpenSpec, exact package dry-run and extracted-tarball license/provenance/sanitizer checks pass.
+- Superseding fresh evidence on 2026-07-26: the user authorized and completed Pi 0.82.1 provider, positive persistent-child sandbox, disposable-HOME, and external-workspace lifecycle probes; `npm run validate:release` now passes. No commit, push, tag, publish, GitHub release or installed-package replacement occurred.
+- Global Pi 0.82.1's installed Codex GPT-5.6 Sol/Terra/Luna catalog reports 272000 as expected.
+- Running published package npm validator scripts from inside Pi's `node_modules` fails with Node `ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`; the offline Pi Extension load still passes, so this is a packaged-validator usability issue rather than evidence of Extension load failure.
+
+LOCAL WORKSPACE INSTALL
+
+- User explicitly approved replacing the npm package entry with the current workspace.
+- Executed `pi remove npm:@rosetears/aili-pi`, then `pi install /home/rosetears/code/aili-pi` to avoid duplicate package identities and duplicate handlers.
+- `pi list` now reports only `/home/rosetears/code/aili-pi` as the AILI user package.
+- Fresh offline/no-session headless Extension load completed with exit0 and no stderr.
+
+POST-REFRESH RUNTIME CHECK
+
+- Refreshed session reports Pi0.82.1 and the sole local workspace package.
+- Wrapped Bash now exposes the current session ID, persistent session-file presence, `openai-codex`, `gpt-5.6-sol`, and reasoning level `medium`, proving the refreshed ExtensionContext forwarding path is active without reading Session content.
+- A fresh `hub list` returned the durable parked Agent registry successfully; no provider turn was started.
+- A second offline/no-session headless load completed with exit0 and empty stderr.

@@ -1,9 +1,17 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import roseMatrixExtension from "../../extensions/matrix/index.js";
 
 type Handler = (event: any, context?: any) => void;
+const roots: string[] = [];
 
 function createHarness(themeName = "rose-cyberdeck") {
+  const root = mkdtempSync(join(tmpdir(), "aili-matrix-lifecycle-"));
+  roots.push(root);
+  // Animation is opt-in in production; lifecycle coverage explicitly enables it.
+  writeFileSync(join(root, "rose-cyberdeck-matrix.json"), JSON.stringify({ enabled: true }));
   const handlers = new Map<string, Handler>();
   const widgets: unknown[] = [];
   const commands = new Map<string, { handler(args: string, ctx: unknown): Promise<void> }>();
@@ -27,7 +35,10 @@ function createHarness(themeName = "rose-cyberdeck") {
     on(name: string, handler: Handler) { handlers.set(name, handler); },
     registerCommand(name: string, command: { handler(args: string, context: unknown): Promise<void> }) { commands.set(name, command); },
   };
-  roseMatrixExtension(pi);
+  roseMatrixExtension(pi, {
+    configPath: join(root, "rose-cyberdeck-matrix.json"),
+    legacyPath: join(root, "sakura-cyberdeck-matrix.json"),
+  });
   return {
     ctx,
     emit(name: string, event: any = {}) { handlers.get(name)?.(event, ctx); },
@@ -40,6 +51,7 @@ function createHarness(themeName = "rose-cyberdeck") {
 
 afterEach(() => {
   // Every test ends its run explicitly so its Matrix scheduler is cleared.
+  while (roots.length > 0) rmSync(roots.pop()!, { recursive: true, force: true });
 });
 
 function status(harness: ReturnType<typeof createHarness>): string {
@@ -136,5 +148,25 @@ describe("Rose Matrix lifecycle", () => {
     await harness.command("sakura-matrix", "status");
     expect(harness.calls.some(([, message]) => String(message).includes("deprecated"))).toBe(true);
     expect(harness.calls.some(([, message]) => String(message).includes("Rose Matrix:"))).toBe(true);
+  });
+
+  it("switches between Shimmer-only and five-line Rain while retaining the master preference", async () => {
+    const harness = createHarness();
+    harness.emit("agent_start");
+    expect(harness.render()).toHaveLength(5);
+
+    await harness.command("rose-matrix", "rain off");
+    expect(harness.render()).toHaveLength(1);
+    await harness.command("rose-matrix", "status");
+    expect(harness.calls.some(([, message]) => String(message).includes("rain off"))).toBe(true);
+
+    await harness.command("rose-matrix", "off");
+    await harness.command("rose-matrix", "on");
+    harness.emit("agent_start");
+    expect(harness.render()).toHaveLength(1);
+
+    await harness.command("rose-matrix", "rain on");
+    expect(harness.render()).toHaveLength(5);
+    harness.emit("agent_end");
   });
 });

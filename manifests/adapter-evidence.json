@@ -4,42 +4,135 @@
     {
       "capability": "repo.read",
       "status": "native",
-      "owner": "@earendil-works/pi-coding-agent@0.81.1",
-      "sourceRevision": "7eb35f357ad489f5841ee10dac1e44549c1bdb76",
+      "owner": "@earendil-works/pi-coding-agent@0.82.1",
+      "sourceRevision": "bb1fedacc46d71045daa6257d121f2b71ba29d54",
       "verification": [
         "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/unit/runtime.test.ts"
+        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
       "artifacts": [
-        { "path": "package-lock.json", "sha256": "a9e5a3e4d1076b3179dd8cca5ef89f9fddc838e0acf9abcc1f42daf2a90ddafb" },
-        { "path": "tests/integration/extension-load.test.ts", "sha256": "f2fdceb965f55bc481acc6457eee5cac9499dac08e8c3d17ca60efd07f13e96c" },
-        { "path": "tests/unit/runtime.test.ts", "sha256": "9e99920e7e16529f109771d659f611c9fa580941a5dbf924b2d9d117dd3adeee" }
+        {
+          "path": "package-lock.json",
+          "sha256": "534a2d73213a66da3b453c9216754f17a24bf728d5576f88ff4f1761bc9f4f2d"
+        },
+        {
+          "path": "tests/integration/extension-load.test.ts",
+          "sha256": "f2fdceb965f55bc481acc6457eee5cac9499dac08e8c3d17ca60efd07f13e96c"
+        },
+        {
+          "path": "tests/integration/persistent-agent-host-seams.test.ts",
+          "sha256": "21d4c989542f9c9697e8cce169bdb72f4300ba4130a2e4a819020d24cbbee5df"
+        }
       ]
     },
     {
       "capability": "subagent.dispatch",
       "status": "adapted",
-      "owner": "src/runtime/subagents.ts",
-      "sourceRevision": "7eb35f357ad489f5841ee10dac1e44549c1bdb76",
+      "owner": "src/runtime/persistent-agents/production.ts",
+      "sourceRevision": "bb1fedacc46d71045daa6257d121f2b71ba29d54",
       "verification": [
         "npm run verify:roles",
-        "vitest run tests/unit/roles.test.ts tests/unit/subagents.test.ts",
-        "vitest run tests/integration/generic-subagent.test.ts tests/integration/generic-permission.test.ts",
-        "AILI_LIVE_GENERIC_SUBAGENT_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts",
-        "AILI_LIVE_CREDENTIAL_GUARD_PROBE=1 npx vitest run tests/integration/live-subagent.test.ts"
+        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/persistent-agent-task-collision.test.ts tests/integration/package-runtime.test.ts",
+        "vitest run tests/unit/persistent-agent-task-registration.test.ts",
+        "npm run test:doctor"
       ],
       "artifacts": [
-        { "path": "src/runtime/subagents.ts", "sha256": "9f09e0e8a380d026d82b0842f2c687da2f3529b43a7ef6d1a6aad47d71190d48" },
-        { "path": "src/runtime/child-guard.ts", "sha256": "9da3c1d80805fd76bbf7a7fd253dff44f0756439fdee039bd7d7fd30766329e1" },
-        { "path": "src/runtime/credential-guard.ts", "sha256": "01d76ff0a9a2a0a08a2d2e52b6ed050d925df5e5bea1e6194130e00bfe22cde3" },
-        { "path": "tests/unit/subagents.test.ts", "sha256": "16fc1fbd1759befeed03a2428294c28d662022622c61a6444e23b365dc7447aa" },
-        { "path": "tests/unit/child-guard.test.ts", "sha256": "b187d6d84cd0829ae5474e133b4df911a80b75b9e89622b8543a1c5894be4974" },
-        { "path": "tests/integration/generic-permission.test.ts", "sha256": "90cc4ee67098f671dddac495d5e2cd5dc2c50131297fd04f0d72a1ca44217f24" },
-        { "path": "tests/integration/generic-subagent.test.ts", "sha256": "a13f8564bdd1bd735f9313d2ad71511a47c939dd6351f2f460771cb48a7fc80b" },
-        { "path": "tests/unit/roles.test.ts", "sha256": "72b61af16ff66506aaaceac28c92d8b3756741e3c4df0544686b3d4940215b57" },
-        { "path": "scripts/sync-roles.ts", "sha256": "a4fd66c95d91ebd92f0b1c6164a84809c4b5a1bf1e185dbdd61af23688dd2d9c" },
-        { "path": "tests/integration/live-subagent.test.ts", "sha256": "b88750f74b203cdbdb9d0e453e16f720ff4d8e4591ca140e0a3c7e1d8428868c" },
-        { "path": "manifests/live-verification.json", "sha256": "f5c80dfb2fb989b43af3b7460510b0a546cc05f8ff9e671c3e9284384c33d95b" }
+        {
+          "path": "src/runtime/persistent-agents/production.ts",
+          "sha256": "f789a7caa336b3521fb869732e07e30be799ae6c537702349f86ab086b2ce084"
+        },
+        {
+          "path": "src/runtime/persistent-agents/runtime.ts",
+          "sha256": "f07ed46b519980d4ef454ab3a2243f42a79f9e4f4e2525ed738b2c12d83da076"
+        },
+        {
+          "path": "src/runtime/persistent-agents/session-factory.ts",
+          "sha256": "ad7e06b2199c633d105ff967aa84e0c17c5bc5f5b1ec02d084d171c22940ab19"
+        },
+        {
+          "path": "src/runtime/persistent-agents/task-registration.ts",
+          "sha256": "c437fe63cede1eec636a75205742cbdd7a4770da50427bcbc53748f5f191de32"
+        },
+        {
+          "path": "src/runtime/native-integrations.ts",
+          "sha256": "67cd00dd3e7d3b053991fd75d4a2863551f4eae4d7d6e30973cea0fbc3556d80"
+        },
+        {
+          "path": "src/runtime/persistent-agents/storage.ts",
+          "sha256": "4bfdc33b719327e5c65583dbba8641cdfa6f1cb56eba4b63d925eaa6d6dceff5"
+        },
+        {
+          "path": "src/runtime/persistent-agents/permission.ts",
+          "sha256": "48b30508491bca7fcd04d82b30d9dde1423499c2f02c014074c3f030c7ebd8ba"
+        },
+        {
+          "path": "tests/unit/persistent-agent-task.test.ts",
+          "sha256": "ce0d5bf89966bf7b96fd3f6f5c996b68379d93b5f5327b675c0cb93140db639a"
+        },
+        {
+          "path": "tests/unit/persistent-agent-hub.test.ts",
+          "sha256": "b55df0065d0da8b6648c5abe2333a07e930d182471447f8f5a06ad77a06a5b33"
+        },
+        {
+          "path": "tests/unit/persistent-agent-policy.test.ts",
+          "sha256": "e6058f6e442984895355bce2b6f7dec4296aa4efeacf219add7e117cf7f1585b"
+        },
+        {
+          "path": "tests/integration/persistent-agent-runtime.test.ts",
+          "sha256": "e2c904a02afe3f0810fe0109b2f9b78cb20ee1f8e4cfa3a38dc648df3d437389"
+        },
+        {
+          "path": "tests/integration/persistent-agent-production.test.ts",
+          "sha256": "e49d2c6aa63b4b514ab38a07f09e68ebbd7d84e4e7560be92c8a063867dfbeb9"
+        },
+        {
+          "path": "tests/integration/persistent-agent-task-collision.test.ts",
+          "sha256": "d80427843e3cd5473a588b86eac00a034f5f632024097dab75fc9252efbcfa98"
+        },
+        {
+          "path": "tests/unit/persistent-agent-task-registration.test.ts",
+          "sha256": "8d21e642169afb9fe67469355a0cd9f7a12a018ecbc107b25f5fae7a613d30c3"
+        },
+        {
+          "path": "tests/integration/package-runtime.test.ts",
+          "sha256": "673251a54cdfb57886367ef767061a69ff4450f9f7cf3573f6c5819607a3b0eb"
+        }
+      ]
+    },
+    {
+      "skill": "i-have-adhd",
+      "sourceHash": "23d1a0ac44d126a7ac87b3da86829db5880e5aaa410e0a0f4476b9560e36086e",
+      "status": "native",
+      "owner": "@earendil-works/pi-coding-agent@0.82.1",
+      "sourceRevision": "bb1fedacc46d71045daa6257d121f2b71ba29d54",
+      "verification": [
+        "vitest run tests/integration/i-have-adhd-compatibility.test.ts"
+      ],
+      "behavior": {
+        "kind": "pi-native-skill-discovery",
+        "host": "@earendil-works/pi-coding-agent@0.82.1",
+        "discoveryRoot": "~/.agents/skills",
+        "entrypoint": "SKILL.md",
+        "loading": "on-demand"
+      },
+      "artifacts": [
+        {
+          "path": "skills/i-have-adhd/SKILL.md",
+          "sha256": "05b30ad826d452b3c9608f72e7e3cc9b1f1308dd5ad24bfc33c59921eb8ce995"
+        },
+        {
+          "path": "package-lock.json",
+          "sha256": "534a2d73213a66da3b453c9216754f17a24bf728d5576f88ff4f1761bc9f4f2d"
+        },
+        {
+          "path": "node_modules/@earendil-works/pi-coding-agent/docs/skills.md",
+          "sha256": "de38956dcdb3f060b62a891c23b5c0facc568d26039cd0addd6d5adfbed2762f"
+        },
+        {
+          "path": "node_modules/@earendil-works/pi-coding-agent/dist/core/package-manager.js",
+          "sha256": "fddbddad498026c16dbd73e70c6ca4d9714c5767575e258f102a6907277f5d48"
+        }
       ]
     }
   ]

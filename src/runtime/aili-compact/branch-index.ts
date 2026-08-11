@@ -22,13 +22,16 @@ import {
 import { parseRepairEntry, type RepairEntry } from "./repair.js";
 import {
   deriveRuntimeCatalogId,
+  orderRuntimeCatalogBlocksBySemanticSource,
   type RuntimeCatalogBlockIdentity,
+  type RuntimeCatalogBlockOrderMetadata,
   type RuntimeCatalogMessageIdentity,
 } from "./runtime-catalog.js";
 import {
   reduceCompactReadBundle,
   reduceCompactState,
   reduceCompactStateFromEpoch,
+  reduceV3LifecycleState,
   reduceV3LifecycleStateFromSeed,
   transactionFromEntry,
   type CompactReadBundle,
@@ -47,6 +50,16 @@ import {
   type V3Tier,
   type V3Transaction,
 } from "./v3.js";
+import {
+  MAX_TRANSPARENT_PROMOTION_GAP_MESSAGES,
+  MAX_TRANSPARENT_PROMOTION_GAPS,
+  PromotionGapIndexV1,
+  createRawEpochSlot,
+  createTrustedRawEpochProjectionFromPrefixAccessor,
+  nextRawEpochPrefixDigest,
+  rawEpochPrefixSeed,
+  type RawEpochSlotV1,
+} from "./promotion-gaps.js";
 
 export const BRANCH_INDEX_VERSION = "aili.branch-index.v1" as const;
 export const DEFAULT_BRANCH_SNAPSHOT_LRU = 4;
@@ -60,6 +73,24 @@ export interface BranchIndexKey {
   replayVersion: string;
 }
 
+const SOURCE_ENTRY_ID_DIGEST_SEED = digest({ version: "aili.branch-source-entry-id.v1" });
+
+/**
+ * Incremental branch identity for recovery scopes. AILI-owned custom records
+ * deliberately do not advance it, matching the source-only recovery boundary.
+ */
+export function branchSourceEntryIdDigest(
+  entries: readonly Pick<BranchSessionEntry, "id" | "type">[],
+  prior = SOURCE_ENTRY_ID_DIGEST_SEED,
+): string {
+  let current = prior;
+  for (const entry of entries) {
+    if (entry.type === "custom") continue;
+    current = digest({ previous: current, entryId: entry.id });
+  }
+  return current;
+}
+
 export interface BranchSessionEntry extends SessionLikeEntry {
   parentId?: string | null;
 }
@@ -67,6 +98,13 @@ export interface BranchSessionEntry extends SessionLikeEntry {
 export interface BranchIndexCounters {
   entryVisits: number;
   preTipEntryVisits: number;
+  rawSlotVisits: number;
+  proofRawSlotVisits: number;
+  sourceFreshnessRawSlotVisits: number;
+  rawEpochSlotStorageCopyVisits: number;
+  rawEpochPrefixStorageCopyVisits: number;
+  rawEpochSlotStorageIterationVisits: number;
+  rawEpochPrefixStorageIterationVisits: number;
   atomMembershipVisits: number;
   blockVisits: number;
   hashOps: number;
@@ -74,6 +112,14 @@ export interface BranchIndexCounters {
   fullScans: number;
   fullRebuilds: number;
   fullReducerRuns: number;
+  pureAuditRuns: number;
+  seedValidationRuns: number;
+  seedValidationEntryVisits: number;
+  seedReplayRuns: number;
+  gapIndexBuilds: number;
+  gapIndexBuildRawSlotVisits: number;
+  fullV3RuntimeViewBuilds: number;
+  indexedV3RuntimeViewBuilds: number;
   transactionReplayRuns: number;
   hashRecatalogs: number;
   protocolRebuilds: number;
@@ -81,6 +127,22 @@ export interface BranchIndexCounters {
   catalogRebuilds: number;
   providerMessagePasses: number;
   providerMessageVisits: number;
+  /** Descriptor metadata reused from an exact indexed raw-message match. */
+  providerMessageCacheHits: number;
+  /** First-time metadata capture for an exact indexed raw-message match. */
+  providerMessageCacheMisses: number;
+  /** Provider-frontier descriptors derived from the current active ledger. */
+  providerFrontierDescriptorDerivations: number;
+  /** Explicit recap/decompression summaries retained for one provider request. */
+  providerFrontierSelectedExpansions: number;
+  /** Immutable raw messages intentionally omitted from a provider frontier. */
+  providerFrontierOmittedRawMessages: number;
+  /** Immutable raw UTF-8 bytes intentionally omitted from a provider frontier. */
+  providerFrontierOmittedRawBytes: number;
+  /** Frontier cache/binding invalidations; no raw-history restoration follows. */
+  providerFrontierInvalidations: number;
+  /** Bounded frontier fallbacks; never a full-history provider fallback. */
+  providerFrontierFallbacks: number;
   incrementalAppends: number;
   ancestryDigestChecks: number;
   fallbacks: number;
@@ -95,6 +157,13 @@ export interface BranchIndexCounters {
 export const BRANCH_INDEX_COUNTER_KEYS = [
   "entryVisits",
   "preTipEntryVisits",
+  "rawSlotVisits",
+  "proofRawSlotVisits",
+  "sourceFreshnessRawSlotVisits",
+  "rawEpochSlotStorageCopyVisits",
+  "rawEpochPrefixStorageCopyVisits",
+  "rawEpochSlotStorageIterationVisits",
+  "rawEpochPrefixStorageIterationVisits",
   "atomMembershipVisits",
   "blockVisits",
   "hashOps",
@@ -102,6 +171,14 @@ export const BRANCH_INDEX_COUNTER_KEYS = [
   "fullScans",
   "fullRebuilds",
   "fullReducerRuns",
+  "pureAuditRuns",
+  "seedValidationRuns",
+  "seedValidationEntryVisits",
+  "seedReplayRuns",
+  "gapIndexBuilds",
+  "gapIndexBuildRawSlotVisits",
+  "fullV3RuntimeViewBuilds",
+  "indexedV3RuntimeViewBuilds",
   "transactionReplayRuns",
   "hashRecatalogs",
   "protocolRebuilds",
@@ -109,6 +186,14 @@ export const BRANCH_INDEX_COUNTER_KEYS = [
   "catalogRebuilds",
   "providerMessagePasses",
   "providerMessageVisits",
+  "providerMessageCacheHits",
+  "providerMessageCacheMisses",
+  "providerFrontierDescriptorDerivations",
+  "providerFrontierSelectedExpansions",
+  "providerFrontierOmittedRawMessages",
+  "providerFrontierOmittedRawBytes",
+  "providerFrontierInvalidations",
+  "providerFrontierFallbacks",
   "incrementalAppends",
   "ancestryDigestChecks",
   "fallbacks",
@@ -127,6 +212,8 @@ export interface IndexedEntryRecord {
   ordinal: number;
   /** One-based ordinal among provider-visible Session message entries. */
   providerOrdinal?: number;
+  /** Number of raw epoch message slots before this record. */
+  rawSlotCountBefore: number;
   epochId: string;
   payloadDigest: string;
   alignmentFingerprint: string;
@@ -255,6 +342,7 @@ interface SnapshotPublicState {
   key: BranchIndexKey;
   revision: number;
   sourceDigest: string;
+  sourceEntryIdDigest: string;
   protocolDigest: string;
   replayDigest: string;
   catalogId: string;
@@ -273,6 +361,8 @@ export class BranchIndexSnapshot {
   readonly keyId: string;
   readonly revision: number;
   readonly sourceDigest: string;
+  /** Full selected-branch source identity; custom AILI records are excluded. */
+  readonly sourceEntryIdDigest: string;
   readonly protocolDigest: string;
   readonly replayDigest: string;
   readonly catalogId: string;
@@ -289,6 +379,7 @@ export class BranchIndexSnapshot {
     this.keyId = branchIndexKeyId(state.key);
     this.revision = state.revision;
     this.sourceDigest = state.sourceDigest;
+    this.sourceEntryIdDigest = state.sourceEntryIdDigest;
     this.protocolDigest = state.protocolDigest;
     this.replayDigest = state.replayDigest;
     this.catalogId = state.catalogId;
@@ -390,10 +481,38 @@ export const DEFAULT_BRANCH_REPLAY_ADAPTER: BranchReplayAdapter = Object.freeze(
 export interface ColdBranchIndexInput {
   key: BranchIndexKey;
   entries: readonly BranchSessionEntry[];
+  /** Complete selected-branch source identity supplied by the session owner. */
+  sourceEntryIdDigest?: string;
   replayAdapter?: BranchReplayAdapter;
   derivedVersions?: BranchDerivedVersions;
-  /** Exact v3 archive state at the current epoch boundary. */
-  v3ReplaySeed?: V3LifecycleReplay;
+  /** Source-bound v3 archive state at the current epoch boundary. */
+  v3ReplaySeed?: VerifiedV3ReplaySeedV1;
+  /** Exact selected-branch prefix through the checkpoint boundary. */
+  v3ReplaySeedSourcePrefix?: readonly BranchSessionEntry[];
+}
+
+export const VERIFIED_V3_REPLAY_SEED_VERSION = "aili.compact.v3-replay-seed.v1" as const;
+
+export interface V3ReplaySeedEpochBoundaryIdentityV1 {
+  entryId: string;
+  parentId: string | null;
+  entryKind: string;
+  payloadDigest: string;
+  sourcePrefixLength: number;
+  sessionId: string;
+  canonicalSessionPathDigest: string;
+  branchLeafId?: string;
+}
+
+/** A closed archived replay seed; bare structurally-valid state is never trusted. */
+export interface VerifiedV3ReplaySeedV1 {
+  version: typeof VERIFIED_V3_REPLAY_SEED_VERSION;
+  sourcePrefixDigest: string;
+  epochBoundary: V3ReplaySeedEpochBoundaryIdentityV1;
+  replayDigest: string;
+  projectionVersion: string;
+  replayVersion: string;
+  replay: V3LifecycleReplay;
 }
 
 export interface AppendBranchIndexInput {
@@ -401,6 +520,8 @@ export interface AppendBranchIndexInput {
   expectedParentId?: string;
   expectedPriorDigest?: string;
   nextBranchLeafId?: string;
+  /** Complete selected-branch source identity after this bounded append. */
+  nextSourceEntryIdDigest?: string;
 }
 
 export type BranchIndexFailureCode = "duplicate-entry-id"
@@ -477,6 +598,19 @@ interface OccurrenceNode {
   readonly ordinal: number;
 }
 
+const RAW_EPOCH_SEGMENT_SIZE = 256;
+
+interface PersistentRawEpochSegment<T> {
+  readonly start: number;
+  readonly values: readonly T[];
+}
+
+/** Immutable segments are held by a persistent lookup tree, never copied to extend a tail. */
+interface PersistentSegmentedValues<T> {
+  readonly length: number;
+  readonly segments?: IndexNode<PersistentRawEpochSegment<T>>;
+}
+
 interface SnapshotInternal {
   readonly replayAdapter: BranchReplayAdapter;
   readonly epochId: string;
@@ -509,7 +643,18 @@ interface SnapshotInternal {
   readonly messageRefCount: number;
   readonly blockRefCount: number;
   readonly v3State?: V3LifecycleState;
-  readonly v3ReplaySeed?: V3LifecycleReplay;
+  readonly v3ReplaySeed?: VerifiedV3ReplaySeedV1;
+  readonly rawEpochSlots: PersistentSegmentedValues<RawEpochSlotV1>;
+  /** Stored at index construction so frontier omission accounting never serializes old raw bodies. */
+  readonly rawEpochUtf8Bytes: number;
+  /** Prefix chain is captured with each slot so bounded proof replay never rescans the epoch. */
+  readonly rawEpochPrefixDigests: PersistentSegmentedValues<string>;
+  readonly rawGapIndex?: PromotionGapIndexV1;
+  /** A proof makes the captured raw source freshness-sensitive even without a full index. */
+  readonly rawGapSourceIdentity?: PromotionGapIndexV1["projection"]["identity"];
+  readonly rawGapSourceSnapshotDigest?: string;
+  /** Immutable slots declared by accepted promotion proofs, retained across ordinary raw appends. */
+  readonly rawGapProofSourceSlots?: readonly RawEpochSlotV1[];
   readonly v3Diagnostics: readonly V3ReplayDiagnostic[];
   readonly repairTransactionCount: number;
   readonly legacyDiagnosticCount: number;
@@ -535,6 +680,143 @@ export function addBranchIndexCounters(...values: readonly BranchIndexCounters[]
   return result;
 }
 
+function persistentSegmentedValues<T>(values: readonly T[]): PersistentSegmentedValues<T> {
+  let segments: IndexNode<PersistentRawEpochSegment<T>> | undefined;
+  for (let index = 0; index < values.length; index += RAW_EPOCH_SEGMENT_SIZE) {
+    const segment = Object.freeze({
+      start: index,
+      values: Object.freeze(values.slice(index, index + RAW_EPOCH_SEGMENT_SIZE)),
+    });
+    segments = indexSet(segments, ordinalKey(index), segment).root;
+  }
+  return Object.freeze({ length: values.length, segments });
+}
+
+function appendPersistentSegmentedValues<T>(
+  previous: PersistentSegmentedValues<T>,
+  appended: readonly T[],
+): PersistentSegmentedValues<T> {
+  if (appended.length === 0) return previous;
+  let segments = previous.segments;
+  let appendedOffset = 0;
+  while (appendedOffset < appended.length) {
+    const nextOffset = Math.min(appendedOffset + RAW_EPOCH_SEGMENT_SIZE, appended.length);
+    const start = previous.length + appendedOffset;
+    const segment = Object.freeze({
+      start,
+      values: Object.freeze(appended.slice(appendedOffset, nextOffset)),
+    });
+    segments = indexSet(segments, ordinalKey(start), segment).root;
+    appendedOffset = nextOffset;
+  }
+  return Object.freeze({
+    length: previous.length + appended.length,
+    segments,
+  });
+}
+
+function persistentSegmentedValueAt<T>(
+  values: PersistentSegmentedValues<T>,
+  index: number,
+): T | undefined {
+  if (!Number.isInteger(index) || index < 0 || index >= values.length) return undefined;
+  const segment = indexFloor(values.segments, ordinalKey(index));
+  return segment?.values[index - segment.start];
+}
+
+function persistentSegmentedValuesToArray<T>(
+  values: PersistentSegmentedValues<T>,
+  counters: BranchIndexCounters,
+  kind: "slot" | "prefix",
+): T[] {
+  const result: T[] = [];
+  const visit = (segment: IndexNode<PersistentRawEpochSegment<T>> | undefined): void => {
+    if (!segment) return;
+    visit(segment.left);
+    for (const value of segment.value.values) {
+      countRawEpochStorageIteration(counters, kind);
+      result.push(value);
+    }
+    visit(segment.right);
+  };
+  visit(values.segments);
+  return result;
+}
+
+function countRawEpochStorageIteration(counters: BranchIndexCounters, kind: "slot" | "prefix"): void {
+  if (kind === "slot") counters.rawEpochSlotStorageIterationVisits += 1;
+  else counters.rawEpochPrefixStorageIterationVisits += 1;
+}
+
+function immutableV3ReplayClone(replay: V3LifecycleReplay): V3LifecycleReplay {
+  const cloned = structuredClone(replay) as V3LifecycleReplay;
+  freezeV3ReplayValue(cloned);
+  return cloned;
+}
+
+function freezeV3ReplayValue(value: unknown, seen = new Set<object>()): void {
+  if (!value || typeof value !== "object" || seen.has(value)) return;
+  seen.add(value);
+  if (value instanceof Map) {
+    for (const [key, item] of value) {
+      freezeV3ReplayValue(key, seen);
+      freezeV3ReplayValue(item, seen);
+    }
+  } else if (value instanceof Set) {
+    for (const item of value) freezeV3ReplayValue(item, seen);
+  } else {
+    for (const item of Object.values(value)) freezeV3ReplayValue(item, seen);
+  }
+  Object.freeze(value);
+}
+
+function snapshotVerifiedV3ReplaySeed(
+  seed: VerifiedV3ReplaySeedV1,
+  trustedReplay: V3LifecycleReplay,
+): VerifiedV3ReplaySeedV1 {
+  return Object.freeze({
+    version: VERIFIED_V3_REPLAY_SEED_VERSION,
+    sourcePrefixDigest: seed.sourcePrefixDigest,
+    epochBoundary: Object.freeze({ ...seed.epochBoundary }),
+    replayDigest: v3ReplayDigest(trustedReplay),
+    projectionVersion: seed.projectionVersion,
+    replayVersion: seed.replayVersion,
+    replay: immutableV3ReplayClone(trustedReplay),
+  });
+}
+
+/** Captures a source-bound archived replay seed at one exact checkpoint boundary. */
+export function createVerifiedV3ReplaySeed(input: {
+  key: Pick<BranchIndexKey, "sessionId" | "canonicalSessionPathDigest" | "epochId" | "replayVersion">;
+  sourcePrefix: readonly BranchSessionEntry[];
+  replay: V3LifecycleReplay;
+}): VerifiedV3ReplaySeedV1 {
+  const boundary = input.sourcePrefix.at(-1);
+  if (!boundary || boundary.id !== input.key.epochId || boundary.type !== "compaction") {
+    throw new TypeError("v3 replay seed requires its exact compaction boundary");
+  }
+  const replay = immutableV3ReplayClone(input.replay);
+  const state = replay.state;
+  return Object.freeze({
+    version: VERIFIED_V3_REPLAY_SEED_VERSION,
+    sourcePrefixDigest: v3ReplaySeedSourcePrefixDigest(input.sourcePrefix),
+    epochBoundary: Object.freeze({
+      entryId: boundary.id,
+      parentId: boundary.parentId ?? null,
+      entryKind: entryKind(boundary),
+      payloadDigest: entryPayloadDigest(boundary),
+      sourcePrefixLength: input.sourcePrefix.length,
+      sessionId: input.key.sessionId,
+      canonicalSessionPathDigest: input.key.canonicalSessionPathDigest,
+      ...(state ? { branchLeafId: state.branchLeafId } : {}),
+    }),
+    replayDigest: v3ReplayDigest(replay),
+    projectionVersion: state?.projectionVersion ?? "none",
+    replayVersion: input.key.replayVersion,
+    replay,
+  });
+}
+
 /** Performs the one declared cold build and creates immutable/persistent index roots. */
 export function coldBuildBranchIndex(input: ColdBranchIndexInput): ColdBranchIndexResult {
   const counters = emptyBranchIndexCounters();
@@ -547,13 +829,19 @@ export function coldBuildBranchIndex(input: ColdBranchIndexInput): ColdBranchInd
   if (scopeError) return coldFailure("invalid-scope", scopeError, counters);
   const replayAdapter = input.replayAdapter ?? DEFAULT_BRANCH_REPLAY_ADAPTER;
   if (!replayAdapter.version) return coldFailure("replay-unsupported", "replay adapter version is required", counters);
-  const v3SeedState = input.v3ReplaySeed?.state;
-  if (v3SeedState) {
-    const seedValidation = validateV3LifecycleState(v3SeedState);
-    if (!seedValidation.ok || v3SeedState.epochId !== input.key.epochId) {
-      return coldFailure("invalid-scope", "v3 replay seed does not match the current epoch", counters);
-    }
+  const sourceEntryIdDigest = input.sourceEntryIdDigest ?? branchSourceEntryIdDigest(input.entries);
+  let installedV3ReplaySeed: VerifiedV3ReplaySeedV1 | undefined;
+  if (input.v3ReplaySeed) {
+    const seedValidation = validateVerifiedV3ReplaySeed(
+      input.v3ReplaySeed,
+      input.key,
+      input.v3ReplaySeedSourcePrefix,
+      counters,
+    );
+    if (typeof seedValidation === "string") return coldFailure("invalid-scope", seedValidation, counters);
+    installedV3ReplaySeed = snapshotVerifiedV3ReplaySeed(input.v3ReplaySeed, seedValidation);
   }
+  const v3SeedState = installedV3ReplaySeed?.replay.state;
 
   const ancestrySeed = ancestrySeedFor(input.key);
   let entryById: IndexNode<IndexedEntryRecord> | undefined;
@@ -578,8 +866,17 @@ export function coldBuildBranchIndex(input: ColdBranchIndexInput): ColdBranchInd
     }
     if (indexGet(entryById, entry.id)) return coldFailure("duplicate-entry-id", `duplicate entry ${entry.id}`, counters);
     const parentId = entry.parentId ?? previousId;
+    const rawSlotCountBefore = providerEntryCount;
     const providerOrdinal = isProviderMessageEntry(entry) ? ++providerEntryCount : undefined;
-    const record = makeEntryRecord(entry, parentId, index + 1, recordEpochId, entryChainDigest, providerOrdinal);
+    const record = makeEntryRecord(
+      entry,
+      parentId,
+      index + 1,
+      recordEpochId,
+      entryChainDigest,
+      rawSlotCountBefore,
+      providerOrdinal,
+    );
     counters.hashOps += 3;
     entryChainDigest = record.ancestryDigest;
     entryById = indexSet(entryById, record.entryId, record).root;
@@ -596,6 +893,15 @@ export function coldBuildBranchIndex(input: ColdBranchIndexInput): ColdBranchInd
   const currentEpochRecords = records.filter((record) => record.epochId === input.key.epochId);
   const currentEpochEntries = currentEpochRecords.map((record) => record.entry);
   counters.entryVisits += currentEpochEntries.length;
+  const rawEpochSlots: RawEpochSlotV1[] = [];
+  const rawEpochPrefixDigests: string[] = [rawEpochPrefixSeed()];
+  for (const [sourceEntryIndex, record] of currentEpochRecords.entries()) {
+    if (record.providerOrdinal === undefined) continue;
+    counters.rawSlotVisits += 1;
+    const slot = createRawEpochSlot(record.entry, record.providerOrdinal, sourceEntryIndex);
+    rawEpochSlots.push(slot);
+    rawEpochPrefixDigests.push(nextRawEpochPrefixDigest(rawEpochPrefixDigests.at(-1)!, slot));
+  }
   const builtAtoms = buildProtocolAtoms(currentEpochEntries);
   let atomTail: AtomNode | undefined;
   let atomById: IndexNode<BranchProtocolAtom> | undefined;
@@ -635,8 +941,13 @@ export function coldBuildBranchIndex(input: ColdBranchIndexInput): ColdBranchInd
     messageRefCount: 0,
     blockRefCount: 0,
     ...(v3SeedState ? { v3State: v3SeedState } : {}),
-    ...(input.v3ReplaySeed ? { v3ReplaySeed: input.v3ReplaySeed } : {}),
-    v3Diagnostics: Object.freeze([...(input.v3ReplaySeed?.diagnostics ?? [])]),
+    ...(installedV3ReplaySeed ? { v3ReplaySeed: installedV3ReplaySeed } : {}),
+    rawEpochSlots: persistentSegmentedValues(rawEpochSlots),
+    rawEpochUtf8Bytes: currentEpochRecords
+      .filter((record) => record.providerOrdinal !== undefined)
+      .reduce((sum, record) => sum + record.serializedUtf8Bytes, 0),
+    rawEpochPrefixDigests: persistentSegmentedValues(rawEpochPrefixDigests),
+    v3Diagnostics: Object.freeze([...(installedV3ReplaySeed?.replay.diagnostics ?? [])]),
     repairTransactionCount: 0,
     legacyDiagnosticCount: 0,
     entryChainDigest,
@@ -670,6 +981,7 @@ export function coldBuildBranchIndex(input: ColdBranchIndexInput): ColdBranchInd
   const snapshot = makeSnapshot(
     input.key,
     internal,
+    sourceEntryIdDigest,
     input.derivedVersions ?? {},
     allDerivedValid(),
     replayDiagnostics,
@@ -720,8 +1032,17 @@ export function appendBranchIndex(
       return appendFailure(snapshot, "duplicate-entry-id", `duplicate entry ${entry.id}`, true, counters);
     }
     const ordinal = previous.entryCount + offset + 1;
+    const rawSlotCountBefore = providerEntryCount;
     const providerOrdinal = isProviderMessageEntry(entry) ? ++providerEntryCount : undefined;
-    const record = makeEntryRecord(entry, parentId, ordinal, snapshot.key.epochId, entryChainDigest, providerOrdinal);
+    const record = makeEntryRecord(
+      entry,
+      parentId,
+      ordinal,
+      snapshot.key.epochId,
+      entryChainDigest,
+      rawSlotCountBefore,
+      providerOrdinal,
+    );
     counters.hashOps += 3;
     entryChainDigest = record.ancestryDigest;
     entryById = indexSet(entryById, record.entryId, record).root;
@@ -735,6 +1056,39 @@ export function appendBranchIndex(
     previousId = entry.id;
   }
 
+  const appendedRawSlots: RawEpochSlotV1[] = [];
+  for (const record of records) {
+    if (record.providerOrdinal === undefined) continue;
+    counters.rawSlotVisits += 1;
+    const slot = createRawEpochSlot(record.entry, record.providerOrdinal, record.ordinal - indexedEpochStartOrdinal(previous));
+    appendedRawSlots.push(slot);
+  }
+  const rawEpochSlots = appendedRawSlots.length === 0
+    ? previous.rawEpochSlots
+    : appendPersistentSegmentedValues(previous.rawEpochSlots, appendedRawSlots);
+  let rawEpochPrefixDigests = previous.rawEpochPrefixDigests;
+  if (appendedRawSlots.length > 0) {
+    const appendedPrefixDigests: string[] = [];
+    let previousPrefixDigest = persistentSegmentedValueAt(
+      previous.rawEpochPrefixDigests,
+      previous.rawEpochPrefixDigests.length - 1,
+    );
+    if (!previousPrefixDigest) {
+      return appendFailure(snapshot, "invalid-entry", "raw epoch prefix digest is missing", true, counters);
+    }
+    for (const slot of appendedRawSlots) {
+      previousPrefixDigest = nextRawEpochPrefixDigest(previousPrefixDigest, slot);
+      appendedPrefixDigests.push(previousPrefixDigest);
+    }
+    rawEpochPrefixDigests = appendPersistentSegmentedValues(
+      previous.rawEpochPrefixDigests,
+      appendedPrefixDigests,
+    );
+  }
+  const rawGapSourceIdentity = previous.rawGapSourceIdentity ?? previous.rawGapIndex?.projection.identity;
+  const rawGapSourceSnapshotDigest = rawGapSourceIdentity
+    ? rawEpochSourceSnapshotDigest(rawEpochSlots, rawEpochPrefixDigests, rawGapSourceIdentity)
+    : undefined;
   let internal: SnapshotInternal = {
     ...previous,
     entryTail: { previous: previous.entryTail, records: Object.freeze(records) },
@@ -743,6 +1097,18 @@ export function appendBranchIndex(
     occurrenceByFingerprint,
     entryCount: previous.entryCount + records.length,
     providerEntryCount,
+    rawEpochSlots,
+    rawEpochUtf8Bytes: previous.rawEpochUtf8Bytes + records
+      .filter((record) => record.providerOrdinal !== undefined)
+      .reduce((sum, record) => sum + record.serializedUtf8Bytes, 0),
+    rawEpochPrefixDigests,
+    ...(appendedRawSlots.length > 0 ? {
+      rawGapIndex: undefined,
+      ...(rawGapSourceIdentity && rawGapSourceSnapshotDigest ? {
+        rawGapSourceIdentity,
+        rawGapSourceSnapshotDigest,
+      } : {}),
+    } : {}),
     entryChainDigest,
   };
   counters.entryVisits += input.entries.length;
@@ -760,7 +1126,7 @@ export function appendBranchIndex(
       internal,
       decision,
       record,
-      decision.kind === "repair" ? entriesThroughOrdinal(internal, record.ordinal) : [],
+      decision.kind === "repair" ? entriesThroughOrdinal(internal, record.ordinal, counters) : [],
       counters,
     );
     if (!processed.ok) return appendFailure(snapshot, processed.code, processed.diagnostic, true, counters);
@@ -772,9 +1138,12 @@ export function appendBranchIndex(
     ...snapshot.key,
     branchLeafId: input.nextBranchLeafId ?? records.at(-1)!.entryId,
   };
+  const sourceEntryIdDigest = input.nextSourceEntryIdDigest
+    ?? branchSourceEntryIdDigest(input.entries, snapshot.sourceEntryIdDigest);
   const next = makeSnapshot(
     nextKey,
     internal,
+    sourceEntryIdDigest,
     snapshot.derivedVersions,
     snapshot.derivedValidity,
     replayDiagnostics,
@@ -958,12 +1327,24 @@ function applyV3Replay(
   const messageOrdinals = transaction.tag === "semantic-create" && transaction.payload.source.kind === "messages"
     ? exactIndexedV3MessageOrdinals(internal, transaction.payload.source.entryIds)
     : undefined;
-  const expectedCatalogId = indexedV3RuntimeCatalogId(internal, current, record.ordinal);
+  const requiresPromotionProof = transaction.tag === "semantic-create"
+    && transaction.payload.source.kind === "blocks"
+    && transaction.payload.source.transparentGaps !== undefined
+    && transaction.payload.source.transparentGaps.length > 0;
+  const indexedProof = requiresPromotionProof
+    ? ensureIndexedPromotionGapProof(internal, current, transaction, record.rawSlotCountBefore, counters)
+    : undefined;
+  const replayInternal = indexedProof?.internal ?? internal;
+  const expectedCatalogId = indexedV3RuntimeCatalogId(replayInternal, current, record.ordinal);
   counters.hashOps += 1;
   const transition = applyV3Transaction(current, transaction, {
-    legacyBlockIds: indexedKeySet(internal.legacyBlockIds),
+    legacyBlockIds: indexedKeySet(replayInternal.legacyBlockIds),
     expectedCatalogId,
-    promotionGapEntries: entriesThroughOrdinal(internal, record.ordinal - 1),
+    ...(indexedProof ? {
+      promotionGapIndex: indexedProof.index,
+      promotionGapRawSlotLimit: record.rawSlotCountBefore,
+      onProofRawSlotVisit: () => { counters.proofRawSlotVisits += 1; },
+    } : {}),
     ...(messageOrdinals ? { messageOrdinals } : {}),
   });
   if (!transition.ok) {
@@ -976,16 +1357,27 @@ function applyV3Replay(
     };
     return {
       ok: true,
-      internal: { ...internal, v3Diagnostics: Object.freeze([...internal.v3Diagnostics, diagnostic]) },
+      internal: { ...replayInternal, v3Diagnostics: Object.freeze([...replayInternal.v3Diagnostics, diagnostic]) },
       diagnostics: [formatV3ReplayDiagnostic(diagnostic)],
     };
   }
   const event = replayEventFromV3Transition(current, transition.value.state, transaction);
-  const applied = applyReplayEvent(internal, event, counters);
+  const applied = applyReplayEvent(replayInternal, event, counters);
   if (!applied.ok) return applied;
   return {
     ok: true,
-    internal: { ...applied.internal, v3State: transition.value.state },
+    internal: {
+      ...applied.internal,
+      v3State: transition.value.state,
+      ...(indexedProof ? {
+        rawGapSourceIdentity: indexedProof.index.projection.identity,
+        rawGapSourceSnapshotDigest: indexedProof.index.projection.sourceSnapshotDigest,
+        rawGapProofSourceSlots: mergeRawGapProofSourceSlots(
+          replayInternal.rawGapProofSourceSlots,
+          indexedProof.sourceSlots,
+        ),
+      } : {}),
+    },
     diagnostics: [],
   };
 }
@@ -1039,6 +1431,210 @@ function applyRepairReplay(
     internal: { ...applied.internal, repairTransactionCount: oracle.repairTransactionCount },
     diagnostics,
   };
+}
+
+/** Builds/reuses the immutable projection only for a transaction that declares a real proof. */
+function ensureIndexedPromotionGapProof(
+  internal: SnapshotInternal,
+  state: V3LifecycleState,
+  transaction: V3Transaction,
+  rawSlotLimit: number,
+  counters: BranchIndexCounters,
+): { internal: SnapshotInternal; index: PromotionGapIndexV1; sourceSlots: readonly RawEpochSlotV1[] } {
+  const identityMatches = (index: PromotionGapIndexV1 | undefined) => index?.projection.identity.sessionId === state.sessionId
+    && index.projection.identity.branchLeafId === state.branchLeafId
+    && index.projection.identity.epochId === state.epochId
+    && index.projection.identity.revision === state.projectionVersion
+    && index.projection.rawSlots.length === internal.rawEpochSlots.length
+    && index.rawSlotCoverage === "full";
+  const proofSlots = declaredPromotionProofSlots(internal, state, transaction, rawSlotLimit, counters);
+  if (identityMatches(internal.rawGapIndex)) return { internal, index: internal.rawGapIndex!, sourceSlots: proofSlots };
+  const projection = createTrustedRawEpochProjectionFromPrefixAccessor({
+    rawSlotCount: internal.rawEpochSlots.length,
+    rawPrefixDigestAt: (ordinal) => persistentSegmentedValueAt(
+      internal.rawEpochPrefixDigests,
+      ordinal,
+    ),
+    identity: {
+      sessionId: state.sessionId,
+      branchLeafId: state.branchLeafId,
+      epochId: state.epochId,
+      revision: state.projectionVersion,
+    },
+  });
+  const index = new PromotionGapIndexV1(projection, {
+    slots: proofSlots,
+    rawSlotCoverage: "bounded",
+  });
+  return { internal, index, sourceSlots: proofSlots };
+}
+
+/**
+ * Fetches only the endpoint and declared gap slots. The surrounding raw epoch
+ * remains immutable shared storage and is never rebuilt during an append.
+ */
+function declaredPromotionProofSlots(
+  internal: SnapshotInternal,
+  state: V3LifecycleState,
+  transaction: V3Transaction,
+  rawSlotLimit: number,
+  counters: BranchIndexCounters,
+): readonly RawEpochSlotV1[] {
+  if (transaction.tag !== "semantic-create" || transaction.payload.source.kind !== "blocks") return [];
+  const proofs = transaction.payload.source.transparentGaps ?? [];
+  const selected = new Map<number, RawEpochSlotV1>();
+  const add = (ordinal: number): boolean => {
+    const slot = persistentSegmentedValueAt(internal.rawEpochSlots, ordinal - 1);
+    if (!slot || slot.ordinal !== ordinal) return false;
+    if (!selected.has(ordinal)) {
+      selected.set(ordinal, slot);
+      counters.gapIndexBuildRawSlotVisits += 1;
+    }
+    return true;
+  };
+  for (const childId of transaction.payload.source.childBlockIds) {
+    const child = state.blocks.get(childId);
+    if (!child || !add(child.firstLeafOrdinal) || !add(child.lastLeafOrdinal)) return [];
+  }
+  for (const proof of proofs) {
+    if (!Number.isSafeInteger(proof.messageCount)
+      || proof.messageCount < 1
+      || proof.messageCount > MAX_TRANSPARENT_PROMOTION_GAP_MESSAGES) return [];
+    const leftRecord = indexGet(internal.entryById, proof.leftLeafEntryId);
+    const rightRecord = indexGet(internal.entryById, proof.rightLeafEntryId);
+    const leftOrdinal = leftRecord?.providerOrdinal;
+    const rightOrdinal = rightRecord?.providerOrdinal;
+    if (leftOrdinal === undefined || rightOrdinal === undefined
+      || leftOrdinal > rawSlotLimit || rightOrdinal > rawSlotLimit
+      || rightOrdinal - leftOrdinal - 1 !== proof.messageCount) return [];
+    for (let ordinal = leftOrdinal; ordinal <= rightOrdinal; ordinal += 1) {
+      if (!add(ordinal)) return [];
+    }
+  }
+  return [...selected.values()];
+}
+
+function mergeRawGapProofSourceSlots(
+  previous: readonly RawEpochSlotV1[] | undefined,
+  appended: readonly RawEpochSlotV1[],
+): readonly RawEpochSlotV1[] {
+  const slots = new Map<number, RawEpochSlotV1>();
+  for (const slot of previous ?? []) slots.set(slot.sourceEntryIndex, slot);
+  for (const slot of appended) slots.set(slot.sourceEntryIndex, slot);
+  return Object.freeze([...slots.values()].sort((left, right) => left.sourceEntryIndex - right.sourceEntryIndex));
+}
+
+/** Builds/reuses the full immutable index for one BranchIndex snapshot revision. */
+export function getBranchPromotionGapIndex(snapshot: BranchIndexSnapshot): {
+  index?: PromotionGapIndexV1;
+  counters: BranchIndexCounters;
+} {
+  const counters = emptyBranchIndexCounters();
+  const internal = getInternal(snapshot);
+  const state = internal.v3State;
+  if (!state) return { counters };
+  const identityMatches = (index: PromotionGapIndexV1 | undefined) => index?.projection.identity.sessionId === state.sessionId
+    && index.projection.identity.branchLeafId === state.branchLeafId
+    && index.projection.identity.epochId === state.epochId
+    && index.projection.identity.revision === state.projectionVersion
+    && index.projection.rawSlots.length === internal.rawEpochSlots.length
+    && index.rawSlotCoverage === "full";
+  if (identityMatches(internal.rawGapIndex)) return { index: internal.rawGapIndex, counters };
+  counters.gapIndexBuilds = 1;
+  const projection = createTrustedRawEpochProjectionFromPrefixAccessor({
+    rawSlotCount: internal.rawEpochSlots.length,
+    rawPrefixDigestAt: (ordinal) => persistentSegmentedValueAt(internal.rawEpochPrefixDigests, ordinal),
+    identity: {
+      sessionId: state.sessionId,
+      branchLeafId: state.branchLeafId,
+      epochId: state.epochId,
+      revision: state.projectionVersion,
+    },
+  });
+  const index = new PromotionGapIndexV1(projection, {
+    rawSlotCoverage: "full",
+    slotAtOrdinal: (ordinal) => persistentSegmentedValueAt(internal.rawEpochSlots, ordinal - 1),
+  });
+  SNAPSHOT_INTERNALS.set(snapshot, {
+    ...internal,
+    rawGapIndex: index,
+    rawGapSourceIdentity: index.projection.identity,
+    rawGapSourceSnapshotDigest: index.projection.sourceSnapshotDigest,
+  });
+  return { index, counters };
+}
+
+/**
+ * Revalidates the immutable slots that back accepted promotion proofs. The
+ * caller may pass the indexed prefix length while a raw append is pending, so
+ * this never allocates a full Session prefix just to verify a continuation.
+ */
+export function verifyBranchPromotionGapSource(
+  snapshot: BranchIndexSnapshot,
+  entries: readonly BranchSessionEntry[],
+  options: { sourceEntryCount?: number; sourceEntryOffset?: number; onRawSlotVisit?: () => void } = {},
+): { checked: boolean; matches: boolean } {
+  const internal = getInternal(snapshot);
+  const sourceEntryCount = options.sourceEntryCount ?? entries.length;
+  const sourceEntryOffset = options.sourceEntryOffset ?? 0;
+  if (!Number.isSafeInteger(sourceEntryOffset) || sourceEntryOffset < 0
+    || sourceEntryCount !== internal.entryCount || entries.length < sourceEntryOffset + sourceEntryCount) {
+    return { checked: true, matches: false };
+  }
+  // Only accepted proofs are source-freshness obligations. A status candidate
+  // has not declared a range yet, so revisiting every possible candidate here
+  // would turn an ordinary append into an unbounded historical raw read.
+  const sourceSlots = internal.rawGapProofSourceSlots ?? [];
+  if (sourceSlots.length > 0) {
+    try {
+      return {
+        checked: true,
+        matches: sourceSlots.every((slot) => {
+          options.onRawSlotVisit?.();
+          const entry = entries[sourceEntryOffset + slot.sourceEntryIndex];
+          if (!entry || entry.type !== "message" || entry.id !== slot.entryId) return false;
+          const current = createRawEpochSlot(entry, slot.ordinal, slot.sourceEntryIndex);
+          return current.bodyDigest === slot.bodyDigest
+            && current.cloneable === slot.cloneable
+            && current.isRecordBody === slot.isRecordBody;
+        }),
+      };
+    } catch {
+      return { checked: true, matches: false };
+    }
+  }
+  const index = internal.rawGapIndex;
+  const identity = index?.rawSlotCoverage === "full"
+    ? index.projection.identity
+    : internal.rawGapSourceIdentity;
+  const expectedDigest = index?.rawSlotCoverage === "full"
+    ? index.projection.sourceSnapshotDigest
+    : internal.rawGapSourceSnapshotDigest;
+  if (!identity || !expectedDigest) return { checked: false, matches: false };
+  // The source snapshot advances from immutable appended slots. Without a
+  // declared proof there is no promotion-relevant Session body to revisit; a
+  // full raw-epoch clone here would turn every healthy continuation into O(N).
+  return { checked: false, matches: false };
+}
+
+function rawEpochSourceSnapshotDigest(
+  rawEpochSlots: PersistentSegmentedValues<RawEpochSlotV1>,
+  rawEpochPrefixDigests: PersistentSegmentedValues<string>,
+  identity: PromotionGapIndexV1["projection"]["identity"],
+): string | undefined {
+  const projection = createTrustedRawEpochProjectionFromPrefixAccessor({
+    rawSlotCount: rawEpochSlots.length,
+    rawPrefixDigestAt: (ordinal) => persistentSegmentedValueAt(rawEpochPrefixDigests, ordinal),
+    identity,
+  });
+  return projection.valid ? projection.sourceSnapshotDigest : undefined;
+}
+
+/** Cheap guard for callers that must avoid touching Session entries unless proof freshness is required. */
+export function branchPromotionGapSourceRequired(snapshot: BranchIndexSnapshot): boolean {
+  const internal = getInternal(snapshot);
+  return internal.rawGapProofSourceSlots !== undefined
+    || internal.rawGapSourceIdentity !== undefined && internal.rawGapSourceSnapshotDigest !== undefined;
 }
 
 function exactIndexedV3MessageOrdinals(
@@ -1107,23 +1703,49 @@ function indexedV3RuntimeCatalogId(
       queryOnly,
     });
   };
-  const v3Blocks = [...state.blocks.values()]
+  type IndexedRuntimeCatalogBlock = Omit<RuntimeCatalogBlockIdentity, "ref"> & RuntimeCatalogBlockOrderMetadata;
+  const verifiedOrdinal = (value: number | undefined): number | undefined => (
+    Number.isSafeInteger(value) && value! > 0 ? value : undefined
+  );
+  const v3Blocks: IndexedRuntimeCatalogBlock[] = [...state.blocks.values()]
     .filter((block) => block.epochId === state.epochId)
-    .sort((left, right) => left.firstLeafOrdinal - right.firstLeafOrdinal
-      || left.createdAt - right.createdAt
-      || left.blockId.localeCompare(right.blockId));
-  for (const block of v3Blocks) {
-    appendBlock(block.blockId, "v3", block.active && !block.queryOnly, block.queryOnly);
-  }
+    .map((block) => {
+      const firstLeafOrdinal = verifiedOrdinal(block.firstLeafOrdinal);
+      return {
+        blockId: block.blockId,
+        family: "v3" as const,
+        active: block.active && !block.queryOnly,
+        queryOnly: block.queryOnly,
+        ...(firstLeafOrdinal === undefined ? {} : { firstLeafOrdinal }),
+        createdAt: block.createdAt,
+      };
+    });
 
   const legacyBlockIds: string[] = [];
   forEachList(internal.blockIdTail, (blockId) => {
     const block = indexGet(internal.blockById, blockId);
     if (block?.schema === "legacy" && block.epochId === state.epochId) legacyBlockIds.push(blockId);
   });
+  const legacyBlocks: IndexedRuntimeCatalogBlock[] = [];
+  let legacyOrdinal = 0;
   for (const blockId of legacyBlockIds.reverse()) {
     const block = indexGet(internal.blockById, blockId);
-    if (block) appendBlock(block.blockId, "legacy", block.active && !block.queryOnly, block.queryOnly);
+    if (!block) continue;
+    const source = block.sourceEntryIds[0]
+      ? indexGet(internal.entryById, block.sourceEntryIds[0])
+      : undefined;
+    const firstLeafOrdinal = verifiedOrdinal(source?.providerOrdinal);
+    legacyBlocks.push({
+      blockId: block.blockId,
+      family: "legacy",
+      active: block.active && !block.queryOnly,
+      queryOnly: block.queryOnly,
+      ...(firstLeafOrdinal === undefined ? {} : { firstLeafOrdinal }),
+      legacyOrdinal: ++legacyOrdinal,
+    });
+  }
+  for (const block of orderRuntimeCatalogBlocksBySemanticSource([...v3Blocks, ...legacyBlocks])) {
+    appendBlock(block.blockId, block.family, block.active, block.queryOnly);
   }
 
   return deriveRuntimeCatalogId({
@@ -1209,12 +1831,17 @@ function activeV3ParentIds(state: V3LifecycleState): ReadonlyMap<string, string>
   return parents;
 }
 
-function entriesThroughOrdinal(internal: SnapshotInternal, ordinal: number): BranchSessionEntry[] {
+function entriesThroughOrdinal(
+  internal: SnapshotInternal,
+  ordinal: number,
+  counters?: BranchIndexCounters,
+): BranchSessionEntry[] {
   const segments: EntrySegment[] = [];
   for (let segment = internal.entryTail; segment; segment = segment.previous) segments.push(segment);
   const entries: BranchSessionEntry[] = [];
   for (const segment of segments.reverse()) {
     for (const record of segment.records) {
+      if (counters) counters.preTipEntryVisits += 1;
       if (record.ordinal <= ordinal) entries.push(record.entry);
     }
   }
@@ -1449,6 +2076,7 @@ function replayBlockFromCompactBlock(block: CompactBlock): BranchReplayBlockInpu
 function makeSnapshot(
   key: BranchIndexKey,
   internal: SnapshotInternal,
+  sourceEntryIdDigest: string,
   derivedVersions: BranchDerivedVersions,
   derivedValidity: BranchDerivedValidity,
   diagnostics: readonly string[],
@@ -1486,6 +2114,7 @@ function makeSnapshot(
     key,
     revision,
     sourceDigest: internal.entryChainDigest,
+    sourceEntryIdDigest,
     protocolDigest: internal.protocolChainDigest,
     replayDigest: internal.replayChainDigest,
     catalogId,
@@ -1516,6 +2145,7 @@ function makeEntryRecord(
   ordinal: number,
   epochId: string,
   previousDigest: string,
+  rawSlotCountBefore: number,
   providerOrdinal?: number,
 ): IndexedEntryRecord {
   const payloadDigest = entryPayloadDigest(entry);
@@ -1524,6 +2154,7 @@ function makeEntryRecord(
     entryId: entry.id,
     ...(parentId === undefined ? {} : { parentId }),
     ...(providerOrdinal === undefined ? {} : { providerOrdinal }),
+    rawSlotCountBefore,
     entryKind: tuple.entryKind,
     ordinal,
     epochId,
@@ -1638,6 +2269,110 @@ function entryPayloadDigest(entry: BranchSessionEntry): string {
   });
 }
 
+function validateVerifiedV3ReplaySeed(
+  seed: VerifiedV3ReplaySeedV1,
+  key: BranchIndexKey,
+  sourcePrefix: readonly BranchSessionEntry[] | undefined,
+  counters: BranchIndexCounters,
+): V3LifecycleReplay | string {
+  counters.seedValidationRuns += 1;
+  if (!seed || seed.version !== VERIFIED_V3_REPLAY_SEED_VERSION
+    || typeof seed.sourcePrefixDigest !== "string"
+    || !/^[0-9a-f]{64}$/.test(seed.sourcePrefixDigest)
+    || typeof seed.replayDigest !== "string"
+    || !/^[0-9a-f]{64}$/.test(seed.replayDigest)
+    || typeof seed.projectionVersion !== "string"
+    || typeof seed.replayVersion !== "string"
+    || seed.replayVersion !== key.replayVersion
+    || !seed.epochBoundary
+    || !seed.replay) return "v3 replay seed has an invalid closed shape";
+  if (!sourcePrefix) return "v3 replay seed source prefix is required";
+  try {
+    counters.seedValidationEntryVisits += sourcePrefix.length;
+    if (seed.sourcePrefixDigest !== v3ReplaySeedSourcePrefixDigest(sourcePrefix)) {
+      return "v3 replay seed source prefix digest does not match";
+    }
+    counters.seedReplayRuns += 1;
+    const trustedReplay = reduceV3LifecycleState(sourcePrefix);
+    if (seed.replayDigest !== v3ReplayDigest(trustedReplay)) {
+      return "v3 replay seed state does not match its source prefix";
+    }
+    const boundary = sourcePrefix.at(-1);
+    const boundaryIdentity = seed.epochBoundary;
+    if (!boundary || boundary.type !== "compaction"
+      || boundary.id !== key.epochId
+      || boundaryIdentity.entryId !== boundary.id
+      || boundaryIdentity.parentId !== (boundary.parentId ?? null)
+      || boundaryIdentity.entryKind !== entryKind(boundary)
+      || boundaryIdentity.payloadDigest !== entryPayloadDigest(boundary)
+      || boundaryIdentity.sourcePrefixLength !== sourcePrefix.length
+      || boundaryIdentity.sessionId !== key.sessionId
+      || boundaryIdentity.canonicalSessionPathDigest !== key.canonicalSessionPathDigest) {
+      return "v3 replay seed epoch boundary does not match";
+    }
+    const state = seed.replay.state;
+    if (state) {
+      if (!(state.blocks instanceof Map) || !(state.transactions instanceof Map)) {
+        return "v3 replay seed state does not match its boundary";
+      }
+      const stateValidation = validateV3LifecycleState(state);
+      if (!stateValidation.ok
+        || state.epochId !== key.epochId
+        || state.sessionId !== key.sessionId
+        || state.projectionVersion !== seed.projectionVersion
+        || state.branchLeafId !== boundaryIdentity.branchLeafId
+        || seed.replay.acceptedTransactionCount !== state.transactions.size) {
+        return "v3 replay seed state does not match its boundary";
+      }
+    } else if (seed.projectionVersion !== "none"
+      || boundaryIdentity.branchLeafId !== undefined
+      || seed.replay.acceptedTransactionCount !== 0) {
+      return "v3 replay seed empty state is inconsistent";
+    }
+    if (!Array.isArray(seed.replay.maximalActiveBlocks)
+      || !Array.isArray(seed.replay.archivedQueryOnlyBlocks)
+      || !Array.isArray(seed.replay.diagnostics)
+      || seed.replayDigest !== v3ReplayDigest(seed.replay)) {
+      return "v3 replay seed replay digest does not match";
+    }
+    return trustedReplay;
+  } catch {
+    return "v3 replay seed has an invalid closed shape";
+  }
+}
+
+function v3ReplaySeedSourcePrefixDigest(entries: readonly BranchSessionEntry[]): string {
+  return digest({
+    version: VERIFIED_V3_REPLAY_SEED_VERSION,
+    entries: entries.map((entry) => ({
+      entryId: entry.id,
+      parentId: entry.parentId ?? null,
+      entryKind: entryKind(entry),
+      payloadDigest: entryPayloadDigest(entry),
+    })),
+  });
+}
+
+function v3ReplayDigest(replay: V3LifecycleReplay): string {
+  return digest({
+    state: replay.state ? {
+      sessionId: replay.state.sessionId,
+      branchLeafId: replay.state.branchLeafId,
+      epochId: replay.state.epochId,
+      catalogId: replay.state.catalogId,
+      projectionVersion: replay.state.projectionVersion,
+      blocks: [...replay.state.blocks.entries()].sort(([left], [right]) => left.localeCompare(right)),
+      transactions: [...replay.state.transactions.entries()].sort(([left], [right]) => left.localeCompare(right)),
+      cooling: replay.state.cooling,
+      controls: replay.state.controls,
+    } : null,
+    maximalActiveBlockIds: replay.maximalActiveBlocks.map((block) => block.blockId),
+    archivedQueryOnlyBlockIds: replay.archivedQueryOnlyBlocks.map((block) => block.blockId),
+    acceptedTransactionCount: replay.acceptedTransactionCount,
+    diagnostics: replay.diagnostics,
+  });
+}
+
 function alignmentFingerprint(entry: BranchSessionEntry): string {
   if (entry.type !== "message" || !isRecord(entry.message)) {
     return digest({ type: entry.type, customType: entry.customType, data: stripDisplayOnly(entry.data) });
@@ -1716,7 +2451,9 @@ function formatV3ReplayDiagnostic(value: V3ReplayDiagnostic): string {
 }
 
 function isProviderMessageEntry(entry: BranchSessionEntry): boolean {
-  return entry.type === "message" && isRecord(entry.message);
+  // Raw epoch ordinal is assigned before body validation. Public references
+  // remain stricter in isReferenceEligible().
+  return entry.type === "message";
 }
 
 function currentEpoch(internal: SnapshotInternal): string {
@@ -1822,6 +2559,21 @@ function indexGet<V>(root: IndexNode<V> | undefined, key: string): V | undefined
     current = key < current.key ? current.left : current.right;
   }
   return undefined;
+}
+
+function indexFloor<V>(root: IndexNode<V> | undefined, key: string): V | undefined {
+  let current = root;
+  let floor: V | undefined;
+  while (current) {
+    if (key === current.key) return current.value;
+    if (key < current.key) {
+      current = current.left;
+    } else {
+      floor = current.value;
+      current = current.right;
+    }
+  }
+  return floor;
 }
 
 function indexSet<V>(root: IndexNode<V> | undefined, key: string, value: V): IndexSetResult<V> {
@@ -2097,6 +2849,71 @@ export function getIndexedEntry(snapshot: BranchIndexSnapshot, entryId: string):
   return indexGet(getInternal(snapshot).entryById, entryId);
 }
 
+export interface BranchProviderFrontierSource {
+  entryId: string;
+  message: Readonly<Record<string, unknown>>;
+}
+
+export type BranchProviderFrontierSourceResult =
+  | {
+    ok: true;
+    sources: readonly BranchProviderFrontierSource[];
+    totalRawMessages: number;
+    totalRawUtf8Bytes: number;
+    selectedRawMessages: number;
+    selectedRawUtf8Bytes: number;
+    counters: BranchIndexCounters;
+  }
+  | { ok: false; diagnostic: string; counters: BranchIndexCounters };
+
+/**
+ * Reads only explicitly retained provider-visible raw messages from the
+ * immutable epoch snapshot. It never walks, fingerprints, or serializes raw
+ * messages omitted from the provider frontier.
+ */
+export function readBranchProviderFrontierSources(
+  snapshot: BranchIndexSnapshot,
+  entryIds: readonly string[],
+): BranchProviderFrontierSourceResult {
+  const counters = emptyBranchIndexCounters();
+  const internal = getInternal(snapshot);
+  const requested = [...new Set(entryIds)].sort();
+  const records: IndexedEntryRecord[] = [];
+  for (const entryId of requested) {
+    const record = indexGet(internal.entryById, entryId);
+    if (!record || record.epochId !== snapshot.key.epochId) {
+      counters.providerFrontierFallbacks += 1;
+      return { ok: false, diagnostic: "frontier-protected-entry-unavailable", counters };
+    }
+    if (record.providerOrdinal !== undefined) records.push(record);
+  }
+  records.sort((left, right) => left.providerOrdinal! - right.providerOrdinal!);
+  const sources: BranchProviderFrontierSource[] = [];
+  let selectedRawUtf8Bytes = 0;
+  for (const record of records) {
+    const slot = persistentSegmentedValueAt(internal.rawEpochSlots, record.providerOrdinal! - 1);
+    if (!slot || slot.entryId !== record.entryId || !slot.cloneable || !slot.isRecordBody || !isRecord(slot.body)) {
+      counters.providerFrontierFallbacks += 1;
+      return { ok: false, diagnostic: "frontier-protected-source-invalid", counters };
+    }
+    sources.push({ entryId: record.entryId, message: slot.body });
+    selectedRawUtf8Bytes += record.serializedUtf8Bytes;
+  }
+  const totalRawMessages = internal.providerEntryCount;
+  const totalRawUtf8Bytes = internal.rawEpochUtf8Bytes;
+  counters.providerFrontierOmittedRawMessages = Math.max(0, totalRawMessages - sources.length);
+  counters.providerFrontierOmittedRawBytes = Math.max(0, totalRawUtf8Bytes - selectedRawUtf8Bytes);
+  return {
+    ok: true,
+    sources,
+    totalRawMessages,
+    totalRawUtf8Bytes,
+    selectedRawMessages: sources.length,
+    selectedRawUtf8Bytes,
+    counters,
+  };
+}
+
 export function getIndexedBlock(snapshot: BranchIndexSnapshot, blockId: string): BranchIndexedBlock | undefined {
   return indexGet(getInternal(snapshot).blockById, blockId);
 }
@@ -2132,7 +2949,11 @@ export interface BranchProviderMessageDescriptor {
   providerIndex: number;
   fingerprint: string;
   message: Record<string, unknown>;
-  canonical: string;
+  /**
+   * Exact canonical form, materialized only if this provider message survives
+   * projection or a fail-open result must return the unmodified input.
+   */
+  canonical?: string;
   structuredToolPartCount: number;
   hasBinaryOrImage: boolean;
   role?: string;
@@ -2152,7 +2973,7 @@ export interface BranchProviderMessageDescriptor {
 }
 
 interface CanonicalCapture {
-  canonical: string;
+  canonical?: string;
   stripped: string;
   structuredToolPartCount: number;
   hasBinaryOrImage: boolean;
@@ -2162,6 +2983,27 @@ interface CanonicalCapture {
   legacyBlockIds: readonly string[];
   v3BlockId?: string;
 }
+
+interface ProviderMessageCaptureHints {
+  readonly hasRole: true;
+  readonly role: unknown;
+  readonly hasCustomType: boolean;
+  readonly customType?: unknown;
+}
+
+interface ProviderMessageInput<T extends Record<string, unknown>> {
+  readonly message: T;
+  readonly originalIndex: number;
+  readonly suffix: boolean;
+  readonly hints: ProviderMessageCaptureHints;
+}
+
+/**
+ * Raw slots are immutable, persistent index values. A weak cache lets repeated
+ * structured-clone context inputs reuse their source-derived metadata without
+ * retaining an additional copy of the raw provider body.
+ */
+const PROVIDER_DESCRIPTOR_CACHE = new WeakMap<RawEpochSlotV1, BranchProviderMessageDescriptor>();
 
 interface CapturedProviderMessage {
   descriptor: BranchProviderMessageDescriptor;
@@ -2184,35 +3026,24 @@ export function alignBranchProviderMessages<T extends Record<string, unknown>>(
   const counters = emptyBranchIndexCounters();
   counters.providerMessagePasses = 1;
   const internal = getInternal(snapshot);
+  const inputs = providerMessageInputs(messages, options.suffixCustomType);
+  const exactIndexed = alignExactIndexedProviderMessages(internal, inputs, counters);
+  if (exactIndexed) return exactIndexed;
   const provider: BranchProviderMessageDescriptor[] = [];
   const publicMessages: Record<string, unknown>[] = [];
-  const canonicalFragments: string[] = [];
   let structuredToolPartCount = 0;
   let hasBinaryOrImage = false;
   const providerCounts = new Map<string, number>();
-  for (let originalIndex = 0; originalIndex < messages.length; originalIndex += 1) {
+  for (const { message, originalIndex, suffix, hints } of inputs) {
     counters.providerMessageVisits += 1;
-    const message = messages[originalIndex]!;
-    const captured = captureProviderMessage(message, originalIndex, provider.length);
-    if (captured.descriptor.role === "custom" && captured.descriptor.customType === options.suffixCustomType) continue;
+    const captured = captureProviderMessage(message, originalIndex, provider.length, true, hints);
+    if (suffix) continue;
     provider.push(captured.descriptor);
     publicMessages.push(message);
-    canonicalFragments.push(captured.descriptor.canonical);
     structuredToolPartCount += captured.structuredToolPartCount;
     hasBinaryOrImage ||= captured.hasBinaryOrImage;
     providerCounts.set(captured.descriptor.fingerprint, (providerCounts.get(captured.descriptor.fingerprint) ?? 0) + 1);
   }
-  const canonicalMessages = `[${canonicalFragments.join(",")}]`;
-  const common = {
-    descriptors: provider,
-    messages: publicMessages,
-    canonicalMessages,
-    hash: digestCanonicalJson(canonicalMessages),
-    utf8Bytes: Buffer.byteLength(canonicalMessages, "utf8"),
-    structuredToolPartCount,
-    hasBinaryOrImage,
-    protocolDiagnostic: validateCapturedProviderProtocol(provider),
-  } as const;
 
   const occurrences = new Map<string, readonly IndexedEntryRecord[]>();
   const candidatesFor = (fingerprint: string): readonly IndexedEntryRecord[] => {
@@ -2234,14 +3065,18 @@ export function alignBranchProviderMessages<T extends Record<string, unknown>>(
     // though they are not Session `message` entries. One such synthetic message
     // is therefore intentionally unmapped; repeated copies remain ambiguous.
     if (count > Math.max(1, candidates.length)) {
-      return {
+      return providerAlignmentResult({
         byEntryId: new Map(),
         providerMessagesByEntryId: new Map(),
         descriptorByEntryId: new Map(),
-        ...common,
+        descriptors: provider,
+        messages: publicMessages,
+        structuredToolPartCount,
+        hasBinaryOrImage,
+        protocolDiagnostic: validateCapturedProviderProtocol(provider),
         diagnostic: `alignment-ambiguous:${safeAlignmentId(candidates[0]?.entryId ?? "unknown")}`,
         counters,
-      };
+      });
     }
   }
 
@@ -2282,14 +3117,18 @@ export function alignBranchProviderMessages<T extends Record<string, unknown>>(
         action: options.actionForEntry?.(candidate.entryId) ?? "raw",
       })));
       if (classes.size !== 1) {
-        return {
+        return providerAlignmentResult({
           byEntryId: new Map(),
           providerMessagesByEntryId: new Map(),
           descriptorByEntryId: new Map(),
-          ...common,
+          descriptors: provider,
+          messages: publicMessages,
+          structuredToolPartCount,
+          hasBinaryOrImage,
+          protocolDiagnostic: validateCapturedProviderProtocol(provider),
           diagnostic: `alignment-ambiguous:${safeAlignmentId(selected.entryId)}`,
           counters,
-        };
+        });
       }
     }
     byEntryId.set(selected.entryId, metadata.originalIndex);
@@ -2306,28 +3145,186 @@ export function alignBranchProviderMessages<T extends Record<string, unknown>>(
   for (const atom of touchedAtoms.values()) {
     const mapped = atom.entryIds.filter((entryId) => byEntryId.has(entryId));
     if (mapped.length !== 0 && mapped.length !== atom.entryIds.length) {
-      return {
+      return providerAlignmentResult({
         byEntryId: new Map(),
         providerMessagesByEntryId: new Map(),
         descriptorByEntryId: new Map(),
-        ...common,
+        descriptors: provider,
+        messages: publicMessages,
+        structuredToolPartCount,
+        hasBinaryOrImage,
+        protocolDiagnostic: validateCapturedProviderProtocol(provider),
         diagnostic: `alignment-partial-protocol:${safeAlignmentId(atom.entryIds[0] ?? "unknown")}`,
         counters,
-      };
+      });
     }
     const positions = mapped.map((entryId) => byEntryId.get(entryId)!);
     if (positions.some((position, index) => index > 0 && position <= positions[index - 1]!)) {
-      return {
+      return providerAlignmentResult({
         byEntryId: new Map(),
         providerMessagesByEntryId: new Map(),
         descriptorByEntryId: new Map(),
-        ...common,
+        descriptors: provider,
+        messages: publicMessages,
+        structuredToolPartCount,
+        hasBinaryOrImage,
+        protocolDiagnostic: validateCapturedProviderProtocol(provider),
         diagnostic: `alignment-protocol-order:${safeAlignmentId(atom.entryIds[0] ?? "unknown")}`,
         counters,
-      };
+      });
     }
   }
-  return { byEntryId, providerMessagesByEntryId, descriptorByEntryId, ...common, counters };
+  return providerAlignmentResult({
+    byEntryId,
+    providerMessagesByEntryId,
+    descriptorByEntryId,
+    descriptors: provider,
+    messages: publicMessages,
+    structuredToolPartCount,
+    hasBinaryOrImage,
+    protocolDiagnostic: validateCapturedProviderProtocol(provider),
+    counters,
+  });
+}
+
+function alignExactIndexedProviderMessages<T extends Record<string, unknown>>(
+  internal: SnapshotInternal,
+  inputs: readonly ProviderMessageInput<T>[],
+  counters: BranchIndexCounters,
+): BranchProviderAlignmentResult | undefined {
+  if (inputs.some((input) => input.suffix) || inputs.length !== internal.rawEpochSlots.length) return undefined;
+
+  const descriptors: BranchProviderMessageDescriptor[] = [];
+  const byEntryId = new Map<string, number>();
+  const providerMessagesByEntryId = new Map<string, Record<string, unknown>>();
+  const descriptorByEntryId = new Map<string, BranchProviderMessageDescriptor>();
+  let structuredToolPartCount = 0;
+  let hasBinaryOrImage = false;
+  let cacheHits = 0;
+  let cacheMisses = 0;
+
+  for (let providerIndex = 0; providerIndex < inputs.length; providerIndex += 1) {
+    const { message, originalIndex } = inputs[providerIndex]!;
+    const slot = persistentSegmentedValueAt(internal.rawEpochSlots, providerIndex);
+    if (!slot?.cloneable || !slot.isRecordBody || !isRecord(slot.body) || !sameCanonicalValue(slot.body, message)) {
+      return undefined;
+    }
+    let cached = PROVIDER_DESCRIPTOR_CACHE.get(slot);
+    if (cached) {
+      cacheHits += 1;
+    } else {
+      cached = captureProviderMessage(slot.body, 0, 0, false).descriptor;
+      PROVIDER_DESCRIPTOR_CACHE.set(slot, cached);
+      cacheMisses += 1;
+    }
+    const descriptor: BranchProviderMessageDescriptor = {
+      ...cached,
+      originalIndex,
+      providerIndex,
+      message,
+    };
+    descriptors.push(descriptor);
+    byEntryId.set(slot.entryId, originalIndex);
+    providerMessagesByEntryId.set(slot.entryId, message);
+    descriptorByEntryId.set(slot.entryId, descriptor);
+    structuredToolPartCount += descriptor.structuredToolPartCount;
+    hasBinaryOrImage ||= descriptor.hasBinaryOrImage;
+  }
+
+  counters.providerMessageVisits += inputs.length;
+  counters.providerMessageCacheHits += cacheHits;
+  counters.providerMessageCacheMisses += cacheMisses;
+
+  return providerAlignmentResult({
+    byEntryId,
+    providerMessagesByEntryId,
+    descriptorByEntryId,
+    descriptors,
+    messages: inputs.map(({ message }) => message),
+    structuredToolPartCount,
+    hasBinaryOrImage,
+    protocolDiagnostic: validateCapturedProviderProtocol(descriptors),
+    counters,
+  });
+}
+
+function providerMessageInputs<T extends Record<string, unknown>>(
+  messages: readonly T[],
+  suffixCustomType: string | undefined,
+): ProviderMessageInput<T>[] {
+  const inputs: ProviderMessageInput<T>[] = [];
+  for (let originalIndex = 0; originalIndex < messages.length; originalIndex += 1) {
+    const message = messages[originalIndex]!;
+    const role = message.role;
+    const customType = role === "custom" ? message.customType : undefined;
+    inputs.push({
+      message,
+      originalIndex,
+      suffix: role === "custom" && customType === suffixCustomType,
+      hints: {
+        hasRole: true,
+        role,
+        hasCustomType: role === "custom",
+        ...(role === "custom" ? { customType } : {}),
+      },
+    });
+  }
+  return inputs;
+}
+
+function providerAlignmentResult(input: {
+  byEntryId: ReadonlyMap<string, number>;
+  providerMessagesByEntryId: ReadonlyMap<string, Record<string, unknown>>;
+  descriptorByEntryId: ReadonlyMap<string, BranchProviderMessageDescriptor>;
+  descriptors: readonly BranchProviderMessageDescriptor[];
+  messages: readonly Record<string, unknown>[];
+  structuredToolPartCount: number;
+  hasBinaryOrImage: boolean;
+  protocolDiagnostic?: string;
+  diagnostic?: string;
+  counters: BranchIndexCounters;
+}): BranchProviderAlignmentResult {
+  let canonicalMessages: string | undefined;
+  let hash: string | undefined;
+  let utf8Bytes: number | undefined;
+  const canonical = () => canonicalMessages ??= `[${input.descriptors.map(descriptorCanonical).join(",")}]`;
+  return {
+    byEntryId: input.byEntryId,
+    providerMessagesByEntryId: input.providerMessagesByEntryId,
+    descriptorByEntryId: input.descriptorByEntryId,
+    descriptors: input.descriptors,
+    messages: input.messages,
+    get canonicalMessages() { return canonical(); },
+    get hash() { return hash ??= digestCanonicalJson(canonical()); },
+    get utf8Bytes() { return utf8Bytes ??= Buffer.byteLength(canonical(), "utf8"); },
+    structuredToolPartCount: input.structuredToolPartCount,
+    hasBinaryOrImage: input.hasBinaryOrImage,
+    ...(input.protocolDiagnostic ? { protocolDiagnostic: input.protocolDiagnostic } : {}),
+    ...(input.diagnostic ? { diagnostic: input.diagnostic } : {}),
+    counters: input.counters,
+  };
+}
+
+export function descriptorCanonical(descriptor: BranchProviderMessageDescriptor): string {
+  return descriptor.canonical ??= canonicalJson(descriptor.message);
+}
+
+/** Exact canonical equality without allocating a serialized provider body. */
+function sameCanonicalValue(left: unknown, right: unknown): boolean {
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right)
+      && left.length === right.length
+      && left.every((value, index) => sameCanonicalValue(value, right[index]));
+  }
+  if (isRecord(left) || isRecord(right)) {
+    if (!isRecord(left) || !isRecord(right)) return false;
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    return leftKeys.length === rightKeys.length
+      && leftKeys.every((key) => Object.prototype.hasOwnProperty.call(right, key)
+        && sameCanonicalValue(left[key], right[key]));
+  }
+  return Object.is(left, right);
 }
 
 /**
@@ -2339,9 +3336,11 @@ function captureProviderMessage<T extends Record<string, unknown>>(
   message: T,
   originalIndex: number,
   providerIndex: number,
+  includeCanonical = true,
+  hints?: ProviderMessageCaptureHints,
 ): CapturedProviderMessage {
   const keys = Object.keys(message).sort();
-  const canonicalParts: string[] = [];
+  const canonicalParts = includeCanonical ? [] as string[] : undefined;
   const strippedParts: string[] = [];
   const selected = new Map<string, CanonicalCapture>();
   const primitive = new Map<string, unknown>();
@@ -2349,11 +3348,15 @@ function captureProviderMessage<T extends Record<string, unknown>>(
   let structuredToolPartCount = 0;
   let hasBinaryOrImage = false;
   for (const key of keys) {
-    const raw = message[key];
+    const raw = key === "role" && hints?.hasRole
+      ? hints.role
+      : key === "customType" && hints?.hasCustomType
+        ? hints.customType
+        : message[key];
     shallowEntries.push([key, raw]);
-    const captured = captureCanonicalValue(raw);
+    const captured = captureCanonicalValue(raw, includeCanonical);
     const encodedKey = JSON.stringify(key);
-    canonicalParts.push(`${encodedKey}:${captured.canonical}`);
+    if (canonicalParts) canonicalParts.push(`${encodedKey}:${captured.canonical!}`);
     if (!isDisplayOnlyKey(key)) strippedParts.push(`${encodedKey}:${captured.stripped}`);
     structuredToolPartCount += captured.structuredToolPartCount;
     hasBinaryOrImage ||= captured.hasBinaryOrImage;
@@ -2388,13 +3391,13 @@ function captureProviderMessage<T extends Record<string, unknown>>(
   const protocolMalformed = toolCallsMalformed
     || contentCallsMalformed
     || (role === "toolResult" && (!toolCallId || !toolName));
-  const canonical = `{${canonicalParts.join(",")}}`;
+  const canonical = canonicalParts ? `{${canonicalParts.join(",")}}` : undefined;
   const descriptor: BranchProviderMessageDescriptor = {
     originalIndex,
     providerIndex,
     fingerprint: digestCanonicalJson(semanticCanonical),
     message,
-    canonical,
+    ...(canonical ? { canonical } : {}),
     structuredToolPartCount,
     hasBinaryOrImage,
     ...(role ? { role } : {}),
@@ -2442,19 +3445,19 @@ const PROVIDER_SCALAR_KEYS = new Set([
   "type",
 ]);
 
-function captureCanonicalValue(value: unknown): CanonicalCapture {
+function captureCanonicalValue(value: unknown, includeCanonical: boolean): CanonicalCapture {
   if (Array.isArray(value)) {
     const captured: CanonicalCapture[] = [];
     let structuredToolPartCount = 0;
     let hasBinaryOrImage = false;
     for (let index = 0; index < value.length; index += 1) {
-      const item = captureCanonicalValue(value[index]);
+      const item = captureCanonicalValue(value[index], includeCanonical);
       captured.push(item);
       structuredToolPartCount += item.structuredToolPartCount;
       hasBinaryOrImage ||= item.hasBinaryOrImage;
     }
     return {
-      canonical: `[${captured.map((item) => item.canonical).join(",")}]`,
+      ...(includeCanonical ? { canonical: `[${captured.map((item) => item.canonical!).join(",")}]` } : {}),
       stripped: `[${captured.map((item) => item.stripped).join(",")}]`,
       structuredToolPartCount,
       hasBinaryOrImage,
@@ -2469,7 +3472,7 @@ function captureCanonicalValue(value: unknown): CanonicalCapture {
   if (!isRecord(value)) {
     const canonical = JSON.stringify(value) ?? "undefined";
     return {
-      canonical,
+      ...(includeCanonical ? { canonical } : {}),
       stripped: canonical,
       structuredToolPartCount: 0,
       hasBinaryOrImage: false,
@@ -2477,7 +3480,7 @@ function captureCanonicalValue(value: unknown): CanonicalCapture {
       legacyBlockIds: [],
     };
   }
-  const canonicalParts: string[] = [];
+  const canonicalParts = includeCanonical ? [] as string[] : undefined;
   const strippedParts: string[] = [];
   let structuredToolPartCount = 0;
   let hasBinaryOrImage = false;
@@ -2494,9 +3497,9 @@ function captureCanonicalValue(value: unknown): CanonicalCapture {
   let nestedV3BlockId: string | undefined;
   for (const key of Object.keys(value).sort()) {
     const raw = value[key];
-    const captured = captureCanonicalValue(raw);
+    const captured = captureCanonicalValue(raw, includeCanonical);
     const encodedKey = JSON.stringify(key);
-    canonicalParts.push(`${encodedKey}:${captured.canonical}`);
+    if (canonicalParts) canonicalParts.push(`${encodedKey}:${captured.canonical!}`);
     if (!isDisplayOnlyKey(key)) strippedParts.push(`${encodedKey}:${captured.stripped}`);
     structuredToolPartCount += captured.structuredToolPartCount;
     hasBinaryOrImage ||= captured.hasBinaryOrImage;
@@ -2520,7 +3523,7 @@ function captureCanonicalValue(value: unknown): CanonicalCapture {
   structuredToolPartCount += type === "toolCall" ? 1 : 0;
   hasBinaryOrImage ||= typeof type === "string" && /^(?:image|image_url|audio|video|file|binary)$/u.test(type);
   return {
-    canonical: `{${canonicalParts.join(",")}}`,
+    ...(canonicalParts ? { canonical: `{${canonicalParts.join(",")}}` } : {}),
     stripped: `{${strippedParts.join(",")}}`,
     structuredToolPartCount,
     hasBinaryOrImage,
@@ -2635,13 +3638,15 @@ export function auditBranchIndexReplayHealth(
 ): BranchReplayHealth {
   const counters = emptyBranchIndexCounters();
   counters.fullReducerRuns = 1;
+  counters.pureAuditRuns = 1;
   const internal = getInternal(snapshot);
   const fallback = internal.v3ReplaySeed
     ? {
       legacy: reduceCompactStateFromEpoch(entries, internal.epochId),
-      v3: reduceV3LifecycleStateFromSeed(entries, internal.v3ReplaySeed),
+      v3: reduceV3LifecycleStateFromSeed(entries, internal.v3ReplaySeed.replay),
     }
     : branchIndexPureReplayFallback(entries);
+  if (internal.v3ReplaySeed) counters.seedReplayRuns = 1;
   const indexedDigest = indexedReplayProjectionDigest(snapshot);
   const oracleDigest = oracleReplayProjectionDigest(fallback);
   const healthy = indexedDigest === oracleDigest;
@@ -2851,6 +3856,7 @@ export function setBranchTokenEstimate(
     snapshot: makeSnapshot(
       snapshot.key,
       nextInternal,
+      snapshot.sourceEntryIdDigest,
       {
         ...snapshot.derivedVersions,
         providerId: estimate.providerId,
@@ -2926,6 +3932,7 @@ export function invalidateBranchDerivedIndex(
     snapshot: makeSnapshot(
       snapshot.key,
       nextInternal,
+      snapshot.sourceEntryIdDigest,
       versions,
       validity,
       snapshot.diagnostics,
@@ -3151,6 +4158,18 @@ export class BranchIndexCache {
     return { ...this.cumulative };
   }
 
+  recordFullV3RuntimeViewBuild(): void {
+    const counters = emptyBranchIndexCounters();
+    counters.fullV3RuntimeViewBuilds = 1;
+    this.cumulative = addBranchIndexCounters(this.cumulative, counters);
+  }
+
+  recordIndexedV3RuntimeViewBuild(): void {
+    const counters = emptyBranchIndexCounters();
+    counters.indexedV3RuntimeViewBuilds = 1;
+    this.cumulative = addBranchIndexCounters(this.cumulative, counters);
+  }
+
   alignProviderMessages<T extends Record<string, unknown>>(
     messages: readonly T[],
     options: BranchProviderAlignmentOptions = {},
@@ -3173,6 +4192,14 @@ export class BranchIndexCache {
     return result;
   }
 
+  promotionGapIndex(): PromotionGapIndexV1 | undefined {
+    const current = this.current;
+    if (!current) return undefined;
+    const result = getBranchPromotionGapIndex(current);
+    this.cumulative = addBranchIndexCounters(this.cumulative, result.counters);
+    return result.index;
+  }
+
   snapshotIds(): readonly string[] {
     return [...this.snapshots.keys()].sort();
   }
@@ -3182,6 +4209,11 @@ export class BranchIndexCache {
     if (!result.ok) return undefined;
     this.remember(result.snapshot, true);
     return result.snapshot;
+  }
+
+  /** Records a pure verification pass that does not create or replace a snapshot. */
+  recordAuxiliaryCounters(counters: BranchIndexCounters): void {
+    this.cumulative = addBranchIndexCounters(this.cumulative, counters);
   }
 
   append(input: AppendBranchIndexInput): AppendBranchIndexResult | undefined {

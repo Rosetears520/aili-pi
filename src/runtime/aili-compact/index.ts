@@ -62,15 +62,27 @@ import { planDecompression, planPruneMutation, planRecompression, type MutationG
 import { classifyProtection } from "./protection.js";
 import { presentCache } from "./presentation.js";
 import { alignEntriesToMessages, type ProjectionMessage } from "./projector.js";
-import { projectIndexedProviderMessages } from "./indexed-projector.js";
+import {
+  indexedProviderFrontierBlocks,
+  indexedProviderFrontierCacheIdentity,
+  projectIndexedProviderFrontier,
+  type IndexedProviderFrontierResult,
+} from "./indexed-projector.js";
+import {
+  admitProviderFrontierSelection,
+  providerFrontierDescriptorIdentity,
+  type ProviderFrontierSelection,
+} from "./provider-frontier.js";
 import { buildReferenceCatalog, pageReferenceCatalog } from "./references.js";
 import { gateSubagentEntry } from "./subagent-gating.js";
 import { activeBlocks, reduceCompactState, reduceV3LifecycleState } from "./reducer.js";
 import {
   CheckpointAttemptCache,
   CheckpointCoordinator,
+  MiMoCheckpointTracker,
   PressureCycle,
   observePressure,
+  resolveMiMoRecoveryAction,
   type PressureObservation,
   type RecoveryTuple,
   type ManualCompactPermit,
@@ -82,7 +94,12 @@ import {
   type RepairDisposition,
 } from "./repair.js";
 import { buildProtocolAtoms, type ProtocolAtomBuildResult } from "./protocol-atoms.js";
-import { classifyTransparentPromotionGaps } from "./promotion-gaps.js";
+import {
+  classifyTransparentPromotionGaps,
+  createAiliPlanningResultEnvelope,
+  isAiliPlanningV3Transaction,
+  type PromotionGapIndexV1,
+} from "./promotion-gaps.js";
 import {
   builtInTokenBoundProfiles,
   estimateTokenBounds,
@@ -93,7 +110,7 @@ import {
   type SafeRangePlan,
 } from "./safe-planning.js";
 import { AILI_COMPACT_PROVIDER_SUFFIX, buildProviderSuffix, type ProviderSuffixResult } from "./provider-suffix.js";
-import { QUALITY_EVALUATOR_VERSION, assessQuality, type FrozenQualitySourceV1, type QualityInputV1, type QualityTier } from "./quality.js";
+import { QUALITY_EVALUATOR_VERSION, assessQuality, type FrozenQualitySourceV1, type QualityInputV1 } from "./quality.js";
 import { buildQualityIdentityContext, freezeBlockQualitySource, freezeMessageQualitySource } from "./quality-source.js";
 import {
   evaluateV3CompactEconomics,
@@ -111,12 +128,18 @@ import {
 import {
   BranchIndexCache,
   auditBranchIndexReplayHealth,
+  branchPromotionGapSourceRequired,
   branchProtocolAtomBuild,
+  branchSourceEntryIdDigest,
   coldBuildBranchIndex,
+  createVerifiedV3ReplaySeed,
+  describeOwnedProviderMessage,
+  emptyBranchIndexCounters,
   getBranchProtocolAtomForEntry,
   getBranchV3LifecycleReplay,
   lastBranchProtocolAtom,
   listBranchMessageReferences,
+  verifyBranchPromotionGapSource,
   type BranchProviderAlignmentResult,
   type BranchReferencePage,
   type BranchSessionEntry,
@@ -133,6 +156,7 @@ import {
   V3_PROJECTION_VERSION,
   buildIndexedV3RuntimeView,
   buildV3RuntimeView,
+  stableV3BranchId,
   v3LeafEntryIds,
   type V3RuntimeView,
 } from "./v3-runtime.js";
@@ -149,8 +173,9 @@ import {
   type V3ProtectedOrdinalInterval,
   type V3QualityEvidence,
 } from "./v3-mutations.js";
-import { applyV3Transaction, v3SummaryDigest, type V3SemanticBlock, type V3Transaction } from "./v3.js";
+import { applyV3Transaction, createEmptyV3State, v3SummaryDigest, type V3SemanticBlock, type V3Transaction } from "./v3.js";
 import { deriveRuntimeCatalogId } from "./runtime-catalog.js";
+import { SEMANTIC_SUMMARY_LIMITS } from "./summary-limits.js";
 
 const COMPACT_TOOL_NAMES = new Set([
   "aili_compact",
@@ -194,6 +219,8 @@ type SessionRuntime = {
   providerSuffix?: ProviderSuffixResult;
   checkpoint: CheckpointCoordinator;
   checkpointAttempts: CheckpointAttemptCache;
+  mimoCheckpoint: MiMoCheckpointTracker;
+  mimoRebuildBinding?: string;
   pressureCycle: PressureCycle;
   pressure?: PressureObservation;
   rebuildingUsage: boolean;
@@ -239,7 +266,21 @@ type SessionRuntime = {
   branchIndexEntryOffset: number;
   indexedProtectionEntryCount: number;
   indexedProtectedEntryIds: Set<string>;
+  /** Provider-only recent raw frontier; broader mutation protection stays ledger-only. */
+  providerFrontierProtectedEntryIds: Set<string>;
   indexedProtectionReasonsByEntryId: Map<string, readonly string[]>;
+  indexedPromotionGapIndex?: PromotionGapIndexV1;
+  providerFrontierCache?: { identity: string; result: IndexedProviderFrontierResult };
+  providerFrontierBase?: {
+    descriptorIdentity: string;
+    sourceRevision: string;
+    configIdentity: string;
+    profileKey: string;
+    contextWindow: number;
+    safetyReserve: number;
+    tokenUpper: number;
+  };
+  pendingProviderFrontierSelection?: ProviderFrontierSelection;
   providerIndexFailOpen?: string;
 };
 
@@ -286,7 +327,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
     if (existing) return existing;
     const loaded = loadCompactConfigResult(ctx.cwd);
     const initialState = applyCompactConfig(reduceCompactState(branch(ctx)), loaded.config);
-    const tuple = recoveryTuple(ctx, initialState);
+    const tuple = pendingRecoveryTuple(ctx, initialState);
     const current: SessionRuntime = {
       telemetry: emptyCacheTelemetry(),
       sessionCache: emptySessionCacheStats(),
@@ -295,6 +336,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       prompt: loadCompactPromptSnapshot(ctx.cwd, loaded.config),
       checkpoint: new CheckpointCoordinator(tuple),
       checkpointAttempts: new CheckpointAttemptCache(),
+      mimoCheckpoint: new MiMoCheckpointTracker(),
       pressureCycle: new PressureCycle(tuple),
       rebuildingUsage: false,
       lastCheckpointOrigin: "Unverified",
@@ -310,6 +352,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       indexedCandidateByRef: new Map(),
       indexedProtectionEntryCount: 0,
       indexedProtectedEntryIds: new Set(),
+      providerFrontierProtectedEntryIds: new Set(),
       indexedProtectionReasonsByEntryId: new Map(),
     };
     sessions.set(id, current);
@@ -327,31 +370,41 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
     parameters: Type.Union([
       Type.Object({
         mode: Type.Literal("range"), catalogId: Type.String({ minLength: 64, maxLength: 64 }), topic: Type.String({ minLength: 1, maxLength: 200 }),
-        ranges: Type.Array(Type.Object({ startRef: Type.String({ pattern: "^m\\d{6}$" }), endRef: Type.String({ pattern: "^m\\d{6}$" }), summary: Type.String({ minLength: 1, maxLength: 10_000 }) }), { minItems: 1, maxItems: 16 }),
-        summaryMaxChars: Type.Optional(Type.Integer({ minimum: 256, maximum: 10_000 })),
+        ranges: Type.Array(Type.Object({ startRef: Type.String({ pattern: "^m\\d{6}$" }), endRef: Type.String({ pattern: "^m\\d{6}$" }), summary: Type.String({ minLength: 1, maxLength: SEMANTIC_SUMMARY_LIMITS.hardMaxChars }) }), { minItems: 1, maxItems: 16 }),
+        summaryMaxChars: Type.Optional(Type.Integer({ minimum: SEMANTIC_SUMMARY_LIMITS.minChars, maximum: SEMANTIC_SUMMARY_LIMITS.hardMaxChars })),
       }),
       Type.Object({
         mode: Type.Literal("message"), catalogId: Type.String({ minLength: 64, maxLength: 64 }), topic: Type.String({ minLength: 1, maxLength: 200 }),
-        items: Type.Array(Type.Object({ messageRef: Type.String({ pattern: "^m\\d{6}$" }), topic: Type.String({ minLength: 1, maxLength: 200 }), summary: Type.String({ minLength: 1, maxLength: 10_000 }) }), { minItems: 1, maxItems: 16 }),
-        summaryMaxChars: Type.Optional(Type.Integer({ minimum: 256, maximum: 10_000 })),
+        items: Type.Array(Type.Object({ messageRef: Type.String({ pattern: "^m\\d{6}$" }), topic: Type.String({ minLength: 1, maxLength: 200 }), summary: Type.String({ minLength: 1, maxLength: SEMANTIC_SUMMARY_LIMITS.hardMaxChars }) }), { minItems: 1, maxItems: 16 }),
+        summaryMaxChars: Type.Optional(Type.Integer({ minimum: SEMANTIC_SUMMARY_LIMITS.minChars, maximum: SEMANTIC_SUMMARY_LIMITS.hardMaxChars })),
       }),
       Type.Object({
         mode: Type.Literal("blocks"), catalogId: Type.String({ minLength: 64, maxLength: 64 }), topic: Type.String({ minLength: 1, maxLength: 200 }),
         blockRefs: Type.Array(Type.String({ pattern: "^b\\d{6}$" }), { minItems: 2, maxItems: 16 }),
-        summary: Type.String({ minLength: 1, maxLength: 10_000 }),
-        summaryMaxChars: Type.Optional(Type.Integer({ minimum: 256, maximum: 10_000 })),
+        summary: Type.String({ minLength: 1, maxLength: SEMANTIC_SUMMARY_LIMITS.hardMaxChars }),
+        summaryMaxChars: Type.Optional(Type.Integer({ minimum: SEMANTIC_SUMMARY_LIMITS.minChars, maximum: SEMANTIC_SUMMARY_LIMITS.hardMaxChars })),
       }),
     ]),
     async execute(toolCallId, params, _signal, _onUpdate, ctx) {
-      const runtime = runtimeFor(ctx); const entries = branch(ctx); const state = stateFor(ctx, runtime.config);
+      const runtime = runtimeFor(ctx); const entries = branch(ctx); const state = runtime.indexedState ?? stateFor(ctx, runtime.config);
+      let result: AgentToolResult<any>;
       if (runtime.manualPermit) {
         const permit = runtime.manualPermit;
         const allowed = manualPermitAllowsCall(entries, permit, toolCallId, ctx.sessionManager.getSessionId(), state.epochId);
         permit.state = allowed ? "consumed" : "invalid";
         runtime.manualPermit = undefined;
-        if (!allowed) return error("The one-shot manual permit belongs to a different branch, epoch, or already-finished turn.");
-      } else if (state.manualMode) return error("Manual mode requires a fresh /aili-compact compress permit.");
-      return executeV3Compact(pi, toolCallId, params as PublicCompactParams, ctx, runtime, entries, state);
+        result = allowed
+          ? await executeV3Compact(pi, toolCallId, params as PublicCompactParams, ctx, runtime, entries, state)
+          : error("The one-shot manual permit belongs to a different branch, epoch, or already-finished turn.");
+      } else if (state.manualMode) {
+        result = error("Manual mode requires a fresh /aili-compact compress permit.");
+      } else {
+        result = await executeV3Compact(pi, toolCallId, params as PublicCompactParams, ctx, runtime, entries, state);
+      }
+      const view = runtime.branchIndexHealthy === true && runtime.indexedView
+        ? runtime.indexedView
+        : v3ViewFor(ctx, entries, state, runtime.branchIndex);
+      return attestPlanningToolResult("aili_compact", toolCallId, result, view.state);
     },
   });
 
@@ -384,7 +437,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
     }),
     async execute(toolCallId, params, _signal, _onUpdate, ctx) {
       const runtime = runtimeFor(ctx); const entries = branch(ctx); const state = stateFor(ctx, runtime.config);
-      const view = v3ViewFor(ctx, entries, state);
+      const view = v3ViewFor(ctx, entries, state, runtime.branchIndex);
       if (params.catalogId !== view.catalog.catalogId) {
         return error(canonicalJson({ code: "stale-catalog", refreshStatus: true }));
       }
@@ -406,11 +459,11 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       query: Type.String({ minLength: 1, maxLength: 1_000 }),
       limit: Type.Optional(Type.Integer({ minimum: 1, maximum: MAX_SEARCH_RESULTS })),
     }),
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+    async execute(toolCallId, params, _signal, _onUpdate, ctx) {
       const entries = branch(ctx);
       const runtime = runtimeFor(ctx);
       const state = stateFor(ctx, runtime.config);
-      const catalog = v3ViewFor(ctx, entries, state).catalog;
+      const catalog = v3ViewFor(ctx, entries, state, runtime.branchIndex).catalog;
       const referencesByEntryId = new Map(catalog.messages.map((message) => [message.entryId, message.ref]));
       const matches = searchCurrentBranch(entries, params.query, params.limit ?? MAX_SEARCH_RESULTS)
         .map((match) => {
@@ -430,11 +483,26 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       offset: Type.Optional(Type.Integer({ minimum: 0 })),
       limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 64 })),
     }),
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+    async execute(toolCallId, params, _signal, _onUpdate, ctx) {
       const runtime = runtimeFor(ctx);
-      const state = runtime.indexedState ?? stateFor(ctx, runtime.config);
       const entries = branch(ctx);
-      const view = runtime.indexedView ?? v3ViewFor(ctx, entries, state);
+      // Status can be called without a context/provider event. Synchronize and
+      // verify proof-source freshness before it reads any cached index/view.
+      const syncState = runtime.indexedState ?? stateFor(ctx, runtime.config);
+      syncBranchIndex(ctx, runtime, syncState, false);
+      if (runtime.branchIndexHealthy === true && runtime.indexedState && runtime.indexedView) {
+        refreshProductionIndexDerived(ctx, runtime, entries);
+      }
+      if (runtime.branchIndexHealthy === true && (!runtime.indexedState || !runtime.indexedView)) {
+        installProductionIndexOracle(ctx, runtime, syncState, entries);
+      }
+      const indexed = runtime.branchIndexHealthy === true && runtime.indexedState !== undefined && runtime.indexedView !== undefined;
+      const state = indexed ? runtime.indexedState! : stateFor(ctx, runtime.config);
+      const view = indexed ? runtime.indexedView! : v3ViewFor(ctx, entries, state, runtime.branchIndex);
+      const promotionGapIndex = runtime.branchIndexHealthy === true && hasPromotionGapCandidates(view)
+        ? runtime.indexedPromotionGapIndex ?? runtime.branchIndex.promotionGapIndex()
+        : undefined;
+      if (promotionGapIndex) runtime.indexedPromotionGapIndex = promotionGapIndex;
       const indexedPage = runtime.indexedState
         ? runtime.branchIndex.pageReferences(params.offset ?? 0, params.limit ?? 32)?.value
         : undefined;
@@ -453,7 +521,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
         ?? (runtime.indexedState && runtime.branchIndex.current
           ? buildIndexedSafePlan(runtime.branchIndex.current, state, view, runtime, ctx)
           : buildCurrentSafePlan(entries!, state, runtime, ctx, view));
-      return text(JSON.stringify({
+      const result = text(JSON.stringify({
         ...diagnosticsFor(ctx, runtime),
         references: {
           ...references,
@@ -473,9 +541,10 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
             exclusionCounts: safePlan.exclusionCounts,
             diagnostics: safePlan.diagnostics,
           },
-          lifecycle: v3LifecycleStatus(view, state, runtime.config, entries),
+          lifecycle: v3LifecycleStatus(view, state, promotionGapIndex),
         },
       }, null, 2));
+      return attestPlanningToolResult("aili_compact_status", toolCallId, result, view.state);
     },
   });
 
@@ -483,21 +552,32 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
     name: "aili_context_recap",
     label: "AILI Context Recap",
     description: "Read active AILI Compact summaries without restoring raw source context.",
-    parameters: Type.Object({ blockRef: Type.Optional(Type.String({ pattern: "^b\\d{6}$" })) }),
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+    parameters: Type.Object({
+      blockRef: Type.Optional(Type.String({ pattern: "^b\\d{6}$" })),
+      blockRefs: Type.Optional(Type.Array(Type.String({ pattern: "^b\\d{6}$" }), { minItems: 1, maxItems: 16 })),
+    }),
+    async execute(toolCallId, params, _signal, _onUpdate, ctx) {
       const runtime = runtimeFor(ctx);
-      const state = stateFor(ctx, runtime.config);
       const entries = branch(ctx);
-      const view = v3ViewFor(ctx, entries, state);
+      const requested = params.blockRefs ?? (params.blockRef ? [params.blockRef] : []);
+      if (params.blockRef && params.blockRefs) return error("Specify blockRef or blockRefs, not both.");
+      const syncState = runtime.indexedState ?? stateFor(ctx, runtime.config);
+      syncBranchIndex(ctx, runtime, syncState, false);
+      if (runtime.branchIndexHealthy === true && runtime.indexedState && runtime.indexedView) {
+        refreshProductionIndexDerived(ctx, runtime, entries);
+      }
+      const indexed = runtime.branchIndexHealthy === true && runtime.indexedState !== undefined && runtime.indexedView !== undefined;
+      const state = indexed ? runtime.indexedState! : syncState;
+      const view = indexed ? runtime.indexedView! : v3ViewFor(ctx, entries, state, runtime.branchIndex);
       const catalog = view.catalog;
-      if (!params.blockRef) {
+      if (requested.length === 0) {
         const blocks = catalog.blocks.filter((item) => item.active).slice(0, 32).flatMap((item) => {
           const legacyBlock = item.family === "legacy" ? state.blocks.get(item.blockId) : undefined;
           const v3Block = item.family === "v3" ? view.state.blocks.get(item.blockId) : undefined;
           return legacyBlock || v3Block ? [{
             blockRef: item.ref,
             schema: item.family === "v3" ? "v3" : "legacy",
-            tier: v3Block?.tier,
+            ...(v3Block?.tier ? { legacyTieredReadOnly: true } : item.family === "v3" ? { semantics: "active-block" } : {}),
             topic: legacyBlock?.topic ?? v3Block?.topic ?? "(none)",
             mode: legacyBlock?.mode ?? v3Block?.source.kind ?? "legacy",
             sourceCount: legacyBlock?.sourceEntryIds.length ?? v3Block?.leafCount ?? 0,
@@ -506,21 +586,44 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
         });
         return text(JSON.stringify({ catalogId: catalog.catalogId, activeBlocks: blocks }, null, 2));
       }
-      const reference = catalog.blocks.find((item) => item.ref === params.blockRef);
-      const legacyBlock = reference?.family === "legacy" ? state.blocks.get(reference.blockId) : undefined;
-      const v3Block = reference?.family === "v3" ? view.state.blocks.get(reference.blockId) : undefined;
-      const block = legacyBlock ?? v3Block;
-      if (!reference || !block) return error(`Unknown or archived AILI Compact block reference: ${params.blockRef}`);
-      if (!reference.active || block.queryOnly) return error(`AILI Compact block ${params.blockRef} is inactive or query-only.`);
-      return text(JSON.stringify({
-        blockRef: reference.ref,
-        schema: reference.family === "v3" ? "v3" : "legacy",
-        tier: v3Block?.tier,
-        topic: block.topic ?? "(none)",
-        mode: legacyBlock?.mode ?? v3Block?.source.kind ?? "legacy",
-        sourceCount: legacyBlock?.sourceEntryIds.length ?? v3Block?.leafCount ?? 0,
-        summary: block.summary,
-      }, null, 2));
+      if (!indexed || !runtime.branchIndex.current) return error("AILI Compact recap frontier is unavailable; refresh status before retrying.");
+      const allBlocks = indexedProviderFrontierBlocks(state, view);
+      const selected = requested.map((ref) => allBlocks.find((block) => block.blockRef === ref));
+      if (selected.some((block) => !block)) return error("Unknown or archived AILI Compact block reference.");
+      const model = ctx.model as unknown as Record<string, unknown> | undefined;
+      const providerId = typeof model?.provider === "string" ? model.provider : undefined;
+      const modelId = typeof model?.id === "string" ? model.id : undefined;
+      const usage = ctx.getContextUsage();
+      const contextWindow = usage?.contextWindow;
+      const safetyReserve = providerFrontierSafetyReserve(runtime, contextWindow);
+      const profile = resolveTokenBoundProfile(providerId, modelId, TOKEN_ESTIMATOR_VERSION, runtimeTokenProfiles(runtime, providerId, modelId));
+      const base = runtime.providerFrontierBase;
+      const configIdentity = digest(runtime.config);
+      const admitted = admitProviderFrontierSelection({
+        toolCallId,
+        blocks: selected as NonNullable<(typeof selected)[number]>[],
+        allActiveBlocks: allBlocks,
+        branchKeyId: runtime.branchIndex.current.keyId,
+        epochId: runtime.branchIndex.current.key.epochId,
+        sourceRevision: runtime.branchIndex.current.sourceDigest,
+        proofRevision: runtime.branchIndex.current.replayDigest,
+        configIdentity,
+        profile,
+        modelKnown: providerId !== undefined && modelId !== undefined,
+        contextWindow,
+        safetyReserve,
+        baseTokensUpper: base
+          && base.descriptorIdentity === providerFrontierDescriptorIdentity(allBlocks)
+          && base.configIdentity === configIdentity
+          && base.profileKey === profile.profileKey
+          && base.contextWindow === contextWindow
+          && base.safetyReserve === safetyReserve
+          ? base.tokenUpper
+          : undefined,
+      });
+      if (!admitted.ok) return error(canonicalJson({ code: `frontier-${admitted.code}`, expanded: false }));
+      runtime.pendingProviderFrontierSelection = admitted.selection;
+      return text(admitted.resultText);
     },
   });
 
@@ -560,8 +663,8 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
         }
       }
       const entries = branch(ctx); const state = stateFor(ctx, runtime.config);
-      ensureRecoveryRuntime(ctx, runtime, state);
-      const lifecycleView = v3ViewFor(ctx, entries, state);
+      const recovery = ensureRecoveryRuntime(ctx, runtime, state);
+      const lifecycleView = v3ViewFor(ctx, entries, state, runtime.branchIndex);
       const inputs = commandInputs(entries, state, runtime, ctx.cwd, lifecycleView);
       const plan = planCompactCommand(args, inputs);
       const leaf = ctx.sessionManager.getLeafId() ?? "root";
@@ -589,7 +692,9 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
           ctx.ui.notify("AILI Compact is off; rescue was not invoked. Pi /compact remains host-owned.", "warning");
           return;
         }
-        const result = invokeCheckpoint(ctx, runtime, "rescue", plan.policy);
+        const result = recovery
+          ? invokeCheckpoint(ctx, runtime, recovery, "rescue", plan.policy)
+          : { accepted: false, code: "recovery-index-unavailable" };
         ctx.ui.notify(result.accepted
           ? `AILI Compact rescue scheduled (${plan.policy}).`
           : `AILI Compact rescue not started: ${result.code}.`, result.accepted ? "info" : "warning");
@@ -614,12 +719,13 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       } else if (plan.kind === "compress") {
         if (!ctx.isIdle() || ctx.hasPendingMessages()) { ctx.ui.notify("AILI Compact one-shot request is busy; nothing was appended or requested.", "warning"); return; }
         if (runtime.manualPermit?.state === "armed") { ctx.ui.notify("AILI Compact already has an active one-shot manual permit.", "warning"); return; }
+        if (!recovery) { ctx.ui.notify("AILI Compact one-shot request was not started: recovery index is unavailable.", "warning"); return; }
         runtime.manualRequestSerial += 1;
         const requestId = `manual:${runtime.manualRequestSerial}:${digest([leaf, plan.focus ?? ""]).slice(0, 16)}`;
         runtime.manualPermit = {
-          permitId: `manual-permit:${digest([requestId, recoveryTuple(ctx, state)]).slice(0, 24)}`,
+          permitId: `manual-permit:${digest([requestId, recovery]).slice(0, 24)}`,
           requestId,
-          tuple: recoveryTuple(ctx, state),
+          tuple: recovery,
           turnId: leaf,
           state: "armed",
         };
@@ -663,6 +769,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
 
   pi.on("session_start", (_event, ctx) => {
     const runtime = runtimeFor(ctx);
+    invalidateProviderFrontier(runtime);
     const state = activateBranchWithRepair(pi, ctx, runtime);
     const entries = branch(ctx);
     runtime.sessionCache = replaySessionCache(entries);
@@ -677,6 +784,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
   pi.on("session_tree", (_event, ctx) => {
     const runtime = initializedRuntimeFor(ctx);
     if (!runtime) return;
+    invalidateProviderFrontierCache(runtime);
     const state = activateBranchWithRepair(pi, ctx, runtime);
     const entries = branch(ctx);
     runtime.sessionCache = replaySessionCache(entries);
@@ -723,6 +831,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       }
       runtime.lastProviderGcLeafId = leaf;
     }
+    if (!runtime.providerIndexFailOpen) warmIndexedProviderFrontierCache(ctx, runtime);
     let systemPrompt = event.systemPrompt;
     let changed = false;
     const custom = state.enabled ? appendCompactPromptGuidance(systemPrompt, runtime.prompt) : undefined;
@@ -750,6 +859,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       ctx.ui.setStatus("aili-compact", `AILI Compact WARN: ${runtime.branchIndexDiagnostic ?? "index-derived-unavailable"}`);
       return { messages: event.messages };
     }
+    warmIndexedProviderFrontierCache(ctx, runtime);
     const state = runtime.indexedState!;
     const view = runtime.indexedView!;
     const snapshot = runtime.branchIndex.current!;
@@ -758,41 +868,109 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       publishStatus(ctx, state, runtime);
       return { messages: event.messages };
     }
-    const inputMessages = event.messages as unknown as ProjectionMessage[];
-    const activeSourceOwner = runtime.indexedSourceOwnerByEntryId;
-    const alignment = runtime.branchIndex.alignProviderMessages(inputMessages, {
-      suffixCustomType: AILI_COMPACT_PROVIDER_SUFFIX,
-      actionForEntry: (entryId) => activeSourceOwner.has(entryId) ? `project:${activeSourceOwner.get(entryId)}` : "raw",
-    });
-    if (!alignment || alignment.diagnostic) {
-      runtime.projectionHealthy = false;
-      ctx.ui.setStatus("aili-compact", `AILI Compact WARN: ${alignment?.diagnostic ?? "index-alignment-unavailable"}`);
-      return { messages: event.messages };
-    }
-    const result = projectIndexedProviderMessages<ProjectionMessage>({
+    const recovery = ensureRecoveryRuntime(ctx, runtime, state);
+    const model = ctx.model as unknown as Record<string, unknown> | undefined;
+    const providerId = typeof model?.provider === "string" ? model.provider : undefined;
+    const modelId = typeof model?.id === "string" ? model.id : undefined;
+    const usage = ctx.getContextUsage();
+    const contextWindow = usage?.contextWindow;
+    const safetyReserve = providerFrontierSafetyReserve(runtime, contextWindow);
+    const profile = resolveTokenBoundProfile(providerId, modelId, TOKEN_ESTIMATOR_VERSION, runtimeTokenProfiles(runtime, providerId, modelId));
+    const configIdentity = digest(runtime.config);
+    const frontierInput = {
       snapshot,
-      alignment,
       state,
       view,
-      blockReferenceFor: (blockId) => view.blockRefById.get(blockId),
-    });
+      protectedEntryIds: [...runtime.providerFrontierProtectedEntryIds],
+      configIdentity,
+      profile,
+      contextWindow,
+      safetyReserve,
+    };
+    const cacheIdentity = runtime.pendingProviderFrontierSelection
+      ? undefined
+      : indexedProviderFrontierCacheIdentity(frontierInput);
+    const cachedFrontier = runtime.providerFrontierCache;
+    const cacheCurrent = cacheIdentity !== undefined && cachedFrontier?.identity === cacheIdentity;
+    if (runtime.providerFrontierCache !== undefined && !cacheCurrent) {
+      invalidateProviderFrontierCache(runtime);
+    }
+    const result = cacheCurrent && cachedFrontier
+      ? cachedFrontier.result
+      : projectIndexedProviderFrontier({
+        ...frontierInput,
+        ...(runtime.pendingProviderFrontierSelection ? { selection: runtime.pendingProviderFrontierSelection } : {}),
+      });
+    if (!cacheCurrent) {
+      runtime.branchIndex.recordAuxiliaryCounters(result.counters);
+      if (!result.diagnostic && !runtime.pendingProviderFrontierSelection) {
+        runtime.providerFrontierCache = { identity: result.identity, result };
+      }
+    }
     if (result.diagnostic) {
+      runtime.pendingProviderFrontierSelection = undefined;
       runtime.projectionHealthy = false;
       runtime.safePlan = undefined;
       runtime.providerSuffix = undefined;
       runtime.providerSuffixContent = undefined;
       ctx.ui.setStatus("aili-compact", `AILI Compact WARN: ${result.diagnostic}`);
+      // A diagnostic means Compact cannot safely supply its bounded frontier;
+      // Pi still requires the original conversation input for this turn.
       return { messages: event.messages };
     }
-    const logicalProviderMessagesCanonical = result.canonicalMessages;
-    const logicalStructuredToolPartCount = result.structuredToolPartCount;
-    const logicalHasBinaryOrImage = result.hasBinaryOrImage;
+    runtime.pendingProviderFrontierSelection = undefined;
+    runtime.providerFrontierBase = {
+      descriptorIdentity: result.descriptorIdentity,
+      sourceRevision: snapshot.protocolDigest,
+      configIdentity,
+      profileKey: profile.profileKey,
+      contextWindow: contextWindow!,
+      safetyReserve: safetyReserve!,
+      tokenUpper: result.tokenUpper,
+    };
+    const currentToolTail = currentProviderToolTail(event.messages as unknown as ProjectionMessage[]);
+    const currentToolTailDescriptors = currentToolTail.map((message, index) =>
+      describeOwnedProviderMessage(message, index));
+    const frontierMessages = currentToolTail.length === 0
+      ? result.messages
+      : insertCurrentProviderToolTail(result.messages, currentToolTail);
+    const logicalProviderMessagesCanonical = canonicalJson(frontierMessages);
+    const logicalStructuredToolPartCount = result.structuredToolPartCount
+      + currentToolTailDescriptors.reduce((count, descriptor) => count + descriptor.structuredToolPartCount, 0);
+    const logicalHasBinaryOrImage = result.hasBinaryOrImage
+      || currentToolTailDescriptors.some((descriptor) => descriptor.hasBinaryOrImage);
     const toolApi = pi as ExtensionAPI & { getActiveTools?: () => string[]; getAllTools?: () => Array<{ name: string; description: string; parameters: unknown; promptSnippet?: string; promptGuidelines?: readonly string[] }> };
     const allTools = (typeof toolApi.getAllTools === "function" ? toolApi.getAllTools() : []) as Array<{ name: string; description: string; parameters: unknown; promptSnippet?: string; promptGuidelines?: readonly string[] }>;
     const activeNames = new Set(typeof toolApi.getActiveTools === "function" ? toolApi.getActiveTools() : allTools.map((tool) => tool.name));
-    const model = ctx.model as unknown as Record<string, unknown> | undefined;
     const catalog = view.catalog;
     runtime.pressure = observeContextPressure(ctx, false);
+    const checkpointBinding = recovery
+      ? mimoCheckpointBinding(recovery, snapshot.protocolDigest, result.descriptorIdentity)
+      : undefined;
+    const mimoCheckpoint = checkpointBinding
+      ? runtime.mimoCheckpoint.prepare(runtime.pressure.mimo, checkpointBinding.binding)
+      : undefined;
+    if (mimoCheckpoint && checkpointBinding) {
+      try {
+        pi.appendEntry(AILI_COMPACT_ENTRY, {
+          schema: "aili.compact.mimo-checkpoint.v1",
+          binding: checkpointBinding.binding,
+          sessionId: checkpointBinding.sessionId,
+          branchId: checkpointBinding.branchId,
+          epochId: checkpointBinding.epochId,
+          sourceRevision: checkpointBinding.sourceRevision,
+          descriptorIdentity: checkpointBinding.descriptorIdentity,
+          thresholdTokens: mimoCheckpoint.thresholdTokens,
+          safeBudgetTokens: mimoCheckpoint.safeBudgetTokens,
+        });
+        if (runtime.mimoCheckpoint.commit(mimoCheckpoint)) {
+          ctx.ui.setStatus("aili-compact", `AILI Compact: prepared checkpoint at ${mimoCheckpoint.thresholdTokens} tokens`);
+        }
+      } catch (error) {
+        runtime.mimoCheckpoint.reject(mimoCheckpoint, mimoCheckpointFailure(error));
+        ctx.ui.setStatus("aili-compact", "AILI Compact WARN: checkpoint preparation was not persisted");
+      }
+    }
     const lastAtom = lastBranchProtocolAtom(snapshot);
     const suffix = state.enabled && runtime.config.providerSuffix.enabled && lastAtom?.kind !== "remainder" && runtime.safePlan
       ? buildProviderSuffix({
@@ -806,7 +984,6 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
         eligibleBlockRefs: canRecommendSemanticAction(runtime)
           ? catalog.blocks.filter((block) => block.active && !block.queryOnly).map((block) => block.ref)
           : [],
-        targetTier: "T1",
         allowedActions: canRecommendSemanticAction(runtime) && runtime.safePlan.ranges.length > 0 ? ["compress"] : [],
         checkpointState: runtime.checkpoint.snapshot().state,
       }) : undefined;
@@ -816,7 +993,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       name: tool.name, description: tool.description, parameterSchema: tool.parameters,
       immutablePrompt: { snippet: tool.promptSnippet ?? "", guidelines: tool.promptGuidelines ?? [] },
     }));
-    const providerMessages = suffix ? [...result.messages, suffix.message] : result.messages;
+    const providerMessages = suffix ? [...frontierMessages, suffix.message] : frontierMessages;
     runtime.providerSurfaces = providerSurfaceIdentities({
       providerId: typeof model?.provider === "string" ? model.provider : "unavailable",
       modelId: typeof model?.id === "string" ? model.id : "unavailable",
@@ -828,31 +1005,26 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       sessionId: ctx.sessionManager.getSessionId(), branchLeafId: ctx.sessionManager.getLeafId() ?? "root",
       branchSourceDigest: snapshot.sourceDigest,
       epochId: state.epochId,
-      projectionHash: result.hash,
+      projectionHash: digest(logicalProviderMessagesCanonical),
     });
     const identity = runtime.providerSurfaces.fullProviderInputIdentity;
     runtime.pendingCache = { identity, classification: classifyCacheRequest(runtime.completedCacheIdentity, identity) };
-    const providerId = typeof model?.provider === "string" ? model.provider : "unavailable";
-    const modelId = typeof model?.id === "string" ? model.id : "unavailable";
-    const profile = runtime.safePlan?.tokenProfile ?? resolveTokenBoundProfile(
-      providerId,
-      modelId,
-      TOKEN_ESTIMATOR_VERSION,
-      runtimeTokenProfiles(runtime, providerId, modelId),
-    );
+    const calibrationProviderId = providerId ?? "unavailable";
+    const calibrationModelId = modelId ?? "unavailable";
+    const calibrationProfile = runtime.safePlan?.tokenProfile ?? profile;
     const suffixCanonical = suffix ? canonicalJson(suffix.message) : undefined;
     const serializedProviderMessages = suffixCanonical
-      ? `${logicalProviderMessagesCanonical.slice(0, -1)}${result.messages.length > 0 ? "," : ""}${suffixCanonical}]`
+      ? `${logicalProviderMessagesCanonical.slice(0, -1)}${frontierMessages.length > 0 ? "," : ""}${suffixCanonical}]`
       : logicalProviderMessagesCanonical;
     const baseline = estimateTokenBounds({
       utf8Bytes: Buffer.byteLength(serializedProviderMessages, "utf8"),
       messageCount: providerMessages.length,
       structuredToolPartCount: logicalStructuredToolPartCount
         + (suffix ? structuredToolPartCount(suffix.message) : 0),
-    }, profile);
+    }, calibrationProfile);
     runtime.pendingCalibration = {
-      providerId,
-      modelId,
+      providerId: calibrationProviderId,
+      modelId: calibrationModelId,
       fullProviderInputIdentity: identity,
       baselinePromptTokens: Math.max(1, baseline.upper),
       hasBinaryOrImage: logicalHasBinaryOrImage
@@ -860,17 +1032,20 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       ambiguousRequest: runtime.pendingCalibration !== undefined,
     };
     runtime.providerRequestSerial += 1;
-    runtime.pendingCoolingObservations = coolingObservationCandidatesFromIndex(
-      snapshot,
-      alignment,
-      state,
-      ctx.sessionManager.getSessionId(),
-      view.state.branchLeafId,
-      identity,
-      digest({ identity, serial: runtime.providerRequestSerial }),
-      view,
-    );
+    // Cooling observations require an all-provider-message alignment. The
+    // bounded frontier deliberately omits historical raw messages, so this
+    // request records no cooling candidate rather than re-reading that history.
+    runtime.pendingCoolingObservations = [];
     runtime.projectionHealthy = result.diagnostic === undefined;
+    if (checkpointBinding && resolveMiMoRecoveryAction({
+      requested: requiresMiMoRecovery(runtime.pressure),
+      checkpoint: runtime.mimoCheckpoint.snapshot(),
+      sourceBinding: checkpointBinding.binding,
+    }) === "rebuild") {
+      runtime.mimoRebuildBinding = checkpointBinding.binding;
+      runtime.rebuildingUsage = true;
+      ctx.ui.setStatus("aili-compact", "AILI Compact: rebuilding from prepared checkpoint");
+    }
     publishStatus(ctx, state, runtime, result.diagnostic);
     return { messages: providerMessages as unknown as typeof event.messages };
   });
@@ -886,6 +1061,17 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
     if (pending) runtime.completedCacheIdentity = pending.identity;
     runtime.pendingCache = undefined;
     const successful = event.message.stopReason !== "error" && event.message.stopReason !== "aborted";
+    if (runtime.mimoRebuildBinding) {
+      const rebuiltBinding = runtime.mimoRebuildBinding;
+      runtime.mimoRebuildBinding = undefined;
+      runtime.rebuildingUsage = false;
+      if (successful && runtime.mimoCheckpoint.matches(rebuiltBinding)) {
+        runtime.mimoCheckpoint.reset();
+        runtime.pressure = observeContextPressure(ctx, false);
+      } else {
+        runtime.mimoCheckpoint.invalidate(rebuiltBinding);
+      }
+    }
     if (runtime.rebuildingUsage && hasValidPostCheckpointUsage(event.message.usage)) {
       runtime.rebuildingUsage = false;
       runtime.pressure = observeContextPressure(ctx, false);
@@ -946,7 +1132,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       return;
     }
     if (state.autoCooling) {
-      const view = v3ViewFor(ctx, entries, state);
+      const view = v3ViewFor(ctx, entries, state, runtime.branchIndex);
       const candidates = findCoolingCandidates(entries, state, 16, runtime.config, ctx.cwd, runtimeCoolingEvidence(runtime), coolingExcludedEntryIds(view));
       const gain = candidates.reduce((sum, block) => sum + Math.max(0, block.sourceEntryIds.reduce((chars, id) => {
         const entry = entries.find((candidate) => candidate.id === id); return chars + (entry && isRecord(entry.message) ? extractText(entry.message.content).length : 0);
@@ -986,8 +1172,11 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
     // Off is exact host fallthrough: no attempt identity, cache, permit, or
     // coordinator mutation belongs to AILI in this branch.
     if (!state.enabled) return undefined;
-    ensureRecoveryRuntime(ctx, runtime, state);
-    const tuple = recoveryTuple(ctx, state);
+    const tuple = ensureRecoveryRuntime(ctx, runtime, state);
+    if (!tuple) {
+      runtime.deterministicCheckpointEligible = "Unverified";
+      return undefined;
+    }
     const observation = runtime.checkpoint.observeBeforeCompact(event.reason, tuple);
     if (observation.adopted) {
       runtime.pressureCycle.markCheckpointScheduled();
@@ -998,7 +1187,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
     }
     const deterministic = runtime.config.checkpoint.deterministic;
     const checkpointEntries = event.branchEntries as unknown as SessionLikeEntry[];
-    const checkpointView = v3ViewFor(ctx, checkpointEntries, state);
+    const checkpointView = v3ViewFor(ctx, checkpointEntries, state, runtime.branchIndex);
     const checkpointModel = ctx.model as unknown as Record<string, unknown> | undefined;
     const result = runtime.checkpointAttempts.evaluate({
       ...tuple,
@@ -1062,20 +1251,13 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
       }
       runtime.lastCheckpointOrigin = origin === "unverified" ? "Unverified" : origin;
       runtime.lastHostWillRetry = typeof event.willRetry === "boolean" ? event.willRetry : undefined;
-      runtime.rebuildingUsage = true;
-      runtime.pressure = undefined;
       const nextState = stateFor(ctx, runtime.config);
-      const nextTuple = recoveryTuple(ctx, nextState);
-      runtime.checkpoint.invalidate(nextTuple, "epoch-transition");
-      runtime.checkpointAttempts.clear();
-      runtime.pressureCycle.resetForEpoch(nextTuple);
-      runtime.pressureCycle.markCheckpointTerminal();
-      runtime.deterministicCheckpointEligible = "not-evaluated";
-      if (runtime.manualPermit) runtime.manualPermit.state = "invalid";
-      runtime.manualPermit = undefined;
+      runtime.rebuildingUsage = true;
       runtime.sessionCache = replaySessionCache(entries);
       syncBranchIndex(ctx, runtime, nextState, true);
       installProductionIndexOracle(ctx, runtime, nextState, entries);
+      resetRecoveryRuntime(ctx, runtime, nextState, "epoch-transition");
+      runtime.pressureCycle.markCheckpointTerminal();
     }
     ctx.ui.setStatus("aili-compact", epoch
       ? `AILI Compact: ${source} epoch ${epoch.epochId}; usage=rebuilding`
@@ -1088,15 +1270,31 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
     const state = stateFor(ctx, runtime.config);
     syncBranchIndex(ctx, runtime, state, false);
     installProductionIndexOracle(ctx, runtime, state, branch(ctx));
-    ensureRecoveryRuntime(ctx, runtime, state);
+    const tuple = ensureRecoveryRuntime(ctx, runtime, state);
     runtime.checkpoint.settleWithoutEpoch();
     runtime.pressureCycle.markCheckpointTerminal();
     const pressure = runtime.rebuildingUsage ? undefined : observeContextPressure(ctx, false);
     runtime.pressure = pressure;
-    if (pressure?.stage === "NORMAL") runtime.pressureCycle.resetForVerifiedDrop(recoveryTuple(ctx, state), pressure);
+    if (pressure?.stage === "NORMAL" && tuple) runtime.pressureCycle.resetForVerifiedDrop(tuple, pressure);
     const autoRescue = runtime.config.checkpoint.autoRescue;
-    if (state.enabled && autoRescue && pressure?.stage === "CHECKPOINT_REQUIRED" && ctx.isIdle()) {
-      invokeCheckpoint(ctx, runtime, "auto-rescue", "deterministic-first");
+    if (state.enabled && autoRescue && pressure && requiresMiMoRecovery(pressure) && ctx.isIdle()) {
+      const sourceBinding = runtime.providerFrontierBase && tuple
+        ? mimoCheckpointBinding(
+          tuple,
+          runtime.providerFrontierBase.sourceRevision,
+          runtime.providerFrontierBase.descriptorIdentity,
+        ).binding
+        : undefined;
+      const recoveryAction = resolveMiMoRecoveryAction({
+        requested: true,
+        checkpoint: runtime.mimoCheckpoint.snapshot(),
+        sourceBinding,
+      });
+      if (recoveryAction === "rebuild") {
+        ctx.ui.setStatus("aili-compact", "AILI Compact: rebuilding from prepared checkpoint");
+      } else if (recoveryAction === "native-fallback" && tuple) {
+        invokeCheckpoint(ctx, runtime, tuple, "auto-rescue", "deterministic-first");
+      }
     }
     publishStatus(ctx, state, runtime);
   });
@@ -1104,8 +1302,7 @@ export function registerAiliCompact(pi: ExtensionAPI): void {
   pi.on("session_shutdown", (_event, ctx) => {
     const runtime = initializedRuntimeFor(ctx);
     if (runtime) {
-      const state = stateFor(ctx, runtime.config);
-      runtime.checkpoint.invalidate(recoveryTuple(ctx, state), "session-shutdown");
+      runtime.checkpoint.invalidate(runtime.checkpoint.snapshot().tuple, "session-shutdown");
       runtime.checkpointAttempts.clear();
       if (runtime.manualPermit) runtime.manualPermit.state = "invalid";
       runtime.manualPermit = undefined;
@@ -1184,7 +1381,7 @@ function compactRuntimeDoctor(
       cache: { status: cache, eligibleWindow: runtime.telemetry.window.length, unavailable: runtime.telemetry.unavailable },
       cacheIdentities: telemetry.components.cacheIdentities,
       quality: telemetry.components.quality,
-      tokenEconomics: { status: "PASS", policy: runtime.config.tokenEconomics },
+      activeBlockEconomics: { status: "PASS", semantics: "active-block" },
       tokenCalibration: telemetry.components.tokenCalibration,
       providerSuffix: { status: runtime.config.providerSuffix.enabled ? "PASS" : "WARN", persisted: false },
       index: telemetry.components.index,
@@ -1240,7 +1437,7 @@ export function diagnosticsFor(ctx: ExtensionContext, runtime?: SessionRuntime):
   if (runtime) {
     current = runtime;
   } else {
-    const tuple = recoveryTuple(ctx, initialState);
+    const tuple = pendingRecoveryTuple(ctx, initialState);
     current = {
       telemetry: emptyCacheTelemetry(),
       sessionCache: replaySessionCache(branch(ctx)),
@@ -1249,6 +1446,7 @@ export function diagnosticsFor(ctx: ExtensionContext, runtime?: SessionRuntime):
       prompt: loadCompactPromptSnapshot(ctx.cwd, config),
       checkpoint: new CheckpointCoordinator(tuple),
       checkpointAttempts: new CheckpointAttemptCache(),
+      mimoCheckpoint: new MiMoCheckpointTracker(),
       pressureCycle: new PressureCycle(tuple),
       rebuildingUsage: false,
       lastCheckpointOrigin: "Unverified",
@@ -1264,13 +1462,14 @@ export function diagnosticsFor(ctx: ExtensionContext, runtime?: SessionRuntime):
       indexedCandidateByRef: new Map(),
       indexedProtectionEntryCount: 0,
       indexedProtectedEntryIds: new Set(),
+      providerFrontierProtectedEntryIds: new Set(),
       indexedProtectionReasonsByEntryId: new Map(),
     };
   }
   const state = current.indexedState ?? stateFor(ctx, current.config);
   const diagnosticEntries = current.indexedState ? undefined : branch(ctx);
   const diagnosticView = current.indexedView
-    ?? (diagnosticEntries ? v3ViewFor(ctx, diagnosticEntries, state) : undefined);
+    ?? (diagnosticEntries ? v3ViewFor(ctx, diagnosticEntries, state, current.branchIndex) : undefined);
   const candidate = state.enabled && diagnosticEntries
     ? findCoolingCandidates(diagnosticEntries, state, 1, current.config, ctx.cwd, runtimeCoolingEvidence(current), diagnosticView ? coolingExcludedEntryIds(diagnosticView) : undefined)[0]
     : undefined;
@@ -1342,7 +1541,9 @@ function v3ViewFor(
   ctx: Pick<ExtensionContext, "sessionManager">,
   entries: readonly SessionLikeEntry[],
   state: CompactState,
+  branchIndex?: BranchIndexCache,
 ): V3RuntimeView {
+  branchIndex?.recordFullV3RuntimeViewBuild();
   return buildV3RuntimeView(entries, state, {
     sessionId: ctx.sessionManager.getSessionId(),
     sessionPath: typeof ctx.sessionManager.getSessionFile === "function"
@@ -1360,6 +1561,16 @@ async function executeV3Compact(
   entries: readonly SessionLikeEntry[],
   legacyState: CompactState,
 ) {
+  // Pi persists the compact caller after status returns. Advance the index
+  // before selecting a promotion index so both tools bind their attestations
+  // to the same immutable current source view.
+  syncBranchIndex(ctx, runtime, legacyState, false);
+  if (runtime.branchIndexHealthy === true && runtime.indexedState && runtime.indexedView) {
+    refreshProductionIndexDerived(ctx, runtime, entries);
+  }
+  const indexed = runtime.branchIndexHealthy === true && runtime.indexedState !== undefined && runtime.indexedView !== undefined;
+  const state = indexed ? runtime.indexedState! : stateFor(ctx, runtime.config);
+  const view = indexed ? runtime.indexedView! : v3ViewFor(ctx, entries, state, runtime.branchIndex);
   const guard = mutationGuard(entries, toolCallId, "aili_compact");
   if (!guard.soleCall) {
     return error(canonicalJson({
@@ -1367,17 +1578,18 @@ async function executeV3Compact(
       siblingToolNames: [...new Set(guard.siblingToolNames)].slice(0, 16),
     }));
   }
-  if (!legacyState.enabled) return error(canonicalJson({ code: "compact-disabled" }));
+  if (!state.enabled) return error(canonicalJson({ code: "compact-disabled" }));
 
-  ensureRecoveryRuntime(ctx, runtime, legacyState);
-  const view = v3ViewFor(ctx, entries, legacyState);
+  if (!ensureRecoveryRuntime(ctx, runtime, state)) {
+    return error(canonicalJson({ code: "recovery-index-unavailable" }));
+  }
   if (view.replay.diagnostics.length > 0) {
     return error(canonicalJson({
       code: "v3-replay-unhealthy",
       diagnostics: view.replay.diagnostics.slice(0, 8).map(({ phase, code, path }) => ({ phase, code, path })),
     }));
   }
-  const safePlan = buildCurrentSafePlan(entries, legacyState, runtime, ctx, view);
+  const safePlan = buildCurrentSafePlan(entries, state, runtime, ctx, view);
   const pressure = runtime.pressure ?? observeContextPressure(ctx, false);
   runtime.pressure = pressure;
   if (pressure.stage === "CHECKPOINT_REQUIRED" || pressure.stage === "OVERFLOW_RECOVERY") {
@@ -1408,22 +1620,24 @@ async function executeV3Compact(
   const sessionPath = typeof ctx.sessionManager.getSessionFile === "function"
     ? ctx.sessionManager.getSessionFile() ?? undefined
     : undefined;
+  const promotionGapIndex = indexed && hasPromotionGapCandidates(view)
+    ? runtime.indexedPromotionGapIndex ?? runtime.branchIndex.promotionGapIndex()
+    : undefined;
+  if (promotionGapIndex) runtime.indexedPromotionGapIndex = promotionGapIndex;
   const plannerContext: V3MutationPlannerContext = {
     state: view.state,
     catalog: view.mutationCatalog,
     safePlan,
     protectedIntervals: protectedV3Intervals(entries, safePlan, view),
-    legacyBlockIds: new Set(legacyState.blocks.keys()),
-    restillEnabled: runtime.config.tiers.enabled && runtime.config.tiers.restill.enabled,
-    restillPolicy: runtime.config.tiers.restill,
-    promotionGapEntries: v3PromotionEpochEntries(entries, view.state.epochId),
+    legacyBlockIds: new Set(state.blocks.keys()),
+    ...(promotionGapIndex
+      ? { promotionGapIndex }
+      : { promotionGapEntries: v3PromotionEpochEntries(entries, view.state.epochId) }),
   };
 
   if (params.mode === "blocks") {
     const selected = resolveV3CompactChildren(params.blockRefs, view);
     if (!selected.ok) return error(canonicalJson(selected.failure));
-    const childTier = selected.children[0]!.block.tier;
-    const targetTier: "T2" | "T3" = childTier === "T1" ? "T2" : "T3";
     const orderedRefs = selected.children.map(({ blockRef }) => blockRef);
     const sourceDigest = v3BlockSourceDigest(view.catalog.catalogId, selected.children.map(({ block }) => block));
     let quality: V3QualityGate;
@@ -1437,7 +1651,7 @@ async function executeV3Compact(
       });
       quality = evaluateV3QualityGate(runtime, {
         version: 1,
-        tier: targetTier,
+        semantics: "active-block",
         catalogId: view.catalog.catalogId,
         sourceKind: "blocks",
         orderedRefs,
@@ -1452,12 +1666,12 @@ async function executeV3Compact(
         epochId: view.state.epochId,
       }), identity);
     } catch {
-      return error(redactedQualityFailure(view.catalog.catalogId, targetTier, orderedRefs, ["extractor-error"]));
+      return error(redactedQualityFailure(view.catalog.catalogId, orderedRefs, ["extractor-error"]));
     }
     if (!quality.ok) return error(quality.output);
     const firstOrdinal = selected.children[0]!.block.firstLeafOrdinal;
     const candidateRef = predictV3BlockReference(view, firstOrdinal, createdAt, blockId);
-    const outputSurface = compactSuccessSurface(view.catalog.catalogId, targetTier, orderedRefs, params.summary);
+    const outputSurface = compactSuccessSurface(view.catalog.catalogId, orderedRefs, params.summary);
     const candidate: V3CompactEconomicsInput["candidate"] = {
       blockId,
       blockRef: candidateRef,
@@ -1466,7 +1680,7 @@ async function executeV3Compact(
       projectionVersion: view.state.projectionVersion,
       topic: params.topic,
       summary: params.summary,
-      tier: targetTier,
+      semantics: "active-block",
       source: { kind: "blocks", sourceDigest, children: selected.children },
     };
     const oneTime = compactOneTimeSurfaces(toolCallId, params, outputSurface, quality.surface, {
@@ -1481,7 +1695,6 @@ async function executeV3Compact(
       pressureStage: pressure.stage,
       oneTime,
       providerSuffix: runtime.providerSuffix,
-      policy: runtime.config.tokenEconomics,
     });
     if (!economics.ok) {
       return error(canonicalJson({ code: "token-benefit-unavailable", reason: economics.reason, diagnostic: economics.diagnostic }));
@@ -1489,13 +1702,14 @@ async function executeV3Compact(
     if (!economics.decision.eligible) {
       return error(canonicalJson({
         code: "token-benefit-ineligible",
-        tier: targetTier,
+        semantics: "active-block",
         pressureStage: pressure.stage,
         reasons: economics.decision.reasons,
       }));
     }
     const planned = planV3BlockMutation({
       operation: "compact",
+      semantics: "active-block",
       mode: "blocks",
       catalogId: view.catalog.catalogId,
       transactionId: toolCallId,
@@ -1556,7 +1770,7 @@ async function executeV3Compact(
     });
     const qualityInput: QualityInputV1 = {
       version: 1,
-      tier: "T1",
+      semantics: "active-block",
       catalogId: view.catalog.catalogId,
       sourceKind: "messages",
       orderedRefs: [...range.orderedRefs],
@@ -1573,7 +1787,7 @@ async function executeV3Compact(
       epochId: view.state.epochId,
     }), identity);
   } catch {
-    return error(redactedQualityFailure(view.catalog.catalogId, "T1", range.orderedRefs, ["extractor-error"]));
+    return error(redactedQualityFailure(view.catalog.catalogId, range.orderedRefs, ["extractor-error"]));
   }
   if (!quality.ok) return error(quality.output);
   const firstMessage = view.mutationCatalog.messageRefs.find(({ ref }) => ref === range.orderedRefs[0]);
@@ -1581,7 +1795,7 @@ async function executeV3Compact(
     return error(canonicalJson({ code: "stale-ref", freshRefs: range.orderedRefs.slice(0, 8) }));
   }
   const candidateRef = predictV3BlockReference(view, firstMessage.effectiveSourceOrdinal, createdAt, blockId);
-  const outputSurface = compactSuccessSurface(view.catalog.catalogId, "T1", range.orderedRefs, summary);
+  const outputSurface = compactSuccessSurface(view.catalog.catalogId, range.orderedRefs, summary);
   const candidate: V3CompactEconomicsInput["candidate"] = {
     blockId,
     blockRef: candidateRef,
@@ -1590,7 +1804,7 @@ async function executeV3Compact(
     projectionVersion: view.state.projectionVersion,
     topic: params.topic,
     summary,
-    tier: "T1",
+    semantics: "active-block",
     source: { kind: "messages", range },
   };
   const oneTime = compactOneTimeSurfaces(toolCallId, params, outputSurface, quality.surface, {
@@ -1607,7 +1821,6 @@ async function executeV3Compact(
     pressureStage: pressure.stage,
     oneTime,
     providerSuffix: runtime.providerSuffix,
-    policy: runtime.config.tokenEconomics,
   });
   if (!economics.ok) {
     return error(canonicalJson({ code: "token-benefit-unavailable", reason: economics.reason, diagnostic: economics.diagnostic }));
@@ -1615,13 +1828,14 @@ async function executeV3Compact(
   if (!economics.decision.eligible) {
     return error(canonicalJson({
       code: "token-benefit-ineligible",
-      tier: "T1",
+      semantics: "active-block",
       pressureStage: pressure.stage,
       reasons: economics.decision.reasons,
     }));
   }
   const planned = planV3MessageMutation({
     operation: "compact",
+    semantics: "active-block",
     ...scope,
     transactionId: toolCallId,
     blockId,
@@ -1676,7 +1890,7 @@ function executeDecompress(
     }));
   }
   if (!legacyState.enabled) return error(canonicalJson({ code: "compact-disabled" }));
-  const view = v3ViewFor(ctx, entries, legacyState);
+  const view = v3ViewFor(ctx, entries, legacyState, runtime.branchIndex);
   if (params.catalogId !== view.catalog.catalogId) {
     return error(canonicalJson({
       code: "stale-catalog",
@@ -2012,7 +2226,7 @@ function evaluateV3QualityGate(
   if (result.verdict === "reject" || warningRejected) {
     return {
       ok: false,
-      output: redactedQualityFailure(input.catalogId, input.tier, input.orderedRefs, result.codes, result.counts),
+      output: redactedQualityFailure(input.catalogId, input.orderedRefs, result.codes, result.counts),
     };
   }
   return { ok: true, evidence: { input, result }, surface: result };
@@ -2020,7 +2234,6 @@ function evaluateV3QualityGate(
 
 function redactedQualityFailure(
   catalogId: string,
-  tier: QualityTier,
   orderedRefs: readonly string[],
   codes: readonly string[],
   counts?: unknown,
@@ -2028,7 +2241,7 @@ function redactedQualityFailure(
   return canonicalJson({
     code: "quality-rejected",
     evaluatorVersion: "aili-quality-evaluator-v1",
-    tier,
+    semantics: "active-block",
     catalogId,
     refs: orderedRefs.slice(0, 8),
     codes: [...new Set(codes)].slice(0, 16),
@@ -2049,10 +2262,13 @@ function validatePublicCompactParams(
   summaryMaxChars: number,
   summaryHardMaxChars: number,
 ): string | undefined {
+  const tierShapedKey = Object.keys(params as Record<string, unknown>)
+    .find((key) => key === "tier" || key === "targetTier" || key === "restill");
+  if (tierShapedKey) return `$.${tierShapedKey}`;
   const summary = compactSummary(params);
   if (params.catalogId.length !== 64) return "$.catalogId";
   if (params.topic.length < 1 || params.topic.length > 200) return "$.topic";
-  if (!Number.isSafeInteger(summaryMaxChars) || summaryMaxChars < 256 || summaryMaxChars > 10_000) return "$.summaryMaxChars";
+  if (!Number.isSafeInteger(summaryMaxChars) || summaryMaxChars < SEMANTIC_SUMMARY_LIMITS.minChars || summaryMaxChars > SEMANTIC_SUMMARY_LIMITS.hardMaxChars) return "$.summaryMaxChars";
   if (summary.length < 1 || summary.length > summaryMaxChars || summary.length > summaryHardMaxChars) return "$.summary";
   if (params.mode === "message" && (params.items.length < 1 || params.items.length > 16)) return "$.items";
   if (params.mode === "range" && (params.ranges.length < 1 || params.ranges.length > 16)) return "$.ranges";
@@ -2084,6 +2300,19 @@ function resolveV3CompactChildren(
     }
     const block = view.state.blocks.get(catalog.blockId);
     if (!block) return { ok: false, failure: { code: "stale-ref", path: "$.blockRefs", freshRefs: [] } };
+    if (block.tier !== undefined) {
+      return {
+        ok: false,
+        failure: {
+          code: "legacy-tier-block",
+          path: "$.blockRefs",
+          freshRefs: view.mutationCatalog.blockRefs.filter((item) => {
+            const candidate = view.state.blocks.get(item.blockId);
+            return !item.legacy && candidate?.tier === undefined;
+          }).slice(0, 8).map((item) => item.ref),
+        },
+      };
+    }
     children.push({ blockRef, block });
   }
   children.sort((left, right) => left.block.firstLeafOrdinal - right.block.firstLeafOrdinal
@@ -2093,14 +2322,13 @@ function resolveV3CompactChildren(
 
 function compactSuccessSurface(
   catalogId: string,
-  tier: QualityTier,
   orderedRefs: readonly string[],
   summary: string,
 ) {
   return {
     version: 3,
     status: "created",
-    tier,
+    semantics: "active-block",
     catalogId,
     sourceRefCount: orderedRefs.length,
     sourceDigest: digest(orderedRefs),
@@ -2382,25 +2610,23 @@ function protectedV3Intervals(
 function v3LifecycleStatus(
   view: V3RuntimeView,
   legacyState: CompactState,
-  config: CompactConfig,
-  entries: readonly SessionLikeEntry[],
+  promotionGapIndex?: PromotionGapIndexV1,
 ) {
   const active = view.replay.maximalActiveBlocks
-    .filter((block) => block.epochId === view.state.epochId && block.active && !block.queryOnly)
+    .filter((block) => block.epochId === view.state.epochId && block.active && !block.queryOnly && block.tier === undefined)
     .sort((left, right) => left.firstLeafOrdinal - right.firstLeafOrdinal || left.blockId.localeCompare(right.blockId));
-  const groups: Array<{ sourceTier: string; targetTier: string; blockRefs: string[]; action: "compact" }> = [];
+  const groups: Array<{ semantics: "active-block"; blockRefs: string[]; action: "compact" }> = [];
+  const promotionDiagnostics = new Set<string>();
   let run: V3SemanticBlock[] = [];
   const flush = () => {
-    const minimum = run[0]?.tier === "T3" ? config.tiers.restill.minChildren : 2;
-    if (run[0]?.tier === "T3" && (!config.tiers.enabled || !config.tiers.restill.enabled)) { run = []; return; }
+    const minimum = 2;
     for (let offset = 0; offset + minimum <= run.length; offset += 16) {
       const selected = run.slice(offset, Math.min(run.length, offset + 16));
       if (selected.length < minimum) break;
       const refs = selected.flatMap((block) => view.blockRefById.get(block.blockId) ?? []);
       if (refs.length === selected.length) {
         groups.push({
-          sourceTier: selected[0]!.tier,
-          targetTier: selected[0]!.tier === "T1" ? "T2" : "T3",
+          semantics: "active-block",
           blockRefs: refs,
           action: "compact",
         });
@@ -2410,12 +2636,18 @@ function v3LifecycleStatus(
   };
   for (const block of active) {
     const previous = run.at(-1);
-    if (previous && previous.tier !== block.tier) flush();
-    else if (previous && !classifyTransparentPromotionGaps(
-      v3PromotionEpochEntries(entries, view.state.epochId),
-      view.state.blocks,
-      [previous, block],
-    ).ok) flush();
+    if (previous && block.firstLeafOrdinal !== previous.lastLeafOrdinal + 1) {
+      // Status must never rebuild a raw projection per adjacent pair. A
+      // healthy status receives one revision-scoped immutable index; without
+      // it, preserving the pair as a promotion candidate would be unsafe.
+      const verification = promotionGapIndex?.classify(view.state.blocks, [previous, block]);
+      if (!verification?.ok) {
+        promotionDiagnostics.add(verification
+          ? `raw-promotion-verification-failed:${verification.reason}`
+          : "raw-promotion-index-unavailable");
+        flush();
+      }
+    }
     run.push(block);
   }
   flush();
@@ -2427,7 +2659,7 @@ function v3LifecycleStatus(
       return {
         blockRef: reference.ref,
         schema: reference.family,
-        ...(block ? { tier: block.tier } : {}),
+        ...(block?.tier ? { legacyTieredReadOnly: true } : {}),
         depths: reference.family === "legacy" || block?.source.kind === "messages" ? ["raw"] : ["one", "raw"],
         action: "decompress",
       };
@@ -2439,7 +2671,7 @@ function v3LifecycleStatus(
       ? [{
         blockRef: reference,
         schema: "v3" as const,
-        tier: block.tier,
+        ...(block.tier ? { legacyTieredReadOnly: true } : {}),
         decompressionTransactionId: explicit.transactionId,
         depth: explicit.depth,
         action: "recompress" as const,
@@ -2454,11 +2686,10 @@ function v3LifecycleStatus(
   });
   return {
     schema: "aili.compact.lifecycle-status.v3",
-    activeTiers: active.reduce<Record<string, number>>((counts, block) => {
-      counts[block.tier] = (counts[block.tier] ?? 0) + 1;
-      return counts;
-    }, { T1: 0, T2: 0, T3: 0 }),
-    structuralPromotionGroups: groups.slice(0, 32),
+    activeBlockCount: active.length,
+    legacyTieredReadOnlyBlockCount: view.replay.maximalActiveBlocks.filter((block) => block.tier !== undefined).length,
+    activeBlockGroups: groups.slice(0, 32),
+    ...(promotionDiagnostics.size > 0 ? { promotionDiagnostics: [...promotionDiagnostics].sort() } : {}),
     decompressRoots,
     recompressRoots: [...v3Recompress, ...legacyRecompress].slice(0, 32),
   };
@@ -2543,6 +2774,24 @@ function syncBranchIndex(
     replayVersion: "aili.compact.v1-v3-index.v1",
   };
   const current = runtime.branchIndex.current;
+  const scope = branchIndexEpochScope(branchEntries, state.epochId);
+  if (current
+    && current.key.sessionId === key.sessionId
+    && current.key.canonicalSessionPathDigest === key.canonicalSessionPathDigest
+    && current.key.epochId === key.epochId
+    && branchPromotionGapSourceRequired(current)) {
+    const freshnessCounters = emptyBranchIndexCounters();
+    const freshness = verifyBranchPromotionGapSource(current, branchEntries, {
+      sourceEntryCount: current.stats.entries,
+      sourceEntryOffset: scope.offset,
+      onRawSlotVisit: () => { freshnessCounters.sourceFreshnessRawSlotVisits += 1; },
+    });
+    runtime.branchIndex.recordAuxiliaryCounters(freshnessCounters);
+    if (freshness.checked && !freshness.matches) {
+      invalidateIndexedRuntime(runtime, "raw-promotion-source-drift");
+      return;
+    }
+  }
   const requiresCold = forceCold
     || !current
     || current.key.sessionId !== key.sessionId
@@ -2552,13 +2801,16 @@ function syncBranchIndex(
     || runtime.branchIndexEntryOffset > branchEntries.length
     || current.stats.entries > branchEntries.length - runtime.branchIndexEntryOffset;
   if (requiresCold) {
-    const scope = branchIndexEpochScope(branchEntries, state.epochId);
-    const v3ReplaySeed = branchIndexV3ReplaySeed(branchEntries, state.epochId, scope.offset);
+    const v3ReplaySeed = branchIndexV3ReplaySeed(branchEntries, key, scope.offset);
+    const sourceEntryIdDigest = branchSourceEntryIdDigest(branchEntries);
+    const epochEntries = branchEntries.slice(scope.offset);
     runtime.branchIndexEntryOffset = scope.offset;
     const result = coldBuildBranchIndex({
       key,
-      entries: scope.entries,
+      entries: epochEntries,
+      sourceEntryIdDigest,
       ...(v3ReplaySeed ? { v3ReplaySeed } : {}),
+      ...(v3ReplaySeed ? { v3ReplaySeedSourcePrefix: branchEntries.slice(0, scope.offset) } : {}),
       derivedVersions: {
         providerId: typeof (ctx.model as unknown as { provider?: unknown } | undefined)?.provider === "string"
           ? (ctx.model as unknown as { provider: string }).provider : "unavailable",
@@ -2571,7 +2823,8 @@ function syncBranchIndex(
       },
     });
     const snapshot = runtime.branchIndex.install(result);
-    const health = snapshot ? auditBranchIndexReplayHealth(snapshot, scope.entries) : undefined;
+    const health = snapshot ? auditBranchIndexReplayHealth(snapshot, epochEntries) : undefined;
+    if (health) runtime.branchIndex.recordAuxiliaryCounters(health.counters);
     runtime.branchIndexHealthy = result.ok && health?.healthy === true;
     runtime.branchIndexDiagnostic = !result.ok ? result.code : health?.healthy ? undefined : health?.diagnostics[0] ?? "branch-replay-oracle-mismatch";
     return;
@@ -2590,19 +2843,24 @@ function syncBranchIndex(
     expectedParentId: current.tipEntryId,
     expectedPriorDigest: current.sourceDigest,
     nextBranchLeafId: key.branchLeafId,
+    nextSourceEntryIdDigest: branchSourceEntryIdDigest(suffix, current.sourceEntryIdDigest),
   });
   if (!result || !result.ok) {
-    const scope = branchIndexEpochScope(branchEntries, state.epochId);
-    const v3ReplaySeed = branchIndexV3ReplaySeed(branchEntries, state.epochId, scope.offset);
+    const v3ReplaySeed = branchIndexV3ReplaySeed(branchEntries, key, scope.offset);
+    const sourceEntryIdDigest = branchSourceEntryIdDigest(branchEntries);
+    const epochEntries = branchEntries.slice(scope.offset);
     runtime.branchIndexEntryOffset = scope.offset;
     const rebuilt = coldBuildBranchIndex({
       key,
-      entries: scope.entries,
+      entries: epochEntries,
+      sourceEntryIdDigest,
       ...(v3ReplaySeed ? { v3ReplaySeed } : {}),
+      ...(v3ReplaySeed ? { v3ReplaySeedSourcePrefix: branchEntries.slice(0, scope.offset) } : {}),
       derivedVersions: current.derivedVersions,
     });
     const snapshot = runtime.branchIndex.install(rebuilt);
-    const health = snapshot ? auditBranchIndexReplayHealth(snapshot, scope.entries) : undefined;
+    const health = snapshot ? auditBranchIndexReplayHealth(snapshot, epochEntries) : undefined;
+    if (health) runtime.branchIndex.recordAuxiliaryCounters(health.counters);
     runtime.branchIndexHealthy = rebuilt.ok && health?.healthy === true;
     runtime.branchIndexDiagnostic = !rebuilt.ok ? rebuilt.code : health?.healthy ? undefined : health?.diagnostics[0] ?? "branch-replay-oracle-mismatch";
     return;
@@ -2611,24 +2869,98 @@ function syncBranchIndex(
   runtime.branchIndexDiagnostic = undefined;
 }
 
+function invalidateIndexedRuntime(runtime: SessionRuntime, diagnostic: string): void {
+  invalidateProviderFrontier(runtime);
+  runtime.branchIndexHealthy = false;
+  runtime.branchIndexDiagnostic = diagnostic;
+  runtime.indexedState = undefined;
+  runtime.indexedView = undefined;
+  runtime.indexedPromotionGapIndex = undefined;
+  runtime.indexedCommandInputs = undefined;
+  runtime.safePlan = undefined;
+  runtime.providerIndexFailOpen = diagnostic;
+}
+
+function invalidateProviderFrontier(runtime: SessionRuntime): void {
+  const invalidated = runtime.providerFrontierCache !== undefined
+    || runtime.providerFrontierBase !== undefined
+    || runtime.pendingProviderFrontierSelection !== undefined;
+  runtime.providerFrontierCache = undefined;
+  runtime.providerFrontierBase = undefined;
+  runtime.pendingProviderFrontierSelection = undefined;
+  if (!invalidated) return;
+  const counters = emptyBranchIndexCounters();
+  counters.providerFrontierInvalidations = 1;
+  runtime.branchIndex.recordAuxiliaryCounters(counters);
+}
+
+function invalidateProviderFrontierCache(runtime: SessionRuntime): void {
+  const invalidated = runtime.providerFrontierCache !== undefined;
+  runtime.providerFrontierCache = undefined;
+  if (!invalidated) return;
+  const counters = emptyBranchIndexCounters();
+  counters.providerFrontierInvalidations = 1;
+  runtime.branchIndex.recordAuxiliaryCounters(counters);
+}
+
+/**
+ * Builds a default provider frontier from the immutable branch index before a
+ * provider context is guarded. The cache remains strictly bound to the source,
+ * config, model/profile, context budget, and retained raw-entry identities.
+ */
+function warmIndexedProviderFrontierCache(ctx: ExtensionContext, runtime: SessionRuntime): void {
+  const snapshot = runtime.branchIndex.current;
+  const state = runtime.indexedState;
+  const view = runtime.indexedView;
+  if (!snapshot || !state || !view || !state.enabled || runtime.branchIndexHealthy !== true
+    || runtime.pendingProviderFrontierSelection !== undefined) return;
+  const model = ctx.model as unknown as Record<string, unknown> | undefined;
+  const providerId = typeof model?.provider === "string" ? model.provider : undefined;
+  const modelId = typeof model?.id === "string" ? model.id : undefined;
+  const contextWindow = ctx.getContextUsage()?.contextWindow;
+  const safetyReserve = providerFrontierSafetyReserve(runtime, contextWindow);
+  const profile = resolveTokenBoundProfile(providerId, modelId, TOKEN_ESTIMATOR_VERSION, runtimeTokenProfiles(runtime, providerId, modelId));
+  const input = {
+    snapshot,
+    state,
+    view,
+    protectedEntryIds: [...runtime.providerFrontierProtectedEntryIds],
+    configIdentity: digest(runtime.config),
+    profile,
+    contextWindow,
+    safetyReserve,
+  };
+  const identity = indexedProviderFrontierCacheIdentity(input);
+  if (!identity) return;
+  if (runtime.providerFrontierCache?.identity === identity) return;
+  if (runtime.providerFrontierCache !== undefined) invalidateProviderFrontierCache(runtime);
+  const result = projectIndexedProviderFrontier(input);
+  runtime.branchIndex.recordAuxiliaryCounters(result.counters);
+  if (result.diagnostic || result.identity !== identity) return;
+  runtime.providerFrontierCache = { identity, result };
+}
+
 function branchIndexEpochScope(
   entries: readonly BranchSessionEntry[],
   epochId: string,
-): { entries: readonly BranchSessionEntry[]; offset: number } {
-  if (epochId === "root") return { entries, offset: 0 };
+): { offset: number } {
+  if (epochId === "root") return { offset: 0 };
   const boundary = entries.findIndex((entry) => entry.type === "compaction" && entry.id === epochId);
-  return boundary < 0
-    ? { entries: [], offset: entries.length }
-    : { entries: entries.slice(boundary + 1), offset: boundary + 1 };
+  return { offset: boundary < 0 ? entries.length : boundary + 1 };
 }
 
 function branchIndexV3ReplaySeed(
   entries: readonly BranchSessionEntry[],
-  epochId: string,
+  key: { sessionId: string; canonicalSessionPathDigest: string; epochId: string; replayVersion: string },
   epochOffset: number,
 ) {
-  if (epochId === "root" || epochOffset <= 0) return undefined;
-  return reduceV3LifecycleState(entries.slice(0, epochOffset));
+  if (key.epochId === "root" || epochOffset <= 0) return undefined;
+  const sourcePrefix = entries.slice(0, epochOffset);
+  return createVerifiedV3ReplaySeed({
+    key,
+    sourcePrefix,
+    replay: reduceV3LifecycleState(sourcePrefix),
+  });
 }
 
 function installProductionIndexOracle(
@@ -2639,11 +2971,25 @@ function installProductionIndexOracle(
 ): void {
   const snapshot = runtime.branchIndex.current;
   if (!snapshot || runtime.branchIndexHealthy !== true) return;
-  const view = v3ViewFor(ctx, entries, state);
+  const replay = getBranchV3LifecycleReplay(snapshot);
+  const fallbackState = replay.state ?? createEmptyV3State({
+    sessionId: snapshot.key.sessionId,
+    branchLeafId: stableV3BranchId(entries, state.epochId, {
+      sessionId: snapshot.key.sessionId,
+      sessionPath: typeof ctx.sessionManager.getSessionFile === "function"
+        ? ctx.sessionManager.getSessionFile() ?? undefined
+        : undefined,
+    }),
+    epochId: state.epochId,
+    projectionVersion: V3_PROJECTION_VERSION,
+  });
+  runtime.branchIndex.recordIndexedV3RuntimeViewBuild();
+  const view = buildIndexedV3RuntimeView(listBranchMessageReferences(snapshot), state, replay, fallbackState);
   runtime.indexedState = state;
   runtime.indexedView = view;
+  runtime.indexedPromotionGapIndex = undefined;
   runtime.indexedTransactionCount = snapshot.stats.transactions;
-  runtime.indexedV3TransactionCount = getBranchV3LifecycleReplay(snapshot).acceptedTransactionCount;
+  runtime.indexedV3TransactionCount = replay.acceptedTransactionCount;
   runtime.indexedEntryCount = snapshot.stats.entries;
   runtime.indexedSnapshotKeyId = snapshot.keyId;
   runtime.indexedSnapshotSourceDigest = snapshot.sourceDigest;
@@ -2651,6 +2997,7 @@ function installProductionIndexOracle(
   runtime.indexedSourceOwnerByEntryId = indexedSourceOwners(state, view);
   runtime.indexedProtectionEntryCount = entries.length;
   runtime.indexedProtectedEntryIds = collectProtectedEntryIds(entries, runtime, snapshot);
+  runtime.providerFrontierProtectedEntryIds = collectIndexedProviderFrontierEntryIds(snapshot, runtime);
   const planningInputs = indexedPlanningInputs(snapshot, view);
   runtime.indexedPlanningRefs = planningInputs.refs;
   runtime.indexedPlanningAtomBuild = planningInputs.atomBuild;
@@ -2678,6 +3025,7 @@ function installProductionIndexOracle(
     ? buildIndexedSafePlan(snapshot, state, view, runtime, ctx)
     : undefined;
   runtime.providerIndexFailOpen = undefined;
+  warmIndexedProviderFrontierCache(ctx, runtime);
 }
 
 function refreshProductionIndexDerived(
@@ -2726,6 +3074,7 @@ function refreshProductionIndexDerived(
     for (const entry of indexedEntries.slice(runtime.branchIndexEntryOffset + priorIndexedCount)) {
       if (entry.type === "message") runtime.indexedProtectedEntryIds.add(entry.id);
     }
+    runtime.branchIndex.recordIndexedV3RuntimeViewBuild();
     const view = buildIndexedV3RuntimeView(
       listBranchMessageReferences(snapshot),
       state,
@@ -2741,9 +3090,11 @@ function refreshProductionIndexDerived(
     runtime.indexedDerivedIdentity = derivedIdentity;
     runtime.indexedSourceOwnerByEntryId = indexedSourceOwners(state, view);
     runtime.indexedProtectionEntryCount = entries.length;
+    runtime.providerFrontierProtectedEntryIds = collectProviderFrontierEntryIds(entries, runtime);
     const planningInputs = indexedPlanningInputs(snapshot, view);
     runtime.indexedPlanningRefs = planningInputs.refs;
     runtime.indexedPlanningAtomBuild = planningInputs.atomBuild;
+    runtime.indexedPromotionGapIndex = undefined;
     runtime.safePlan = runtime.config.planning.enabled
       ? buildIndexedSafePlan(snapshot, state, view, runtime, ctx)
       : undefined;
@@ -2782,7 +3133,15 @@ function refreshProductionIndexDerived(
   runtime.indexedSnapshotSourceDigest = snapshot.sourceDigest;
   runtime.indexedDerivedIdentity = derivedIdentity;
   runtime.indexedProtectionEntryCount = entries.length;
+  runtime.providerFrontierProtectedEntryIds = collectIndexedProviderFrontierEntryIds(snapshot, runtime);
+  runtime.indexedPromotionGapIndex = undefined;
   return true;
+}
+
+function hasPromotionGapCandidates(view: V3RuntimeView): boolean {
+  return [...view.state.blocks.values()]
+    .filter((block) => block.active && !block.queryOnly && block.epochId === view.state.epochId)
+    .length >= 2;
 }
 
 function productionDerivedIdentity(ctx: ExtensionContext, runtime: SessionRuntime): string {
@@ -2990,6 +3349,55 @@ function collectProtectedEntryIds(
   return result;
 }
 
+/**
+ * The provider frontier carries only the current turn and bounded recent user
+ * requests. Broader mutation protection remains in the source ledger and must
+ * not force all historical raw bodies back into provider context.
+ */
+function collectProviderFrontierEntryIds(
+  entries: readonly SessionLikeEntry[],
+  runtime: Pick<SessionRuntime, "config">,
+): Set<string> {
+  const result = new Set<string>();
+  const userIndices: number[] = [];
+  for (const [index, entry] of entries.entries()) {
+    if (entry.type === "message" && isRecord(entry.message) && entry.message.role === "user") userIndices.push(index);
+  }
+  const recentUserCount = Math.max(2, Math.floor(runtime.config.protection.recentUserMessages));
+  const currentTurnStart = userIndices.at(-1);
+  for (const index of userIndices.slice(-recentUserCount)) {
+    const entry = entries[index];
+    if (entry?.type === "message") result.add(entry.id);
+  }
+  if (currentTurnStart !== undefined) {
+    for (const entry of entries.slice(currentTurnStart)) if (entry.type === "message") result.add(entry.id);
+  }
+  return result;
+}
+
+/**
+ * An ordinary append already captured immutable reference metadata in the
+ * BranchIndex. Reuse it rather than re-reading every historical Session body
+ * merely to retain the bounded provider frontier.
+ */
+function collectIndexedProviderFrontierEntryIds(
+  snapshot: NonNullable<BranchIndexCache["current"]>,
+  runtime: Pick<SessionRuntime, "config">,
+): Set<string> {
+  const references = listBranchMessageReferences(snapshot);
+  const result = new Set<string>();
+  const userReferences = references.filter((reference) => reference.role === "user");
+  const recentUserCount = Math.max(2, Math.floor(runtime.config.protection.recentUserMessages));
+  for (const reference of userReferences.slice(-recentUserCount)) result.add(reference.entryId);
+  const currentTurnStart = userReferences.at(-1)?.providerOrdinal;
+  if (currentTurnStart !== undefined) {
+    for (const reference of references) {
+      if (reference.providerOrdinal >= currentTurnStart) result.add(reference.entryId);
+    }
+  }
+  return result;
+}
+
 function buildIndexedSafePlan(
   snapshot: NonNullable<BranchIndexCache["current"]>,
   state: CompactState,
@@ -3065,7 +3473,7 @@ function buildCurrentSafePlan(
   currentView?: V3RuntimeView,
 ): SafeRangePlan {
   const planningEntries = entries.filter((entry) => !isAiliPlanningProtocolEntry(entry));
-  const view = currentView ?? v3ViewFor(ctx, entries, state);
+  const view = currentView ?? v3ViewFor(ctx, entries, state, runtime.branchIndex);
   const catalog = view.catalog;
   const refs = new Map(catalog.messages.map((message) => [message.entryId, message.ref]));
   const sourceOrdinals = new Map(view.mutationCatalog.messageRefs.map((message) => [
@@ -3133,6 +3541,43 @@ function runtimeTokenProfiles(
   return profiles.map((profile) => runtime.calibration!.applyProfile(profile));
 }
 
+function providerFrontierSafetyReserve(runtime: SessionRuntime, contextWindow: unknown): number | undefined {
+  if (typeof contextWindow !== "number" || !Number.isSafeInteger(contextWindow) || contextWindow <= 0) return undefined;
+  const configuredTail = Math.min(
+    runtime.config.protection.preserveRecentTokens,
+    Math.floor(contextWindow * runtime.config.protection.preserveRecentTokenCapRatio),
+  );
+  const reserve = Math.max(256, configuredTail);
+  return reserve < contextWindow ? reserve : undefined;
+}
+
+/**
+ * Preserve the exact identity of the currently-completing tool exchange for
+ * Pi's live agent loop. The bounded frontier never reads or aligns earlier
+ * provider history to do this.
+ */
+function currentProviderToolTail(messages: readonly ProjectionMessage[]): readonly ProjectionMessage[] {
+  const result = messages.at(-1);
+  const call = messages.at(-2);
+  if (!result || !call || result.role !== "toolResult" || typeof result.toolCallId !== "string" || call.role !== "assistant") return [];
+  const calls = Array.isArray(call.content)
+    ? call.content.filter((part) => isRecord(part) && part.type === "toolCall")
+    : [];
+  return calls.some((candidate) => candidate.id === result.toolCallId) ? [call, result] : [];
+}
+
+function insertCurrentProviderToolTail(
+  frontier: readonly ProjectionMessage[],
+  tail: readonly ProjectionMessage[],
+): readonly ProjectionMessage[] {
+  const descriptorStart = frontier.findIndex((message) => message.role === "assistant"
+    && typeof message.content === "string"
+    && message.content.startsWith("[AILI Compact descriptor;"));
+  const retained = descriptorStart < 0 ? frontier : frontier.slice(0, descriptorStart);
+  const descriptors = descriptorStart < 0 ? [] : frontier.slice(descriptorStart);
+  return [...retained, ...tail, ...descriptors];
+}
+
 function structuredToolPartCount(value: unknown): number {
   if (Array.isArray(value)) return value.reduce<number>((sum, item) => sum + structuredToolPartCount(item), 0);
   if (!isRecord(value)) return 0;
@@ -3192,23 +3637,109 @@ function activateBranchWithRepair(pi: ExtensionAPI, ctx: ExtensionContext, runti
   return state;
 }
 
-function recoveryTuple(ctx: Pick<ExtensionContext, "sessionManager">, state: CompactState): RecoveryTuple {
-  const sourceEntryIds = branch(ctx).filter((entry) => entry.type !== "custom").map((entry) => entry.id);
+function pendingRecoveryTuple(
+  ctx: Pick<ExtensionContext, "sessionManager">,
+  state: Pick<CompactState, "epochId">,
+): RecoveryTuple {
   return {
     sessionId: ctx.sessionManager.getSessionId(),
-    branchId: `br_${digest(sourceEntryIds)}`,
+    branchId: "branch-index-pending",
     epochId: state.epochId,
   };
 }
 
-function ensureRecoveryRuntime(ctx: ExtensionContext, runtime: SessionRuntime, state: CompactState): void {
-  const tuple = recoveryTuple(ctx, state);
-  const current = runtime.checkpoint.snapshot().tuple;
-  if (current.sessionId === tuple.sessionId && current.branchId === tuple.branchId && current.epochId === tuple.epochId) return;
-  runtime.checkpoint.invalidate(tuple, "recovery-tuple-changed");
+/** Returns only an already-validated current BranchIndex recovery scope. */
+function recoveryTuple(
+  ctx: Pick<ExtensionContext, "sessionManager">,
+  runtime: Pick<SessionRuntime, "branchIndex" | "branchIndexHealthy">,
+  state: Pick<CompactState, "epochId">,
+): RecoveryTuple | undefined {
+  const sessionId = ctx.sessionManager.getSessionId();
+  const leafId = ctx.sessionManager.getLeafId() ?? "root";
+  const canonicalSessionPathDigest = digest(
+    typeof ctx.sessionManager.getSessionFile === "function"
+      ? ctx.sessionManager.getSessionFile() ?? `session:${sessionId}`
+      : `session:${sessionId}`,
+  );
+  const snapshot = runtime.branchIndex.current;
+  if (!snapshot
+    || runtime.branchIndexHealthy !== true
+    || snapshot.key.sessionId !== sessionId
+    || snapshot.key.canonicalSessionPathDigest !== canonicalSessionPathDigest
+    || snapshot.key.epochId !== state.epochId
+    || snapshot.key.branchLeafId !== leafId
+    || (snapshot.stats.entries > 0 && snapshot.tipEntryId !== leafId)) return undefined;
+  return {
+    sessionId,
+    branchId: `br_${snapshot.sourceEntryIdDigest}`,
+    epochId: snapshot.key.epochId,
+  };
+}
+
+/** Cold/rebuild only: establish a trustworthy snapshot through its existing owner. */
+function establishRecoveryTuple(
+  ctx: ExtensionContext,
+  runtime: SessionRuntime,
+  state: CompactState,
+): RecoveryTuple | undefined {
+  const current = recoveryTuple(ctx, runtime, state);
+  if (current) return current;
+  syncBranchIndex(ctx, runtime, state, false);
+  return recoveryTuple(ctx, runtime, state);
+}
+
+function resetRecoveryState(runtime: SessionRuntime, tuple: RecoveryTuple | undefined, code: string): void {
+  const nextTuple = tuple ?? runtime.checkpoint.snapshot().tuple;
+  runtime.checkpoint.invalidate(nextTuple, tuple ? code : `${code}:recovery-index-unavailable`);
   runtime.checkpointAttempts.clear();
-  runtime.pressureCycle.resetForEpoch(tuple);
+  runtime.pressureCycle.resetForEpoch(nextTuple);
+  runtime.mimoCheckpoint.reset();
+  runtime.mimoRebuildBinding = undefined;
+  runtime.pressure = undefined;
   runtime.deterministicCheckpointEligible = "not-evaluated";
+  if (runtime.manualPermit) runtime.manualPermit.state = "invalid";
+  runtime.manualPermit = undefined;
+}
+
+function mimoCheckpointBinding(
+  tuple: RecoveryTuple,
+  sourceRevision: string,
+  descriptorIdentity: string,
+): {
+  binding: string;
+  sessionId: string;
+  branchId: string;
+  epochId: string;
+  sourceRevision: string;
+  descriptorIdentity: string;
+} {
+  return {
+    ...tuple,
+    sourceRevision,
+    descriptorIdentity,
+    binding: digest({
+      schema: "aili.compact.mimo-checkpoint.v1",
+      tuple,
+      sourceRevision,
+      descriptorIdentity,
+    }),
+  };
+}
+
+function ensureRecoveryRuntime(
+  ctx: ExtensionContext,
+  runtime: SessionRuntime,
+  state: CompactState,
+): RecoveryTuple | undefined {
+  const tuple = establishRecoveryTuple(ctx, runtime, state);
+  if (!tuple) {
+    resetRecoveryState(runtime, undefined, "recovery-tuple-unavailable");
+    return undefined;
+  }
+  const current = runtime.checkpoint.snapshot().tuple;
+  if (current.sessionId === tuple.sessionId && current.branchId === tuple.branchId && current.epochId === tuple.epochId) return tuple;
+  resetRecoveryState(runtime, tuple, "recovery-tuple-changed");
+  return tuple;
 }
 
 function resetRecoveryRuntime(
@@ -3216,23 +3747,23 @@ function resetRecoveryRuntime(
   runtime: SessionRuntime,
   state: CompactState,
   code: string,
-): void {
-  const tuple = recoveryTuple(ctx, state);
-  runtime.checkpoint.invalidate(tuple, code);
-  runtime.checkpointAttempts.clear();
-  runtime.pressureCycle.resetForEpoch(tuple);
-  runtime.pressure = undefined;
-  runtime.deterministicCheckpointEligible = "not-evaluated";
-  if (runtime.manualPermit) runtime.manualPermit.state = "invalid";
-  runtime.manualPermit = undefined;
+): RecoveryTuple | undefined {
+  const tuple = establishRecoveryTuple(ctx, runtime, state);
+  resetRecoveryState(runtime, tuple, code);
+  return tuple;
 }
 
 function invokeCheckpoint(
   ctx: ExtensionContext,
   runtime: SessionRuntime,
+  tuple: RecoveryTuple,
   source: "rescue" | "auto-rescue",
   policy: "deterministic-first" | "native-only",
 ): { accepted: boolean; code: string } {
+  const current = runtime.checkpoint.snapshot().tuple;
+  if (current.sessionId !== tuple.sessionId || current.branchId !== tuple.branchId || current.epochId !== tuple.epochId) {
+    return { accepted: false, code: "recovery-tuple-unavailable" };
+  }
   const cycle = runtime.pressureCycle.snapshot();
   if (cycle.checkpointScheduled || cycle.checkpointAttempted) return { accepted: false, code: "checkpoint-cycle-exhausted" };
   const scheduled = runtime.checkpoint.schedule(source, policy);
@@ -3247,6 +3778,10 @@ function invokeCheckpoint(
 
 function observeContextPressure(ctx: ExtensionContext, overflow: boolean): PressureObservation {
   const usage = ctx.getContextUsage();
+  const model = ctx.model as unknown as Record<string, unknown> | undefined;
+  const maxOutputTokens = typeof model?.maxTokens === "number" && Number.isSafeInteger(model.maxTokens)
+    ? model.maxTokens
+    : undefined;
   const fallbackTokens = typeof usage?.tokens === "number" && Number.isFinite(usage.tokens)
     ? undefined
     : Math.ceil(branch(ctx).reduce((total, entry) => {
@@ -3256,6 +3791,7 @@ function observeContextPressure(ctx: ExtensionContext, overflow: boolean): Press
   return observePressure({
     contextTokens: usage?.tokens,
     contextWindow: usage?.contextWindow,
+    maxOutputTokens,
     fallbackTokens,
     overflow,
   });
@@ -3266,6 +3802,20 @@ function canRecommendSemanticAction(runtime: SessionRuntime): boolean {
   if (runtime.rebuildingUsage || !pressure || (pressure.stage !== "PRESSURE" && pressure.stage !== "FORCE_SEMANTIC")) return false;
   const cycle = runtime.pressureCycle.snapshot();
   return !cycle.semanticAttempted && !cycle.checkpointScheduled && !cycle.checkpointInFlight;
+}
+
+function requiresMiMoRecovery(pressure: PressureObservation): boolean {
+  return pressure.mimo.status === "enabled"
+    && pressure.source === "observed"
+    && pressure.contextTokens >= pressure.mimo.recoveryThresholdTokens;
+}
+
+function mimoCheckpointFailure(error: unknown): "deterministic" | "transient" | "unclassified" {
+  if (!(error instanceof Error)) return "unclassified";
+  const detail = `${error.name} ${error.message}`.toLocaleLowerCase();
+  if (/\b(transient|temporary|timeout|timed out|unavailable|eagain)\b/u.test(detail)) return "transient";
+  if (/\b(invalid|unsupported|permission|configuration|config)\b/u.test(detail)) return "deterministic";
+  return "unclassified";
 }
 
 function hasValidPostCheckpointUsage(value: unknown): boolean {
@@ -3319,7 +3869,7 @@ function checkpointReplayIdentity(state: CompactState, view?: V3RuntimeView): un
       diagnostics: view.replay.diagnostics,
       maximalBlocks: view.replay.maximalActiveBlocks.map((block) => ({
         blockId: block.blockId,
-        tier: block.tier,
+        ...(block.tier === undefined ? { semantics: "active-block" } : { legacyTieredReadOnly: true }),
         leafDigest: block.leafDigest,
         leafCount: block.leafCount,
         summaryDigest: block.summaryDigest,
@@ -3391,6 +3941,61 @@ function success(
   contextTx: CompactTransaction | V3Transaction,
 ): AgentToolResult<{ contextTx: CompactTransaction | V3Transaction }> {
   return { content: [{ type: "text", text: message }], details: { contextTx } };
+}
+
+/**
+ * Pi persists the returned text as the tool-result message. Keep the evidence
+ * self-contained and closed so replay can distinguish this handler from a
+ * same-named third-party tool without pretending the Session is tamper-proof.
+ */
+function attestPlanningToolResult(
+  toolName: "aili_compact_status" | "aili_compact",
+  toolCallId: string,
+  value: AgentToolResult<any>,
+  state: { sessionId: string; branchLeafId: string; epochId: string; projectionVersion: string },
+): AgentToolResult<any> {
+  const resultPart = value.content.find((part) => isRecord(part) && typeof part.text === "string");
+  const resultText = isRecord(resultPart) && typeof resultPart.text === "string" ? resultPart.text : undefined;
+  const result = parseAttestedResult(resultText);
+  const details = isRecord(value.details) ? value.details : undefined;
+  const candidateTransaction = details?.contextTx;
+  const executionRejected = (value as { isError?: unknown }).isError === true;
+  const identity = {
+    sessionId: state.sessionId,
+    branchLeafId: state.branchLeafId,
+    epochId: state.epochId,
+    revision: state.projectionVersion,
+  };
+  const transaction = toolName === "aili_compact" && !executionRejected
+    && isAiliPlanningV3Transaction(candidateTransaction, toolCallId, identity)
+    ? candidateTransaction
+    : undefined;
+  // A compact success without this exact v3 transaction is never planning
+  // protocol. Preserve the handler result only inside a closed rejection
+  // envelope so replay cannot promote a name-shaped or malformed success.
+  const rejected = executionRejected || (toolName === "aili_compact" && !transaction);
+  const envelope = createAiliPlanningResultEnvelope({
+    toolName,
+    toolCallId,
+    identity,
+    outcome: rejected ? "rejected" : "success",
+    result,
+    ...(transaction ? { transaction } : {}),
+  });
+  return {
+    ...value,
+    ...(rejected && !executionRejected ? { isError: true } : {}),
+    content: [{ type: "text", text: canonicalJson(envelope) }],
+  } as AgentToolResult<any>;
+}
+
+function parseAttestedResult(value: string | undefined): unknown {
+  if (!value) return "";
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return value;
+  }
 }
 
 function text(message: string): AgentToolResult<Record<string, never>> {
@@ -3823,8 +4428,7 @@ function manualPermitAllowsCall(
   if (permit.state !== "armed" || permit.tuple.sessionId !== sessionId || permit.tuple.epochId !== epochId) return false;
   const anchorIndex = permit.turnId === "root" ? -1 : entries.findIndex((entry) => entry.id === permit.turnId);
   if (anchorIndex < -1) return false;
-  const prefixSourceIds = entries.slice(0, anchorIndex + 1).filter((entry) => entry.type !== "custom").map((entry) => entry.id);
-  if (`br_${digest(prefixSourceIds)}` !== permit.tuple.branchId) return false;
+  if (`br_${branchSourceEntryIdDigest(entries.slice(0, anchorIndex + 1))}` !== permit.tuple.branchId) return false;
   const callIndex = entries.findIndex((entry, index) => index > anchorIndex && entry.type === "message" && isRecord(entry.message)
     && entry.message.role === "assistant" && toolCalls(entry.message).some((call) => call.id === toolCallId && call.name === "aili_compact"));
   if (callIndex < 0) return false;
@@ -3856,7 +4460,10 @@ function commandInputs(
   cwd: string,
   currentView?: V3RuntimeView,
 ): CompactCommandInputs {
-  const view = currentView ?? buildV3RuntimeView(entries, state, { sessionId: "unavailable" });
+  const view = currentView ?? (() => {
+    runtime.branchIndex.recordFullV3RuntimeViewBuild();
+    return buildV3RuntimeView(entries, state, { sessionId: "unavailable" });
+  })();
   const catalog = view.catalog; const indexById = new Map(entries.map((entry, index) => [entry.id, index]));
   const active = activeBlocks(state);
   const activeV3 = view.replay.maximalActiveBlocks;

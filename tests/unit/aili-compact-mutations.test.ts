@@ -188,6 +188,32 @@ describe("pure compact mutation planning", () => {
     expect(planCompactMutation({ ...base, summaryMaxChars: 255 }, { entries, state: current, guard })).toEqual(expect.objectContaining({ ok: false, code: "invalid-bounds" }));
     expect(planCompactMutation(base, { entries, state: current, guard, minSavingsChars: 1_000, estimateRecapOverheadChars: () => 0 })).toEqual(expect.objectContaining({ ok: false, code: "not-worth-compressing" }));
   });
+
+  it("uses the 15,000-character default and accepts exactly 18,000 legacy semantic-summary characters", () => {
+    const entries = protocolHistory();
+    const current = state();
+    const catalog = buildReferenceCatalog(entries, current);
+    const request = {
+      transactionId: "legacy-summary-cap",
+      catalogId: catalog.catalogId,
+      mode: "message" as const,
+      topic: "batch",
+      items: [{ messageRef: "m000004", topic: "topic", summary: "s".repeat(15_000) }],
+    };
+    expect(planCompactMutation(request, { entries, state: current, guard, estimateRecapOverheadChars: () => 0 })).toMatchObject({ ok: true });
+
+    const exact = {
+      ...request,
+      summaryMaxChars: 18_000,
+      items: [{ ...request.items[0]!, summary: "s".repeat(18_000) }],
+    };
+    expect(planCompactMutation(exact, { entries, state: current, guard, estimateRecapOverheadChars: () => 0 })).toMatchObject({ ok: true });
+    expect(planCompactMutation({
+      ...exact,
+      items: [{ ...exact.items[0]!, summary: "s".repeat(18_001) }],
+    }, { entries, state: current, guard, estimateRecapOverheadChars: () => 0 }))
+      .toEqual(expect.objectContaining({ ok: false, code: "invalid-bounds" }));
+  });
 });
 
 describe("pure decompress and recompress planning", () => {

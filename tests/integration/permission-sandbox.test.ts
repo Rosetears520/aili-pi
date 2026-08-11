@@ -1,12 +1,16 @@
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import type { BashOperations } from "@earendil-works/pi-coding-agent";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { composePersistentAgentSandboxConfig } from "../../src/runtime/persistent-agents/child-sandbox.js";
+import type { SandboxConfig } from "pi-permission-modes/src/config-load.ts";
 
 interface SandboxController {
   ready: boolean;
   disabled: boolean;
   warn: string | undefined;
+  sandboxManager: unknown | null;
   init(options: {
     cwd: string;
     noSandbox: boolean;
@@ -46,12 +50,23 @@ interface PermissionDefaults {
   };
 }
 
-async function vendorSandbox(): Promise<{ SandboxController: new () => SandboxController; defaults: PermissionDefaults }> {
+async function vendorSandbox(): Promise<{
+  SandboxController: new () => SandboxController;
+  createSandboxedBashOps(manager: unknown, config?: Partial<SandboxConfig>): BashOperations;
+  defaults: PermissionDefaults;
+}> {
   const [sandboxModule, defaults] = await Promise.all([
-    import("pi-permission-modes/src/sandbox.ts") as Promise<{ SandboxController: new () => SandboxController }>,
+    import("pi-permission-modes/src/sandbox.ts") as unknown as Promise<{
+      SandboxController: new () => SandboxController;
+      createSandboxedBashOps(manager: unknown, config?: Partial<SandboxConfig>): BashOperations;
+    }>,
     import("pi-permission-modes/permission-mode.defaults.json", { with: { type: "json" } }) as unknown as Promise<{ default: PermissionDefaults }>,
   ]);
-  return { SandboxController: sandboxModule.SandboxController, defaults: defaults.default };
+  return {
+    SandboxController: sandboxModule.SandboxController,
+    createSandboxedBashOps: sandboxModule.createSandboxedBashOps,
+    defaults: defaults.default,
+  };
 }
 
 describe("pi-permission-modes sandbox behavior", () => {
@@ -66,7 +81,7 @@ describe("pi-permission-modes sandbox behavior", () => {
     try {
       process.chdir(cwd);
       process.env.HOME = home;
-      const { SandboxController, defaults } = await vendorSandbox();
+      const { SandboxController, createSandboxedBashOps, defaults } = await vendorSandbox();
       sandbox = new SandboxController();
       await sandbox.init({ cwd, noSandbox: false, hasUI: true, notify: (message) => notices.push(message), profile: defaults.modes.build!.sandbox });
       expect({ ready: sandbox.ready, disabled: sandbox.disabled, warn: sandbox.warn, notices }).toEqual({ ready: true, disabled: false, warn: undefined, notices: [] });
@@ -75,6 +90,25 @@ describe("pi-permission-modes sandbox behavior", () => {
       const result = await sandbox.bashOps()?.exec("printf sandbox-enabled", cwd, { onData: (data) => output.push(data) });
       expect(result).toEqual({ exitCode: 0 });
       expect(Buffer.concat(output).toString()).toContain("sandbox-enabled");
+
+      const owningRoot = join(cwd, "openspec", "changes", "formal");
+      const board = join(owningRoot, "formal-task-board.md");
+      const progress = join(owningRoot, "progress.txt");
+      const adjacent = join(owningRoot, "evidence.txt");
+      await mkdir(owningRoot, { recursive: true });
+      await writeFile(board, "board-before\n");
+      await writeFile(progress, "progress-before\n");
+      if (!sandbox.sandboxManager) throw new Error("ready sandbox manager is missing");
+      const formalOperations = createSandboxedBashOps(
+        sandbox.sandboxManager,
+        composePersistentAgentSandboxConfig(defaults.modes.build!.sandbox, false, [board, progress]),
+      );
+      await formalOperations.exec(`printf changed > ${JSON.stringify(board)}`, cwd, { onData: () => undefined });
+      await formalOperations.exec(`printf changed > ${JSON.stringify(progress)}`, cwd, { onData: () => undefined });
+      expect(await readFile(board, "utf8")).toBe("board-before\n");
+      expect(await readFile(progress, "utf8")).toBe("progress-before\n");
+      expect(await formalOperations.exec(`printf lawful > ${JSON.stringify(adjacent)}`, cwd, { onData: () => undefined })).toEqual({ exitCode: 0 });
+      expect(await readFile(adjacent, "utf8")).toBe("lawful");
     } finally {
       await sandbox?.reset();
       process.chdir(originalCwd);

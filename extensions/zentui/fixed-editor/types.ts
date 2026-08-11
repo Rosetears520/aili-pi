@@ -28,6 +28,7 @@ export type CompositorConfig = {
 	enabled: boolean;
 	mouseScroll: boolean;
 	copyNotice: boolean;
+	scrollbar: boolean;
 };
 
 /** Result of rendering the pinned cluster. */

@@ -209,6 +209,11 @@ describe("AILI Compact BranchIndex PR4 deterministic unit gate", () => {
     expect(appended.counters).toEqual({
       ...emptyBranchIndexCounters(),
       entryVisits: 3,
+      rawSlotVisits: 1,
+      rawEpochSlotStorageCopyVisits: 0,
+      rawEpochPrefixStorageCopyVisits: 0,
+      rawEpochSlotStorageIterationVisits: 0,
+      rawEpochPrefixStorageIterationVisits: 0,
       atomMembershipVisits: 3,
       hashOps: 6,
       incrementalAppends: 1,

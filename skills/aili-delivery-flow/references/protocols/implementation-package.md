@@ -1,5 +1,14 @@
 # Implementation Package Protocol
 
+- Package ID:
+- Phase: IDEATE | DEFINE | BUILD | SHIP | ordinary
+- Package kind: evidence | task-execution
+- Source refs:
+- Accepted task IDs: <task-id[, task-id...]> | none
+- Owner: ROSE | agent:<canonical-role-id>
+- Dispatch: required | waived | forbidden
+- Execution: direct | sync | async
+- Join: N/A | immediate | <stable-join-id>
 - Trace ID:
 - Source requirement/decision/risk:
 - Package goal:
@@ -50,4 +59,4 @@ An A33 package references exactly one current `WT-001` context per declared repo
 
 Decision-shaping research that can affect scope, architecture, dependencies, public contract, permissions, acceptance, or verification strategy must be closed in DEFINE. It cannot be waived or accepted as `Unverified`; discovery during BUILD emits `BUILD_MATERIAL_DISCOVERY` and stops changed work. Named non-material runtime residuals remain under their separate fail-closed operation gates.
 
-Run the proactive delegation scan before package work. When an existing Task trigger is met, dispatch promptly; direct work is the no-trigger/blocked fallback. Default concurrency is at most two but is not a hard cap; larger bounded fan-out requires independent non-overlapping lanes, concrete benefit, suitable owners, and an explicit join plan. Each Task context receives one bounded assignment, returns one terminal result or failure, never delegates, and is never resumed through an old `task_id`. A failed, empty, blocked, or partial result does not trigger an automatic fresh retry; later same-type use requires a fresh trigger-and-benefit decision and a fresh context with no prior `task_id`. ROSE retains lifecycle, integration, reconciliation, and final-verdict ownership. A package never creates automatic review, test, security, verifier, full-suite, or repair-loop lanes. Verification is the smallest fresh check that proves the exact claim.
+Run the proactive trigger-and-benefit scan before ordinary package work; direct work is the no-trigger/blocked fallback. A ready formal Agent-owned package instead dispatches to its exact canonical owner unless a valid waiver was recorded before direct execution; a formal ROSE-owned package is direct. Default concurrency is at most two but is not a hard cap; larger bounded fan-out requires independent non-overlapping lanes, concrete benefit, suitable owners, and an explicit join plan. Adapters may use one-shot tasks or persistent Agent identities, but continuation is same-package only while all package-defining fields remain unchanged. The current OpenCode Task adapter creates a fresh terminal Task with no prior `task_id` for each dispatch. A failed, empty, blocked, or partial result does not authorize automatic retry or continuation. ROSE retains Board/progress writes, lifecycle, integration, inspection, disposition, verification selection, and final-verdict ownership. A package never creates automatic review, test, security, verifier, full-suite, or repair-loop lanes. Verification is the smallest fresh check that proves the exact claim.

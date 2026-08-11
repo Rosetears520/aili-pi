@@ -43,10 +43,25 @@ Every required compatibility, Persistent Agent, AILI Compact, package, provenanc
 - **WHEN** compatibility JSON is edited without an executable Pi-owned adapter and behavior test
 - **THEN** generated validation or review rejects the candidate
 
+### Requirement: Release gates bind the current contract and reviewed evidence
+The active release validator SHALL bind the current `reconcile-aili-compact-release-lineage` contract. A missing retired OpenSpec directory SHALL produce a bounded `NON_PASS` diagnostic and SHALL NOT suppress candidate validation. Required human review SHALL use a current reviewed-artifact schema independently bound to a validated sanitized live capture, exact candidate identity, and human verdict. It SHALL reject tier/restill candidate fields, forged/foreign capture bindings, stale verdicts, and wrapper shapes that cannot validate; it SHALL NOT require provider-authored tier transactions.
+
+#### Scenario: A retired change directory is absent
+- **WHEN** release validation runs for the current candidate and a retired redesign change directory does not exist
+- **THEN** the validator reports the current-contract gate as `NON_PASS` rather than returning an empty error list
+
+#### Scenario: Reviewed evidence carries retired tier fields
+- **WHEN** a purported human-review artifact contains a tier/restill candidate wrapper or does not bind the validated capture and current candidate identity
+- **THEN** candidate validation rejects it and the human-review row remains non-PASS
+
 ### Requirement: Real-provider and controlled-production evidence have separate owners
 Stable `0.2.0` SHALL require one fresh sanitized representative live scenario through official Pi using any one currently available supported provider. That live evidence SHALL prove transport, provider protocol acceptance, controlled extension ordering, and a real parent-to-persistent-child lifecycle. It SHALL NOT be required to naturally induce a pressure-stage suffix, context-length failure, process-owned child sandbox marker, or four provider-authored semantic tiers.
 
-Suffix/non-persistence, overflow/checkpoint/original-request retry/later-work, process-owned child sandbox work, and lifecycle/tiering SHALL instead pass deterministic controlled-provider tests through the official Pi production entry and `AgentSession`/Persistent Agent seams. Static inspection, direct event injection, source-only simulation, or relabeling a failed real-provider artifact MUST NOT satisfy those rows. The fresh 2026-08-04 OpenAI captures SHALL remain preserved as truthful evidence that those behaviors were not naturally observed in those attempts, but their absence SHALL NOT block release once the correct controlled-production rows pass and final human review accepts the limitation.
+Suffix/non-persistence, overflow/checkpoint/original-request retry/later-work, process-owned child sandbox work, active-block lifecycle, and dynamic checkpoint/rebuild SHALL instead pass deterministic controlled-provider tests through the official Pi production entry and `AgentSession`/Persistent Agent seams. Static inspection, direct event injection, source-only simulation, or relabeling a failed real-provider artifact MUST NOT satisfy those rows. The fresh 2026-08-04 OpenAI captures SHALL remain preserved as truthful evidence that those behaviors were not naturally observed in those attempts, but their absence SHALL NOT block release once the correct controlled-production rows pass and final human review accepts the limitation.
+
+New controlled compression writes SHALL use source-backed active blocks and explicit two-to-sixteen block replacement, not a T1/T2/T3/restill hierarchy, fixed transaction count, tier age/source floor, or tier-specific immediate-child economics. Existing tiered v3 records SHALL remain readable for rollback and source proof only. Semantic summary defaults target 15,000 UTF-16 characters and share an 18,000-character runtime/configuration/parser/quality ceiling. A source/proof mismatch, stale replacement surface, fixed-tier dependency, watchdog failure, or total-budget overrun SHALL produce NON_PASS evidence.
+
+Candidate release validation SHALL enforce the evidence-class boundary: the real-provider artifact may require only its transport/protocol/order/parent-child claims, while controlled-production artifacts own suffix, overflow, active-block lifecycle, and dynamic checkpoint/rebuild. A live suffix, overflow, or semantic-tier requirement remaining in a release validator or live harness SHALL be treated as a stale gate and block candidate PASS until its owner is reconciled.
 
 The production entry SHALL accept official Pi `0.82.1`'s `parentId: null` representation only for the actual root Session entry during cold build or the first append to an empty branch index. Null or malformed parents elsewhere SHALL remain rejected. Controlled custom-tool evidence SHALL use a disposable exact permission configuration and the real extension lifecycle; it MUST NOT add a shipped Compact permission exemption, broad headless bypass, or approval injector.
 
@@ -76,6 +91,19 @@ Stable release SHALL NOT require a complete live matrix across provider families
 - **WHEN** live usage has zero, absent, or ambiguous cache telemetry
 - **THEN** evidence makes no cache-hit claim, retains conservative bounds, and does not fail compression or publication
 
+### Requirement: Controlled evidence proves bounded active blocks and MiMo recovery
+The controlled-production Compact evidence SHALL prove an AILI-owned active provider frontier distinct from the complete source-proof ledger. The current model continues to author source-backed active-block summaries through the existing Compact tools; no separate summarizer model, upstream ACP/MiMoCode code, hook, prompt, configuration, or persistence implementation is introduced. The frontier SHALL retain protected recent raw content, expose no more than 32 active block descriptors by default, and add full summaries only for 1–16 explicit recap/decompression selections that fit the active model request budget. It SHALL not automatically project all historical raw messages, all active full summaries, recursive ancestor expansions, or protected historical tool output.
+
+The controlled matrix SHALL grow the active-block ledger beyond the default frontier, prove selected two-to-sixteen block recap retrieval before ordinary atomic replacement mutations, exact search/decompression of omitted ledger source, and fail-closed no-expansion on unknown context, stale selection, source/proof mismatch, or over-budget selected recaps. It SHALL also prove MiMo's exact window-dependent checkpoint ladders after Pi's reserves and 13K ceiling, checkpoint rebuild first at safe-budget/overflow, one bounded native fallback only when needed, and no full-history restoration. A fallback that silently restores unbounded history, a missing frontier/recovery counter, source/proof leakage, or a budget/watchdog failure SHALL be NON_PASS.
+
+#### Scenario: The ledger outlives the frontier
+- **WHEN** an older active block is absent from the default provider frontier
+- **THEN** its status reference, source proof, promotion eligibility, and exact search/decompression remain available from the current source-proof ledger
+
+#### Scenario: Checkpoint recovery preserves the active-block view
+- **WHEN** a current checkpoint is available at the safe budget or provider overflow
+- **THEN** the next provider projection rebuilds from that checkpoint, protected tail, and active descriptors before considering native compaction or raw-history restoration
+
 ### Requirement: The default 0.2.0 distribution excludes retired optional integrations
 The `0.2.0` candidate SHALL NOT register, depend on, bundle, advertise, or generate active provenance/capability evidence for `@narumitw/pi-lsp` or `pi-markdown-preview`. The package, lockfile, native-integration inventory, doctor/capability output, documentation, provenance/SBOM, package archive, and focused tests SHALL agree that `lsp_diagnostics`, `lsp_fix`, `/lsp`, `/preview*`, and `preview_export` are absent. `pi-cache-optimizer` SHALL remain selected. No AILI-owned replacement or compatibility alias SHALL be introduced.
 
@@ -93,3 +121,10 @@ Network lookup, provider credentials and billable calls, version/lockfile mutati
 #### Scenario: Local candidate gates pass
 - **WHEN** all safe-local checks pass but publish approval is absent
 - **THEN** the process stops at a verified local candidate and performs no publication mutation
+
+### Requirement: Release evidence reconciles the complete selected candidate
+The complete current working tree selected by the user SHALL be treated as one `0.2.0` candidate for release validation. Its release-evidence validators and artifacts SHALL require current controlled tierless active-block and MiMo recovery evidence, rather than the retired 50-transaction tier hierarchy. A stale compatibility artifact, release artifact, or live binding SHALL remain `NON_PASS` until regenerated or rerun through its owning evidence path; editing a stored hash or relabeling historical evidence SHALL NOT satisfy the gate.
+
+#### Scenario: A retired hierarchy artifact is present
+- **WHEN** the current candidate's release validator encounters a 50-transaction or tier-specific controlled-production requirement
+- **THEN** the validator is reconciled to current active-block/MiMo controlled evidence before it may report a passing candidate

@@ -310,6 +310,12 @@ function exactV3MessageOrdinals(
   epochEntries: readonly SessionLikeEntry[],
   selectedEntryIds: readonly string[],
 ): ReadonlyMap<string, number> {
+  const rawEntries = epochEntries.filter((entry) => entry.type === "message");
+  const rawIds = new Set<string>();
+  for (const entry of rawEntries) {
+    if (!entry.id || rawIds.has(entry.id)) return new Map();
+    rawIds.add(entry.id);
+  }
   const atomBuild = buildProtocolAtoms(epochEntries);
   const selected = new Set(selectedEntryIds);
   const touched = atomBuild.atoms.filter((atom) => atom.entryIds.some((entryId) => selected.has(entryId)));
@@ -320,12 +326,8 @@ function exactV3MessageOrdinals(
   if (!exactSafeAtoms) return new Map();
 
   const ordinals = new Map<string, number>();
-  let ordinal = 1;
-  for (const atom of atomBuild.atoms) {
-    for (const entryId of atom.entryIds) {
-      if (atomBuild.entryToAtomId.has(entryId)) ordinals.set(entryId, ordinal);
-      ordinal += 1;
-    }
+  for (const [index, entry] of rawEntries.entries()) {
+    if (atomBuild.entryToAtomId.has(entry.id)) ordinals.set(entry.id, index + 1);
   }
   return ordinals;
 }

@@ -1,5 +1,7 @@
 # Scenario B: Editing / Filling Content in Existing DOCX
 
+> OfficeCLI-first boundary: preserve the original and use managed OfficeCLI for a simple edit only when installed `officecli help docx ...` confirms the complete operation and explicit output behavior. The CLI and direct-XML details below are the OpenXML fallback for complex, preservation-sensitive, unsupported, or insufficiently evidenced edits; run the fallback setup/env gate first.
+
 ## Core Principle
 
 **"First, do no harm."** When editing an existing document, minimize changes. Touch only what needs to change. Preserve all formatting, styles, relationships, and structure that are not directly involved in the edit.
@@ -21,11 +23,11 @@ Do NOT use when: the user wants to change the look/style of the entire document 
 ## Workflow
 
 ```
-1. Preview   → CLI: analyze <input.docx>
+1. Preview   → OpenXML CLI: analyze <input.docx>
 2. Analyze   → Understand structure: sections, styles, headings, tables
 3. Identify  → Locate exact edit targets (paragraph index, table index, placeholder text)
-4. Edit      → Apply surgical changes via CLI or direct XML
-5. Validate  → CLI: validate <output.docx>
+4. Edit      → Apply surgical changes via the OpenXML CLI or direct XML
+5. Validate  → OpenXML CLI: validate <output.docx>
 6. Diff      → Compare before/after to verify only intended changes were made
 ```
 
@@ -33,7 +35,7 @@ Do NOT use when: the user wants to change the look/style of the entire document 
 
 ## When to Use API vs Direct XML
 
-### Use CLI Edit Command When:
+### Use the OpenXML CLI Edit Command When the Fallback Is Selected:
 - Replacing placeholder text (e.g., `{{fieldName}}` → actual value)
 - Filling table data from JSON
 - Updating document properties (title, author)

@@ -1,6 +1,6 @@
 # Slide Page Types
 
-Classify **every slide** as **exactly one** of these 5 types:
+[FRAME] Use these five roles as a navigation layer, not as a complete layout taxonomy. Give each slide one base role, then choose a content relationship such as parallel, comparison, process, timeline, hierarchy, matrix, cycle, data, table, or image-led composition. The translated practical notes in [`human-design-playbook.md`](human-design-playbook.md) provide additional formulas and examples.
 
 ## 1. Cover Page
 
@@ -32,10 +32,10 @@ Classify **every slide** as **exactly one** of these 5 types:
 
 | Element | Recommended Size | Ratio to Base |
 |---------|-----------------|---------------|
-| Main Title | 72-120px | 3x-5x |
-| Subtitle | 28-40px | 1.5x-2x |
-| Supporting Text | 18-24px | 1x (base) |
-| Meta Info (date, name) | 14-18px | 0.7x-1x |
+| Main Title | 54-90pt | 3x-5x |
+| Subtitle | 21-30pt | 1.5x-2x |
+| Supporting Text | 14-18pt | 1x (base) |
+| Meta Info (date, name) | 11-14pt | 0.7x-1x |
 
 **Key Principles:**
 1. **Dramatic Contrast**: Main title should be at least 2-3x larger than subtitle
@@ -60,8 +60,8 @@ Consider: Purpose (corporate/educational/creative), Audience, Tone, Content Volu
 
 1. **Analyze**: Understand topic, audience, purpose
 2. **Choose Layout**: Select based on content
-3. **Write Slide**: Use PptxGenJS. Use shapes and SVG elements for visual interest.
-4. **Verify**: Generate preview as `slide-XX-preview.pptx`. Extract text with `python -m markitdown slide-XX-preview.pptx`, verify all content present and no placeholder text remains.
+3. **Write Slide**: Use the selected PPTX runtime and the established visual grammar. Add shapes or imagery only when they support the cover concept.
+4. **Verify**: Generate a preview, extract text, and verify the title, supporting information, crop, contrast, and absence of placeholders.
 
 ---
 
@@ -110,10 +110,10 @@ Consider: Purpose (corporate/educational/creative), Audience, Tone, Content Volu
 
 | Element | Recommended Size | Ratio to Base |
 |---------|-----------------|---------------|
-| Page Title ("Table of Contents" / "Agenda") | 36-44px | 2.5x-3x |
-| Section Number | 28-36px | 2x-2.5x |
-| Section Title | 20-28px | 1.5x-2x |
-| Section Description | 14-16px | 1x (base) |
+| Page Title ("Table of Contents" / "Agenda") | 27-33pt | 2.5x-3x |
+| Section Number | 21-27pt | 2x-2.5x |
+| Section Title | 15-21pt | 1.5x-2x |
+| Section Description | 11-12pt | 1x (base) |
 
 **Key Principles:**
 1. **Clear Numbering**: Section numbers should be visually prominent — bold, accent color, or larger size
@@ -130,7 +130,7 @@ Consider: Purpose (corporate/educational/creative), Audience, Tone, Content Volu
 4. **Section Descriptions** — Optional one-line summaries
 5. **Visual Separators** — SVG dividers or spacing
 6. **Decorative Elements** — Subtle accent shapes
-7. **Page Number Badge** — **MANDATORY**
+7. **Page Number / Navigation** — Include only when the brief or controlling template uses it
 
 ### Design Decisions
 
@@ -144,8 +144,8 @@ Consider: Purpose (corporate/educational/creative), Audience, Tone, Content Volu
 1. **Analyze**: Section list, count, presentation context
 2. **Choose Layout**: Based on section count and content
 3. **Plan Visual Hierarchy**: Numbering style, font sizes, spacing
-4. **Write Slide**: Use PptxGenJS. Use shapes for decorative elements. **MUST include page number badge.**
-5. **Verify**: Generate preview, extract text with markitdown, verify content and badge.
+4. **Write Slide**: Use the selected PPTX runtime and the established visual grammar.
+5. **Verify**: Generate a preview, extract text, and verify content, hierarchy, and any required navigation.
 
 ---
 
@@ -189,9 +189,9 @@ Consider: Purpose (corporate/educational/creative), Audience, Tone, Content Volu
 
 | Element | Recommended Size | Notes |
 |---------|-----------------|-------|
-| Section Number | 72-120px | Bold, accent color or semi-transparent |
-| Section Title | 36-48px | Bold, clear, primary text color |
-| Intro Text | 16-20px | Light weight, muted color, optional |
+| Section Number | 54-90pt | Bold, accent color or semi-transparent |
+| Section Title | 27-36pt | Bold, clear, primary text color |
+| Intro Text | 12-15pt | Light weight, muted color, optional |
 
 **Key Principles:**
 1. **Dramatic Number**: Section number = most prominent visual element
@@ -205,7 +205,7 @@ Consider: Purpose (corporate/educational/creative), Audience, Tone, Content Volu
 2. **Section Title** — Always required. Clear, concise.
 3. **Intro Text** — Optional 1-2 line description.
 4. **Decorative Elements** — SVG accent shapes (bars, lines, geometric blocks).
-5. **Page Number Badge** — **MANDATORY**.
+5. **Page Number / Navigation** — Include only when the brief or controlling template uses it.
 
 ### Design Decisions
 
@@ -218,19 +218,19 @@ Consider: Purpose (corporate/educational/creative), Audience, Tone, Content Volu
 
 1. **Analyze**: Section number, title, optional intro
 2. **Choose Layout**: Based on content and tone
-3. **Write Slide**: Use PptxGenJS. Use shapes for decorative elements. **MUST include page number badge.**
-4. **Verify**: Generate preview, extract text, verify content and badge.
+3. **Write Slide**: Use the selected PPTX runtime and the established visual grammar.
+4. **Verify**: Generate a preview, extract text, and verify content, hierarchy, and any required navigation.
 
 ---
 
 ## 4. Content Page
 
-Pick a subtype based on the content. Each content slide belongs to exactly ONE subtype:
+Pick one primary subtype based on the content relationship. A slide may contain supporting elements from another subtype, but one relationship should control the layout:
 
 ### Subtypes
 
 **Text** — Bullets, quotes, or short paragraphs
-- Must still include icons or SVG shapes — never plain text only
+- Add a visual element only when it clarifies structure, meaning, or emphasis; whitespace is preferable to decorative filler
 ```
 |  SLIDE TITLE                          |
 |  * Bullet point one                   |
@@ -282,40 +282,40 @@ Pick a subtype based on the content. Each content slide belongs to exactly ONE s
 
 | Element | Recommended Size | Notes |
 |---------|-----------------|-------|
-| Slide Title | 36-44px | Bold, top of slide |
-| Section Header | 20-24px | Bold, for sub-sections within slide |
-| Body Text | 14-16px | Regular weight, left-aligned |
-| Captions / Source | 10-12px | Muted color, smallest text |
-| Stat Callout | 60-72px | Large bold numbers for key statistics |
+| Slide Title | 27-33pt | Bold, top of slide |
+| Section Header | 15-18pt | Bold, for sub-sections within slide |
+| Body Text | 11-14pt | Regular weight, usually left-aligned |
+| Captions / Source | 8-10pt | Muted color, smallest text |
+| Stat Callout | 45-54pt | Large bold numbers for key statistics |
 
 **Key Principles:**
 1. **Left-align body text** — never center paragraphs or bullet lists
-2. **Size contrast** — title must be 36pt+ to stand out from 14-16pt body
-3. **Visual elements required** — every content slide must have at least one non-text element
+2. **Size contrast** — keep the title visibly distinct from body text; use the deck's established scale instead of one universal minimum
+3. **Purposeful visual treatment** — use an image, chart, icon, shape, line, or whitespace pattern only when it supports the information relationship
 4. **Breathing room** — 0.5" minimum margins, 0.3-0.5" between content blocks
 
 ### Content Elements
 
 1. **Slide Title** — Always required, top of slide
 2. **Body Content** — Text, bullets, data, or comparisons based on subtype
-3. **Visual Element** — Image, chart, icon, or SVG shape — always required
+3. **Visual Treatment** — Image, chart, icon, shape, line, or deliberate whitespace when it supports the message
 4. **Source / Caption** — When showing data or external content
-5. **Page Number Badge** — **MANDATORY**
+5. **Page Number / Navigation** — Include only when the brief or controlling template uses it
 
 ### Design Decisions
 
 1. **Subtype**: Determine first — drives the entire layout
 2. **Content Volume**: Dense → multi-column or smaller font; Light → larger elements with more whitespace
 3. **Data vs Narrative**: Data-heavy → charts + stat callouts; Story-driven → images + quotes
-4. **Variety**: Each content slide should use a different layout from the previous one
+4. **Variety**: Avoid accidental repetition, but reuse a layout when the information relationship is intentionally the same
 5. **Consistency**: Typography, colors, and spacing must match the rest of the presentation
 
 ### Workflow
 
 1. **Analyze**: Content, determine subtype, plan layout
 2. **Choose Layout**: Best fit for subtype and content volume
-3. **Write Slide**: Use PptxGenJS. Use shapes for charts, decorative elements, icons. **MUST include page number badge.**
-4. **Verify**: Generate preview as `slide-XX-preview.pptx`. Extract text with markitdown, verify all content present, no placeholder text, badge included.
+3. **Write Slide**: Use the selected PPTX runtime and established visual grammar.
+4. **Verify**: Generate a preview, extract text, and verify content, hierarchy, layout, and any required navigation.
 
 ---
 
@@ -361,10 +361,10 @@ Pick a subtype based on the content. Each content slide belongs to exactly ONE s
 
 | Element | Recommended Size | Notes |
 |---------|-----------------|-------|
-| Closing Title ("Thank You" / "Summary") | 48-72px | Bold, commanding |
-| Takeaway / Action Item | 18-24px | Clear, scannable |
-| Supporting Text | 14-16px | Regular weight |
-| Contact Info | 14-16px | Muted color |
+| Closing Title ("Thank You" / "Summary") | 36-54pt | Bold, commanding |
+| Takeaway / Action Item | 14-18pt | Clear, scannable |
+| Supporting Text | 11-14pt | Regular weight |
+| Contact Info | 11-14pt | Muted color |
 
 **Key Principles:**
 1. **Strong closing statement**: Main message should be largest, most prominent
@@ -379,7 +379,7 @@ Pick a subtype based on the content. Each content slide belongs to exactly ONE s
 3. **Call to Action** — Clear next steps (if applicable)
 4. **Contact Info** — Email, website, social handles (if provided)
 5. **Decorative Elements** — SVG accents for visual consistency
-6. **Page Number Badge** — **MANDATORY**
+6. **Page Number / Navigation** — Include only when the brief or controlling template uses it
 
 ### Design Decisions
 
@@ -393,8 +393,8 @@ Pick a subtype based on the content. Each content slide belongs to exactly ONE s
 
 1. **Analyze**: Closing content — takeaways, CTA, contact, thank-you
 2. **Choose Layout**: Based on content type
-3. **Write Slide**: Use PptxGenJS. Use shapes for decorative elements. **MUST include page number badge.**
-4. **Verify**: Generate preview, extract text, verify content and badge.
+3. **Write Slide**: Use the selected PPTX runtime and established visual grammar.
+4. **Verify**: Generate a preview, extract text, and verify content, closure, and any required navigation.
 
 ---
 

@@ -1,0 +1,364 @@
+# Task Board
+
+> **Historical/superseded board (2026-08-01):** `openspec/changes/integrate-upstream-formal-agent-protocols` is the sole future BUILD and release owner for overlapping scope. This v1 board is cancelled as execution authority and retained only as history and capability-source evidence. It must not independently dispatch, advance, accept, close, publish, or release any overlapping package. Existing package status, Evidence, test-count, snapshot, runtime, acceptance, and opaque session-reference fields are preserved historical assertions and were not independently reverified during this reconciliation.
+
+- Protocol: `aili-task-board/v1`
+- Task kind: `formal`
+- Task identity: `add-file-task-board`
+- Goal: Make formal OpenSpec work an auditable Agent Evidence Graph in which ROSE orchestrates and Specialized Agents execute bounded material packages.
+- Phase: `BUILD`
+- Board status: `cancelled`
+- Accepted contract: `proposal.md`; `design.md`; `context.md`; `interview.md`; `specs/file-task-board/spec.md`; `specs/agent-dispatch-catalog/spec.md`; `specs/lifecycle-agent-orchestration/spec.md`
+- Accepted verification: `Round-2 test-plan.md explicitly accepted by user instruction “接受并继续（推荐）”`
+- Decision owner: `ROSE`
+- Verification owner: `ROSE`
+
+## 1. Canonical workflow ownership and synchronization
+
+- [x] 1.0 — Collect current canonical workflow locality and gate evidence
+  - Status: `done`
+  - Owner: `agent:aili.spec-miner`
+  - Dispatch: `required`
+  - Dispatch reason: `Cross-reference and test-owner localization is bounded material evidence gathering that belongs to the specification specialist.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `none`
+  - Scope: `Read current approved aili-workflows rules, lifecycle/delegation/package/task/result owners, source revision/Git state, and owning tests; map D-001–D-019 without deciding scope.`
+  - Forbidden scope: `No writes, attachment mutation, implementation, Git operation, snapshot edit, contract decision, or final verdict.`
+  - Expected result: `A bounded source-locality and operation-gate evidence report for ROSE packet decisions.`
+  - Expected evidence: `Exact repository/ref, paths/headings/tests, current rules/Git classification, unresolved ownership or operation blockers.`
+  - Acceptance: `ROSE has current source evidence sufficient to decide one exact upstream implementation packet without performing the specialist search itself.`
+  - Runtime: `external=agent://ses_0527d9e01ffeqZ32B2O6UpRBsD; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `Current canonical lifecycle, delegation, packet/result, generated-source, fixture, checker, and documentation owners mapped for D-001–D-019 at main@7eb35f357ad489f5841ee10dac1e44549c1bdb76; exact accepted gaps and source-first boundaries recorded in progress.txt.`
+  - ROSE disposition: `partially-accepted — locality and conflict evidence accepted; the worker's material-delta label is rejected because absent upstream OpenSpec/RoleProfile/Journal implementations and current D-006/D-007 conflicts are already-covered D-019 consumer boundaries and package-1.2 deltas, not accepted-scope changes.`
+  - Blocker: `none`
+  - Next action: `Completed; package 1.1 prepared the bounded upstream packet.`
+
+- [x] 1.1 — Prepare the canonical `aili-workflows` implementation packet
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `Cross-repository identity, accepted semantics, operation gates, and exact package boundaries are ROSE-only decisions.`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `1.0`
+  - Scope: `Use accepted 1.0 evidence to decide the exact D-001–D-019 semantic delta, package boundary, write request, stop gates, and consumer synchronization contract.`
+  - Forbidden scope: `No additional broad source search; no aili-workflows write without exact approval; no snapshot edit; no implementation inside this ROSE decision package.`
+  - Expected result: `One bounded upstream packet naming accepted files, semantic deltas, tests, stop gates, source revision, and consumer synchronization evidence.`
+  - Expected evidence: `Accepted 1.0 report; decision-to-file/test traceability; exact write request; separately gated operations.`
+  - Acceptance: `ROSE can request one exact upstream operation without guessing scope, repository, or ownership.`
+  - Runtime: `direct`
+  - Evidence: `progress.txt event 2026-07-29T19:04:26+08:00 1.1 DONE records packet FTBOARD-UPSTREAM-001 with exact source revision, allowed files, semantic groups, focused checks, forbidden scope, and stop gates.`
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `Request one fresh exact write approval for package 1.2 against the declared canonical target; no upstream mutation before approval.`
+
+- [x] 1.2 — Implement formal lifecycle orchestration in canonical `aili-workflows`
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `Bounded canonical workflow edits and focused regressions are material execution that belongs to the implementation specialist.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `1.1`
+  - Scope: `Formal-only task-board protocol; ordinary-versus-lifecycle precedence; ROSE/Agent duties; hard dispatch/waiver; sync/async joins; phase guidance; evidence/disposition gates; packet/result contracts.`
+  - Forbidden scope: `No aili-pi snapshot edits; no informal task root; no UI/telemetry; no ordinary Runtime default or permission-mode changes; no Git/publish/release operation.`
+  - Expected result: `Canonical workflow implements the accepted orchestration contract without ceremonial call quotas or competing task authority.`
+  - Expected evidence: `Changed upstream files; focused owning tests; source revision/hashes; unresolved items; exact consumer delta.`
+  - Acceptance: `Canonical checks pass and ordinary Pi remains benefit-based while formal Agent-owned packages are dispatch-bound.`
+  - Runtime: `external=agent://ses_0526876f1ffeeVGadi2K1zZnWs; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `19 task-scoped canonical files; formal protocol and exact selectors/schema repaired by ROSE; harness fixture PASS, delegation protocol PASS, 64 skill capabilities PASS, AGENTS template PASS, Python compile PASS, workflow-contract Node 50/50 PASS, focused formal contract PASS, npm build PASS, combined focused Node 137 passed/1 skipped, diff check PASS; package.json and package-lock.json unchanged.`
+  - ROSE disposition: `accepted`
+  - Blocker: `none inside package 1.2; creating the required clean upstream revision is a separate exact Git commit gate.`
+  - Next action: `Request exact task-scoped commit approval in the canonical target; package 1.3 cannot synchronize a dirty uncommitted source.`
+
+- [x] 1.3 — Synchronize the accepted workflow snapshot and lock into `aili-pi`
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `Generated snapshot/lock synchronization is bounded implementation with mechanical provenance checks.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `1.2`
+  - Scope: `Exact accepted skill snapshot, upstream lock, compatibility/provenance evidence, and generated verification affected by the upstream commit.`
+  - Forbidden scope: `No semantic edits inside generated skill bodies; no dependency/package-lock change without separate approval; no unrelated generated drift.`
+  - Expected result: `aili-pi consumes the exact accepted canonical formal orchestration protocol.`
+  - Expected evidence: `npm run verify:skills; source/lock/snapshot hashes; changed generated inventory.`
+  - Acceptance: `Snapshot is byte-bound to the accepted upstream revision and generated validation passes.`
+  - Runtime: `external=agent://ses_052149f07ffexEBXxW0nMyUupW; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `Exact lock and snapshot bind 64 skills/472 files to d08b343ac45e4f90510a7af6b76f95d38d9e0cb1; rollback comparison limits the operation delta to 18 expected files; package.json/package-lock.json bytes and 64 adapter status/owner/verification/reason/unverified records are preserved; npm run verify:skills, validate:compatibility, validate:provenance, and validate:generated PASS (6/6 generated tests).`
+  - ROSE disposition: `accepted — worker static inventory evidence accepted; its npm permission blocker does not block the package because ROSE is the declared verification owner and ran the exact fresh checks successfully.`
+  - Blocker: `none`
+  - Next action: `Package 2.1 is the next dependency-ordered Agent-owned implementation package.`
+
+## 2. Formal file task-board core
+
+- [x] 2.1 — Implement the formal v1 parser and deterministic validator
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `The grammar, state graph, evidence/disposition, joins, diagnostics, and negative cases form one bounded implementation package.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `1.1`
+  - Scope: `Formal Markdown headers/packages; IDs/dependencies; seven states; checkbox; Owner/Dispatch/Execution/Join; Runtime/Evidence/disposition; blocker; progress events; legacy classification.`
+  - Forbidden scope: `No auto-repair; no informal path; no hidden database; no replacement CLI; no permission-mode change.`
+  - Expected result: `Pure parse/validate APIs with stable diagnostics and no mutation on invalid input.`
+  - Expected evidence: `Unit fixtures for valid, malformed, duplicate, cycle, selector, join, evidence, disposition, runtime-ref, done, progress, and legacy cases.`
+  - Acceptance: `Every formal file-task-board scenario is deterministic and fails closed.`
+  - Runtime: `external=agent://ses_0513adb29ffeh7bOegFW42S0Ie; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `src/runtime/formal-task-board.ts and tests/unit/formal-task-board.test.ts; 23/23 focused Vitest cases pass; npm run typecheck passes; scoped diff check passes; OpenSpec strict validation passes.`
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `Package 2.2 is the next dependency-ordered Agent-owned implementation package.`
+
+- [x] 2.2 — Implement exact formal OpenSpec root resolution and initialization
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `Exact change identity, containment, symlink rejection, collision handling, and paired-file creation are a focused filesystem boundary.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `2.1`
+  - Scope: `Resolve one lifecycle-selected OpenSpec change; validate repository-contained ordinary paths; create/reuse paired tasks/progress and BOARD_CREATED evidence.`
+  - Forbidden scope: `No fuzzy scan; no task/<task-id>; no ordinary-task board routing; no external path; no root TODO; no implicit Git operation.`
+  - Expected result: `Resolver returns one safe formal root or a stable pre-write blocker.`
+  - Expected evidence: `Disposable formal fixtures for exact, ambiguous, collision, traversal, symlink, missing pair, and existing valid pair cases.`
+  - Acceptance: `Each accepted change maps to exactly one formal board and unsafe identities change zero files.`
+  - Runtime: `external=agent://ses_05127cf93ffe2DOE7pDSz7Y8ts; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `src/runtime/formal-task-board-root.ts and tests/unit/formal-task-board-root.test.ts; 24 root fixtures and all 23 parser fixtures pass together (47/47); npm run typecheck, scoped diff check, and OpenSpec strict validation pass.`
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `Package 2.3 is the next dependency-ordered Agent-owned implementation package.`
+
+- [x] 2.3 — Implement transitions, evidence/disposition, joins, and append-only progress
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `State transitions and their evidence events must be atomic and coherent to prevent false completion and orphan async work.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `2.1`, `2.2`
+  - Scope: `Seven-state guard; dependency readiness; checkbox synchronization; actual Evidence; disposition rules; sync/async Join closure; RFC 3339 BOARD/package events; append-only writer.`
+  - Forbidden scope: `No Agent Journal replacement; no automatic acceptance/replay; no transcript copy; no reopening terminal IDs; no hidden join database.`
+  - Expected result: `ROSE-owned update API rejects illegal transitions and records exact bounded events without rewriting history.`
+  - Expected evidence: `State/disposition/join tables; before/after bytes; returned-not-done, invalid waiver, incomplete join, and terminal reopen negatives.`
+  - Acceptance: `Every legal update has matching evidence; incomplete/illegal updates leave files unchanged.`
+  - Runtime: `external=agent://ses_05119d75fffe2cjsmcZJlGmDXV; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `src/runtime/formal-task-board-update.ts and tests/unit/formal-task-board-update.test.ts; full state, waiver, disposition, join, exact-prefix, race, and rollback fixtures pass with parser/root suites (77/77); npm run typecheck, scoped diff check, and OpenSpec strict validation pass.`
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `Package implementation is complete; further BUILD packages are paused for DEFINE reacceptance of the discovered bootstrap Runtime/progress compatibility contract.`
+
+- [x] 2.3a — Implement the exact opt-in external bootstrap reconciliation bridge
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `The bounded parser/update compatibility bridge and no-fabrication migration fixtures are material implementation owned by the exact implementer.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `2.3`
+  - Scope: `Strict-default external-session Runtime union behind exact identity/decision opt-in; append-only BOARD/package RECONCILED evidence; historical bootstrap normalization; observed-after-return package bundle with explicit timing limitation.`
+  - Forbidden scope: `No synthetic job/turn/history; no prior-event rewrite; no generic external adapter; no public Task schema/default/permission change; no automatic acceptance; no use outside the exact opted-in change.`
+  - Expected result: `The current bootstrap board can be reconciled honestly under one explicit option while normal persistent boards continue to require complete five-part Runtime refs.`
+  - Expected evidence: `Strict-default rejection; wrong-identity/decision negatives; exact external syntax; unavailable-field validation; byte-prefix preservation; historical and future bundle fixtures; no-authority and no-fabrication checks; current-pair reconciliation evidence.`
+  - Acceptance: `Only the exact opted-in bootstrap pair validates with named timing limitations, and every default/persistent path remains byte- and contract-compatible.`
+  - Runtime: `external=agent://ses_04faccf3effewzp7t1GbcQ7qIo; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `src/runtime formal-board bridge surfaces; tests/unit/formal-task-board-bootstrap.test.ts; focused Vitest 98/98; typecheck PASS; scoped diff check PASS`
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `Package 3.1 is the next dependency-ready Specialized Agent package.`
+
+- [x] 2.4 — Enforce ROSE-only board writes and restart reconciliation
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `Protected-path enforcement and Agent Journal reconciliation cross bounded runtime seams and need integrated evidence.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `2.3`, `3.3`
+  - Scope: `Optional formalContext {changeId} task-item input; exact v1 root validation; immutable write/edit and sandboxed-bash deny for owning tasks/progress; fail-closed formal bash when exact sandbox deny is unavailable; hub jobs/output/history reconciliation; completed/partial readable→returned; blocked/failed/interrupted/unexecuted/missing→blocked; async join recovery.`
+  - Forbidden scope: `No caller-supplied board paths, hidden/fuzzy lookup, board-content injection, ordinary task/default/permission-mode expansion, dependency change, automatic redispatch, fallback selector, acceptance, done, or phase advancement.`
+  - Expected result: `Only ROSE changes board artifacts and restart preserves exact evidence state without replay.`
+  - Expected evidence: `Schema/normalization ordinary regression; invalid exact-root pre-allocation negatives; shared/isolated write/edit byte denial; sandbox denyWrite and sandbox-unavailable/YOLO bash fail-closed fixtures; sync/async settlement, restart, released refs, stale output, terminal history, and zero replay.`
+  - Acceptance: `Worker mutation is denied and reconciliation deterministically preserves returned≠done and open joins.`
+  - Runtime: `external=agent://ses_04f176bfbffekzCKgqL1u6LD46; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `Optional exact formalContext schema and root preflight; durable owning-file protection; symlink-aware write/edit and nested-task enforcement; process-owned exact sandbox deny/fail-close; restart reconciliation without replay; focused Vitest 180/180, typecheck, permission-mode generation/verification, generated validation 7/7, strict OpenSpec, and diff check PASS.`
+  - ROSE disposition: `accepted — live production provider and process-restart revive execution remain Unverified`
+  - Blocker: `none`
+  - Next action: `Package 4.1 is the next selected dependency-ready Specialized Agent package.`
+
+## 3. Agent Catalog and lifecycle dispatch
+
+- [x] 3.1 — Generate the canonical catalog and phase-relevant views
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `Deterministic RoleProfile projection and phase routing validation are isolated, bounded implementation work.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `1.1`, `2.3a`
+  - Scope: `Canonical selector/one-line description/status/posture projection; recommended IDEATE/DEFINE/BUILD/SHIP selector sets; active nonterminal Owner view; canonical-order and bounded-output validation.`
+  - Forbidden scope: `No duplicate description map; no full prompt/provenance body; no phase tags in role descriptions; no new selector/tool/capability/spawn/permission.`
+  - Expected result: `One catalog authority with bounded phase routing views and visible failures.`
+  - Expected evidence: `Exact-current-selector tests; phase selector validation; description regeneration; duplicate/manual map and hash/profile failures.`
+  - Acceptance: `Every displayed description derives from current RoleProfiles and phase routing cannot grant capability.`
+  - Runtime: `external=agent://ses_04f8ea3fcffej7J0bqZjfLJNGM; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `src/runtime/agent-catalog.ts; tests/unit/agent-catalog.test.ts; focused catalog and roles Vitest 13/13; typecheck PASS; scoped diff check PASS`
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `Package 3.2 is the next dependency-ready Specialized Agent package.`
+
+- [x] 3.2 — Add orchestration guidance to task and lifecycle model-facing surfaces
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `Pi tool metadata and lifecycle prompt integration are bounded production surfaces requiring focused runtime tests.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `3.1`
+  - Scope: `Task description/promptSnippet/named promptGuidelines; ordinary-versus-lifecycle wording; phase recommendations/active Owners; explicit selector/async/join/inspection/waiver rules; inactive-task absence.`
+  - Forbidden scope: `No TASK_TOOL_SCHEMA change; no hub catalog; no APPEND_SYSTEM role dump; no Runtime default-general/default-async or permission-mode change.`
+  - Expected result: `The main Agent knows when and how to dispatch Specialized packages before task calls without flooding every phase with all role prompts.`
+  - Expected evidence: `Tool registration/system-prompt fixtures; ordinary Pi regression; phase views; inactive-task absence; bounded prompt projection.`
+  - Acceptance: `Metadata changes routing guidance only and existing task/hub API behavior remains compatible.`
+  - Runtime: `external=agent://ses_04f8557e3ffeOitKn0sUssB1Ff; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `task metadata and lifecycle guidance renderer in runtime.ts/rose-context.ts; focused runtime/catalog/task Vitest 29/29; typecheck PASS; scoped diff check PASS`
+  - ROSE disposition: `partially-accepted — residual transfer: package 3.3 binds explicit current lifecycle inputs to production orchestration`
+  - Blocker: `none`
+  - Next action: `Package 3.3 owns production lifecycle binding, formal dispatch, joins, and phase gates.`
+
+- [x] 3.3 — Implement formal Owner dispatch, waiver, sync/async join, and phase gates
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `The orchestration adapter is material runtime execution and should be implemented as one dependency-ordered package.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `2.3`, `3.2`
+  - Scope: `Ordinary/lifecycle precedence; ROSE versus Agent ownership; exact Specialized dispatch; no-general formal rule; pre-recorded waiver classes; explicit async mapping; hub joins; evidence/disposition and phase-gate checks.`
+  - Forbidden scope: `No global Runtime default change; no fixed call quota; no auto review swarm; no auto child-context assembly; no UI/telemetry; no permission expansion.`
+  - Expected result: `Agent-owned ready packages dispatch exact selectors, direct exceptions are auditable, and no dependent/phase completion outruns evidence.`
+  - Expected evidence: `Four-phase routing fixtures; exact task inputs; valid/invalid waivers; sync order; async join order-independence; no duplicate scope; gate failures.`
+  - Acceptance: `Ordinary Pi remains benefit-based while active lifecycle evidence graph deterministically controls execution and completion.`
+  - Runtime: `external=agent://ses_04f7ca598ffea3oBdcDJ21kbdV; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `src/runtime/formal-orchestration.ts and focused orchestration/runtime fixtures; focused Vitest 106/106; typecheck PASS; scoped diff check PASS`
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `Packages 2.4 and 4.1 are dependency-ready and may proceed as independent Agent-owned packages.`
+
+## 4. Legacy and documentation
+
+- [x] 4.1 — Implement explicit one-change legacy opt-in
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `Legacy preservation and exact in-place upgrade are bounded migration execution with deterministic fixtures.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `2.2`, `2.3`, `2.3a`
+  - Scope: `Legacy/unmanaged classification; explicit exact-change in-place v1 upgrade; preservation of representable IDs/checkmarks/history; BOARD_CREATED migration evidence.`
+  - Forbidden scope: `No bulk migration; no fuzzy change identity; no informal promotion; no deletion/move; no dual-write subsystem.`
+  - Expected result: `Existing OpenSpec checklists remain unchanged unless one exact change opts in.`
+  - Expected evidence: `Legacy unchanged fixture; one-change upgrade fixture; unrelated-change byte checks.`
+  - Acceptance: `Legacy files are never silently rewritten or falsely reported as v1 PASS.`
+  - Runtime: `external=agent://ses_04ee748b3ffecx5rEbkPxjnBQ7; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `src/runtime/formal-task-board-migration.ts plus guarded absent-progress installation; exact opt-in, legacy byte preservation, representable ID/checkmark/title/order migration, BOARD_CREATED evidence, unrelated-change isolation, race/rollback and non-empty-history fail-close fixtures; focused Vitest 108/108, typecheck, strict OpenSpec, and diff check PASS.`
+  - ROSE disposition: `accepted — live crash/power-loss migration behavior remains Unverified`
+  - Blocker: `none`
+  - Next action: `Package 4.2 is dependency-ready for the exact read-only aili.doc-researcher audit.`
+
+- [x] 4.2 — Produce documentation consistency evidence
+  - Status: `done`
+  - Owner: `agent:aili.doc-researcher`
+  - Dispatch: `required`
+  - Dispatch reason: `A read-only specialist should identify exact stale ordinary/lifecycle, general, async, board, and permission wording before documentation mutation.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `1.3`, `2.4`, `3.3`, `4.1`
+  - Scope: `Audit README/docs/AGENTS/canonical snapshot wording; map every required documentation change to implemented behavior and accepted decisions.`
+  - Forbidden scope: `No file edits; no production code; no new commands/UI; no unsupported sandbox, model-quality, or dispatch-rate claims.`
+  - Expected result: `Bounded docs-to-spec anchor matrix and stale wording inventory.`
+  - Expected evidence: `Exact paths/headings; ordinary Pi versus lifecycle distinctions; no task/<task-id>; no general-default or permission contradiction.`
+  - Acceptance: `Every user-facing behavior has a precise current source anchor or named Unverified limitation.`
+  - Runtime: `external=agent://ses_04ed26cc2ffewrl69wB8UaSjtI; transport=external-task-session/v1; unavailable=job,turn,history`
+  - Evidence: `Read-only anchor matrix over README.md, docs/persistent-agents.md, AGENTS.md, templates/APPEND_SYSTEM.md, canonical skill snapshot, accepted specs, and current runtime; P0/P1 stale wording and exact no-change surfaces identified; ROSE direct reads confirmed the material anchors.`
+  - ROSE disposition: `partially-accepted — local anchors accepted; canonical source synchronization and AGENTS source ownership remain residual blockers for 4.3`
+  - Blocker: `none`
+  - Next action: `Resolve exact canonical-source attachment/write authority and project AGENTS source ownership before package 4.3.`
+
+- [ ] 4.3 — Apply accepted documentation updates
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `Documentation mutation requires a write-capable bounded implementer after read-only evidence is accepted.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `4.2`
+  - Scope: `Update accepted README/docs/project conventions for formal board, orchestrator duties, Specialized dispatch, joins, disposition, phase gates, ordinary compatibility, legacy, and unchanged permissions.`
+  - Forbidden scope: `No unrelated docs rewrite; no /aili-work UI; no informal path; no production or permission changes.`
+  - Expected result: `Human-facing documentation matches implemented contract without claiming model willingness or unverified isolation.`
+  - Expected evidence: `Changed docs; docs-to-spec mapping; stale wording search.`
+  - Acceptance: `A reader can distinguish ordinary Pi, formal AILI orchestration, board/progress/Journal, Agent result, ROSE disposition, and operation gates.`
+  - Runtime: `pending`
+  - Evidence: `pending`
+  - ROSE disposition: `pending`
+  - Blocker: `The approved /home/rosetears/code/aili-workflows source path did not exist and the user selected Keep packages blocked; canonical attachment/write/synchronization and AGENTS.md source ownership remain unresolved.`
+  - Next action: `Remain blocked unless the user later supplies one exact canonical repository path and grants a fresh exact ADD approval; do not scan or auto-select a source.`
+
+## 5. Verification and closeout
+
+- [ ] 5.1 — Add and run the focused formal orchestration verification matrix
+  - Status: `pending`
+  - Owner: `agent:aili.test-engineer`
+  - Dispatch: `required`
+  - Dispatch reason: `The accepted matrix spans parser, routing, joins, Runtime reconciliation, metadata, write protection, legacy, and permissions and belongs to the testing specialist.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `1.3`, `2.4`, `3.3`, `4.1`
+  - Scope: `Planned unit/integration fixtures and selected commands from regenerated test-plan.md, including ordinary Pi regression, four phases, waivers, no-general, joins, returned/done, false-success, and no-mutation negatives.`
+  - Forbidden scope: `No real HOME/provider/external repo/browser unless separately required; no Git/publish/release/dependency operation; no informal/promotion tests.`
+  - Expected result: `Fresh deterministic evidence for every requirement/decision/risk row with failures and skips visible.`
+  - Expected evidence: `Focused Vitest; typecheck; skill/role/generated checks; strict OpenSpec; diff check; skipped/Unverified inventory.`
+  - Acceptance: `All required offline rows pass or a named blocker remains; no model-behavior or live-environment claim is fabricated.`
+  - Runtime: `pending`
+  - Evidence: `pending`
+  - ROSE disposition: `pending`
+  - Blocker: `Depends on implementation and exact canonical source synchronization.`
+  - Next action: `Dispatch only after owning implementation packages settle.`
+
+- [ ] 5.2 — Inspect final scope and issue the BUILD verdict
+  - Status: `pending`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `Final diff inspection, result reconciliation, integration, fresh verification selection, residual Unverified, and verdict are ROSE-only.`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `4.3`, `5.1`
+  - Scope: `Inspect final files and evidence graph; verify refs/waivers/joins/dispositions; map requirements to artifacts/tests; confirm formal-only scope and permission/Runtime non-delta; run smallest completion checks.`
+  - Forbidden scope: `No automatic repair swarm; no commit/push/merge/publish/release; no expansion beyond accepted change.`
+  - Expected result: `ROSE records done, repair-needed, blocked, or Unverified with exact evidence and updates only the owning board/progress.`
+  - Expected evidence: `Final scoped diff; package evidence/disposition ledger; accepted verification outputs; clean validator; strict OpenSpec; branch/status classification.`
+  - Acceptance: `Every accepted requirement has current evidence, no returned result or join is orphaned, and no false done, informal authority, or operation grant remains.`
+  - Runtime: `pending`
+  - Evidence: `pending`
+  - ROSE disposition: `pending`
+  - Blocker: `Depends on all documentation and verification packages.`
+  - Next action: `Run last and stop without SHIP or Git/release operations.`

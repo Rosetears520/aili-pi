@@ -9,12 +9,13 @@ import {
 } from "./quality.js";
 import {
   verifyExactMutationScope,
+  type ActiveBenefitDecision,
   type BenefitDecision,
   type ExactMutationScope,
   type RecommendedSafeRange,
   type SafeRangePlan,
 } from "./safe-planning.js";
-import { classifyTransparentPromotionGaps } from "./promotion-gaps.js";
+import { classifyTransparentPromotionGaps, type PromotionGapIndexV1 } from "./promotion-gaps.js";
 import type { SessionLikeEntry } from "./contracts.js";
 import {
   AILI_COMPACT_SCHEMA_V3,
@@ -34,7 +35,6 @@ import {
   type V3ProviderObservationProvenance,
   type V3QualityMetadata,
   type V3SemanticBlock,
-  type V3Tier,
   type V3TokenMetadata,
   type V3Transaction,
 } from "./v3.js";
@@ -85,30 +85,19 @@ export interface V3ProtectedOrdinalInterval {
   lastOrdinal: number;
 }
 
-export interface V3RestillPlannerPolicy {
-  minChildren: number;
-  minSourceTokens: number;
-  minSavingsTokens: number;
-  minSavingsRatio: number;
-  maxSummaryTokens: number;
-  minTurnsSinceCreate: number;
-}
-
 export interface V3MutationPlannerContext {
   state: V3LifecycleState;
   catalog: V3MutationCatalog;
-  /** Required for T1. It is the exact atom-safe plan used to issue the caller's refs. */
+  /** Required for message-source active blocks. It is the exact atom-safe plan used to issue the caller's refs. */
   safePlan?: SafeRangePlan;
   /** Current-tail or other hard-protected effective leaf intervals. */
   protectedIntervals?: readonly V3ProtectedOrdinalInterval[];
   /** Readable legacy IDs known outside the v3 state map. */
   legacyBlockIds?: ReadonlySet<string>;
-  /** Defaults to true. False disables only T3-to-T3 restilling. */
-  restillEnabled?: boolean;
-  /** Runtime config may only tighten the stable reducer-enforced restill defaults. */
-  restillPolicy?: Partial<V3RestillPlannerPolicy>;
   /** Immutable current-epoch raw branch slice used to derive promotion proofs. */
   promotionGapEntries?: readonly SessionLikeEntry[];
+  /** Revision-scoped immutable raw index supplied by the status/runtime snapshot. */
+  promotionGapIndex?: PromotionGapIndexV1;
 }
 
 export interface V3BenefitEvidence {
@@ -116,7 +105,7 @@ export interface V3BenefitEvidence {
   /** Binds replacement-token economics to the exact proposed summary. */
   summaryDigest: string;
   orderedRefs: readonly string[];
-  decision: BenefitDecision;
+  decision: BenefitDecision | ActiveBenefitDecision;
   tokens: V3TokenMetadata;
 }
 
@@ -134,6 +123,8 @@ export type V3QualityEvidence = V3EvaluatedQualityEvidence | V3UnevaluatedQualit
 
 interface V3SemanticRequestBase {
   operation: "compact";
+  /** Every mutation creates one tierless active block. */
+  semantics?: "active-block";
   catalogId: string;
   transactionId: string;
   blockId: string;
@@ -219,7 +210,6 @@ export interface V3MutationPlanSuccess {
   transaction: V3Transaction;
   orderedRefs: readonly string[];
   sourceDigest?: string;
-  targetTier?: V3Tier;
 }
 
 /** Error strings and discovery hints are deliberately bounded and contain no source or summary text. */
@@ -253,7 +243,7 @@ export function planV3Mutation(request: V3MutationRequest, context: V3MutationPl
   return planV3MessageMutation(request, context);
 }
 
-/** Plan one exact atom-safe T1 semantic transaction without mutating lifecycle state. */
+/** Plan one exact atom-safe tierless active-block transaction without mutating lifecycle state. */
 export function planV3MessageMutation(
   request: V3MessageMutationRequest,
   context: V3MutationPlannerContext,
@@ -287,9 +277,9 @@ export function planV3MessageMutation(
   const entryIds = selected.value.map((item) => item.entryId);
   const orderedRefs = selected.value.map((item) => item.ref);
   const sourceDigest = range.sourceDigest;
-  const benefit = validateBenefit(request.benefit, "T1", orderedRefs, sourceDigest, request.summary, context, range);
+  const benefit = validateActiveBenefit(request.benefit, orderedRefs, sourceDigest, request.summary, context, range);
   if (!benefit.ok) return benefit;
-  const quality = mapAcceptedQuality(request.quality, "T1", "messages", orderedRefs, sourceDigest, request.summary, context);
+  const quality = mapActiveQuality(request.quality, "messages", orderedRefs, sourceDigest, request.summary, context);
   if (!quality.ok) return quality;
 
   const transaction: V3Transaction = {
@@ -297,7 +287,6 @@ export function planV3MessageMutation(
     tag: "semantic-create",
     payload: {
       blockId: request.blockId,
-      tier: "T1",
       topic: request.topic,
       runId: request.runId,
       anchorEntryId: entryIds[0]!,
@@ -317,10 +306,10 @@ export function planV3MessageMutation(
     },
   };
   const ordinals = new Map(selected.value.map((item) => [item.entryId, item.effectiveSourceOrdinal] as const));
-  return preflight(transaction, orderedRefs, sourceDigest, "T1", context, ordinals);
+  return preflight(transaction, orderedRefs, sourceDigest, context, ordinals);
 }
 
-/** Plan a 2..16 child T1->T2, T2->T3, or strict-default T3->T3 transaction. */
+/** Plan a 2..16 child tierless active-block replacement transaction. */
 export function planV3BlockMutation(
   request: V3BlockMutationRequest,
   context: V3MutationPlannerContext,
@@ -353,9 +342,6 @@ export function planV3BlockMutation(
       return failure("source-drift", "A child projection version is stale.", "$.blockRefs", context);
     }
   }
-  if (new Set(children.map(({ block }) => block.tier)).size !== 1) {
-    return failure("mixed-tier", "Block mode cannot merge different child tiers.", "$.blockRefs", context);
-  }
   for (const item of children) {
     if (item.catalog.effectiveSourceOrdinal !== item.block.firstLeafOrdinal) {
       return failure("source-drift", "A block reference has stale ordinal metadata.", "$.blockRefs", context);
@@ -369,11 +355,19 @@ export function planV3BlockMutation(
   const hasRawGap = children.some((item, index) => index > 0
     && item.block.firstLeafOrdinal !== children[index - 1]!.block.lastLeafOrdinal + 1);
   const classifiedGaps = hasRawGap
-    ? classifyTransparentPromotionGaps(
-      context.promotionGapEntries ?? [],
-      context.state.blocks,
-      children.map((item) => item.block),
-    )
+    ? context.promotionGapIndex
+      ? context.promotionGapIndex.classify(context.state.blocks, children.map((item) => item.block))
+      : classifyTransparentPromotionGaps(
+        context.promotionGapEntries ?? [],
+        context.state.blocks,
+        children.map((item) => item.block),
+        {
+          sessionId: context.state.sessionId,
+          branchLeafId: context.state.branchLeafId,
+          epochId: context.state.epochId,
+          revision: context.state.projectionVersion,
+        },
+      )
     : { ok: true as const, proofs: [] };
   if (!classifiedGaps.ok) {
     return failure("invalid-promotion-gap", "Selected child gaps are not transparent AILI planning protocol.", "$.blockRefs", context);
@@ -382,17 +376,11 @@ export function planV3BlockMutation(
     return failure("protected-source", "Selected child coverage intersects the protected tail.", "$.blockRefs", context);
   }
 
-  const childTier = children[0]!.block.tier;
-  const targetTier: V3Tier = childTier === "T1" ? "T2" : "T3";
   const orderedRefs = children.map((item) => item.catalog.ref);
   const sourceDigest = v3BlockSourceDigest(context.catalog.catalogId, children.map((item) => item.block));
-  const benefit = validateBenefit(request.benefit, targetTier, orderedRefs, sourceDigest, request.summary, context);
+  const benefit = validateActiveBenefit(request.benefit, orderedRefs, sourceDigest, request.summary, context);
   if (!benefit.ok) return benefit;
-  if (childTier === "T3") {
-    const restill = validateRestill(children.map((item) => item.block), request.createdTurnOrdinal, benefit.value, context);
-    if (!restill.ok) return restill;
-  }
-  const quality = mapAcceptedQuality(request.quality, targetTier, "blocks", orderedRefs, sourceDigest, request.summary, context);
+  const quality = mapActiveQuality(request.quality, "blocks", orderedRefs, sourceDigest, request.summary, context);
   if (!quality.ok) return quality;
 
   const childBlocks = children.map((item) => item.block);
@@ -402,7 +390,6 @@ export function planV3BlockMutation(
     tag: "semantic-create",
     payload: {
       blockId: request.blockId,
-      tier: targetTier,
       topic: request.topic,
       runId: request.runId,
       anchorEntryId: childBlocks[0]!.anchorEntryId,
@@ -414,13 +401,13 @@ export function planV3BlockMutation(
         childBlockIds: childBlocks.map((block) => block.blockId),
         ...(classifiedGaps.proofs.length > 0 ? { transparentGaps: classifiedGaps.proofs } : {}),
       },
-      leafDigest: v3ParentLeafDigest(targetTier, leafCount, childBlocks.map((block) => block.leafDigest)),
+      leafDigest: v3ParentLeafDigest(undefined, leafCount, childBlocks.map((block) => block.leafDigest)),
       leafCount,
       tokens: benefit.value,
       quality: quality.value,
     },
   };
-  return preflight(transaction, orderedRefs, sourceDigest, targetTier, context);
+  return preflight(transaction, orderedRefs, sourceDigest, context);
 }
 
 export function planV3DecompressMutation(
@@ -445,7 +432,7 @@ export function planV3DecompressMutation(
       reason: "decompress",
     },
   };
-  return preflight(transaction, roots.value.map((item) => item.catalog.ref), undefined, undefined, context);
+  return preflight(transaction, roots.value.map((item) => item.catalog.ref), undefined, context);
 }
 
 export function planV3RecompressMutation(
@@ -472,7 +459,7 @@ export function planV3RecompressMutation(
       reason: "recompress",
     },
   };
-  return preflight(transaction, roots.value.map((item) => item.catalog.ref), undefined, undefined, context);
+  return preflight(transaction, roots.value.map((item) => item.catalog.ref), undefined, context);
 }
 
 /** Plan a closed v3 control record. Legacy control records may still be emitted
@@ -499,7 +486,7 @@ export function planV3ControlMutation(
       reason: request.action,
     },
   };
-  return preflight(transaction, [], undefined, undefined, context);
+  return preflight(transaction, [], undefined, context);
 }
 
 /** Plan one result-body-only cooling record from exact provider observation
@@ -539,7 +526,7 @@ export function planV3CoolingMutation(
       reason: request.reason,
     },
   };
-  return preflight(transaction, orderedRefs, undefined, undefined, context);
+  return preflight(transaction, orderedRefs, undefined, context);
 }
 
 /** Canonical digest shared by block-source freezing, quality input, and benefit evidence. */
@@ -553,6 +540,9 @@ export function v3BlockSourceDigest(catalogId: string, children: readonly V3Sema
       tier: block.tier,
       epochId: block.epochId,
       projectionVersion: block.projectionVersion,
+      transactionId: block.transactionId,
+      source: block.source,
+      summaryDigest: block.summaryDigest,
       firstLeafOrdinal: block.firstLeafOrdinal,
       lastLeafOrdinal: block.lastLeafOrdinal,
       leafCount: block.leafCount,
@@ -607,7 +597,7 @@ function validateSemanticRequest(
   }
   if (request.summaryMaxChars !== undefined
     && (!Number.isSafeInteger(request.summaryMaxChars)
-      || request.summaryMaxChars < 256
+      || request.summaryMaxChars < V3_LIMITS.minSummaryChars
       || request.summaryMaxChars > V3_LIMITS.maxSummaryChars
       || request.summary.length > request.summaryMaxChars)) {
     return failure("invalid-request", "Summary exceeds its declared bound.", "$.summary", context);
@@ -699,9 +689,12 @@ function resolveOperationRoots(
   return resolved;
 }
 
-function validateBenefit(
+/**
+ * Active-block writes retain exact source and conservative token evidence, but
+ * deliberately do not bind eligibility to a tier transition or tier floor.
+ */
+function validateActiveBenefit(
   evidence: V3BenefitEvidence,
-  tier: V3Tier,
   orderedRefs: readonly string[],
   sourceDigest: string,
   summary: string,
@@ -715,7 +708,7 @@ function validateBenefit(
     return failure("benefit-mismatch", "Benefit evidence does not match the selected source.", "$.benefit", context);
   }
   const { decision, tokens } = evidence;
-  if (!decision || !tokens || decision.tier !== tier || !decision.eligible || decision.reasons.length !== 0 || decision.saturated) {
+  if (!decision || !tokens || !decision.eligible || decision.reasons.length !== 0 || decision.saturated) {
     return failure("benefit-rejected", "The selected source did not pass conservative benefit gates.", "$.benefit", context);
   }
   if (tokens.sourceTokensLower !== decision.sourceLower
@@ -734,15 +727,15 @@ function validateBenefit(
       || tokens.estimatorVersion !== plan.tokenProfile.estimatorVersion
       || tokens.providerId !== plan.tokenProfile.providerId
       || tokens.modelId !== plan.tokenProfile.modelId) {
-      return failure("benefit-mismatch", "T1 token evidence does not match the exact safe-range plan.", "$.benefit", context);
+      return failure("benefit-mismatch", "Token evidence does not match the exact safe-range plan.", "$.benefit", context);
     }
   }
   return { ok: true, value: { ...tokens } };
 }
 
-function mapAcceptedQuality(
+/** Active blocks require tierless quality proof bound to their exact source. */
+function mapActiveQuality(
   handoff: V3QualityEvidence,
-  tier: V3Tier,
   sourceKind: QualitySourceKind,
   orderedRefs: readonly string[],
   sourceDigest: string,
@@ -758,13 +751,13 @@ function mapAcceptedQuality(
     return failure("quality-rejected", "Quality evidence is malformed or unknown-version.", "$.quality", context);
   }
   const evidence = parsed.qualityEvidence;
-  if (qualityInput.tier !== tier
+  if (!("semantics" in qualityInput) || qualityInput.semantics !== "active-block"
+    || !("semantics" in evidence) || evidence.semantics !== "active-block"
     || qualityInput.catalogId !== context.catalog.catalogId
     || qualityInput.sourceKind !== sourceKind
     || qualityInput.sourceDigest !== sourceDigest
     || qualityInput.summary !== summary
     || !arraysEqual(qualityInput.orderedRefs, orderedRefs)
-    || evidence.tier !== tier
     || evidence.catalogId !== context.catalog.catalogId
     || evidence.sourceKind !== sourceKind
     || evidence.sourceDigest !== sourceDigest
@@ -797,57 +790,10 @@ function isUnevaluatedQualityEvidence(value: V3QualityEvidence): value is V3Unev
     && Object.keys(value).length === 1;
 }
 
-function validateRestill(
-  children: readonly V3SemanticBlock[],
-  createdTurnOrdinal: number,
-  tokens: V3TokenMetadata,
-  context: V3MutationPlannerContext,
-): Selection<true> {
-  const limits = resolveV3RestillPlannerPolicy(context.restillPolicy);
-  if (context.restillEnabled === false
-    || children.length < limits.minChildren
-    || children.length > V3_LIMITS.maxChildBlocks
-    || children.some((child) => createdTurnOrdinal - child.createdTurnOrdinal < limits.minTurnsSinceCreate)
-    || tokens.sourceTokensLower < limits.minSourceTokens
-    || tokens.steadySavingsTokensLower < limits.minSavingsTokens
-    || tokens.savingsRatio < limits.minSavingsRatio
-    || tokens.summaryTokensUpper > limits.maxSummaryTokens) {
-    return failure("restill-ineligible", "T3 restill defaults are not all satisfied.", "$.blockRefs", context);
-  }
-  return { ok: true, value: true };
-}
-
-/** Unsafe loosening is ignored; the schema/reducer defaults remain the hard policy floor. */
-export function resolveV3RestillPlannerPolicy(
-  override: Partial<V3RestillPlannerPolicy> = {},
-): V3RestillPlannerPolicy {
-  const defaults = V3_LIMITS.restill;
-  const minimum = (candidate: unknown, fallback: number) => nonNegativeSafeInteger(candidate)
-    ? Math.max(fallback, candidate)
-    : fallback;
-  const maximum = (candidate: unknown, fallback: number) => nonNegativeSafeInteger(candidate)
-    ? Math.min(fallback, candidate)
-    : fallback;
-  const minSavingsRatio = typeof override.minSavingsRatio === "number"
-    && Number.isFinite(override.minSavingsRatio)
-    && override.minSavingsRatio >= 0
-    ? Math.max(defaults.minSavingsRatio, override.minSavingsRatio)
-    : defaults.minSavingsRatio;
-  return {
-    minChildren: minimum(override.minChildren, defaults.minChildren),
-    minSourceTokens: minimum(override.minSourceTokens, defaults.minSourceTokens),
-    minSavingsTokens: minimum(override.minSavingsTokens, defaults.minSavingsTokens),
-    minSavingsRatio,
-    maxSummaryTokens: maximum(override.maxSummaryTokens, defaults.maxSummaryTokens),
-    minTurnsSinceCreate: minimum(override.minTurnsSinceCreate, defaults.minTurnsSinceCreate),
-  };
-}
-
 function preflight(
   transaction: V3Transaction,
   orderedRefs: readonly string[],
   sourceDigest: string | undefined,
-  targetTier: V3Tier | undefined,
   context: V3MutationPlannerContext,
   messageOrdinals?: ReadonlyMap<string, number>,
 ): V3MutationPlanResult {
@@ -856,6 +802,7 @@ function preflight(
     legacyBlockIds: context.legacyBlockIds,
     expectedCatalogId: context.catalog.catalogId,
     promotionGapEntries: context.promotionGapEntries,
+    promotionGapIndex: context.promotionGapIndex,
   });
   if (!applied.ok) {
     return failure(applied.code, "The v3 atomic transition precondition failed.", applied.path, context);
@@ -865,7 +812,6 @@ function preflight(
     transaction: applied.value.transaction,
     orderedRefs: [...orderedRefs],
     ...(sourceDigest === undefined ? {} : { sourceDigest }),
-    ...(targetTier === undefined ? {} : { targetTier }),
   };
 }
 
@@ -907,6 +853,7 @@ function validCatalogEntries(catalog: V3MutationCatalog): boolean {
     if (!boundedString(item.ref, V3_LIMITS.maxIdentifierChars)
       || !boundedString(item.entryId, V3_LIMITS.maxIdentifierChars)
       || !nonNegativeSafeInteger(item.effectiveSourceOrdinal)
+      || item.effectiveSourceOrdinal >= Number.MAX_SAFE_INTEGER
       || messageRefs.has(item.ref)
       || messageIds.has(item.entryId)) return false;
     messageRefs.add(item.ref);
@@ -918,6 +865,7 @@ function validCatalogEntries(catalog: V3MutationCatalog): boolean {
     if (!BLOCK_REF_PATTERN.test(item.ref)
       || !boundedString(item.blockId, V3_LIMITS.maxIdentifierChars)
       || !nonNegativeSafeInteger(item.effectiveSourceOrdinal)
+      || item.effectiveSourceOrdinal >= Number.MAX_SAFE_INTEGER
       || blockRefs.has(item.ref)
       || blockIds.has(item.blockId)) return false;
     blockRefs.add(item.ref);

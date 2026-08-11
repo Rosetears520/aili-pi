@@ -13,19 +13,36 @@ function fixture() {
 afterEach(() => { while (roots.length) rmSync(roots.pop()!, { recursive: true, force: true }); });
 
 describe("Rose Matrix config migration", () => {
-  it("defaults to the intermediate 12 FPS waterfall cadence", () => {
+  it("defaults the optional waterfall off while retaining its 12 FPS cadence when enabled", () => {
     const { canonical, legacy } = fixture();
-    expect(loadRoseMatrixConfig(canonical, legacy).config).toMatchObject({ fps: 12, density: 0.65, height: 4 });
+    expect(loadRoseMatrixConfig(canonical, legacy).config).toMatchObject({ version: 3, enabled: false, rainEnabled: true, fps: 12, density: 0.65, height: 4 });
   });
 
-  it("migrates a valid legacy file to explicit schema v2 without deleting it", () => {
+  it("migrates a valid legacy file to explicit schema v3 without deleting it", () => {
     const { canonical, legacy } = fixture();
     writeFileSync(legacy, JSON.stringify({ enabled: false, fps: 12, density: 0.7, height: 6 }));
     const result = loadRoseMatrixConfig(canonical, legacy);
     expect(result.migrated).toBe(true);
-    expect(result.config).toEqual({ version: 2, enabled: false, fps: 12, density: 0.7, height: 4, appearance: "auto" });
+    expect(result.config).toEqual({ version: 3, enabled: false, rainEnabled: true, fps: 12, density: 0.7, height: 4, appearance: "auto" });
     expect(JSON.parse(readFileSync(canonical, "utf8"))).toEqual(result.config);
     expect(JSON.parse(readFileSync(legacy, "utf8"))).toMatchObject({ height: 6 });
+  });
+
+  it("rewrites canonical v2 config to v3 while preserving the master switch", () => {
+    const { canonical, legacy } = fixture();
+    writeFileSync(canonical, JSON.stringify({ version: 2, enabled: false, fps: 14, density: 0.8, height: 4, appearance: "light" }));
+    const result = loadRoseMatrixConfig(canonical, legacy);
+    expect(result.migrated).toBe(true);
+    expect(result.config).toEqual({
+      version: 3,
+      enabled: false,
+      rainEnabled: true,
+      fps: 14,
+      density: 0.8,
+      height: 4,
+      appearance: "light",
+    });
+    expect(JSON.parse(readFileSync(canonical, "utf8"))).toEqual(result.config);
   });
 
   it("does not overwrite corrupt or unsafe files", () => {

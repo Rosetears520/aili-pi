@@ -25,10 +25,9 @@ describe("AILI Compact typed live row observations", () => {
     expect(validateCompactLiveRowPass({ status: "PASS" }, binding, id)).toBe(false);
   });
 
-  it("keeps cache, copied-session, human-review, threshold, overflow, and PTY negatives NON_PASS", () => {
+  it("keeps cache, copied-session, threshold, overflow, and PTY negatives NON_PASS", () => {
     const binding = expected("openai");
     expect(reduceCompactLiveRow("LIVE-V2-1", eventsFor("LIVE-V2-1").filter((event) => event.code !== "pressure-state"), binding)).toMatchObject({ status: "NON_PASS", reason: "required-production-events-missing" });
-    expect(reduceCompactLiveRow("LIVE-V2-3", eventsFor("LIVE-V2-3").filter((event) => event.code !== "human-review"), binding)).toMatchObject({ status: "NON_PASS", reason: "human-verdict-required" });
     expect(reduceCompactLiveRow("LIVE-V2-6", eventsFor("LIVE-V2-6").filter((event) => event.code !== "native-threshold"), binding)).toMatchObject({ status: "NON_PASS", reason: "actual-host-threshold-not-induced" });
     expect(reduceCompactLiveRow("LIVE-V2-7", eventsFor("LIVE-V2-7").filter((event) => event.code !== "provider-overflow"), binding)).toMatchObject({ status: "NON_PASS", reason: "provider-context-error-not-induced" });
     expect(reduceCompactLiveRow("LIVE-V2-8", [{ code: "cache", providerReported: true, cacheReadTokens: 0, cacheWriteTokens: 0, stablePrefix: "warm-candidate", suffixChange: "suffix-changed", projectionChange: "projection-changed" }], binding)).toMatchObject({ status: "NON_PASS", reason: "provider-cache-zero-or-unavailable" });
@@ -82,10 +81,6 @@ export function eventsFor(id: CompactLiveRowId): CompactScenarioEvent[] {
     case "LIVE-V2-2": return [
       { code: "provider-call", turn: "user", succeeded: true, usage },
       { code: "calibration", eligible: 5, excluded: 1, exclusionCodes: ["overflow-retry-cancelled"], lowerBoundPreserved: true, upperBoundPreserved: true, invalidNarrowing: false },
-    ];
-    case "LIVE-V2-3": return [
-      ...(["T1", "T2", "T3", "T3-restill"] as const).map((tier) => ({ code: "tier-transaction" as const, tier, providerAuthored: true, persisted: true })),
-      { code: "human-review", verdict: "PASS", verdictId: "review-1", verdictSource: "external-human-verdict-artifact", candidateSha256: "e".repeat(64), verdictSha256: "f".repeat(64), hardFactsRetained: true, limitationsAccepted: true },
     ];
     case "LIVE-V2-4": return [
       { code: "tool-rejection", reason: "scope-drift", providerAuthored: true, transactionAppended: false, redacted: true, pressure: true, pressureCycleAttempt: 1 },

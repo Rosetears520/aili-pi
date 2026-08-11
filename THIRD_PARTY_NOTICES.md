@@ -1,28 +1,17 @@
 # Third-Party Notices
 
-This distribution is MIT-licensed. The following adapted sources and locked development/runtime dependencies retain their own license terms.
+This distribution is licensed under AGPL-3.0-or-later. The following adapted sources, behavioral references, and locked development/runtime dependencies retain their own license terms.
 
 ## aili-workflows
 
 - Status: adapted
 - Source: https://github.com/Rosetears520/aili-workflows.git
-- Revision: 7eb35f357ad489f5841ee10dac1e44549c1bdb76
-- Version: 0.2.7
+- Revision: bb1fedacc46d71045daa6257d121f2b71ba29d54
+- Version: 0.4.2
 - License: MIT
-- Source files: upstream/aili-workflows.lock.json#files (471 exact skill files), manifests/roles.json#records[].sourcePath (19 exact role source files), upstream/opencode-global-agents.lock.json (pinned source template revision/hash)
-- Reused symbols/patterns: 64 canonical skill bodies and owned assets, 19 child-role prompt bodies
-- Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; role prompts are generated as Pi frontmatter with explicit tool/capability ceilings and structured output; templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded
-
-## @agwab/pi-subagent
-
-- Status: dependency
-- Source: https://github.com/AgwaB/pi-subagent.git
-- Revision: daa7b83819116a62008ad17aa65fcd50fefbafd0
-- Version: 0.4.8
-- License: MIT
-- Source files: src/index.ts, src/api.ts, src/runners/headless-model.ts, src/artifacts/result.ts
-- Reused symbols/patterns: subagent tool renderCall, runSubagent API, headless lifecycle, artifact envelope
-- Local changes: AILI registers the full pinned upstream subagent tool schema, prepends a sanitized bounded requested-Agent heading, injects a non-removable credential guard, normalizes ordinary omitted/auto runs to headless for the Pi 0.81.1 compatibility window, and rejects explicit inline before model startup; no upstream source is copied
+- Source files: upstream/aili-workflows.lock.json#files (588 exact skill files), manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.2 source revision), upstream/opencode-global-agents.lock.json (pinned source template revision/hash)
+- Reused symbols/patterns: 65 canonical skill bodies and owned assets
+- Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; specialized role prompts and deterministic routing were regenerated from the exact 0.4.2 source revision and remain manifest-hash bound; templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded
 
 ## pi-permission-modes
 
@@ -68,41 +57,42 @@ This distribution is MIT-licensed. The following adapted sources and locked deve
 - Reused symbols/patterns: default Extension, /cache-optimizer, cache statistics, prompt cache hooks
 - Local changes: AILI initializes the pinned upstream extension through its single Extension entry; Zentui defaults its pi-cache-stats footer placement off while leaving cache commands and collection unchanged; no upstream source is copied
 
-## pi-markdown-preview
-
-- Status: dependency
-- Source: https://github.com/omaclaren/pi-markdown-preview.git
-- Revision: npm:0.10.1
-- Version: 0.10.1
-- License: MIT
-- Source files: index.ts, shared/, client/
-- Reused symbols/patterns: default Extension, /preview, /preview-browser, /preview-pdf, preview_export
-- Local changes: AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied
-
-## @narumitw/pi-lsp
-
-- Status: dependency
-- Source: https://github.com/narumiruna/pi-extensions.git
-- Revision: npm:0.25.0
-- Version: 0.25.0
-- License: MIT
-- Source files: extensions/pi-lsp/src/pi-lsp.ts, extensions/pi-lsp/src/
-- Reused symbols/patterns: default Extension, lsp_diagnostics, lsp_fix, /lsp
-- Local changes: AILI initializes the pinned upstream extension through its single Extension entry; no upstream source is copied
-
 ## pi-sakura-cyberdeck
 
 - Status: adapted
 - Source: https://github.com/beautifulrem/pi-sakura-cyberdeck.git
 - Revision: 165a1f8011a12a58a6409b56b8a6c0416cd9b589
-- Version: undefined
+- Version: git:165a1f8011a12a58a6409b56b8a6c0416cd9b589
 - License: MIT
 - Source files: extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**
 - Reused symbols/patterns: header, matrix animation, Zentui footer, fixed editor compositor
 - Local changes: registered as three additional Pi Package Extensions; Rose header loads a package-owned renamed artwork asset without changing upstream identity; Rose Shimmer, Rose Code Rain, and Zentui use the Rose-owned palette and gradient; overflowing Matrix tracks remain deterministic across the complete terminal width with the 96-track budget, while each rain row receives a structural blank-row repair; relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract
 
+## Oh My Pi reference
+
+- Status: reference-only
+- Source: https://github.com/can1357/oh-my-pi.git
+- Revision: 59619623e1eeb7c290649eeaf3a269284ce8adef
+- Version: 17.1.3
+- License: MIT
+- Source files: none copied
+- Reused symbols/patterns: none
+- Local changes: none
+
+## opencode-acp reference
+
+- Status: reference-only
+- Source: https://github.com/ranxianglei/opencode-acp.git
+- Revision: 00e8ba5c53fcbc46dfd86b5d7aa6eae058d29acb
+- Version: 1.14.3
+- License: AGPL-3.0-or-later
+- Upstream notice: Based on opencode-dynamic-context-pruning by Tarquinen (https://github.com/Tarquinen/opencode-dynamic-context-pruning); modified by ranxianglei, 2026 — 35 bug fixes plus performance and stability improvements.
+- Source files: none copied
+- Reused symbols/patterns: none
+- Local changes: none
+
 ## npm dependency inventory
 
-The exact 424-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
+The exact 350-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
 
 Runtime dependencies are initialized through the single AILI Extension entry. Package-owned third-party adaptations are copied only where their provenance sourceFiles explicitly name repository paths.

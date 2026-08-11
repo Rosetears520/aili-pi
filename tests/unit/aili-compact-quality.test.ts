@@ -135,6 +135,32 @@ describe("closed quality contracts", () => {
     expect(parseQualityResult({ ...result, qualityEvidence: { ...result.qualityEvidence, rawSource: "leak" } })).toBeUndefined();
     expect(parseQualityResult({ ...result, evaluatorVersion: "unknown" })).toBeUndefined();
   });
+
+  it("extracts quality input through exactly 18,000 semantic-summary UTF-16 characters", () => {
+    const summary = `Ship safely ${"s".repeat(18_000 - "Ship safely ".length)}`;
+    expect(summary).toHaveLength(18_000);
+    expect(extractQualityManifest(input(summary), source([fact()]), context())).toEqual(expect.objectContaining({ ok: true }));
+    expect(isQualityInput(input("s".repeat(18_001)))).toBe(false);
+  });
+
+  it("uses tierless active-block quality identity for new writes while retaining legacy tier parsing", () => {
+    const activeInput: QualityInputV1 = {
+      version: 1,
+      semantics: "active-block",
+      catalogId: "catalog-current",
+      sourceKind: "messages",
+      orderedRefs: ["m000001"],
+      sourceDigest: SOURCE_DIGEST,
+      summary: "Ship safely",
+    };
+    expect(isQualityInput(activeInput)).toBe(true);
+    expect(isQualityInput({ ...activeInput, tier: "T1" })).toBe(false);
+    const result = assessQuality(activeInput, source([fact()]), context());
+    expect(result.qualityEvidence).toMatchObject({ semantics: "active-block" });
+    expect(result.qualityEvidence).not.toHaveProperty("tier");
+    expect(qualityRequirement("active-block", "verification", false, false)).toBe("warning");
+    expect(qualityRequirement("active-block", "verification", false, true)).toBe("hard");
+  });
 });
 
 describe("exact normalization, digest framing, and UTF-16 spans", () => {

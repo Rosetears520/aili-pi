@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rose-aili.local/pptx/layout-preflight.schema.json",
+  "title": "Hash-bound post-AutoFit layout and issue verdict",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_kind", "status", "bindings", "shape_count", "issue_count", "findings"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "report_kind": {"const": "layout-preflight"},
+    "status": {"enum": ["ready", "blocked"]},
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["final_pptx_sha256", "template_profile_sha256", "font_audit_sha256", "officecli_issues_sha256", "render_sha256", "layout_evidence_sha256"],
+      "properties": {
+        "final_pptx_sha256": {"$ref": "#/$defs/hash"},
+        "template_profile_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "font_audit_sha256": {"$ref": "#/$defs/hash"},
+        "officecli_issues_sha256": {"$ref": "#/$defs/hash"},
+        "render_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "layout_evidence_sha256": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "shape_count": {"type": "integer", "minimum": 0},
+    "issue_count": {"type": "integer", "minimum": 0},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "status", "message"],
+        "properties": {
+          "code": {"type": "string", "minLength": 1},
+          "status": {"enum": ["blocking", "non-blocking"]},
+          "message": {"type": "string", "minLength": 1},
+          "slide_id": {"type": "string"},
+          "shape_id": {"type": "string"},
+          "issue_id": {"type": "string"},
+          "evidence": {"type": "object"}
+        }
+      }
+    }
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+}

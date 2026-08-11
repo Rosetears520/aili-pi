@@ -1,0 +1,48 @@
+# Drift Log — AILI Compact
+
+## 2026-07-24 — Cache panel host-surface mismatch
+
+- **Accepted contract:** a persistent, responsive, non-capturing side panel for AILI Compact cache telemetry.
+- **Observed local host surface:** Pi 0.81.1 `ExtensionUIContext` exposes `setWidget()` only at `aboveEditor`/`belowEditor`; its public `custom()` surface is focus-capturing. Evidence: `node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/types.d.ts` (`setWidget`, `custom`).
+- **Current bounded implementation:** an optional responsive, non-capturing below-editor widget controlled by `/aili-compact cache panel on|off`. It renders only numeric telemetry and hides on narrow terminals.
+- **Why this is material:** a below-editor widget is not a right-side panel. Claiming it as exact side-panel parity would be false.
+- **Options considered:**
+  1. Accept the public-API widget fallback for Pi 0.81.1; or
+  2. authorize a version-bound private TUI/prototype integration after a separate compatibility/risk review; or
+  3. remove the persistent-panel requirement and retain footer + on-demand details only.
+- **Decision:** **A accepted by the user in this session.** The responsive, non-capturing below-editor widget is now the accepted Pi 0.81.1 UI contract; no private TUI/prototype patch is authorized.
+- **Effect:** core compression BUILD can continue. This decision does not change the separate public-release license blocker.
+
+## 2026-07-25 — Pinned ACP source audit reopened incomplete parity work
+
+- **Previously accepted claim:** the task ledger marked the base tools/commands/config, semantic projection, 100% GC, cache accounting and doctor integration as complete or substantially complete.
+- **Observed exact source evidence:** `.worktrees/opencode-acp-v1.12.6/` was checked at tag `v1.12.6`, commit `f1a33d9f4ce55af808eb4e050717c914ed16084b`, AGPL-3.0-or-later. Direct comparison found missing model-addressable references, recap projection, range/message modes, functional command/manual behavior, nested recompress/GC, adaptive policy/subagent gating and six-slot prompt semantics.
+- **Current implementation evidence:** `src/runtime/aili-compact/index.ts` still accepts raw `entryIds`, the projector hides semantic source without inserting `block.summary`, several declared commands only display guidance, recap echoes caller text, config contains four booleans and prompt loading concatenates arbitrary Markdown files.
+- **Upstream conflicts:** pinned ACP disables in-place tool output/input/error pruning due prefix-cache breakage; its `deep` search flag is not implemented by execute; several schema/default and batch-GC surfaces are stale. These are explicitly not parity targets.
+- **Decision:** return the change from BUILD to DEFINE, preserve completed Pi-native base behavior, split/reopen every incomplete user-visible package, and require renewed acceptance of the revised final `test-plan.md` before BUILD resumes.
+- **Custom prompt reconciliation:** retain default-off, bounded snapshot and no-write Pi safety boundaries, but change the target from arbitrary Markdown concatenation to six fixed semantic slots with project-over-global override and per-purpose system guidance.
+- **Loophole-pass reconciliation:** read-only `aili.doc-researcher` and `aili.test-engineer` findings were integrated. The final draft rejects split-atom range boundaries, defines `v2`/`mNNNNNN`/`bNNNNNN`, command bounds, recap/decompression output limits, concrete config/protection/cache contracts, and starts a new epoch after every completed Pi compaction including AILI major GC.
+- **License effect:** no AGPL source/prompt/schema/fixture/asset was copied. Public release remains blocked and direct adaptation still requires separate exact approval.
+
+## 2026-07-27 — Exclusive AILI owner supersedes Pi overflow fallback
+
+- **Prior accepted behavior:** AILI cancelled healthy threshold/manual compaction but allowed Pi native overflow recovery when projection or major GC could not prove safety.
+- **New user decision:** follow pinned ACP deployment semantics and automatically set user-global Pi `compaction.enabled=false`; AILI becomes the only threshold/manual/overflow compression and GC owner.
+- **Trade-off accepted:** if independent AILI GC cannot recover provider budget, the real overflow error surfaces; no Pi summary/retry fallback remains. `/aili-compact off` also does not re-enable Pi automatically.
+- **Operation approval:** exact structured merge into `/home/rosetears/.pi/agent/settings.json` is approved, but execution is sequenced after renewed test-plan acceptance, implementation and focused checks.
+- **Effect:** tasks 5.9/6.2 remain current-tree baseline evidence but are superseded for target behavior by tasks 10.1-10.5. Prior acceptance is stale; production/bootstrap/HOME edits remain blocked until the revised final `test-plan.md` is accepted.
+
+## 2026-07-25 — Public widget resize event unavailable
+
+- **Accepted contract:** the Pi 0.81.1 below-editor widget should hide/reappear responsively without focus capture and rerender only for numeric state changes.
+- **Observed host surface:** public `ExtensionUIContext.setWidget()` is non-capturing, but Pi 0.81.1 exposes no public terminal-resize Extension event. Width can be recomputed safely whenever AILI republishes status; exact immediate resize delivery cannot be proven without a private TUI/prototype hook.
+- **Implemented evidence:** numeric-only presentation, narrow/visible/disabled width classification, stable numeric render keys, runtime same-key suppression and public below-editor `setWidget()` registration are covered locally.
+- **Decision:** retain the public widget implementation and leave task 6.6/live resize explicitly Unverified. Do not add a private TUI/prototype patch or relabel helper-level evidence as real-host resize PASS.
+- **Effect:** local private BUILD is otherwise complete. This one public-host evidence gap and the separate live/provider/license gates remain visible in `progress.txt` and the task ledger.
+
+## 2026-07-26 — Package-wide AGPL route selected for target 0.1.13
+
+- **Prior boundary:** Package remained MIT and public release was deliberately blocked after the AGPL source audit.
+- **User decision:** retain AILI Compact and license the entire Package as `AGPL-3.0-or-later` beginning with 0.1.13.
+- **Effect:** the license route is resolved at decision level, but implementation must synchronize package/lock/LICENSE/README/provenance/notices/SBOM/diagnostics/tarball evidence before removing the named blocker. Third-party licenses remain unchanged; prior releases are not retroactively revoked.
+- **Lifecycle impact:** the private-BUILD test-plan acceptance is stale for this public-contract delta. No license/version/Git/provider/publish mutation starts before revised final-test-plan acceptance and applicable exact operation gates.

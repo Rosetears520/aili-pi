@@ -8,6 +8,8 @@ result_id:
 trace_id:
 lane:
 owner:
+package_id:
+role_id:
 status: completed | partial | blocked | unverified
 confidence: HIGH | MED | LOW | VERY LOW | UNKNOWN
 worktree_context_ref: <context_id, evidence_version, freshness, mode> | N/A
@@ -16,12 +18,18 @@ cwd:
 target_rules_ref:
 artifact_destination:
 inspected_scope:
+summary:
+evidence:
+changed_files:
+verification:
 checks:
 freshness:
 skipped_checks:
 soft_boundary_limitations:
 blockers:
+risks:
 unverified:
+continuation_recommendation: same-package | new-package | none
 findings:
 convergence_links:
 review_arbitration_ref: openspec/changes/<change-id>/review-arbitration.md | N/A
@@ -46,13 +54,15 @@ P6 compatibility markers remain aliases, not a second envelope: `STATUS: complet
 ## Rules
 
 - Evidence must support the reported status.
+- `package_id` and `role_id` must match the task packet. `general` is not valid for formal ownership.
+- `evidence`, `changed_files`, and `verification` use portable references that ROSE can inspect; an opaque runtime ID cannot be the only completion evidence.
+- `continuation_recommendation` is advisory. `same-package` is valid only when all package-defining fields remain unchanged; `new-package` identifies a boundary and does not authorize dispatch or scope expansion.
 - Keep raw logs, broad dumps, and full files out of the result.
 - Mark unsupported claims `Unverified`.
 - A no-finding result uses `findings: []` and still reports inspected scope, checks, freshness, skipped checks, blockers, and `Unverified` items.
 - Do not issue the final PASS, acceptance, release, or integration decision.
-- Never resume the result's old `task_id` for follow-up, clarification, continuation, repair, recheck, or additional work.
-- A failed, empty, blocked, or partial result does not authorize an automatic fresh-session retry. ROSE handles the bounded gap directly or reports the blocker.
-- A later use of the same `subagent_type` is allowed only through a fresh Task with no prior `task_id` after a fresh trigger-and-benefit decision independently justifies changed evidence or a new assignment.
+- The current OpenCode Task adapter never resumes the result's old `task_id`; any later Task dispatch is fresh and independently justified. A persistent adapter may continue only unchanged same-package work under its own runtime mapping.
+- A failed, empty, blocked, or partial result does not authorize an automatic retry, continuation, or new dispatch. ROSE handles and dispositions the bounded gap.
 - No result grants permission for another operation, external access, Git integration, cleanup, lifecycle transition, approval, integration decision, or nested delegation; ROSE owns reconciliation and the final verdict.
 - An A33 result references the same one current WT-001 context as its task and names exactly one packet-declared repository/cwd, the applicable target-rules reference, and an owning-repository artifact destination. It records the shared-trust soft-boundary limitation and performs no broad host scan.
 - The repository/cwd fields repeat only the packet's ownership declaration; they do not create identity or command authority. The result never duplicates or rebinds roots, keys, identity, Git state, approvals, operation class/risk, deltas, rule bodies, verification command/cwd, or containment facts.

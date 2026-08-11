@@ -1,0 +1,70 @@
+2026-07-27 BUILD 进度 — redesign-aili-compact-lifecycle
+
+目标：@rosetears/aili-pi@0.2.0 mandatory PR2–PR5 scope
+工作区包版本：0.1.13（未修改；version/lock/provenance/SBOM/notices candidate mutation 尚未获得单独精确授权）
+状态：LOCAL_PR2_PR4_AND_PR5_AUTOMATED_BUILD_PASS_RELEASE_BLOCKED
+
+PR2 usable-main gate — PASS：
+- exact protocol atoms、8-atom + 12K/10% tail、hard protection、safe ranges/digests/exclusions
+- production provider serializer economics、bounded calibration、closed runtime quality flow、provider-only suffix 与四类 cache identities
+- planning.enabled narrow disable 与 inherited P0 fallback
+
+PR3 usable-main gate — PASS：
+- closed v3 tagged union、T1/T2/T3/T3-restill、structural lineage、atomic maximal projection
+- mode:blocks、1..16 roots、<=256 recursive closure、raw/one decompression、exact recompression、restore/checkpoint
+- v1/v2 readers 保留；legacy 只能 explicit decompress→exact raw ref→new v3 T1；old epoch query-only/search continuity
+
+PR4 usable-main gate — PASS：
+- production BranchIndex single provider capture、scoped refs/paging、incremental append、pure-oracle/fail-open
+- committed legacy protocol hide、lazy pressure/doctor lookup、compactionSummary synthetic alignment、archived-v3 epoch seed
+- exact cooling profiles、later observation/error resolution、task/hub hard protection
+- registered production 10K-message/100K-reference gate PASS：steady provider pass=1、source/repeated reads=0、fullScans=0、D=1 no rebuild、fault exact fail-open、LRU=4
+
+PR5 local automated gate — PASS within non-candidate scope：
+- doctor/UI/docs 已更新；本地 performance PASS 与 candidate/live claim 已分开
+- copied-session migration 4/4 PASS，包含 byte prefix、dual readers、fork/epoch/rollback、index fallback 与 continued work
+- fake-provider 1/1 PASS：7×T1→3×T2→1×T3、maximal checkpoint/gap、reload/fork、quality/stale/calibration、suffix、storm/interrupted/corrupt-index、legacy upgrade
+- fail-closed release evidence validator 已实现；在候选缺失时按设计 NON_PASS
+
+2026-07-27 fresh verification：
+- Compact focused：45 files / 351 tests PASS
+- fake-provider：1/1 PASS（25.46s focused；全量受控并发亦 PASS）
+- production AgentSession：5/5 PASS
+- migration：4/4 PASS
+- production performance：2/2 PASS，10K/100K sanitized artifact
+- direct strict OpenSpec：fix 与 redesign 均 valid；sequential materialization：2/2 PASS
+- typecheck PASS；bootstrap 15/15；package 6/6；generated 6/6；provenance baseline PASS；capabilities PASS
+- full suite：npm test -- --maxWorkers=4 --testTimeout=15000，84 files / 546 tests PASS，2 个 live-gated tests skipped
+
+Durable evidence：
+- artifacts/test-results/aili-compact-lifecycle-performance.json
+- artifacts/test-results/aili-compact-fake-provider.json
+- artifacts/test-results/aili-compact-migration.json
+- artifacts/test-results/aili-compact-agent-session.json
+- artifacts/test-results/aili-compact-build-verification.json
+
+仍未勾选且阻塞 v0.2.0 final acceptance：
+- 1.1：没有逐项 human acceptance；1.4：没有独立、BUILD 前的 Pi 0.82.1 context/custom-message/cache contract drift 记录
+- 3.11：没有 separately installed historical v0.1.14 binary，migration artifact 对该行保持 Unverified
+- 5.4：candidate manifests/notices 仍是旧 ACP pin；docs 仅记录目标 reference-only 边界，不能替代授权后的 provenance mutation
+- 5.7：OpenAI/Anthropic/Google Gemini live rows、真实 AgentSession overflow、第三方 context handler 前/后顺序未获授权、未运行
+- 5.9：package/lock/SBOM 仍为 0.1.13；未改成 0.2.0
+- 5.10：package dry-run/candidate review 与 release PASS 尚未完成；5.11：human review 未发生
+- 6.1–6.3、6.5：上述 live/version/provenance/candidate/human gates 未闭合，不能宣告 final acceptance 或 release candidate ready
+
+Release validator：
+- npm run validate:release 正确 NON_PASS（8 categories）：package、provenance、release index、candidate-bound migration/performance/fakeProvider、live、sanitizer
+- local PASS artifacts 没有伪造 0.2.0 packageVersion/implementation hash/live provider binding
+- 本轮未使用 provider credentials/network 或真实 HOME/Session，未执行 dependency/version/lock mutation、Git、pack/publish/tag/release
+
+2026-07-28 continuation：
+- Pi 0.82.1 post-BUILD public contract audit 完成：`PASS_NO_PUBLIC_CONTRACT_DRIFT`；task 1.4 的 BUILD 前时间条件不倒签。
+- task 5.4 完成：ACP 已精确 pin 为 `v1.14.3@00e8ba5c53fcbc46dfd86b5d7aa6eae058d29acb`，保持 `reference-only`、`sourceFiles: []`、`symbols: []`、`localChanges: []`；确定性 notices/SBOM 已重建，`npm run validate:provenance` PASS，源码符号扫描未发现复制实现。
+- 新增 candidate binding 与 fail-closed 生成器：migration、performance、fake-provider artifact 记录真实 package/Pi/implementation SHA-256；`generate:compact-release-evidence` 生成 provenance/sanitizer/index，`validate:compact-release-evidence` 验证可重复性。
+- fresh evidence：release/provenance unit 7/7 PASS；migration/fake-provider/performance focused 7/7 PASS；全量 84 files / 547 tests PASS，2 个明确 live-gated tests skipped；typecheck、bootstrap 15/15、package 6/6、generated 6/6、provenance、capabilities 与生成器验证均 PASS。
+- 当前 artifact 诚实绑定 `0.1.13` 和 implementation `b64ad85090ce49c4fc2b4f35f5f8a22b4aa66856ad5359b064ba39dc8e8eda3c`；live artifact 缺失、历史 `v0.1.14` row 为 `Unverified`，因此 sanitizer/index 为 `NON_PASS`。
+- WSL/Linux `npm run validate:release` 仍按设计报 8 类：package、index、migration、performance、fakeProvider、live、provenance、sanitizer；未制造 `0.2.0` 或 live PASS。
+- 当前 `npm pack --dry-run --json` baseline：`@rosetears/aili-pi@0.1.13`，6213 entries，未发现 `artifacts/`、`tests/`、`openspec/`、`.tmp/`、`.env*`，且包含 Compact runtime、release validator/generator、provenance/SBOM/notices；它不是 `0.2.0` candidate review。
+- 当前源码没有可追溯的 P0-only snapshot，不能先诚实物化 `v0.1.14`；在该顺序阻塞解除前，不把合并后的源码直接改成 `0.1.14` 或跳过前置门改成 `0.2.0`。
+- 当前用户已明确授权直接推进清单内非真人 repo-local candidate/version/lock/SBOM/provenance/notices/dry-run 工作；scope 不包含 dependency、真实 HOME/provider、commit/push/publish/tag/release。未改版本的原因是缺少 P0-only source provenance，而不是等待重复授权。
+- redesign 统计更新为 46/57；仍未勾选 1.1、1.4、3.11、5.7、5.9-5.11、6.1-6.3、6.5。

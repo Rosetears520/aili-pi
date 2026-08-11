@@ -1,0 +1,166 @@
+# Progress: replace-pi-native-fallback-with-aili-emergency-checkpoint
+
+## Current status
+
+DEFINE was reopened on 2026-08-02. The user directed this proposal to fit Pi's currently public interfaces and remove the AILI-only design. The revised contract is deterministic-first with Pi-native final recovery, uses only public Extension seams, leaves overflow retry to Pi, and makes no synchronous pre-provider veto or synthetic continuation claim.
+
+The 2026-08-01 final-test-plan acceptance and repository-local BUILD authorization apply only to the superseded AILI-only contract. The revised final `test-plan.md` requires fresh user acceptance and revised BUILD authorization. No changed source implementation has started for the revised contract.
+
+The previously missing active-runtime summary and continuation-receipt seams were removed from the design; they were not proved or worked around. Pi `0.83.0` runtime compatibility remains `Unverified` because it was inspected from official source/release evidence but not installed or run.
+
+No dependency, lockfile, version, settings, HOME, provider, Git, publish, release or installation authority is recorded here.
+
+## 2026-08-01 DEFINE artifact draft
+
+The fresh user request resumed DEFINE. The following repository-local draft artifacts were added and re-read after writing:
+
+- `context.md` — resolved product decisions, current Pi surface evidence, and blockers;
+- `design.md` — AILI-only ownership, empty-catalog emergency planning, 90% pre-provider gate, provider-runtime seam, retry/continuation state, suffix truth, migration, and fail-closed boundaries;
+- `specs/aili-compact-emergency-checkpoint/spec.md` — new capability delta;
+- `specs/aili-compact-checkpoint-recovery/spec.md` — AILI-only recovery and hard-gate modifications;
+- `specs/reversible-context-compression/spec.md` — command, guidance, configuration, durable-status, and rebuilding-usage modifications;
+- `tasks.md` — dependency-ordered unchecked BUILD queue;
+- `test-plan.md` — blocked DEFINE test matrix with explicit live/seam gates;
+- `migration.md` — configuration/session forward migration and rollback limits;
+- `release-gates.md` — sequential DEFINE, seam, safety, production, live, and release gates.
+
+Fresh local declaration evidence still shows `ExtensionContext.model`, `modelRegistry`, `getContextUsage()`, and `compact()`, plus settings transport/retry values, but no public active-provider summary operation or continuation receipt in the inspected surface. This keeps the change `blocked` before final test-plan acceptance and BUILD.
+
+No source implementation, dependency, lockfile, version, settings, HOME, provider, Git, package, installation, or release operation was performed. Existing unrelated worktree changes were preserved.
+
+## 2026-08-01 proposal revision
+
+The user resumed DEFINE and confirmed the final product direction: AILI Compact is the only summary owner; Pi-native summary generation is not an accepted fallback. The proposal now also requires exactly-once continuation when a successful checkpoint interrupted unfinished work, and epoch-consistent provider-only guidance that cannot show stale success and a new required action as one coherent state.
+
+This revision resolves product direction but not the host seams. The change remains blocked before design/spec completion until public active-provider/transport inheritance and a safe, deduplicated post-checkpoint continuation path are verified. A missing seam must fail closed; it does not authorize Pi-native fallback, private API use, production edits, or BUILD.
+
+## 2026-08-01 requirements grilling
+
+Three Frontier Batch rounds are recorded in `interview.md`. The user accepted independent parent/child compaction ownership, fail-closed branch/tree summary staging, Pi `/compact` routing through AILI, active-session model inheritance, one automatic plus three user-triggered retry attempts, Codex-first/OpenCode-marker continuation semantics, automatic atomic migration of the AILI-owned legacy hybrid configuration, and the non-bypassable 90% pre-provider hard compaction gate.
+
+The requirements-grilling frontier is complete. Overall DEFINE remains blocked by the previously recorded public provider/transport and continuation seam evidence gates; no final test-plan acceptance, implementation authorization, real HOME write, dependency change, Git action, installation, publish, or release authority exists.
+
+## 2026-08-01 live suffix contradiction
+
+During the same requirements session, provider-only guidance advertised `actions=compress` while reporting `pressure=CHECKPOINT_REQUIRED`, zero observed headroom and a failed checkpoint. A matching AILI semantic range attempt returned `pressure-stage-disallows-semantic`; no semantic transaction or AILI checkpoint was committed. This bounded observation supports the proposal requirement that suffix actions must be executable in their advertised pressure stage and that a rejected tool call cannot report compression success. It is diagnostic evidence only, not live release acceptance.
+
+## 2026-08-01 90% hard compaction gate
+
+The user clarified that 90% context usage is itself the last-resort safety boundary, not a fallback entered after a compression failure. The proposal now requires a per-Session pre-provider hard gate: reliable observed usage or the conservative pending-request projection at or above 90% blocks dispatch and makes the cycle's AILI emergency checkpoint mandatory. Earlier reserve-based compaction remains allowed, but the gate cannot be configured above 90% or bypassed. A request is released only after an exact persisted `fromHook:true` checkpoint and a rebuilt projection below the gate; failure leaves the request blocked and the original Session recoverable rather than sending an oversized request or using Pi-native summarization.
+
+This requirement does not authorize BUILD or resolve the existing public provider/transport and continuation seam blockers. The one automatic plus at most three explicit retry budget remains unchanged; at the hard gate, the automatic attempt is mandatory and failure never releases the blocked request.
+
+## 2026-08-01 BUILD request
+
+The user explicitly accepted the final test plan and requested: “进入build，全部做完+测试”. The acceptance was written to `test-plan.md`; repository-local BUILD authority is recorded for safe in-scope implementation and verification only. Dependency/lockfile/version/settings/HOME/provider/Git/release/install operations remain separately gated.
+
+BUILD preflight rechecked the current official Pi 0.82.1 declarations. `ExtensionContext` exposes `model`, `modelRegistry`, `getContextUsage()`, and `compact()`, while the inspected settings surface exposes transport/retry values; no public active-provider summary operation or exactly-once continuation/host-retry receipt was found. Per the accepted contract, changed implementation stops at this gate rather than using private APIs or Pi-native summary fallback.
+
+## 2026-08-01 BUILD verification
+
+[PASS] `openspec validate replace-pi-native-fallback-with-aili-emergency-checkpoint --strict` passed.
+
+[PASS] `node scripts/validate-aili-compact-openspec-sequence.mjs --json` passed the three-stage materialization/strict-validation sequence for the reversible-compression base, P0 recovery fix, and lifecycle redesign. The validator cleaned its owned scratch directory and reported `sourceWorkspaceMutated:false`.
+
+[BLOCKED] The required G2 public host seam is still absent from the inspected official Pi surface. No implementation task was marked complete and no source/test file was changed for this proposal.
+
+[UNVERIFIED] Feature tests, typecheck, full test suite, provider/runtime inheritance, real overflow, and exactly-once continuation were not run because BUILD is stopped before source edits.
+
+## 2026-08-01 delegated BUILD diagnosis
+
+A read-only code-scout rechecked the official Pi 0.82.1 declarations and runtime implementation. Pi publicly exports summary helpers and `ModelRuntime`, and the public compaction event exposes `willRetry`; however, `ExtensionContext` still has no bridge to the active Agent's `ModelRuntime`/`streamFn`, and no public exactly-once continuation token or durable host-retry receipt was found. Public exports alone do not satisfy the accepted Extension-bound seam.
+
+A read-only test-engineer reported two fresh predecessor checks passing: the existing compaction/recovery/provider-suffix/config tests (4 files, 35 tests) and v3-projector/command tests (2 files, 18 tests). These tests cover the current hybrid/native-fallback implementation and must not be promoted to ECP acceptance evidence; the accepted ECP-A through ECP-K rows remain blocked or not run.
+
+The delegated findings confirm G2 remains blocking. No source or test edits were made by the workers.
+
+## 2026-08-02 official Pi 0.83 check
+
+[KNOWN] Official `@earendil-works/pi-coding-agent@0.83.0` exists, was released on 2026-07-29 at commit `845d6ff`, and is the npm `latest` as checked on 2026-08-02. Sources: the official `v0.83.0` GitHub release and npm dist-tags.
+
+[COMPUTED] Pi 0.83 adds `ctx.scopedModels` and inherited per-request `fetch` injection for supported provider transports. It also publicly exports low-level `generateSummary`, `generateSummaryWithUsage`, `compact`, `ModelRuntime`, and related SDK APIs.
+
+[BLOCKED] The v0.83 public `ExtensionContext` still does not expose the active Agent's `ModelRuntime`/`streamFn` or an Extension-bound summary operation. `ModelRegistry` can expose provider/auth information, but manually calling low-level provider/summary APIs would not prove the active runtime's base URL, stream function, transport, retry, and host composition. Pi 0.83 also exposes lifecycle `willRetry`/`agent_settled` signals, not an exactly-once continuation token or durable host-retry receipt.
+
+[UNVERIFIED] Pi 0.83 was inspected through official release/source material only; it was not installed, added to the lockfile, or run in this repository. The package remains pinned to the repository's current 0.82.1 baseline.
+
+## 2026-08-02 Pi-compatible DEFINE revision
+
+The user instructed ROSE to modify the existing proposal to fit Pi's currently exposed interfaces. This is a material contract change, so DEFINE was reopened and the prior AILI-only acceptance/BUILD authorization was marked superseded rather than inherited.
+
+The revised artifacts now specify:
+
+- deterministic AILI `CompactionResult` when complete accepted current-epoch coverage exists;
+- exact JavaScript `undefined` and Pi native summary/retry for disabled, empty, incomplete, stale, invalid or exception paths;
+- proactive idle/settled pressure scheduling without an unsupported per-dispatch veto claim;
+- persisted custom or native `CompactionEntry`/new epoch as durable success;
+- Pi-owned overflow retry and zero AILI synthetic continuation turns;
+- one bounded checkpoint attempt per pressure cycle;
+- truthful suffix/origin/rebuilding status;
+- canonical read-only hybrid/native-fallback configuration and no HOME migration;
+- append-only history and branch/epoch/session isolation.
+
+Rewritten and re-read targets: `proposal.md`, `context.md`, `design.md`, `interview.md`, all three capability deltas, `tasks.md`, `test-plan.md`, `migration.md`, `release-gates.md`, and this `progress.txt`.
+
+The previous public active-runtime and continuation-seam blocker is now historical evidence explaining why the AILI-only design was removed; it is not a solved capability claim and is not a blocker for the cooperative contract. Revised strict and sequential validation results are recorded only after fresh commands run.
+
+## 2026-08-02 revised DEFINE verification
+
+[PASS] `openspec validate replace-pi-native-fallback-with-aili-emergency-checkpoint --strict` validated the revised current delta.
+
+[PASS] `node scripts/validate-aili-compact-openspec-sequence.mjs --json` passed the predecessor release order `add-reversible-context-compression` -> `fix-aili-compact-recovery-deadlock` -> `redesign-aili-compact-lifecycle`, cleaned its repository-local scratch directory, and reported `sourceWorkspaceMutated:false`.
+
+[LIMIT] The existing sequence validator stops after the lifecycle-redesign predecessor. It does not materialize the revised current delta on top of that merged result, so the final G1 merged-current row remains pending rather than being promoted from the two passing checks above.
+
+[UNVERIFIED] No source behavior, feature test, typecheck, full suite, Pi `0.83.0` runtime, real provider, installed Package or interactive TUI claim was run in this DEFINE revision.
+
+## 2026-08-02 post-rewrite audit reconciliation
+
+A fresh read-only plan audit confirmed that the six `MODIFIED` requirement headings match their direct lifecycle-redesign predecessors and found no non-historical positive AILI-only/provider-runtime/synchronous-veto/three-retry/synthetic-continuation/HOME-migration requirement.
+
+The audit findings were reconciled into the artifacts:
+
+- pressure-cycle reset now requires a new persisted epoch or verified usage at least one semantic-attempt budget below the force boundary, with a negative smaller-drop scenario;
+- Pi branch/tree summary ownership and exact fail-open AILI rebuild behavior are now normative in the emergency capability;
+- the inherited stable-release real provider/context-length overflow gate remains separately authorized but blocking rather than replaceable by a controlled local provider;
+- interview metadata is explicitly historical/superseded;
+- revised test-plan acceptance and revised repository-local BUILD authorization are separate pending gates;
+- the task/test plan now state that the sequence validator must include this current change as a fourth isolated materialization stage before G1 can pass.
+
+The current merged-contract G1 row remains pending. No validation command was rerun after these final artifact-only corrections until the next recorded verification entry.
+
+## 2026-08-02 final revised-delta validation
+
+[PASS] After the audit corrections, `openspec validate replace-pi-native-fallback-with-aili-emergency-checkpoint --strict` passed again.
+
+[PENDING] The predecessor-plus-current fourth-stage materialization remains a revised BUILD task because the current repository sequence validator still stops after the three predecessors.
+
+[ACCEPTED] The user accepted the revised deterministic-first/Pi-native final recovery `test-plan.md` on 2026-08-02.
+
+[BUILD] The user granted revised repository-local BUILD authorization on 2026-08-02 and requested complete scoped implementation plus verification. This authorization does not authorize dependency, lockfile, version, settings, HOME, real provider, Git, installation, publish or release operations.
+
+## 2026-08-02 BUILD preflight
+
+[OBSERVED] The current branch is `fix/quota-animation-subagent-label` and the worktree contains extensive pre-existing tracked and untracked work. BUILD is limited to this change's OpenSpec artifacts, the AILI Compact runtime/tests required by its accepted contract, and the isolated sequence validator/test; unrelated work is preserved.
+
+[OBSERVED] Read-only runtime/test reconnaissance found current cooperative hook and hybrid config foundations, plus bounded gaps: legacy unqualified major-GC fallback, persisted epoch/origin/rebuilding truth, executable suffix actions, and the three-stage-only sequence validator.
+
+[PLAN] Build packages are: (1) strict deterministic arbitration and durable status, (2) pressure/suffix truth, and (3) fourth-stage sequence validation, each with focused local tests. No secondary provider call, synthetic continuation, dependency/configuration migration, or external provider operation is in scope.
+
+## 2026-08-02 BUILD implementation and focused verification
+
+[DONE] The compaction hook now relies exclusively on current accepted v3 semantic coverage for a custom envelope. Legacy major-GC remains exported for its existing non-hook users but is no longer a fallback in `session_before_compact`; all ineligible paths return exact `undefined` to Pi native recovery.
+
+[DONE] Persisted checkpoint handling now requires the matching branch entry and a new epoch. It classifies deterministic v3/native/unverified origin from observable entry evidence, records host `willRetry` only as reported state, masks context usage as `rebuilding` until a valid assistant usage arrives, and prevents suffix actions/ranges when semantic work is not executable.
+
+[DONE] Pressure hard checkpoint calculation is no later than 90% of the context window while retaining stronger host reserve. The cycle reset threshold remains a new epoch or at least one semantic-attempt budget below the force boundary.
+
+[DONE] The isolated OpenSpec sequence validator and integration test now include `replace-pi-native-fallback-with-aili-emergency-checkpoint` as the fourth materialization/strict-validation stage.
+
+[PASS] Focused runtime tests: `npm test -- tests/unit/aili-compact-recovery.test.ts tests/unit/aili-compact-doctor-telemetry.test.ts tests/integration/aili-compact.test.ts tests/integration/aili-compact-agent-session.test.ts` — 4 files, 69 tests passed.
+
+[PASS] OpenSpec sequence test: `npm test -- tests/integration/aili-compact-openspec-sequence.test.ts` — 1 file, 2 tests passed; it performed only owned ignored `.tmp/` scratch materialization and cleanup.
+
+[PASS] `npm run typecheck`, `npm run validate:generated`, and `npm run validate:provenance` passed.
+
+[FAILED] `npm run validate:release` failed on pre-existing release/version/evidence drift outside this change: 16 findings include persistent-agent implementation drift, stale expected `0.2.0` package/lock/SBOM/release evidence, required live evidence, and unrelated `i-have-adhd` presentation verification. This change is not authorized to modify dependency/lockfile/version, generated release evidence, live provider evidence, or unrelated persistent-agent/i-have-adhd surfaces. Per the release gate, the full suite was not run after this claim-required verification failure.

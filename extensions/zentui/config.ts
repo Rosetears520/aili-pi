@@ -86,6 +86,7 @@ export type FixedEditorConfig = {
 	enabled: boolean;
 	mouseScroll: boolean;
 	copyNotice: boolean;
+	scrollbar: boolean;
 };
 
 export type ExtensionStatusPlacement = "off" | "left" | "middle" | "right";
@@ -310,10 +311,12 @@ export const defaultConfig: PolishedTuiConfig = {
 		},
 		colorModes: {},
 	},
+	// The compositor replaces Pi's native renderer, so keep it opt-in.
 	fixedEditor: {
-		enabled: true,
+		enabled: false,
 		mouseScroll: true,
 		copyNotice: true,
+		scrollbar: true,
 	},
 };
 
@@ -602,6 +605,10 @@ function normalizeFixedEditorConfig(record: Record<string, unknown>): FixedEdito
 			typeof record.copyNotice === "boolean"
 				? record.copyNotice
 				: defaultConfig.fixedEditor.copyNotice,
+		scrollbar:
+			typeof record.scrollbar === "boolean"
+				? record.scrollbar
+				: defaultConfig.fixedEditor.scrollbar,
 	};
 }
 
@@ -1018,6 +1025,7 @@ export function saveFixedEditorPatch(
 			...(patch.enabled !== undefined ? { enabled: patch.enabled } : {}),
 			...(patch.mouseScroll !== undefined ? { mouseScroll: patch.mouseScroll } : {}),
 			...(patch.copyNotice !== undefined ? { copyNotice: patch.copyNotice } : {}),
+			...(patch.scrollbar !== undefined ? { scrollbar: patch.scrollbar } : {}),
 		};
 	});
 }

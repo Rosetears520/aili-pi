@@ -31,7 +31,10 @@ import {
   type V3Transaction,
   type V3BlockSource,
 } from "../../src/runtime/aili-compact/v3.js";
-import { transparentPromotionGapDigest } from "../../src/runtime/aili-compact/promotion-gaps.js";
+import {
+  classifyTransparentPromotionGaps,
+  createAiliPlanningResultEnvelope,
+} from "../../src/runtime/aili-compact/promotion-gaps.js";
 
 const FACT_DIGEST = "f".repeat(64);
 
@@ -191,7 +194,16 @@ function planningResult(id: string, callId: string, toolName: "aili_compact_stat
   return {
     id,
     type: "message",
-    message: { role: "toolResult", toolCallId: callId, toolName, content: "ok" },
+    message: {
+      role: "toolResult", toolCallId: callId, toolName,
+      content: JSON.stringify(createAiliPlanningResultEnvelope({
+        toolName,
+        toolCallId: callId,
+        identity: { sessionId: "session", branchLeafId: "leaf", epochId: "root", revision: "projection-v3" },
+        outcome: "success",
+        result: "ok",
+      })),
+    },
   };
 }
 
@@ -303,15 +315,12 @@ describe("AILI Compact v3 reducer integration", () => {
     const firstState = state;
     const second = t1Transaction(state, "gap:t1-right", [right.id], 2);
     state = applied(state, second, new Map([[right.id, 4]]));
-    const proof = {
-      version: 1 as const,
-      leftChildBlockId: "gap:t1-left",
-      rightChildBlockId: "gap:t1-right",
-      leftLeafEntryId: left.id,
-      rightLeafEntryId: right.id,
-      messageCount: 2,
-      gapDigest: transparentPromotionGapDigest(sourceEntries.slice(1, 3), 2),
-    };
+    const classified = classifyTransparentPromotionGaps(sourceEntries, state.blocks, [
+      state.blocks.get("gap:t1-left")!, state.blocks.get("gap:t1-right")!,
+    ], { sessionId: state.sessionId, branchLeafId: state.branchLeafId, epochId: state.epochId, revision: state.projectionVersion });
+    expect(classified).toMatchObject({ ok: true });
+    if (!classified.ok) return;
+    const proof = classified.proofs[0]!;
     const parent = parentTransaction(state, "gap:t2", ["gap:t1-left", "gap:t1-right"], 3, [proof]);
 
     const entries: SessionLikeEntry[] = [...sourceEntries];

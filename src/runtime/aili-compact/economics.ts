@@ -8,7 +8,9 @@ import {
 } from "./provider-economics.js";
 import {
   estimateTokenBounds,
+  evaluateActiveTokenBenefit,
   evaluateTokenBenefit,
+  type ActiveBenefitDecision,
   type BenefitDecision,
   type BenefitPolicyOverride,
   type OneTimeCostUpper,
@@ -25,6 +27,7 @@ import {
   type V3TokenMetadata,
 } from "./v3.js";
 import { v3RecapProjection, type V3ProjectionMessage } from "./v3-projector.js";
+import { SEMANTIC_SUMMARY_LIMITS } from "./summary-limits.js";
 
 export const COMPACT_ECONOMICS_VERSION = "aili.compact-economics.v1" as const;
 export const V3_COMPACT_ECONOMICS_VERSION = "aili.compact-economics.v3" as const;
@@ -80,7 +83,12 @@ interface V3EconomicsCandidateBase {
 
 export type V3CompactEconomicsCandidate =
   | (V3EconomicsCandidateBase & { tier: "T1"; source: V3T1EconomicsSource })
-  | (V3EconomicsCandidateBase & { tier: "T2" | "T3"; source: V3BlockEconomicsSource });
+  | (V3EconomicsCandidateBase & { tier: "T2" | "T3"; source: V3BlockEconomicsSource })
+  | (V3EconomicsCandidateBase & {
+    /** Every new write is an active block with no tier-specific economics. */
+    semantics: "active-block";
+    source: V3T1EconomicsSource | V3BlockEconomicsSource;
+  });
 
 /** Exact one-time request surfaces. Undefined surfaces are rejected, never priced as empty. */
 export interface V3OneTimeEconomicsSurfaces {
@@ -131,12 +139,11 @@ export interface V3CompactEconomicsFailure {
   diagnostic: string;
 }
 
-export interface V3CompactEconomicsSuccess {
+interface V3CompactEconomicsSuccessBase {
   ok: true;
   version: typeof V3_COMPACT_ECONOMICS_VERSION;
-  tier: V3Tier;
   binding: V3EconomicsBinding;
-  decision: BenefitDecision;
+  decision: BenefitDecision | ActiveBenefitDecision;
   /** Commit metadata is usable only when decision.eligible is true. */
   tokens: V3TokenMetadata;
   sourceBounds: TokenBounds;
@@ -148,6 +155,11 @@ export interface V3CompactEconomicsSuccess {
   surfaceAdapterVersion?: string;
   oneTimeCostUpper: OneTimeCostUpper;
 }
+
+export type V3CompactEconomicsSuccess = V3CompactEconomicsSuccessBase & (
+  | { tier: V3Tier }
+  | { semantics: "active-block" }
+);
 
 export type V3CompactEconomicsResult = V3CompactEconomicsFailure | V3CompactEconomicsSuccess;
 
@@ -272,13 +284,20 @@ export function evaluateV3CompactEconomics(input: V3CompactEconomicsInput): V3Co
       cacheWritePenaltyUpper: replacementBounds.upper,
       safetyReserveUpper: tightenedSafetyReserve(input.oneTime.safetyReserveUpper),
     };
-    const decision = evaluateTokenBenefit({
-      tier: input.candidate.tier,
-      pressureStage: input.pressureStage,
-      sourceBounds: resolved.sourceBounds,
-      replacementBounds,
-      oneTimeCostUpper,
-    }, input.policy);
+    const decision = isActiveCandidate(input.candidate)
+      ? evaluateActiveTokenBenefit({
+        pressureStage: input.pressureStage,
+        sourceBounds: resolved.sourceBounds,
+        replacementBounds,
+        oneTimeCostUpper,
+      })
+      : evaluateTokenBenefit({
+        tier: input.candidate.tier,
+        pressureStage: input.pressureStage,
+        sourceBounds: resolved.sourceBounds,
+        replacementBounds,
+        oneTimeCostUpper,
+      }, input.policy);
     const tokens: V3TokenMetadata = {
       estimatorVersion: input.profile.estimatorVersion,
       providerId: input.profile.providerId,
@@ -295,7 +314,9 @@ export function evaluateV3CompactEconomics(input: V3CompactEconomicsInput): V3Co
     return {
       ok: true,
       version: V3_COMPACT_ECONOMICS_VERSION,
-      tier: input.candidate.tier,
+      ...(isActiveCandidate(input.candidate)
+        ? { semantics: "active-block" as const }
+        : { tier: input.candidate.tier }),
       binding: {
         blockRef: input.candidate.blockRef,
         catalogId: input.candidate.catalogId,
@@ -365,10 +386,10 @@ function resolveV3EconomicsSource(
   }
   const childTiers = new Set(children.map(({ block }) => block.tier));
   const childTier = children[0]!.block.tier;
-  const validTransition = candidate.tier === "T2"
+  const validTransition = isLegacyCandidate(candidate) && (candidate.tier === "T2"
     ? childTier === "T1"
-    : childTier === "T2" || childTier === "T3";
-  if (childTiers.size !== 1 || !validTransition
+    : childTier === "T2" || childTier === "T3");
+  if ((isLegacyCandidate(candidate) && (childTiers.size !== 1 || !validTransition))
     || children.some(({ block }) => !block.active || block.queryOnly
       || block.epochId !== candidate.epochId
       || block.projectionVersion !== candidate.projectionVersion
@@ -438,7 +459,7 @@ function candidateProjectionBlock(candidate: V3CompactEconomicsCandidate, leafCo
     projectionVersion: candidate.projectionVersion,
     createdAt: 0,
     createdTurnOrdinal: 0,
-    tier: candidate.tier,
+    ...(isActiveCandidate(candidate) ? {} : { tier: candidate.tier }),
     topic: candidate.topic,
     runId: "uncommitted",
     anchorEntryId,
@@ -465,10 +486,18 @@ function validateV3Candidate(candidate: V3CompactEconomicsCandidate): string | u
   if (!candidate || !bounded(candidate.blockId, 256) || !/^b\d{6}$/.test(candidate.blockRef)
     || !bounded(candidate.catalogId, 256) || !bounded(candidate.epochId, 256)
     || !bounded(candidate.projectionVersion, 256) || !bounded(candidate.topic, 200)
-    || !bounded(candidate.summary, 10_000)) return "Candidate identity, reference, topic, or summary is invalid.";
-  if (candidate.source.kind === "messages" && candidate.tier !== "T1") return "Message sources are T1-only.";
-  if (candidate.source.kind === "blocks" && candidate.tier === "T1") return "Block sources require T2 or T3.";
+    || !bounded(candidate.summary, SEMANTIC_SUMMARY_LIMITS.hardMaxChars)) return "Candidate identity, reference, topic, or summary is invalid.";
+  if (isLegacyCandidate(candidate) && candidate.source.kind === "messages" && candidate.tier !== "T1") return "Message sources are T1-only.";
+  if (isLegacyCandidate(candidate) && candidate.source.kind === "blocks" && candidate.tier === "T1") return "Block sources require T2 or T3.";
   return undefined;
+}
+
+function isActiveCandidate(candidate: V3CompactEconomicsCandidate): candidate is Extract<V3CompactEconomicsCandidate, { semantics: "active-block" }> {
+  return "semantics" in candidate && candidate.semantics === "active-block";
+}
+
+function isLegacyCandidate(candidate: V3CompactEconomicsCandidate): candidate is Exclude<V3CompactEconomicsCandidate, { semantics: "active-block" }> {
+  return "tier" in candidate;
 }
 
 function hasCompleteOneTimeSurfaces(value: V3OneTimeEconomicsSurfaces | undefined): value is V3OneTimeEconomicsSurfaces {

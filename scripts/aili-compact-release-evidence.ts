@@ -4,8 +4,6 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   COMPACT_LIVE_PROVIDER_FAMILIES,
-  validateCompactLiveRowPass,
-  type CompactLiveExpectedBinding,
   type CompactLiveProviderFamily,
 } from "./aili-compact-live-observations.ts";
 import {
@@ -14,16 +12,11 @@ import {
   scanAiliReleaseEvidence,
   type AiliReleaseSanitizerFlags,
 } from "./aili-compact-evidence-sanitizer.ts";
-import {
-  COMPACT_HUMAN_REVIEW_CANDIDATE_PATH,
-  validateCompactHumanReviewCandidate,
-} from "./live-release-support.ts";
-
 export { AILI_RELEASE_SANITIZER_FLAGS, assertAiliReleaseEvidenceSanitized, scanAiliReleaseEvidence };
 export type { AiliReleaseSanitizerFlags };
 
 const DEFAULT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-export const AILI_COMPACT_TARGET_VERSION = "0.2.0";
+export const AILI_COMPACT_TARGET_VERSION = "0.2.0-preview.0";
 export const AILI_COMPACT_PI_VERSION = "0.82.1";
 export const AILI_COMPACT_PREDECESSOR_PACKAGE = "@rosetears/aili-pi";
 export const AILI_COMPACT_EXPECTED_PREDECESSOR_VERSION = "0.1.16";
@@ -49,6 +42,12 @@ export const AILI_COMPACT_LIVE_HARNESS = "tests/integration/aili-compact-live-re
 export const AILI_COMPACT_RELEASE_INDEX = "artifacts/test-results/aili-compact-release-evidence.json";
 export const AILI_COMPACT_LIVE_CAPTURE_PATH = "artifacts/test-results/aili-compact-live-v2.json";
 export const AILI_COMPACT_REVIEWED_LIVE_PATH = "artifacts/test-results/aili-compact-reviewed-live-v3.json";
+export const AILI_COMPACT_REVIEWED_LIVE_SCHEMA = "aili.compact.reviewed-live-evidence.v2";
+export const AILI_COMPACT_HUMAN_REVIEW_VERDICT_SCHEMA = "aili.compact.human-review-verdict.v2";
+export const AILI_COMPACT_CONTROLLED_PRODUCTION_PATH = "artifacts/test-results/controlled-production/aili-compact-agent-session.json";
+export const AILI_COMPACT_CONTROLLED_PRODUCTION_HARNESS = "tests/integration/aili-compact-agent-session.test.ts";
+const AILI_COMPACT_ACTIVE_CONTRACT = "openspec/changes/reconcile-aili-compact-release-lineage/proposal.md";
+const AILI_COMPACT_RETIRED_CONTRACT = "openspec/changes/redesign-aili-compact-lifecycle/proposal.md";
 export const AILI_COMPACT_RELEASE_ARTIFACTS = {
   migration: {
     path: "artifacts/test-results/aili-compact-migration.json",
@@ -63,8 +62,12 @@ export const AILI_COMPACT_RELEASE_ARTIFACTS = {
     schema: "aili.compact.fake-provider-evidence.v1",
   },
   live: {
-    path: AILI_COMPACT_REVIEWED_LIVE_PATH,
-    schema: "aili.compact.reviewed-live-evidence.v1",
+    path: AILI_COMPACT_LIVE_CAPTURE_PATH,
+    schema: "aili.compact.live-evidence.v3",
+  },
+  controlledProduction: {
+    path: AILI_COMPACT_CONTROLLED_PRODUCTION_PATH,
+    schema: "aili.compact.controlled-production.v2",
   },
   provenance: {
     path: "artifacts/test-results/aili-compact-provenance.json",
@@ -195,7 +198,7 @@ export function validateAiliCompactLiveArtifact(
     || !exactRuntimeFileBinding(record(runtimeBinding.piExecutable), "node_modules/@earendil-works/pi-coding-agent/dist/cli.js", expectedRuntime.piExecutableSha256)
     || !exactRuntimeFileBinding(record(runtimeBinding.productionEntry), "extensions/index.ts", expectedRuntime.productionEntrySha256)
     || !representative
-    || !exactKeys(representative, ["status", "providerFamily", "provider", "model", "api", "contextWindow", "transport", "suffix", "overflow", "semanticReview", "extensionOrdering", "cacheTelemetry"])) return false;
+    || !exactKeys(representative, ["status", "providerFamily", "provider", "model", "api", "contextWindow", "transport", "extensionOrdering", "parentPersistentChild"])) return false;
 
   const family = representative.providerFamily as CompactLiveProviderFamily;
   if (!COMPACT_LIVE_PROVIDER_FAMILIES.includes(family)) return false;
@@ -206,18 +209,7 @@ export function validateAiliCompactLiveArtifact(
   const provider = String(representative.provider ?? "");
   const model = String(representative.model ?? "");
   const api = String(representative.api ?? "");
-  const expectedBinding: CompactLiveExpectedBinding = {
-    providerFamily: family,
-    provider,
-    model,
-    api,
-    packageVersion: String(value.packageVersion ?? ""),
-    piVersion: AILI_COMPACT_PI_VERSION,
-    implementationSha256: String(value.implementationSha256 ?? ""),
-    liveHarnessSha256: expectedHarnessSha256,
-    piExecutableSha256: expectedRuntime.piExecutableSha256,
-    productionEntrySha256: expectedRuntime.productionEntrySha256,
-  };
+  const parentPersistentChild = record(representative.parentPersistentChild);
   if (!passed(representative)
       || !PROVIDER_IDENTITIES[family]!.includes(provider)
       || !boundedString(model)
@@ -233,15 +225,19 @@ export function validateAiliCompactLiveArtifact(
       || transport.contextWindow !== representative.contextWindow
       || !HASH.test(String(transport.responseDigest ?? ""))
       || !exactUsage(transport.usage)
-      || !validateCompactLiveRowPass(representative.suffix, expectedBinding, "LIVE-V2-1", now)
-      || !validateCompactLiveRowPass(representative.overflow, expectedBinding, "LIVE-V2-7", now)
-      || !validateRepresentativeSemanticReview(representative.semanticReview, expectedBinding, now)
       || !ordering || !exactKeys(ordering, ["before", "after"])
       || !before || !exactKeys(before, ["status", "order"]) || !passed(before)
       || JSON.stringify(before?.order) !== JSON.stringify(["before", "aili", "after"])
       || !after || !exactKeys(after, ["status", "observations"]) || !passed(after)
       || JSON.stringify(after?.observations) !== JSON.stringify(["before", "after"])
-      || !validateCacheTelemetry(representative.cacheTelemetry, transport.usage)) return false;
+      || !parentPersistentChild
+      || !exactKeys(parentPersistentChild, ["status", "synchronousTaskCallObserved", "taskArgumentsExact", "zeroParentBashCalls", "persistentChildSessionObserved", "childTurnStatus"])
+      || !passed(parentPersistentChild)
+      || parentPersistentChild.synchronousTaskCallObserved !== true
+      || parentPersistentChild.taskArgumentsExact !== true
+      || parentPersistentChild.zeroParentBashCalls !== true
+      || parentPersistentChild.persistentChildSessionObserved !== true
+      || parentPersistentChild.childTurnStatus !== "completed") return false;
   return true;
 }
 
@@ -269,168 +265,82 @@ function exactRuntimeFileBinding(value: JsonRecord | undefined, path: string, sh
   return !!value && exactKeys(value, ["path", "sha256"]) && value.path === path && value.sha256 === sha256 && HASH.test(sha256);
 }
 
-function validateRepresentativeSemanticReview(value: unknown, expected: CompactLiveExpectedBinding, now: number): boolean {
-  const item = record(value); const binding = record(item?.binding); const candidate = record(binding?.candidate); const harness = record(binding?.harness); const capture = record(item?.capture);
-  const review = record(item?.humanReview); const evidence = record(item?.candidateEvidence);
-  return !!item && exactKeys(item, ["status", "observationClass", "observedAt", "source", "syntheticEvidenceAccepted", "binding", "capture", "eventDigest", "eventCount", "candidateEvidence", "humanReview"])
-    && item.status === "PASS" && item.observationClass === "representative-long-lifecycle-human-review" && item.source === "official-pi-agent-session" && item.syntheticEvidenceAccepted === false
-    && freshTimestamp(item.observedAt, now) && exactLiveBinding(binding, candidate, harness, expected) && exactCapture(capture, item.eventCount)
-    && validateSemanticCandidateEvidence(evidence)
-    && item.eventDigest === hash(JSON.stringify(evidence)) && item.eventCount === 4
-    && !!review && exactKeys(review, ["verdict", "verdictId", "verdictSource", "candidateSha256", "verdictSha256", "hardFactsRetained", "limitationsAccepted"])
-    && review.verdict === "PASS" && boundedString(review.verdictId, 128) && review.verdictSource === "external-human-verdict-artifact"
-    && review.candidateSha256 === evidence?.candidateSha256 && HASH.test(String(review.verdictSha256 ?? ""))
-    && review.hardFactsRetained === true && review.limitationsAccepted === true;
+function exactCandidateIdentity(
+  value: JsonRecord | undefined,
+  packageVersion: unknown,
+  piVersion: unknown,
+  implementationSha256: unknown,
+): boolean {
+  return !!value && exactKeys(value, ["packageVersion", "piVersion", "implementationSha256"])
+    && value.packageVersion === packageVersion && value.piVersion === piVersion
+    && value.implementationSha256 === implementationSha256
+    && typeof packageVersion === "string" && piVersion === AILI_COMPACT_PI_VERSION
+    && HASH.test(String(implementationSha256 ?? ""));
 }
 
-function validateSemanticCandidateEvidence(value: JsonRecord | undefined): boolean {
-  if (!value || !exactKeys(value, ["candidateId", "candidateSha256", "tiers", "providerToolCallIds", "transactionIds", "transactionSha256", "summarySha256"])) return false;
-  const tiers = Array.isArray(value.tiers) ? value.tiers : [];
-  const callIds = Array.isArray(value.providerToolCallIds) ? value.providerToolCallIds : [];
-  const transactionIds = Array.isArray(value.transactionIds) ? value.transactionIds : [];
-  const transactionDigests = Array.isArray(value.transactionSha256) ? value.transactionSha256 : [];
-  const summaryDigests = Array.isArray(value.summarySha256) ? value.summarySha256 : [];
-  return boundedString(value.candidateId, 64) && HASH.test(String(value.candidateSha256 ?? ""))
-    && value.candidateId === `review-${String(value.candidateSha256).slice(0, 24)}`
-    && JSON.stringify(tiers) === JSON.stringify(["T1", "T2", "T3", "T3-restill"])
-    && callIds.length === 4 && transactionIds.length === 4
-    && callIds.every((item) => boundedString(item, 128)) && transactionIds.every((item) => boundedString(item, 128))
-    && new Set(callIds).size === 4 && new Set(transactionIds).size === 4
-    && transactionDigests.length === 4 && summaryDigests.length === 4
-    && transactionDigests.every((item) => HASH.test(String(item))) && summaryDigests.every((item) => HASH.test(String(item)));
+function exactHumanReviewVerdict(
+  value: JsonRecord | undefined,
+  sourceCaptureSha256: string,
+  packageVersion: unknown,
+  piVersion: unknown,
+  implementationSha256: unknown,
+  now: number,
+): boolean {
+  if (!value || !exactKeys(value, ["schema", "humanAuthored", "reviewerId", "reviewedAt", "sourceCaptureSha256", "candidate", "verdictId", "verdict", "hardFactsRetained", "limitationsAccepted", "sha256"])) return false;
+  const candidate = record(value.candidate);
+  const reviewedAt = typeof value.reviewedAt === "string" ? Date.parse(value.reviewedAt) : Number.NaN;
+  const { sha256: verdictSha256, ...unsignedVerdict } = value;
+  return value.schema === AILI_COMPACT_HUMAN_REVIEW_VERDICT_SCHEMA
+    && value.humanAuthored === true
+    && boundedString(value.reviewerId, 128)
+    && freshTimestamp(value.reviewedAt, now)
+    && Number.isFinite(reviewedAt)
+    && value.sourceCaptureSha256 === sourceCaptureSha256
+    && exactCandidateIdentity(candidate, packageVersion, piVersion, implementationSha256)
+    && boundedString(value.verdictId, 128)
+    && value.verdict === "PASS"
+    && value.hardFactsRetained === true
+    && value.limitationsAccepted === true
+    && HASH.test(String(verdictSha256 ?? ""))
+    && verdictSha256 === hash(JSON.stringify(unsignedVerdict));
 }
 
-function validatePendingSemanticReview(value: unknown, expected: CompactLiveExpectedBinding, candidateValue: JsonRecord, now: number): boolean {
-  const item = record(value); const binding = record(item?.binding); const candidateBinding = record(binding?.candidate);
-  const harness = record(binding?.harness); const capture = record(item?.capture); const evidence = record(item?.candidateEvidence); const review = record(item?.humanReview);
-  const transactions = Array.isArray(candidateValue.transactions) ? candidateValue.transactions.map(record) : [];
-  const expectedEvidence = {
-    candidateId: candidateValue.candidateId,
-    candidateSha256: candidateValue.candidateSha256,
-    tiers: transactions.map((transaction) => transaction?.tier),
-    providerToolCallIds: transactions.map((transaction) => transaction?.providerToolCallId),
-    transactionIds: transactions.map((transaction) => transaction?.transactionId),
-    transactionSha256: transactions.map((transaction) => transaction?.transactionSha256),
-    summarySha256: transactions.map((transaction) => transaction?.summarySha256),
-  };
-  return !!item && exactKeys(item, ["status", "observationClass", "observedAt", "source", "syntheticEvidenceAccepted", "binding", "capture", "eventDigest", "eventCount", "candidateEvidence", "humanReview"])
-    && item.status === "PENDING" && item.observationClass === "representative-long-lifecycle-human-review"
-    && item.source === "official-pi-agent-session" && item.syntheticEvidenceAccepted === false && freshTimestamp(item.observedAt, now)
-    && exactLiveBinding(binding, candidateBinding, harness, expected) && exactCapture(capture, item.eventCount)
-    && JSON.stringify(evidence) === JSON.stringify(expectedEvidence) && validateSemanticCandidateEvidence(evidence)
-    && item.eventDigest === hash(JSON.stringify(evidence)) && item.eventCount === 4
-    && !!review && exactKeys(review, ["verdict", "verdictSource"])
-    && review.verdict === "PENDING" && review.verdictSource === "external-human-verdict-required";
-}
-
+/**
+ * A reviewed artifact is independent evidence: it references, rather than
+ * copies, the sanitized provider capture and binds both it and the exact
+ * candidate identity into an externally authored verdict.
+ */
 export function validateAiliCompactReviewedLiveArtifact(
   value: JsonRecord,
   sourceCaptureBody: string,
-  candidateArtifactBody: string,
   expectedHarnessSha256: string,
   expectedRuntime: AiliCompactLiveRuntimeBinding,
   now = Date.now(),
 ): boolean {
-  let source: JsonRecord | undefined; let candidateArtifact: JsonRecord | undefined;
+  let source: JsonRecord | undefined;
   try {
     source = record(JSON.parse(sourceCaptureBody) as unknown);
-    candidateArtifact = record(JSON.parse(candidateArtifactBody) as unknown);
   } catch { return false; }
-  const composition = record(value.composition); const sourceRef = record(composition?.sourceCapture);
-  const candidateRef = record(composition?.candidateArtifact); const verdict = record(composition?.humanVerdict);
-  const liveEvidence = record(value.liveEvidence); const representative = record(source?.representative);
-  const sourceHarness = record(source?.liveHarness); const runtime = record(source?.runtimeBinding);
-  const sourcePi = record(runtime?.piExecutable); const sourceEntry = record(runtime?.productionEntry);
-  const candidates = record(candidateArtifact?.candidates);
-  const candidateLiveCapture = record(candidateArtifact?.liveCapture);
-  const candidateHarness = record(candidateArtifact?.liveHarness);
-  const candidateSanitizer = record(candidateArtifact?.sanitizer);
-  const family = representative?.providerFamily as CompactLiveProviderFamily;
-  const candidateValue = record(candidates?.[family]); const candidateBinding = record(candidateValue?.binding) as CompactLiveExpectedBinding | undefined;
-  const expected: CompactLiveExpectedBinding = {
-    providerFamily: family,
-    provider: String(representative?.provider ?? ""), model: String(representative?.model ?? ""), api: String(representative?.api ?? ""),
-    packageVersion: String(source?.packageVersion ?? ""), piVersion: AILI_COMPACT_PI_VERSION,
-    implementationSha256: String(source?.implementationSha256 ?? ""), liveHarnessSha256: expectedHarnessSha256,
-    piExecutableSha256: expectedRuntime.piExecutableSha256, productionEntrySha256: expectedRuntime.productionEntrySha256,
-  };
-  if (!source || !candidateArtifact || !composition || !sourceRef || !candidateRef || !verdict || !liveEvidence || !representative || !candidateValue
-    || !exactKeys(value, ["schema", "status", "packageVersion", "piVersion", "implementationSha256", "reviewedAt", "sanitized", "composition", "liveEvidence"])
-    || value.schema !== AILI_COMPACT_RELEASE_ARTIFACTS.live.schema || value.sanitized !== true || !freshTimestamp(value.reviewedAt, now)
-    || !exactKeys(composition, ["sourceCapture", "candidateArtifact", "humanVerdict"])
-    || !exactKeys(sourceRef, ["path", "sha256"]) || sourceRef.path !== AILI_COMPACT_LIVE_CAPTURE_PATH || sourceRef.sha256 !== hash(sourceCaptureBody)
-    || !exactKeys(candidateRef, ["path", "sha256", "candidateId", "candidateSha256"]) || candidateRef.path !== COMPACT_HUMAN_REVIEW_CANDIDATE_PATH
-    || candidateRef.sha256 !== hash(candidateArtifactBody) || candidateRef.candidateId !== candidateValue.candidateId || candidateRef.candidateSha256 !== candidateValue.candidateSha256
-    || source.schema !== "aili.compact.live-evidence.v3" || source.status !== "NON_PASS" || source.sanitized !== true || !freshTimestamp(source.capturedAt, now)
-    || !exactKeys(source, ["schema", "status", "packageVersion", "piVersion", "implementationSha256", "capturedAt", "sanitized", "liveHarness", "runtimeBinding", "representative"])
-    || source.packageVersion !== value.packageVersion || source.piVersion !== value.piVersion || source.implementationSha256 !== value.implementationSha256
-    || sourceHarness?.path !== AILI_COMPACT_LIVE_HARNESS || sourceHarness.sha256 !== expectedHarnessSha256
-    || !exactRuntimeFileBinding(sourcePi, "node_modules/@earendil-works/pi-coding-agent/dist/cli.js", expectedRuntime.piExecutableSha256)
-    || !exactRuntimeFileBinding(sourceEntry, "extensions/index.ts", expectedRuntime.productionEntrySha256)
-    || representative.status !== "NON_PASS" || !COMPACT_LIVE_PROVIDER_FAMILIES.includes(family)
-    || !exactKeys(candidateArtifact, ["schema", "status", "reviewState", "capturedAt", "packageVersion", "piVersion", "implementationSha256", "liveHarness", "liveCapture", "candidates", "sanitizer"])
-    || candidateArtifact.schema !== "aili.compact.human-review-candidates.v1" || candidateArtifact.status !== "PENDING"
-    || candidateArtifact.reviewState !== "human-verdict-required" || candidateArtifact.packageVersion !== source.packageVersion
-    || candidateArtifact.piVersion !== source.piVersion || candidateArtifact.implementationSha256 !== source.implementationSha256
-    || !freshTimestamp(candidateArtifact.capturedAt, now)
-    || !candidateHarness || !exactKeys(candidateHarness, ["path", "sha256"])
-    || candidateHarness.path !== AILI_COMPACT_LIVE_HARNESS || candidateHarness.sha256 !== expectedHarnessSha256
-    || !candidateLiveCapture || !exactKeys(candidateLiveCapture, ["path", "sha256"])
-    || candidateLiveCapture.path !== AILI_COMPACT_LIVE_CAPTURE_PATH || candidateLiveCapture.sha256 !== hash(sourceCaptureBody)
-    || !candidateSanitizer || !exactKeys(candidateSanitizer, AILI_RELEASE_SANITIZER_FLAGS)
-    || Object.values(candidateSanitizer).some((flag) => flag !== false)
-    || JSON.stringify(Object.keys(candidates ?? {})) !== JSON.stringify([family])
-    || !candidateBinding || !validateCompactHumanReviewCandidate(candidateValue, candidateBinding)
-    || candidateBinding.providerFamily !== expected.providerFamily || candidateBinding.provider !== expected.provider
-    || candidateBinding.model !== expected.model || candidateBinding.api !== expected.api
-    || candidateBinding.packageVersion !== expected.packageVersion || candidateBinding.piVersion !== expected.piVersion
-    || candidateBinding.implementationSha256 !== expected.implementationSha256 || candidateBinding.liveHarnessSha256 !== expected.liveHarnessSha256
-    || !validatePendingSemanticReview(representative.semanticReview, expected, candidateValue, now)
-    || !exactKeys(verdict, ["schema", "humanAuthored", "reviewerId", "reviewedAt", "candidateId", "candidateSha256", "verdictId", "verdict", "hardFactsRetained", "limitationsAccepted", "sha256"])
-    || verdict.schema !== "aili.compact.human-review-verdict.v1" || verdict.humanAuthored !== true || verdict.verdict !== "PASS"
-    || !boundedString(verdict.reviewerId, 128) || !boundedString(verdict.verdictId, 128) || verdict.reviewedAt !== value.reviewedAt
-    || verdict.candidateId !== candidateValue.candidateId || verdict.candidateSha256 !== candidateValue.candidateSha256
-    || verdict.hardFactsRetained !== true || verdict.limitationsAccepted !== true || !HASH.test(String(verdict.sha256 ?? ""))) return false;
-  const { sha256: verdictSha256, ...verdictBody } = verdict;
-  if (verdictSha256 !== hash(JSON.stringify(verdictBody))) return false;
-  const expectedPass = structuredClone(source);
-  expectedPass.status = "PASS";
-  const expectedRepresentative = record(expectedPass.representative)!;
-  expectedRepresentative.status = "PASS";
-  const pendingSemantic = record(representative.semanticReview)!;
-  expectedRepresentative.semanticReview = {
-    ...pendingSemantic,
-    status: "PASS",
-    humanReview: {
-      verdict: "PASS", verdictId: verdict.verdictId, verdictSource: "external-human-verdict-artifact",
-      candidateSha256: candidateValue.candidateSha256, verdictSha256,
-      hardFactsRetained: true, limitationsAccepted: true,
-    },
-  };
-  const expectedNonPass = structuredClone(expectedPass);
-  expectedNonPass.status = "NON_PASS";
-  record(expectedNonPass.representative)!.status = "NON_PASS";
-  const fullPass = JSON.stringify(liveEvidence) === JSON.stringify(expectedPass)
-    && validateAiliCompactLiveArtifact(liveEvidence, expectedHarnessSha256, expectedRuntime, now);
-  return value.status === (fullPass ? "PASS" : "NON_PASS")
-    && (fullPass || JSON.stringify(liveEvidence) === JSON.stringify(expectedNonPass))
-    && Object.values(scanAiliReleaseEvidence([sourceCaptureBody, candidateArtifactBody, JSON.stringify(value)])).every((flag) => flag === false);
-}
-
-function exactLiveBinding(binding: JsonRecord | undefined, candidate: JsonRecord | undefined, harness: JsonRecord | undefined, expected: CompactLiveExpectedBinding): boolean {
-  return !!binding && exactKeys(binding, ["providerFamily", "provider", "model", "api", "candidate", "harness"])
-    && binding.providerFamily === expected.providerFamily && binding.provider === expected.provider && binding.model === expected.model && binding.api === expected.api
-    && !!candidate && exactKeys(candidate, ["packageVersion", "piVersion", "implementationSha256"])
-    && candidate.packageVersion === expected.packageVersion && candidate.piVersion === expected.piVersion && candidate.implementationSha256 === expected.implementationSha256
-    && !!harness && exactKeys(harness, ["path", "sha256"]) && harness.path === AILI_COMPACT_LIVE_HARNESS && harness.sha256 === expected.liveHarnessSha256;
-}
-
-function exactCapture(capture: JsonRecord | undefined, eventCount: unknown): boolean {
-  const bytes = typeof capture?.bytes === "string" ? capture.bytes : "";
-  return !!capture && exactKeys(capture, ["sanitized", "encoding", "bytes", "byteLength", "sha256"]) && capture.sanitized === true
-    && capture.encoding === "utf8-event-codes-v1" && bytes.length > 0 && bytes.length <= 100_000 && /^[a-z0-9-]+(?:\n[a-z0-9-]+)*$/.test(bytes)
-    && Number.isSafeInteger(capture.byteLength) && Number(capture.byteLength) === Buffer.byteLength(bytes) && capture.sha256 === hash(bytes)
-    && Number.isSafeInteger(eventCount) && Number(eventCount) > 0 && bytes.split("\n").length === Number(eventCount);
+  const sourceCapture = record(value.sourceCapture);
+  const verdict = record(value.humanVerdict);
+  const reviewedAt = typeof value.reviewedAt === "string" ? Date.parse(value.reviewedAt) : Number.NaN;
+  const capturedAt = typeof source?.capturedAt === "string" ? Date.parse(source.capturedAt) : Number.NaN;
+  const sourceCaptureSha256 = hash(sourceCaptureBody);
+  return !!source
+    && exactKeys(value, ["schema", "status", "packageVersion", "piVersion", "implementationSha256", "reviewedAt", "sanitized", "sourceCapture", "humanVerdict"])
+    && value.schema === AILI_COMPACT_REVIEWED_LIVE_SCHEMA
+    && value.status === "PASS"
+    && value.sanitized === true
+    && freshTimestamp(value.reviewedAt, now)
+    && Number.isFinite(reviewedAt) && Number.isFinite(capturedAt) && reviewedAt >= capturedAt
+    && sourceCapture?.path === AILI_COMPACT_LIVE_CAPTURE_PATH && sourceCapture.sha256 === sourceCaptureSha256
+    && exactKeys(sourceCapture ?? {}, ["path", "sha256"])
+    && source.packageVersion === value.packageVersion && source.piVersion === value.piVersion
+    && source.implementationSha256 === value.implementationSha256
+    && validateAiliCompactLiveArtifact(source, expectedHarnessSha256, expectedRuntime, now)
+    && exactHumanReviewVerdict(verdict, sourceCaptureSha256, value.packageVersion, value.piVersion, value.implementationSha256, now)
+    && verdict?.reviewedAt === value.reviewedAt
+    && Object.values(scanAiliReleaseEvidence([sourceCaptureBody, JSON.stringify(value)])).every((flag) => flag === false);
 }
 
 function allRowsPass(value: unknown): boolean {
@@ -576,6 +486,146 @@ function exactInstalledRollback(
     && execution.liveSessionTouched === false;
 }
 
+export interface AiliCompactControlledProductionBinding {
+  compactImplementationSha256: string;
+  productionEntrySha256: string;
+  piAgentSessionSha256: string;
+  harnessSha256: string;
+}
+
+const CONTROLLED_PRODUCTION_KEYS = [
+  "schema",
+  "schemaVersion",
+  "status",
+  "generatedAt",
+  "evidenceClass",
+  "packageVersion",
+  "piVersion",
+  "test",
+  "hashes",
+  "networkUsed",
+  "credentialsUsed",
+  "directEventInjection",
+  "manualPromotion",
+  "liveProvider",
+  "activeBlocks",
+  "summaryCapacity",
+  "rows",
+  "sanitization",
+] as const;
+
+function exactIntegerSet(value: unknown, expected: readonly number[]): boolean {
+  return Array.isArray(value)
+    && value.length === expected.length
+    && value.every((item) => Number.isSafeInteger(item))
+    && JSON.stringify([...value].sort((left, right) => left - right)) === JSON.stringify([...expected].sort((left, right) => left - right));
+}
+
+function exactControlledFileBinding(value: unknown, path: string, sha256: string): boolean {
+  const binding = record(value);
+  return !!binding && exactKeys(binding, ["path", "sha256"])
+    && binding.path === path && binding.sha256 === sha256 && HASH.test(sha256);
+}
+
+/** Controlled production owns Compact behavior not reliably induced by a live provider. */
+export function validateAiliCompactControlledProductionArtifact(
+  value: JsonRecord,
+  expected: AiliCompactControlledProductionBinding,
+  now = Date.now(),
+): boolean {
+  const generatedAt = typeof value.generatedAt === "string" ? Date.parse(value.generatedAt) : Number.NaN;
+  const test = record(value.test);
+  const hashes = record(value.hashes);
+  const activeBlocks = record(value.activeBlocks);
+  const growth = record(activeBlocks?.growth);
+  const composition = record(activeBlocks?.composition);
+  const sourceProof = record(activeBlocks?.sourceProof);
+  const legacyTierReplay = record(activeBlocks?.legacyTierReplay);
+  const sourceTraversal = record(activeBlocks?.sourceTraversal);
+  const retiredGates = record(activeBlocks?.retiredGates);
+  const summaryCapacity = record(value.summaryCapacity);
+  const rows = Array.isArray(value.rows) ? value.rows.map(record) : [];
+  const row = (id: string) => rows.find((item) => item?.id === id);
+  const suffix = row("controlled-provider-suffix");
+  const overflow = row("controlled-native-overflow");
+  const continuedWork = row("controlled-continued-work");
+  const activeGrowth = row("controlled-active-block-growth");
+  const activeComposition = row("controlled-active-block-composition");
+  const legacyReplay = row("controlled-legacy-tier-replay");
+  const traversal = row("controlled-source-traversal");
+  const expectedRowIds = [
+    "controlled-index",
+    "controlled-active-block-growth",
+    "controlled-active-block-composition",
+    "controlled-legacy-tier-replay",
+    "controlled-source-traversal",
+    "controlled-provider-suffix",
+    "controlled-native-overflow",
+    "controlled-continued-work",
+  ];
+  const rowIds = rows.map((item) => item?.id).sort();
+  return exactKeys(value, CONTROLLED_PRODUCTION_KEYS)
+    && value.schema === "aili.compact.controlled-production.v2"
+    && value.schemaVersion === 2
+    && passed(value)
+    && value.evidenceClass === "deterministic-controlled-production"
+    && value.packageVersion === AILI_COMPACT_TARGET_VERSION
+    && value.piVersion === AILI_COMPACT_PI_VERSION
+    && Number.isFinite(generatedAt)
+    && generatedAt <= now + LIVE_EVIDENCE_FUTURE_TOLERANCE_MS
+    && now - generatedAt <= LIVE_EVIDENCE_MAX_AGE_MS
+    && test?.path === AILI_COMPACT_CONTROLLED_PRODUCTION_HARNESS
+    && boundedString(test.command, 500)
+    && !!hashes
+    && exactKeys(hashes, ["implementation", "entry", "piAgentSession", "test"])
+    && exactControlledFileBinding(hashes.implementation, "src/runtime/aili-compact/index.ts", expected.compactImplementationSha256)
+    && exactControlledFileBinding(hashes.entry, "extensions/index.ts", expected.productionEntrySha256)
+    && exactControlledFileBinding(hashes.piAgentSession, "node_modules/@earendil-works/pi-coding-agent/dist/core/agent-session.js", expected.piAgentSessionSha256)
+    && exactControlledFileBinding(hashes.test, AILI_COMPACT_CONTROLLED_PRODUCTION_HARNESS, expected.harnessSha256)
+    && value.networkUsed === false && value.credentialsUsed === false && value.directEventInjection === false
+    && value.manualPromotion === false && value.liveProvider === false
+    && !!activeBlocks
+    && exactKeys(activeBlocks, ["growth", "composition", "sourceProof", "legacyTierReplay", "sourceTraversal", "retiredGates"])
+    && !!growth && exactKeys(growth, ["status", "tierlessWrites", "createdBlockCount", "growthObserved"])
+    && passed(growth) && growth.tierlessWrites === true && Number.isSafeInteger(growth.createdBlockCount)
+    && Number(growth.createdBlockCount) >= 2 && growth.growthObserved === true
+    && !!composition && exactKeys(composition, ["acceptedChildCounts", "rejectedChildCounts", "atomicReplacement"])
+    && exactIntegerSet(composition.acceptedChildCounts, [2, 16])
+    && exactIntegerSet(composition.rejectedChildCounts, [1, 17])
+    && composition.atomicReplacement === true
+    && !!sourceProof && exactKeys(sourceProof, ["status", "exactLeafBinding", "attestedGapsOnly", "transactionSourceBound"])
+    && passed(sourceProof) && sourceProof.exactLeafBinding === true && sourceProof.attestedGapsOnly === true
+    && sourceProof.transactionSourceBound === true
+    && !!legacyTierReplay && exactKeys(legacyTierReplay, ["status", "readOnly", "readableTiers"])
+    && passed(legacyTierReplay) && legacyTierReplay.readOnly === true
+    && JSON.stringify(legacyTierReplay.readableTiers) === JSON.stringify(["T1", "T2", "T3", "T3-restill"])
+    && !!sourceTraversal && exactKeys(sourceTraversal, ["maxRawSlotVisits", "observedRawSlotVisits", "bounded"])
+    && sourceTraversal.maxRawSlotVisits === 256 && Number.isSafeInteger(sourceTraversal.observedRawSlotVisits)
+    && Number(sourceTraversal.observedRawSlotVisits) >= 0 && Number(sourceTraversal.observedRawSlotVisits) <= 256
+    && sourceTraversal.bounded === true
+    && !!retiredGates && exactKeys(retiredGates, ["fixedHierarchyRequired", "tierAgeRequired", "tierSourceFloorRequired", "tierEconomicsRequired"])
+    && retiredGates.fixedHierarchyRequired === false && retiredGates.tierAgeRequired === false
+    && retiredGates.tierSourceFloorRequired === false && retiredGates.tierEconomicsRequired === false
+    && !!summaryCapacity
+    && exactKeys(summaryCapacity, ["targetCharacters", "maxCharacters", "maximumAccepted", "overMaximumRejected"])
+    && summaryCapacity.targetCharacters === 15_000 && summaryCapacity.maxCharacters === 18_000
+    && summaryCapacity.maximumAccepted === true && summaryCapacity.overMaximumRejected === true
+    && JSON.stringify(rowIds) === JSON.stringify([...expectedRowIds].sort()) && rows.every(passed)
+    && activeGrowth?.tierlessWrites === true && activeGrowth.growthObserved === true
+    && activeComposition?.atomicReplacement === true
+    && exactIntegerSet(activeComposition?.acceptedChildCounts, [2, 16])
+    && exactIntegerSet(activeComposition?.rejectedChildCounts, [1, 17])
+    && legacyReplay?.readOnly === true && legacyReplay.readable === true
+    && traversal?.bounded === true && traversal.maxRawSlotVisits === 256
+    && Number.isSafeInteger(traversal.observedRawSlotVisits)
+    && Number(traversal.observedRawSlotVisits) <= 256
+    && suffix?.completeToolResultBeforeSuffix === true && suffix.persisted === false
+    && overflow?.providerContextError === true && overflow.nativeCheckpointPersisted === true
+    && overflow.originalRequestRetried === true && overflow.laterWorkCompleted === true
+    && continuedWork?.completed === true
+    && Object.values(record(value.sanitization) ?? {}).every((flag) => flag === false);
+}
+
 function validateArtifact(
   id: ArtifactId,
   value: JsonRecord,
@@ -585,9 +635,10 @@ function validateArtifact(
   installedEvidenceSha256: string | undefined,
   liveHarnessSha256: string | undefined,
   liveRuntimeBinding: AiliCompactLiveRuntimeBinding | undefined,
+  controlledProductionBinding: AiliCompactControlledProductionBinding | undefined,
   artifactBodies: ReadonlyMap<ArtifactId, string>,
   sourceCaptureBody: string,
-  candidateArtifactBody: string,
+  reviewedLiveBody: string,
 ): boolean {
   if (!passed(value)) return false;
   if (id === "migration") {
@@ -609,10 +660,17 @@ function validateArtifact(
       && Object.values(sanitizer).every((flag) => flag === false);
   }
   if (id === "live") {
+    let reviewedLive: JsonRecord | undefined;
+    try { reviewedLive = record(JSON.parse(reviewedLiveBody) as unknown); } catch { return false; }
     return liveHarnessSha256 !== undefined && liveRuntimeBinding !== undefined
+      && reviewedLive !== undefined
       && validateAiliCompactReviewedLiveArtifact(
-        value, sourceCaptureBody, candidateArtifactBody, liveHarnessSha256, liveRuntimeBinding,
+        reviewedLive, sourceCaptureBody, liveHarnessSha256, liveRuntimeBinding,
       );
+  }
+  if (id === "controlledProduction") {
+    return controlledProductionBinding !== undefined
+      && validateAiliCompactControlledProductionArtifact(value, controlledProductionBinding);
   }
   if (id === "provenance") {
     const acp = record(value.acpReference);
@@ -647,23 +705,29 @@ function addOnce(errors: string[], category: string, detail: string): void {
 }
 
 /**
- * Read-only release gate for the active Compact redesign. Errors are bounded to
- * one sanitized message per evidence category.
+ * Read-only release gate for the active Compact release-lineage contract.
+ * Errors are bounded to one sanitized message per evidence category.
  */
 export async function validateAiliCompactReleaseEvidence(root = DEFAULT_ROOT): Promise<string[]> {
   const projectRoot = resolve(root);
-  try {
-    await readFile(join(projectRoot, "openspec/changes/redesign-aili-compact-lifecycle/proposal.md"));
-  } catch {
-    return [];
-  }
-
   const errors: string[] = [];
+  try {
+    await readFile(join(projectRoot, AILI_COMPACT_ACTIVE_CONTRACT));
+  } catch {
+    addOnce(errors, "current-contract", "active reconcile-aili-compact-release-lineage contract is missing");
+    return errors;
+  }
+  try {
+    await readFile(join(projectRoot, AILI_COMPACT_RETIRED_CONTRACT));
+  } catch {
+    addOnce(errors, "current-contract", "retired redesign-aili-compact-lifecycle contract is absent");
+  }
   let implementationHash: string | undefined;
   let liveHarnessSha256: string | undefined;
   let liveRuntimeBinding: AiliCompactLiveRuntimeBinding | undefined;
+  let controlledProductionBinding: AiliCompactControlledProductionBinding | undefined;
   try {
-    const [computedImplementationHash, config, v3, runtime, liveHarness, piExecutable, productionEntry] = await Promise.all([
+    const [computedImplementationHash, config, v3, runtime, liveHarness, piExecutable, productionEntry, compactImplementation, controlledHarness, piAgentSession] = await Promise.all([
       computeAiliCompactImplementationSha256(projectRoot),
       text(projectRoot, "src/runtime/aili-compact/config.ts"),
       text(projectRoot, "src/runtime/aili-compact/v3.ts"),
@@ -671,10 +735,19 @@ export async function validateAiliCompactReleaseEvidence(root = DEFAULT_ROOT): P
       text(projectRoot, AILI_COMPACT_LIVE_HARNESS),
       text(projectRoot, "node_modules/@earendil-works/pi-coding-agent/dist/cli.js"),
       text(projectRoot, "extensions/index.ts"),
+      text(projectRoot, "src/runtime/aili-compact/index.ts"),
+      text(projectRoot, AILI_COMPACT_CONTROLLED_PRODUCTION_HARNESS),
+      text(projectRoot, "node_modules/@earendil-works/pi-coding-agent/dist/core/agent-session.js"),
     ]);
     implementationHash = computedImplementationHash;
     liveHarnessSha256 = hash(liveHarness);
     liveRuntimeBinding = { piExecutableSha256: hash(piExecutable), productionEntrySha256: hash(productionEntry) };
+    controlledProductionBinding = {
+      compactImplementationSha256: hash(compactImplementation),
+      productionEntrySha256: hash(productionEntry),
+      piAgentSessionSha256: hash(piAgentSession),
+      harnessSha256: hash(controlledHarness),
+    };
     const defaults = config.slice(config.indexOf("DEFAULT_COMPACT_CONFIG"), config.indexOf("EMPTY_COMPACT_PROMPT_SNAPSHOT"));
     const requiredDefaults = [
       /preserveRecentAtoms:\s*8\b/,
@@ -706,7 +779,7 @@ export async function validateAiliCompactReleaseEvidence(root = DEFAULT_ROOT): P
     if (pkg.name !== "@rosetears/aili-pi" || pkg.version !== AILI_COMPACT_TARGET_VERSION
       || lockRoot?.name !== "@rosetears/aili-pi" || lockRoot.version !== AILI_COMPACT_TARGET_VERSION
       || sbomRoot?.versionInfo !== AILI_COMPACT_TARGET_VERSION) {
-      addOnce(errors, "package", "package, lock root, and SBOM must all target exact 0.2.0");
+      addOnce(errors, "package", `package, lock root, and SBOM must all target exact ${AILI_COMPACT_TARGET_VERSION}`);
     }
   } catch {
     addOnce(errors, "package", "package, lock root, or SBOM identity is missing");
@@ -778,9 +851,9 @@ export async function validateAiliCompactReleaseEvidence(root = DEFAULT_ROOT): P
   }
 
   const artifactBodies = new Map<ArtifactId, string>();
-  const [sourceCaptureBody, candidateArtifactBody] = await Promise.all([
+  const [sourceCaptureBody, reviewedLiveBody] = await Promise.all([
     text(projectRoot, AILI_COMPACT_LIVE_CAPTURE_PATH).catch(() => ""),
-    text(projectRoot, COMPACT_HUMAN_REVIEW_CANDIDATE_PATH).catch(() => ""),
+    text(projectRoot, AILI_COMPACT_REVIEWED_LIVE_PATH).catch(() => ""),
   ]);
   await Promise.all((Object.entries(AILI_COMPACT_RELEASE_ARTIFACTS) as Array<[ArtifactId, (typeof AILI_COMPACT_RELEASE_ARTIFACTS)[ArtifactId]]>).map(async ([id, expected]) => {
     try { artifactBodies.set(id, await text(projectRoot, expected.path)); } catch { /* reported in the validation loop */ }
@@ -791,10 +864,12 @@ export async function validateAiliCompactReleaseEvidence(root = DEFAULT_ROOT): P
       if (body === undefined) throw new Error("missing artifact");
       const value = record(JSON.parse(body));
       const reference = record(record(index?.artifacts)?.[id]);
-      if (!value || value.schema !== expected.schema || value.packageVersion !== AILI_COMPACT_TARGET_VERSION
-        || value.piVersion !== AILI_COMPACT_PI_VERSION || value.implementationSha256 !== implementationHash
+      const candidateBindingMatches = !!value && (id === "controlledProduction"
+        ? value.packageVersion === AILI_COMPACT_TARGET_VERSION && value.piVersion === AILI_COMPACT_PI_VERSION
+        : value.packageVersion === AILI_COMPACT_TARGET_VERSION && value.piVersion === AILI_COMPACT_PI_VERSION && value.implementationSha256 === implementationHash);
+      if (!value || value.schema !== expected.schema || !candidateBindingMatches
         || reference?.path !== expected.path || reference.sha256 !== hash(body)
-         || !validateArtifact(id, value, predecessorIdentity, predecessorIdentitySha256, installedRollback, installedRollbackSha256, liveHarnessSha256, liveRuntimeBinding, artifactBodies, sourceCaptureBody, candidateArtifactBody)) {
+         || !validateArtifact(id, value, predecessorIdentity, predecessorIdentitySha256, installedRollback, installedRollbackSha256, liveHarnessSha256, liveRuntimeBinding, controlledProductionBinding, artifactBodies, sourceCaptureBody, reviewedLiveBody)) {
         addOnce(errors, id, "evidence schema, PASS status, target binding, hash, or sanitizer contract is stale");
         continue;
       }
