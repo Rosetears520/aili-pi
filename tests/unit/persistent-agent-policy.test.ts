@@ -4,6 +4,7 @@ import { SessionManager, type ExtensionAPI, type ToolDefinition } from "@earendi
 import { Type } from "typebox";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadRoleProfiles, type RoleProfile } from "../../src/runtime/roles.js";
+import { FORMAL_RESULT_FIELDS, renderCanonicalFormalResultInstruction } from "../../src/runtime/persistent-agents/task-coordinator.js";
 import {
   assembleChildPrompt,
   computeEffectiveTools,
@@ -71,6 +72,38 @@ describe("persistent child prompt and policy assembly", () => {
     expect(prompt.initialMessage).toContain("plan://accepted/1");
     expect(prompt.includedResources).toEqual([{ kind: "rule", path: "AGENTS.md" }]);
     expect(prompt.diagnostics).toEqual(["context:SECRET-NOTES.md: excluded because project/resource trust is inactive"]);
+  });
+
+  it("adds the authoritative formal contract after the role profile and omits it for ordinary Agents", async () => {
+    const role = (await loadRoleProfiles()).find((candidate) => candidate.selector === "aili.implementer")!;
+    const base = {
+      runtimeEnvelope: "formal prompt fixture",
+      role,
+      task: "Implement the bounded package",
+      cwd: "/project",
+      workspace: { mode: "shared" as const, root: "/project" },
+    };
+    const instruction = renderCanonicalFormalResultInstruction({ packageId: "P-01", roleId: role.selector });
+    const formal = assembleChildPrompt({ ...base, formalResultInstruction: instruction });
+    const roleIndex = formal.systemPrompt.indexOf(role.prompt);
+    const formalIndex = formal.systemPrompt.indexOf("## Authoritative formal result contract");
+    const workspaceIndex = formal.systemPrompt.indexOf("## Workspace");
+
+    expect(roleIndex).toBeGreaterThanOrEqual(0);
+    expect(formalIndex).toBeGreaterThan(roleIndex);
+    expect(workspaceIndex).toBeGreaterThan(formalIndex);
+    expect(formal.systemPrompt).toContain("overrides every JSON or output instruction");
+    expect(formal.systemPrompt).toContain("JSON output is forbidden");
+    expect(formal.systemPrompt).toContain("package_id: P-01");
+    expect(formal.systemPrompt).toContain("role_id: aili.implementer");
+    expect(formal.systemPrompt.match(/CANONICAL RESULT:/g)).toHaveLength(1);
+    expect(formal.systemPrompt).toContain("Every field value must be non-empty, trimmed, and confined to one line");
+    expect(instruction.split("\n").slice(-FORMAL_RESULT_FIELDS.length).map((line) => line.slice(0, line.indexOf(":")))).toEqual(FORMAL_RESULT_FIELDS);
+
+    const ordinary = assembleChildPrompt(base);
+    expect(ordinary.systemPrompt).toContain(role.prompt);
+    expect(ordinary.systemPrompt).not.toContain("Authoritative formal result contract");
+    expect(ordinary.systemPrompt).not.toContain("JSON output is forbidden");
   });
 
   it("intersects parent active, child loadable, role, hard guard, call narrowing, and spawn policy", async () => {

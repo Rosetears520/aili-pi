@@ -1,6 +1,6 @@
 # Subagent Result
 
-This is the one canonical terminal result and finding envelope for delegated review, test, security, coverage, convergence, evaluator, and focused-recheck lanes. Return only what ROSE needs to decide the next action; the Task context closes after this result or failure.
+`core/protocols/package-envelope.schema.json` owns the canonical terminal result, verification-evidence, and convergence-link semantics. This Markdown reference renders that result and finding envelope for delegated review, test, security, coverage, convergence, evaluator, and focused-recheck lanes. Return only what ROSE needs to decide the next action; the Task context closes after this result or failure.
 
 ```text
 CANONICAL RESULT:

@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SNAPSHOT = resolve(ROOT, "skills");
+const RUNTIME_BUNDLE = resolve(ROOT, "upstream/aili-workflows-runtime");
 const LOCK = resolve(ROOT, "upstream/aili-workflows.lock.json");
 const COMPATIBILITY = resolve(ROOT, "manifests/skill-compatibility.json");
 const REPOSITORY = "https://github.com/Rosetears520/aili-workflows.git";
@@ -53,6 +54,13 @@ interface LockFile {
   skillCount: number;
   fileCount: number;
   contentHash: string;
+  runtimeBundle: {
+    sourceRoot: "generated/pi";
+    targetRoot: "upstream/aili-workflows-runtime";
+    fileCount: number;
+    contentHash: string;
+    files: FileRecord[];
+  };
   synchronizedAt: string;
   files: FileRecord[];
   skills: Array<{ name: string; sourceHash: string; files: string[] }>;
@@ -157,8 +165,8 @@ function stopOutcomes(markdown: string): string[] {
 
 function parseSpecialistRoles(markdown: string): string[] {
   const roles = [...markdown.matchAll(/^\| `([a-z0-9-]+)` \|/gm)].map((match) => match[1]!);
-  if (roles.length !== 19 || new Set(roles).size !== roles.length || roles.includes("general") || roles.includes("rose")) {
-    throw new Error("agent-selection matrix must contain exactly 19 unique canonical specialist roles");
+  if (roles.length === 0 || new Set(roles).size !== roles.length || roles.includes("general") || roles.includes("rose")) {
+    throw new Error("agent-selection matrix must contain a non-empty unique canonical specialist inventory without general or rose");
   }
   return roles;
 }
@@ -296,6 +304,14 @@ async function verifySnapshot(requireRelease = true): Promise<void> {
     throw new Error("skill compatibility source does not match the lock");
   }
   if (requireRelease) {
+    const runtimeFiles = await collectFiles(RUNTIME_BUNDLE);
+    if (lock.runtimeBundle?.sourceRoot !== "generated/pi"
+      || lock.runtimeBundle.targetRoot !== "upstream/aili-workflows-runtime"
+      || lock.runtimeBundle.fileCount !== runtimeFiles.length
+      || JSON.stringify(lock.runtimeBundle.files) !== JSON.stringify(runtimeFiles)
+      || lock.runtimeBundle.contentHash !== aggregateHash(runtimeFiles)) {
+      throw new Error("generated Pi runtime bundle drifted from upstream/aili-workflows.lock.json");
+    }
     await verifyReleaseSnapshot(lock);
     if (JSON.stringify(compatibility.source.release) !== JSON.stringify(lock.release)) {
       throw new Error("skill compatibility release identity does not match the lock");
@@ -382,6 +398,7 @@ async function synchronize(source: string, revision: string, args: SyncArgs): Pr
   if (snapshotExists) await verifySnapshot(false);
 
   const sourceSkillRoot = resolve(source, ".agents/skills");
+  const sourceRuntimeBundle = resolve(source, "generated/pi");
   const upstreamCapabilities = JSON.parse(
     await readFile(resolve(source, "manifests/skill-capabilities.json"), "utf8"),
   ) as {
@@ -397,6 +414,7 @@ async function synchronize(source: string, revision: string, args: SyncArgs): Pr
   }
 
   const files = await collectFiles(sourceSkillRoot);
+  const runtimeFiles = await collectFiles(sourceRuntimeBundle);
   const release = await releaseRecord(source, args);
   const skillNames = (await readdir(sourceSkillRoot, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory())
@@ -455,6 +473,13 @@ async function synchronize(source: string, revision: string, args: SyncArgs): Pr
     skillCount: skillNames.length,
     fileCount: files.length,
     contentHash: aggregateHash(files),
+    runtimeBundle: {
+      sourceRoot: "generated/pi",
+      targetRoot: "upstream/aili-workflows-runtime",
+      fileCount: runtimeFiles.length,
+      contentHash: aggregateHash(runtimeFiles),
+      files: runtimeFiles,
+    },
     synchronizedAt,
     files,
     skills,
@@ -473,36 +498,48 @@ async function synchronize(source: string, revision: string, args: SyncArgs): Pr
   };
 
   const stage = resolve(ROOT, `.tmp/sync-skills-${process.pid}`);
+  const stageRuntime = resolve(ROOT, `.tmp/sync-workflow-runtime-${process.pid}`);
   const backup = resolve(ROOT, `.tmp/sync-skills-backup-${process.pid}`);
+  const backupRuntime = resolve(ROOT, `.tmp/sync-workflow-runtime-backup-${process.pid}`);
   const lockTemp = `${LOCK}.tmp`;
   const compatibilityTemp = `${COMPATIBILITY}.tmp`;
   await rm(stage, { recursive: true, force: true });
+  await rm(stageRuntime, { recursive: true, force: true });
   await rm(backup, { recursive: true, force: true });
+  await rm(backupRuntime, { recursive: true, force: true });
   await rm(lockTemp, { force: true });
   await rm(compatibilityTemp, { force: true });
   await mkdir(dirname(stage), { recursive: true });
   await cp(sourceSkillRoot, stage, { recursive: true, preserveTimestamps: false });
+  await cp(sourceRuntimeBundle, stageRuntime, { recursive: true, preserveTimestamps: false });
   await mkdir(dirname(LOCK), { recursive: true });
   await mkdir(dirname(COMPATIBILITY), { recursive: true });
   await writeFile(lockTemp, `${JSON.stringify(lock, null, 2)}\n`, { flag: "wx" });
   await writeFile(compatibilityTemp, `${JSON.stringify(compatibility, null, 2)}\n`, { flag: "wx" });
   const priorLock = await readFile(LOCK).catch(() => undefined);
   const priorCompatibility = await readFile(COMPATIBILITY).catch(() => undefined);
+  const runtimeBundleExists = await exists(RUNTIME_BUNDLE);
   try {
     if (snapshotExists) await rename(SNAPSHOT, backup);
+    if (runtimeBundleExists) await rename(RUNTIME_BUNDLE, backupRuntime);
     await rename(stage, SNAPSHOT);
+    await rename(stageRuntime, RUNTIME_BUNDLE);
     await rename(lockTemp, LOCK);
     await rename(compatibilityTemp, COMPATIBILITY);
     await verifySnapshot();
     await rm(backup, { recursive: true, force: true });
+    await rm(backupRuntime, { recursive: true, force: true });
   } catch (error) {
     await rm(SNAPSHOT, { recursive: true, force: true });
+    await rm(RUNTIME_BUNDLE, { recursive: true, force: true });
     if (snapshotExists && await exists(backup)) await rename(backup, SNAPSHOT);
+    if (runtimeBundleExists && await exists(backupRuntime)) await rename(backupRuntime, RUNTIME_BUNDLE);
     if (priorLock) await writeFile(LOCK, priorLock);
     else await rm(LOCK, { force: true });
     if (priorCompatibility) await writeFile(COMPATIBILITY, priorCompatibility);
     else await rm(COMPATIBILITY, { force: true });
     await rm(stage, { recursive: true, force: true });
+    await rm(stageRuntime, { recursive: true, force: true });
     await rm(lockTemp, { force: true });
     await rm(compatibilityTemp, { force: true });
     throw error;

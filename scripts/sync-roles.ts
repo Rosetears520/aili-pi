@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 const ROOT = resolve(import.meta.dirname, "..");
 const ROLES_DIR = join(ROOT, "roles");
 const MANIFEST_PATH = join(ROOT, "manifests", "roles.json");
-const SOURCE_COMMIT = "bb1fedacc46d71045daa6257d121f2b71ba29d54";
+const SOURCE_COMMIT = "a69f3149d8f1db81726128c2819a3ccc954b9ccc";
 const SOURCE_REPOSITORY = "https://github.com/Rosetears520/aili-workflows.git";
 const PROFILE_VERSION = 2;
 const RUNTIME_ADAPTER_VERSION = 2;
@@ -16,7 +16,7 @@ const execFile = promisify(execFileCallback);
 const SPECIALIZED_ROLE_NAMES = [
   "agent-evaluator", "ai-regression-scout", "browser-qa-runner", "code-reviewer",
   "code-scout", "convergence-reviewer", "doc-researcher", "e2e-artifact-runner",
-  "implementer", "opensource-sanitizer", "plan-auditor", "pr-test-analyzer",
+  "implementer", "opensource-sanitizer", "plan-auditor", "pr-test-analyzer", "solution-architect",
   "security-auditor", "silent-failure-reviewer", "spec-miner", "test-coverage-reviewer",
   "test-engineer", "web-performance-auditor", "web-researcher",
 ] as const;
@@ -72,7 +72,7 @@ function hash(content: string): string {
 function splitMarkdown(content: string): { description: string; body: string } {
   const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) throw new Error("source role lacks YAML frontmatter");
-  const description = match[1].match(/^description:\s*(.+)$/m)?.[1]?.trim();
+  const description = match[1].match(/^description:\s*(.+)$/m)?.[1]?.trim().replace(/^(["'])(.*)\1$/, "$2");
   if (!description) throw new Error("source role lacks description");
   return { description, body: match[2].trim() };
 }
@@ -137,6 +137,7 @@ function specializedProfileContent(name: string, description: string, tools: str
     .replaceAll("OpenCode subagent", "Pi child role")
     .replaceAll("OpenCode", "Pi")
     .replaceAll("Task tool", "AILI task capability")
+    .replaceAll("One bounded, single-use", "One bounded persistent")
     .replace(
       "You are a bounded, single-use Pi child role. Complete the supplied assignment once, return one terminal result or failure, and never resume this context.",
       "You are a bounded persistent Pi Agent role. Work only on the supplied assignment or follow-up turn within the same stable Agent identity.",
@@ -233,7 +234,9 @@ async function generate(sourceRoot: string): Promise<void> {
     const sourcePath = join(sourceRoot, "agents", `${name}.md`);
     if ((await lstat(sourcePath)).isSymbolicLink()) throw new Error(`${name}: source role must not be a symlink`);
     const source = await readFile(sourcePath, "utf8");
-    const { description, body } = splitMarkdown(source);
+    const parsed = splitMarkdown(source);
+    const description = parsed.description.replaceAll("One bounded, single-use", "One bounded persistent");
+    const body = parsed.body;
     const policy = translatedPolicy(source);
     const tools = [...policy.tools];
     if (name === "web-researcher") tools.length = 0;
@@ -357,7 +360,7 @@ async function verify(): Promise<void> {
   for (const name of expected) if (!seen.has(name)) errors.push(`${name}: missing role`);
   const files = (await readdir(ROLES_DIR)).filter((name) => name.endsWith(".md")).sort();
   const expectedFiles = BUNDLED_NAMES.map((name) => `${name}.md`).sort();
-  if (JSON.stringify(files) !== JSON.stringify(expectedFiles)) errors.push(`role file inventory mismatch: ${files.length}/20`);
+  if (JSON.stringify(files) !== JSON.stringify(expectedFiles)) errors.push(`role file inventory mismatch: ${files.length}/${expectedFiles.length}`);
   if (errors.length > 0) throw new Error(errors.join("\n"));
   console.log(`Role profiles verified: ${manifest.records.length}`);
 }

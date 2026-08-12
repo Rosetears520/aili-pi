@@ -161,6 +161,7 @@ export interface ChildPromptInput {
   resources?: TrustedContextResource[];
   approvedPlanRef?: string;
   sharedRefs?: string[];
+  formalResultInstruction?: string;
 }
 
 export interface ChildPromptAssembly {
@@ -182,6 +183,7 @@ export function assembleChildPrompt(input: ChildPromptInput): ChildPromptAssembl
   const systemPrompt = [
     ...section("AILI persistent Agent runtime", input.runtimeEnvelope),
     ...section("Selected role profile", input.role.prompt),
+    ...section("Authoritative formal result contract", input.formalResultInstruction),
     ...section("Workspace", `mode: ${input.workspace.mode}\nroot: ${input.workspace.root}${input.workspace.diagnostic ? `\ndiagnostic: ${input.workspace.diagnostic}` : ""}`),
     ...trusted.flatMap((resource) => section(`Trusted ${resource.kind}: ${resource.path}`, resource.content)),
     "The parent conversation is not part of this child context. Use only the explicit assignment/context and trusted resources above.",

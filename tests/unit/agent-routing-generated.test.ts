@@ -74,7 +74,8 @@ describe("generated agent routing", () => {
     expect(manifest.source.repository).toBe(roleManifest.source.repository);
     expect(manifest.source.commit).toBe(roleManifest.source.commit);
     expect(manifest.roles.map((role: { roleId: string }) => role.roleId)).toEqual(lock.release.canonicalSpecialists);
-    expect(manifest.roles).toHaveLength(19);
+    expect(manifest.roles).toHaveLength(20);
+    expect(manifest.roles).toContainEqual(expect.objectContaining({ roleId: "solution-architect", selector: "aili.solution-architect" }));
     expect(Object.keys(manifest.roles[0])).toEqual([
       "roleId", "selector", "positiveTriggers", "nearMisses", "expectedEvidence", "phaseAffinity", "executionGuidance",
     ]);
@@ -90,7 +91,7 @@ describe("generated agent routing", () => {
       ["--experimental-strip-types", "scripts/sync-agent-routing.ts", "--verify"],
       { cwd: root },
     );
-    expect(stdout).toContain("Agent routing verified: 19 canonical specialists");
+    expect(stdout).toContain("Agent routing verified: 20 canonical specialists");
   });
 
   it("rejects source hash drift", async () => {

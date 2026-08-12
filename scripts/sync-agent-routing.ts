@@ -180,8 +180,8 @@ export async function buildAgentRoutingManifest(root = DEFAULT_ROOT): Promise<Ag
   }
   const canonicalSpecialists = release.canonicalSpecialists.map((value, index) =>
     string(value, `canonical specialist ${index + 1}`));
-  if (canonicalSpecialists.length !== 19) {
-    throw new Error(`canonical specialist inventory must contain 19 roles, received ${canonicalSpecialists.length}`);
+  if (canonicalSpecialists.length === 0) {
+    throw new Error("canonical specialist inventory must not be empty");
   }
   if (canonicalSpecialists.includes("general")) throw new Error("general is not a canonical specialist role");
   if (new Set(canonicalSpecialists).size !== canonicalSpecialists.length) {

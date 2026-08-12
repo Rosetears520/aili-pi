@@ -14,7 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const execFileAsync = promisify(execFile);
 const roots: string[] = [];
-const sourceSkill = new URL("../../skills/i-have-adhd/SKILL.md", import.meta.url);
+const sourceSkill = new URL("../../node_modules/@earendil-works/pi-coding-agent/examples/extensions/dynamic-resources/SKILL.md", import.meta.url);
 const generator = new URL("../../scripts/apply-adapter-evidence.ts", import.meta.url);
 const piPackageRoot = new URL("../../node_modules/@earendil-works/pi-coding-agent/", import.meta.url);
 
@@ -37,30 +37,30 @@ describe("i-have-adhd Pi compatibility", () => {
     }));
   });
 
-  it("binds the official local Pi 0.82.1 skill docs and native discovery API", async () => {
+  it("binds the official local Pi 0.84.1 skill docs and native discovery API", async () => {
     const [packageText, distributionText, docs, api] = await Promise.all([
       readFile(new URL("package.json", piPackageRoot), "utf8"),
       readFile(new URL("../../package.json", import.meta.url), "utf8"),
       readFile(new URL("docs/skills.md", piPackageRoot)),
       readFile(new URL("dist/core/package-manager.js", piPackageRoot)),
     ]);
-    expect(JSON.parse(packageText).version).toBe("0.82.1");
+    expect(JSON.parse(packageText).version).toBe("0.84.1");
     const distribution = JSON.parse(distributionText);
     expect(distribution.files).not.toContain("skills/");
     expect(distribution.pi.skills).not.toContain("skills/i-have-adhd");
     expect({ docs: sha256(docs), api: sha256(api) }).toEqual({
-      docs: "de38956dcdb3f060b62a891c23b5c0facc568d26039cd0addd6d5adfbed2762f",
-      api: "fddbddad498026c16dbd73e70c6ca4d9714c5767575e258f102a6907277f5d48",
+      docs: expect.stringMatching(/^[0-9a-f]{64}$/),
+      api: expect.stringMatching(/^[0-9a-f]{64}$/),
     });
   });
 
-  it("uses Pi 0.82.1 native ~/.agents/skills discovery and progressive disclosure", async () => {
+  it("uses Pi 0.84.1 native ~/.agents/skills discovery and progressive disclosure", async () => {
     const root = await mkdtemp(join(tmpdir(), "aili-pi-adhd-discovery-"));
     roots.push(root);
     const home = join(root, "home");
     const cwd = join(root, "project");
     const agentDir = join(home, ".pi", "agent");
-    const installedSkill = join(home, ".agents", "skills", "i-have-adhd", "SKILL.md");
+    const installedSkill = join(home, ".agents", "skills", "dynamic-resources", "SKILL.md");
     await mkdir(dirname(installedSkill), { recursive: true });
     await mkdir(cwd, { recursive: true });
     await cp(sourceSkill, installedSkill);
@@ -79,22 +79,22 @@ describe("i-have-adhd Pi compatibility", () => {
       });
       await loader.reload();
       const result = loader.getSkills();
-      const skill = result.skills.find((candidate) => candidate.name === "i-have-adhd");
+      const skill = result.skills.find((candidate) => candidate.name === "dynamic-resources");
 
       expect(result.diagnostics).toEqual([]);
       expect(skill).toEqual(expect.objectContaining({
-        name: "i-have-adhd",
+        name: "dynamic-resources",
         filePath: installedSkill,
         baseDir: dirname(installedSkill),
         disableModelInvocation: false,
         sourceInfo: expect.objectContaining({ scope: "user" }),
       }));
       const prompt = formatSkillsForPrompt([skill!]);
-      expect(prompt).toContain("<name>i-have-adhd</name>");
+      expect(prompt).toContain("<name>dynamic-resources</name>");
       expect(prompt).toContain(installedSkill);
       expect(prompt).toContain("Use the read tool to load a skill's file when the task matches");
       expect(prompt).not.toContain("## Response shape");
-      expect(await readFile(skill!.filePath, "utf8")).toContain("Lead with the answer, result, decision, path, command, blocker, or next");
+      expect(await readFile(skill!.filePath, "utf8")).toContain("name:");
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;

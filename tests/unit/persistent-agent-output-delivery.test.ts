@@ -90,7 +90,7 @@ function settlement(agentId = "Worker", overrides: Partial<NormalizedTaskSettlem
       limits: { bytes: 500_000, lines: 5_000 },
     },
     lifecycle: { agent: "idle", job: "completed", turn: "completed" },
-    model: {},
+    model: { requested: "provider/model", provider: "provider", model: "model", layer: "one-shot", thinking: "high" },
     profile: { profileHash: "profile", sourceHash: "source", version: 2 },
     workspace: { requested: "shared", writeScope: { paths: [], resources: [] } },
     deliveryRequired: true,
@@ -141,6 +141,12 @@ describe("durable Agent output and exactly-once parent delivery", () => {
       deliveryId: "delivery-job-1",
       outputRef: "agent://Worker",
       historyRef: "history://Worker",
+      selector: "general",
+      effectiveMode: "async",
+      requestedModel: "provider/model",
+      effectiveModel: "provider/model",
+      modelLayer: "one-shot",
+      thinking: "high",
       previewTruncated: true,
     });
     expect(sent[0]?.content).toContain("preview truncated to 5000 characters");

@@ -16,16 +16,16 @@ describe("offline packaged runtime discovery", () => {
     const tools = [...extension.tools.keys()];
     const shortcuts = [...extension.shortcuts.keys()];
     expect(commands).toEqual(expect.arrayContaining([
-      "aili-doctor", "aili-install-global-resources", "aili-agent-model", "perm", "quota",
-      "cache-optimizer",
+      "aili-doctor", "aili-agent-model", "perm", "quota", "cache-optimizer",
     ]));
+    expect(commands).not.toContain("aili-install-global-resources");
     expect(commands.filter((name) => [
       "preview", "preview-browser", "preview-pdf", "preview-clear-cache", "lsp",
     ].includes(name))).toEqual([]);
     expect(commands).not.toContain("aili-mode");
     expect(commands).not.toContain("aili-compact");
     expect(tools).toEqual(expect.arrayContaining([
-      "task", "hub", "web_search", "fetch_content", "get_search_content",
+      "task", "hub", "mcp", "mcpScript", "web_search", "fetch_content", "get_search_content",
     ]));
     expect(tools.filter((name) => ["preview_export", "lsp_diagnostics", "lsp_fix"].includes(name))).toEqual([]);
     expect(tools).not.toContain("subagent");
@@ -51,8 +51,8 @@ describe("offline packaged runtime discovery", () => {
     expect(skillDirectories).toHaveLength(workflowLock.skillCount);
     expect(packageJson.files).not.toContain("skills/");
     expect(roles.schemaVersion).toBe(2);
-    expect(roles.records).toHaveLength(20);
-    expect(roles.bundledSelectors).toEqual(expect.arrayContaining(["general", "aili.code-scout", "aili.implementer"]));
+    expect(roles.records).toHaveLength(21);
+    expect(roles.bundledSelectors).toEqual(expect.arrayContaining(["general", "aili.code-scout", "aili.implementer", "aili.solution-architect"]));
     expect(packageJson.pi.prompts).toEqual([
       "./prompts/ideate.md", "./prompts/define.md", "./prompts/build.md", "./prompts/ship.md", "./prompts/local-review.md",
     ]);

@@ -50,7 +50,7 @@ afterEach(async () => {
   await rm(scratch, { recursive: true, force: true });
 });
 
-describe("Pi 0.82.1 task winner collision policy", () => {
+describe("Pi 0.84.1 task winner collision policy", () => {
   it.each([
     "canonical-first",
     "collision-first",

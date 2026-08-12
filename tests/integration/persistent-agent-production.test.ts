@@ -206,6 +206,9 @@ describe("production persistent Agent controlled path", () => {
         },
       });
       expect(providerCalls).toEqual(["parent-task", "child-bash", "child-final", "parent-final"]);
+      expect(created.session.extensionRunner.getExtensionPaths()).not.toEqual(expect.arrayContaining([
+        expect.stringContaining("ambient"),
+      ]));
       expect(sandboxCommands).toEqual([`printf ${PERSISTENT_SANDBOX_MARKER_BYTES} > ${PERSISTENT_SANDBOX_MARKER_PATH}`]);
       expect({ sandboxProfileResolutions, sandboxOperationResolutions, sandboxExecutes }).toEqual({
         sandboxProfileResolutions: 1,
@@ -232,8 +235,8 @@ describe("production persistent Agent controlled path", () => {
         status: "PASS",
         generatedAt: new Date().toISOString(),
         evidenceClass: "deterministic-controlled-production",
-        packageVersion: "0.2.0",
-        piVersion: "0.82.1",
+        packageVersion: "0.2.1",
+        piVersion: "0.84.1",
         test: { path: persistentTestPath, command: `npm test -- ${persistentTestPath}` },
         hashes: {
           implementation: await fileBinding("src/runtime/persistent-agents/production.ts"),

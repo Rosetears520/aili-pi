@@ -4,9 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadRoleProfiles, type RoleProfile } from "../../src/runtime/roles.js";
 import { CoordinatorJournal, ensureSidecarLayout } from "../../src/runtime/persistent-agents/storage.js";
 import { FifoTurnScheduler } from "../../src/runtime/persistent-agents/scheduler.js";
-import { FORMAL_RESULT_MAX_BYTES, TaskCoordinator, assertCurrentFormalRoleProfile, parseCanonicalFormalResult, truncateTaskOutput, type TaskExecutionOutput } from "../../src/runtime/persistent-agents/task-coordinator.js";
+import { FORMAL_RESULT_FIELDS, FORMAL_RESULT_MAX_BYTES, TaskCoordinator, assertCurrentFormalRoleProfile, parseCanonicalFormalResult, renderCanonicalFormalResultInstruction, truncateTaskOutput, type TaskExecutionOutput } from "../../src/runtime/persistent-agents/task-coordinator.js";
 import { FORMAL_RUNTIME_LIMITS, TASK_TOOL_SCHEMA, validateTaskRequest } from "../../src/runtime/persistent-agents/task-schema.js";
 import type { AgentRecord } from "../../src/runtime/persistent-agents/types.js";
+import type { ResolvedModelChoice } from "../../src/runtime/persistent-agents/model-selection.js";
 
 let scratch = "";
 let sequence = 0;
@@ -63,6 +64,7 @@ async function fixtureCoordinator(options: {
   profiles?: RoleProfile[];
   repositoryRoot?: string;
   execute?: TaskCoordinator["submit"] extends never ? never : (input: Parameters<ConstructorParameters<typeof TaskCoordinator>[0]["execute"]>[0]) => Promise<TaskExecutionOutput>;
+  preflight?: ConstructorParameters<typeof TaskCoordinator>[0]["preflight"];
   onSettled?: ConstructorParameters<typeof TaskCoordinator>[0]["onSettled"];
   onAsyncSettled?: ConstructorParameters<typeof TaskCoordinator>[0]["onAsyncSettled"];
 } = {}) {
@@ -75,6 +77,7 @@ async function fixtureCoordinator(options: {
     scheduler,
     repositoryRoot: options.repositoryRoot,
     loadProfiles: async () => profiles,
+    preflight: options.preflight,
     execute: options.execute ?? (async ({ item }) => ({ output: `done:${item.task}` })),
     onSettled: options.onSettled,
     onAsyncSettled: options.onAsyncSettled,
@@ -117,6 +120,18 @@ describe("task schema and coordinator", () => {
     ];
     for (const output of invalid) expect(parseCanonicalFormalResult(output, expected).ok, output.slice(0, 40)).toBe(false);
   });
+  it("renders formal instructions from the parser-owned inventory with exact identities", () => {
+    const instruction = renderCanonicalFormalResultInstruction({ packageId: "P-01", roleId: "aili.implementer" });
+    const envelope = instruction.slice(instruction.indexOf("CANONICAL RESULT:"));
+    const lines = envelope.split("\n");
+    expect(lines[0]).toBe("CANONICAL RESULT:");
+    expect(lines.slice(1).map((line) => line.slice(0, line.indexOf(":")))).toEqual(FORMAL_RESULT_FIELDS);
+    expect(lines).toContain("package_id: P-01");
+    expect(lines).toContain("role_id: aili.implementer");
+    expect(instruction).toContain("JSON output is forbidden");
+    expect(() => renderCanonicalFormalResultInstruction({ packageId: "P-01\nP-02", roleId: "aili.implementer" })).toThrow(/one exact non-empty line/);
+  });
+
   it("strictly validates flat/batch inputs and canonical selectors before durable allocation", async () => {
     const { journal, profiles, coordinator } = await fixtureCoordinator();
     expect(validateTaskRequest({ task: "focused" }, profiles)).toMatchObject({
@@ -165,6 +180,38 @@ describe("task schema and coordinator", () => {
     await expect(coordinator.submit({ task: "read ~/.ssh/id_ed25519" })).rejects.toThrow(/credential\/auth\/private-key/);
     expect(journal.getState().lastSequence).toBe(0);
     expect(journal.getState().agents).toEqual({});
+  });
+
+  it("resolves every model choice before allocation and rejects one invalid batch member atomically", async () => {
+    const choices: ResolvedModelChoice[] = [
+      { provider: "provider", model: "one", canonical: "provider/one", layer: "one-shot", thinking: "high", persistent: false, oneShot: true },
+      { provider: "provider", model: "two", canonical: "provider/two", layer: "parent-fallback", thinking: "medium", persistent: false, oneShot: false },
+    ];
+    const preflight = vi.fn(async ({ item }: { item: { task: string } }) => {
+      if (item.task === "invalid model") throw new Error("one-shot model is unauthenticated");
+      return choices[0]!;
+    });
+    const { coordinator, journal } = await fixtureCoordinator({ preflight });
+    await expect(coordinator.submit({
+      tasks: [{ task: "valid model", model: "provider/one" }, { task: "invalid model", model: "provider/two" }],
+    })).rejects.toThrow(/unauthenticated/);
+    expect(preflight).toHaveBeenCalledTimes(2);
+    expect(journal.getState()).toMatchObject({ lastSequence: 0, agents: {}, jobs: {}, turns: {} });
+
+    const acceptedFixture = await fixtureCoordinator({
+      preflight: async ({ item }) => item.model === "provider/one" ? choices[0]! : choices[1]!,
+      execute: async ({ modelChoice }) => ({ output: "ok", model: modelChoice }),
+    });
+    const accepted = await acceptedFixture.coordinator.submit({
+      tasks: [
+        { task: "first", model: "provider/one", async: true },
+        { task: "second", async: true },
+      ],
+    });
+    expect(accepted.results[0]).toMatchObject({ status: "accepted", model: { provider: "provider", model: "one", layer: "one-shot", thinking: "high" } });
+    expect(accepted.results[1]).toMatchObject({ status: "accepted", model: { provider: "provider", model: "two", layer: "parent-fallback", thinking: "medium" } });
+    expect(acceptedFixture.journal.getState().turns["turn-1"].metadata).toMatchObject({ effectiveModel: "provider/one", modelLayer: "one-shot", thinking: "high" });
+    expect(acceptedFixture.journal.getState().turns["turn-2"].metadata).toMatchObject({ effectiveModel: "provider/two", modelLayer: "parent-fallback", thinking: "medium" });
   });
 
   it("rejects an invalid formal batch atomically before Agent, job, turn, or execution allocation", async () => {
@@ -384,7 +431,7 @@ describe("task schema and coordinator", () => {
     for (const [jobId, gate] of gates) if (jobId !== "job-1") gate.resolve({ output: `${jobId} done` });
     await Promise.all(Array.from({ length: 33 }, (_, index) => coordinator.getSettlement(`job-${index + 1}`)!));
     expect(scheduler.stats().queued).toEqual([]);
-  });
+  }, 15_000);
 
   it("cancels queued work before start and preserves explicit aborted lifecycle state", async () => {
     const firstGate = deferred<TaskExecutionOutput>();

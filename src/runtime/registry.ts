@@ -8,11 +8,10 @@ import { resolvePermissionModesPackageRoot } from "./package-resolution.ts";
 
 const ROOT = new URL("../../", import.meta.url);
 const ROOT_PATH = fileURLToPath(ROOT);
-const SUPPORTED_PI_VERSION = "0.82.1";
+const SUPPORTED_PI_VERSION = "0.84.1";
 const PACKAGE_NAME = "@rosetears/aili-pi";
-const PACKAGE_LICENSE_SINCE_VERSION = "0.1.13";
-const PACKAGE_LICENSE = "AGPL-3.0-or-later";
-const PACKAGE_LICENSE_SHA256 = "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0";
+const PACKAGE_LICENSE = "MIT";
+const PACKAGE_LICENSE_SHA256 = "50d626e331a5b05c3a574ae969762851070af5b32dbc73cc2277409eec1358f4";
 const ACTIVE_PI_PACKAGES = [
   "@earendil-works/pi-coding-agent",
   "@earendil-works/pi-agent-core",
@@ -120,7 +119,8 @@ export function validateRegistryData(
     const hasDependent = compatibility.records.some((skill) =>
       [...skill.requiredCapabilities, ...skill.optionalCapabilities].includes(capability.id),
     );
-    if (!hasDependent) errors.push(`${capability.id}: no dependent skills`);
+    const runtimeOwnedCapability = ["memory.provider.mempalace", "context.compaction", "provider.retry"].includes(capability.id);
+    if (!hasDependent && !runtimeOwnedCapability) errors.push(`${capability.id}: no dependent skills`);
   }
   return errors;
 }
@@ -144,7 +144,7 @@ export async function validateStableRelease(): Promise<string[]> {
   }
   try {
     const roles = (await readdir(new URL("roles/", ROOT))).filter((name) => name.endsWith(".md"));
-    if (roles.length !== 20) errors.push(`roles: expected 20 bundled profiles, found ${roles.length}`);
+    if (roles.length !== 21) errors.push(`roles: expected 21 bundled profiles (20 specialized + general), found ${roles.length}`);
     for (const error of await validateRoleProfiles()) errors.push(`roles: ${error}`);
     for (const role of await loadRoleProfiles()) {
       if (role.status === "blocked") errors.push(`role ${role.name}: blocked (${role.compatibilityReason})`);
@@ -165,7 +165,7 @@ export interface LicenseDispositionEvidence {
   sbomRoot?: { name?: string; versionInfo?: string; licenseConcluded?: string; licenseDeclared?: string };
 }
 
-/** Pure validation for the package-wide AGPL disposition and its generated public metadata. */
+/** Pure validation for the package-wide MIT disposition and generated public metadata. */
 export function validateLicenseDispositionData(evidence: LicenseDispositionEvidence): string[] {
   const errors: string[] = [];
   const candidateVersion = evidence.packageManifest.version;
@@ -179,16 +179,13 @@ export function validateLicenseDispositionData(evidence: LicenseDispositionEvide
     evidence.packageLockRoot.version !== candidateVersion ||
     evidence.packageLockRoot.license !== PACKAGE_LICENSE
   ) errors.push("license disposition: package-lock root identity or license is stale");
-  if (evidence.licenseSha256 !== PACKAGE_LICENSE_SHA256) errors.push("license disposition: root AGPL-3.0 license text is missing or drifted");
-  if (
-    !evidence.readme.includes(`version ${PACKAGE_LICENSE_SINCE_VERSION} and later is licensed under \`${PACKAGE_LICENSE}\``) ||
-    !evidence.readme.includes("Corresponding source is available from the repository declared in `package.json`")
-  ) errors.push("license disposition: README declaration or corresponding-source notice is missing");
-  if (
-    !evidence.notices.includes(PACKAGE_LICENSE) ||
-    evidence.notices.includes("This distribution is MIT-licensed") ||
-    !evidence.notices.includes("retain their own license terms")
-  ) errors.push("license disposition: third-party notice still misstates the package license or omits retained terms");
+  if (evidence.licenseSha256 !== PACKAGE_LICENSE_SHA256) errors.push("license disposition: root MIT license text is missing or drifted");
+  if (!evidence.readme.includes("is licensed under the MIT License")) {
+    errors.push("license disposition: README MIT declaration is missing");
+  }
+  if (!evidence.notices.includes(PACKAGE_LICENSE) || !evidence.notices.includes("retain their own license terms")) {
+    errors.push("license disposition: third-party notice misstates the package license or omits retained terms");
+  }
   if (
     evidence.sbomRoot?.name !== PACKAGE_NAME ||
     evidence.sbomRoot.versionInfo !== candidateVersion ||
@@ -412,7 +409,7 @@ export async function validatePermissionModeAdaptation(): Promise<string[]> {
     const expectedLocalChanges = [
       "Package-owned adapted entry redirects all unchanged sibling modules to the exact pi-permission-modes dependency while owning resolve.ts locally.",
       "matchPattern compiles its anchored glob RegExp with dotAll so * and ? include ECMAScript line terminators.",
-      "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.82.1 can derive current PI_* session environment values.",
+      "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.84.1 can derive current PI_* session environment values.",
       "The adapted sandbox BashOperations wrapper injects Pi's resolved five-variable session environment as a shell-safe prelude because pi-permission-modes@2.2.0 ignores BashOperations.options.env.",
       "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime.",
       "Formal persistent children compose their exact two owning-file denyWrite paths into each sandboxed command while preserving the active profile, network rules, and blocked-host diagnostics.",
@@ -505,17 +502,21 @@ export async function validateProvenance(): Promise<string[]> {
     const notices = await readFile(new URL("THIRD_PARTY_NOTICES.md", ROOT), "utf8");
     const expectedSourceNames = [
       "aili-workflows",
+      "pi-mcp-adapter",
+      "billion-context-pi",
+      "pi-codex-compact",
+      "pi-retry",
       "pi-permission-modes",
       "pi-quota-status",
       "pi-web-access",
       "pi-cache-optimizer",
       "pi-sakura-cyberdeck",
       "Oh My Pi reference",
-      "opencode-acp reference",
+      "algal pi-openai-server-compaction reference",
     ];
     if (provenance.schemaVersion !== 1
       || JSON.stringify(provenance.sources.map((source) => source.name)) !== JSON.stringify(expectedSourceNames)) {
-      errors.push("provenance: expected the exact eight active schema-v1 source records");
+      errors.push("provenance: expected the exact twelve active schema-v1 source records");
     }
     const names = new Set<string>();
     for (const source of provenance.sources) {
@@ -527,16 +528,14 @@ export async function validateProvenance(): Promise<string[]> {
       if (source.status === "dependency" && (source.sourceFiles.length === 0 || source.symbols.length === 0 || source.localChanges.length === 0)) errors.push(`provenance: incomplete dependency source ${source.name}`);
       if (!notices.includes(`## ${source.name}`) || !notices.includes(`Revision: ${source.revision}`)) errors.push(`provenance: notice missing ${source.name}`);
     }
-    const compactReference = provenance.sources.find((source) => source.name === "opencode-acp reference");
+    const compactReference = provenance.sources.find((source) => source.name === "algal pi-openai-server-compaction reference");
     if (
-      compactReference?.repository !== "https://github.com/ranxianglei/opencode-acp.git" ||
-      compactReference.revision !== "00e8ba5c53fcbc46dfd86b5d7aa6eae058d29acb" ||
-      compactReference.version !== "1.14.3" ||
-      compactReference.license !== PACKAGE_LICENSE ||
-      compactReference.status !== "reference-only" ||
-      !compactReference.attribution?.includes("opencode-dynamic-context-pruning by Tarquinen")
-    ) errors.push("provenance: exact opencode-acp reference identity or attribution is missing");
-    if (!notices.includes("## opencode-acp reference") || !notices.includes("Source files: none copied")) errors.push("provenance: opencode-acp no-copy notice is missing");
+      compactReference?.repository !== "https://github.com/algal/pi-openai-server-compaction.git" ||
+      compactReference.revision !== "8a3de2f3b0c178fdd6f73f2f94172dfc3943e466" ||
+      compactReference.license !== "MIT" ||
+      compactReference.status !== "reference-only"
+    ) errors.push("provenance: exact algal reference-only identity is missing");
+    if (!notices.includes("## algal pi-openai-server-compaction reference") || !notices.includes("Source files: none copied")) errors.push("provenance: algal no-copy notice is missing");
     if (sbom.spdxVersion !== "SPDX-2.3" || !Array.isArray(sbom.packages) || sbom.packages.length < 3) errors.push("provenance: invalid or empty SPDX SBOM");
     if (sbom.packages?.some((item) => !item.SPDXID || !item.name || !item.licenseDeclared)) errors.push("provenance: incomplete SPDX package record");
     const hasSupportedHost = (sbom.packages as Array<{ name?: string; versionInfo?: string }> | undefined)

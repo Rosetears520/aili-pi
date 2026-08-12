@@ -2,18 +2,19 @@ import { createHash } from "node:crypto";
 import { lstat, readFile, realpath, readdir } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadWorkflowRuntimeBundle } from "./workflow-bundle/index.js";
 
 const ROOT_URL = new URL("../../", import.meta.url);
 const ROOT_PATH = fileURLToPath(ROOT_URL);
 const ROLES_PATH = resolve(ROOT_PATH, "roles");
 const SOURCE_REPOSITORY = "https://github.com/Rosetears520/aili-workflows.git";
-const SOURCE_COMMIT = "bb1fedacc46d71045daa6257d121f2b71ba29d54";
+const SOURCE_COMMIT = "a69f3149d8f1db81726128c2819a3ccc954b9ccc";
 const OUTPUT_CONTRACT = ["status", "summary", "evidence", "changedFiles", "verification", "blockers", "risks", "confidence"] as const;
 
 export const SPECIALIZED_ROLE_NAMES = [
   "agent-evaluator", "ai-regression-scout", "browser-qa-runner", "code-reviewer",
   "code-scout", "convergence-reviewer", "doc-researcher", "e2e-artifact-runner",
-  "implementer", "opensource-sanitizer", "plan-auditor", "pr-test-analyzer",
+  "implementer", "opensource-sanitizer", "plan-auditor", "pr-test-analyzer", "solution-architect",
   "security-auditor", "silent-failure-reviewer", "spec-miner", "test-coverage-reviewer",
   "test-engineer", "web-performance-auditor", "web-researcher",
 ] as const;
@@ -132,14 +133,21 @@ function validateManifest(manifest: RolesManifest): void {
   if (JSON.stringify(manifest.bundledSelectors) !== JSON.stringify(BUNDLED_ROLE_SELECTORS)) {
     throw new Error("role manifest bundled selector inventory mismatch");
   }
-  if (!Array.isArray(manifest.records) || manifest.records.length !== 20) {
-    throw new Error("role manifest must contain exactly 20 schema-v2 profiles");
+  if (!Array.isArray(manifest.records) || manifest.records.length !== BUNDLED_ROLE_SELECTORS.length) {
+    throw new Error(`role manifest must contain exactly ${BUNDLED_ROLE_SELECTORS.length} schema-v2 profiles`);
   }
 }
 
 export async function loadRoleProfiles(): Promise<RoleProfile[]> {
-  const manifest = JSON.parse(await readFile(new URL("manifests/roles.json", ROOT_URL), "utf8")) as RolesManifest;
+  const [manifest, workflowBundle] = await Promise.all([
+    readFile(new URL("manifests/roles.json", ROOT_URL), "utf8").then((content) => JSON.parse(content) as RolesManifest),
+    loadWorkflowRuntimeBundle(),
+  ]);
   validateManifest(manifest);
+  if (JSON.stringify(manifest.bundledSelectors.filter((selector) => selector !== "general").sort())
+    !== JSON.stringify(workflowBundle.canonicalSpecialists.map((roleId) => `aili.${roleId}`).sort())) {
+    throw new Error("role manifest canonical specialists drifted from the validated Workflow runtime bundle");
+  }
   const roles = await Promise.all(manifest.records.map(readBundledProfile));
   const selectors = roles.map((role) => role.selector);
   if (new Set(selectors).size !== selectors.length) throw new Error("role manifest contains duplicate selectors");
@@ -249,7 +257,7 @@ export async function validateRoleProfiles(): Promise<string[]> {
       }
     }
     const files = (await readdir(new URL("roles/", ROOT_URL))).filter((name) => name.endsWith(".md"));
-    if (files.length !== 20) errors.push(`role files: expected 20, found ${files.length}`);
+    if (files.length !== BUNDLED_ROLE_SELECTORS.length) errors.push(`role files: expected ${BUNDLED_ROLE_SELECTORS.length}, found ${files.length}`);
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error));
   }

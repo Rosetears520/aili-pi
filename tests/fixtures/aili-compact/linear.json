@@ -1,6 +1,0 @@
-{
-  "entries": [
-    { "id": "linear-user", "type": "message", "message": { "role": "user", "content": "baseline request" } },
-    { "id": "linear-assistant", "type": "message", "message": { "role": "assistant", "content": "baseline response" } }
-  ]
-}

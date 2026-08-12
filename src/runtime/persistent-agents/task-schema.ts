@@ -88,7 +88,7 @@ const ItemFields = {
     description: "Choose an exact Specialized selector from the active task catalog when one routing responsibility matches. Omit only for ordinary general compatibility; formal packages require their exact Specialized Owner.",
   })),
   name: Type.Optional(Type.String({ minLength: 1 })),
-  model: Type.Optional(Type.String({ minLength: 1 })),
+  model: Type.Optional(Type.String({ minLength: 1, description: "Prefer exact canonical provider/model form (for example, openai-codex/gpt-5.6-terra). A bare model id resolves only by Parent-provider match or one unambiguous authenticated available catalog match." })),
   async: Type.Optional(Type.Boolean({ description: "Set false to wait synchronously or true for background execution. Do not send blocking; blocking is profile-only internal metadata." })),
   tools: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
   workspace: Type.Optional(Type.Union([Type.Literal("auto"), Type.Literal("shared"), Type.Literal("isolated")])),

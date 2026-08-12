@@ -1,6 +1,6 @@
 # Subagent Task Packet
 
-Use only when delegation meets `direct-vs-delegated-work.md`. Keep packets small enough to read in one pass.
+Use only when delegation meets `direct-vs-delegated-work.md`. `core/protocols/package-envelope.schema.json` owns the shared package semantics; this Markdown reference is a compact packet rendering and must not redefine them. Keep packets small enough to read in one pass.
 
 ```text
 Package ID:
@@ -35,7 +35,7 @@ Stop when:
 - The current OpenCode Task adapter creates one fresh terminal context for each dispatch and never passes or resumes an old `task_id`. This is adapter behavior, not a universal persistent-session prohibition.
 - A new requirement or package, expanded scope, material correction, different role or permissions, different write scope, changed acceptance boundary, or different verification claim requires a new dispatch or job.
 - A terminal, failed, empty, blocked, or partial session is not automatically retried. ROSE handles the bounded gap directly or reports the blocker.
-- Under the current OpenCode Task adapter, the same `subagent_type` may receive a later fresh packet only when a fresh ordinary trigger-and-benefit decision or a ready formal exact-owner package independently justifies it; the new Task omits every prior `task_id`.
+- Under the current OpenCode Task adapter, the same `subagent_type` may receive a later fresh packet only when a fresh ordinary specialist-preferred decision or a ready formal exact-owner package independently justifies it; the new Task omits every prior `task_id`.
 - A packet narrows runtime authority; it never grants a tool, path, edit, command, network call, or delegation permission.
 - Every non-ROSE subagent remains non-delegating.
 - ROSE retains lifecycle, approval, integration, reconciliation, and final-verdict ownership.

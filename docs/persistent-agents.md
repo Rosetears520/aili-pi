@@ -2,7 +2,7 @@
 
 > **Availability:** The AILI-owned local runtime is the public orchestration surface. The package registers `task` and `hub` and does not register a legacy `subagent` alias. Deterministic tests and bounded local probes are recorded in `manifests/live-verification.json`; they do not establish preview publication, installed-package behavior, or real-provider behavior as PASS.
 
-> **Release status:** Persistent Agents are part of `@rosetears/aili-pi@0.2.0`. Provider/model behavior still depends on the configured Pi environment.
+> **Release status:** Persistent Agents are part of `@rosetears/aili-pi@0.2.1`. Provider/model behavior still depends on the configured Pi environment.
 
 ## Agent selectors
 
@@ -88,7 +88,7 @@ Complete raw output is stored at the parent-owned `<agent-id>.md`; the official 
 
 Use `agent://<agent-id>` and `history://<agent-id>` as stable references. `hub output/history` resolves them with `offset` and `limit`, including after an Agent is released.
 
-Child history cannot be deleted independently. It follows the parent session. Forks start with an empty Agent registry and never copy/control old child artifacts. Confirmed AILI parent deletion can cascade its owned sidecar; official Pi 0.82.1 built-in Ctrl+D/archive has no sidecar hook, so doctor keeps that host gap visible and orphaned sidecars are preserved for reconciliation.
+Child history cannot be deleted independently. It follows the parent session. Forks start with an empty Agent registry and never copy/control old child artifacts. Confirmed AILI parent deletion can cascade its owned sidecar; official Pi 0.84.1 built-in Ctrl+D/archive has no sidecar hook, so doctor keeps that host gap visible and orphaned sidecars are preserved for reconciliation.
 
 ## Models
 

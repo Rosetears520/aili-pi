@@ -1,0 +1,693 @@
+[2026-08-09T00:00:00+08:00] BOARD BOARD_CREATED
+evidence=artifact:openspec/changes/converge-pi-runtime-mcp-memory-and-context/formal-task-board.md
+disposition=pending
+blocker=final test-plan acceptance pending
+next_action=obtain explicit acceptance of the final test plan
+
+[2026-08-09T00:01:00+08:00] BOARD BLOCKED
+evidence=artifact:openspec/changes/converge-pi-runtime-mcp-memory-and-context/test-plan.md
+disposition=pending
+blocker=revised final test-plan acceptance and BUILD authorization required
+next_action=run strict validation and request acceptance
+
+[2026-08-09T00:02:00+08:00] BOARD UNBLOCKED
+evidence=decision:user-accepted-final-test-plan-2026-08-09
+disposition=pending
+blocker=separate risky operations remain gated
+next_action=prepare BUILD-01
+
+[2026-08-12T14:00:00+08:00] BOARD BLOCKED
+evidence=decision:codex-remote-v2-plus-billion-context-2026-08-12
+disposition=pending
+blocker=revised final test-plan acceptance and BUILD authorization required for affected scope
+next_action=strict-validate revised artifacts and present the revised final test plan
+
+[2026-08-12T15:08:35+08:00] BOARD UNBLOCKED
+evidence=decision:user-accepted-codex-remote-v2-revision-2026-08-12
+disposition=pending
+blocker=dependency/lockfile, license, external configuration/install, Palace, provider probes, Git, publish and release remain separately gated
+next_action=dispatch BUILD-01 to exact web-researcher owner with immediate join
+
+[2026-08-12T15:08:36+08:00] BUILD-01 READY
+evidence=artifact:openspec/changes/converge-pi-runtime-mcp-memory-and-context/tasks.md
+disposition=pending
+blocker=clear-for-read-only-dispatch
+next_action=dispatch exact aili.web-researcher owner
+
+[2026-08-12T15:14:15+08:00] BUILD-01 DISPATCHED
+evidence=verification:BUILD-01-dispatch-attempt-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the synchronous web-researcher result
+
+[2026-08-12T15:14:16+08:00] BUILD-01 RETURNED
+evidence=verification:BUILD-01-output-persistence-failure
+disposition=needs-follow-up
+blocker=worker output persistence failed before any readable canonical result; no identity evidence is available
+next_action=record failed attempt and start a fresh unchanged-package retry if runtime persistence is available
+
+[2026-08-12T15:14:17+08:00] BUILD-01 BLOCKED
+evidence=verification:BUILD-01-output-persistence-failure
+disposition=needs-follow-up
+blocker=Agent output persistence path was unavailable
+next_action=retry the unchanged package once with a fresh Agent job
+
+[2026-08-12T15:14:18+08:00] BUILD-01 UNBLOCKED
+evidence=verification:BUILD-01-retry-authorized
+disposition=pending
+blocker=transient-persistence-failure-cleared-for-one-fresh-retry
+next_action=dispatch one fresh unchanged-package web-researcher job
+
+[2026-08-12T15:17:30+08:00] BUILD-01 DISPATCHED
+evidence=verification:BUILD-01-dispatch-attempt-2
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the fresh synchronous web-researcher retry
+
+[2026-08-12T15:17:31+08:00] BUILD-01 RETURNED
+evidence=verification:BUILD-01-output-persistence-failure-2
+disposition=needs-follow-up
+blocker=second Agent attempt failed output persistence before any readable canonical result
+next_action=stop retries and report the runtime blocker
+
+[2026-08-12T15:17:32+08:00] BUILD-01 BLOCKED
+evidence=verification:BUILD-01-output-persistence-failure-2
+disposition=needs-follow-up
+blocker=Agent output persistence repeatedly failed with missing session journal path
+next_action=repair or restart the Agent persistence runtime before BUILD can continue
+
+[2026-08-12T15:29:00+08:00] BUILD-01 INSPECTED
+evidence=verification:BUILD-01-public-identity-evidence
+disposition=accepted
+blocker=all exact frozen public package identities and required compatibility metadata were verified
+next_action=mark BUILD-01 done and advance BUILD-02 permission recording
+
+[2026-08-12T15:29:01+08:00] BUILD-01 DONE
+verification=verification:BUILD-01-public-identity-evidence
+disposition=accepted
+blocker=all exact frozen public package identities and required compatibility metadata were verified
+next_action=advance BUILD-02 permission recording
+
+[2026-08-12T15:31:00+08:00] BUILD-02 READY
+evidence=decision:operation-boundaries
+disposition=pending
+blocker=exact risky-operation permissions remain absent unless separately granted
+next_action=record each operation class as absent and not executed
+
+[2026-08-12T15:31:01+08:00] BUILD-02 INSPECTED
+evidence=verification:BUILD-02-operation-ledger-recorded
+disposition=accepted
+blocker=dependency-lockfile-mutation absent and not executed; bundled-package change absent and not executed; root-license replacement absent and not executed; shared-MCP-config write absent and not executed; external-tool installs absent and not executed; MemPalace init-read-write-delete-import-mine absent and not executed; embedding download absent and not executed; Playwright browser install absent and not executed; CodeGraph init-index absent and not executed; provider-live probes absent and not executed; Git mutation absent and not executed; publish and release absent and not executed
+next_action=mark BUILD-02 done and activate BUILD-03 without crossing these operation gates
+
+[2026-08-12T15:31:02+08:00] BUILD-02 DONE
+verification=verification:BUILD-02-operation-ledger
+disposition=accepted
+blocker=all gated operations remain absent and unexecuted
+next_action=activate BUILD-03 within accepted implementation scope
+
+[2026-08-12T15:31:03+08:00] BUILD-03 READY
+evidence=task:2.1;task:2.2;task:2.3
+disposition=pending
+blocker=none-within-repository-local-implementation-scope
+next_action=dispatch exact aili.implementer owner and join immediately
+
+[2026-08-12T15:36:00+08:00] BUILD-03 DISPATCHED
+evidence=verification:BUILD-03-dispatch-attempt-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join exact synchronous implementer result
+
+[2026-08-12T15:36:01+08:00] BUILD-03 RETURNED
+evidence=verification:BUILD-03-child-history-persistence-failure
+disposition=needs-follow-up
+blocker=Agent runtime rejected formal result evidence because no exact child history path was persisted; no edits or result evidence were returned
+next_action=stop before duplicate implementation and repair or restart Agent child-history persistence
+
+[2026-08-12T15:36:02+08:00] BUILD-03 BLOCKED
+evidence=verification:BUILD-03-child-history-persistence-failure
+disposition=needs-follow-up
+blocker=required Specialized Implementer cannot persist an exact child history path
+next_action=repair or restart Agent persistence runtime before BUILD-03 implementation
+
+[2026-08-12T15:43:00+08:00] BUILD-03 UNBLOCKED
+evidence=verification:BUILD-03-runtime-restarted
+disposition=pending
+blocker=child-history persistence runtime was restarted by the user
+next_action=dispatch a fresh unchanged-package implementer job
+
+[2026-08-12T15:44:00+08:00] BUILD-03 DISPATCHED
+evidence=verification:BUILD-03-dispatch-attempt-2
+disposition=pending
+blocker=clear-after-user-restart
+next_action=join the fresh synchronous implementer result
+
+[2026-08-12T15:44:01+08:00] BUILD-03 RETURNED
+evidence=verification:BUILD-03-child-history-persistence-failure-2
+disposition=needs-follow-up
+blocker=fresh post-restart Agent still failed before execution because no exact child Session JSONL was registered
+next_action=diagnose the installed persistent-Agent runtime defect; do not retry or duplicate implementation
+
+[2026-08-12T15:44:02+08:00] BUILD-03 BLOCKED
+evidence=verification:BUILD-03-child-history-persistence-failure-2
+disposition=needs-follow-up
+blocker=installed AILI persistent-Agent runtime settles formal work without registering its child Session JSONL
+next_action=obtain approval for a bounded harness fix or install a corrected runtime before continuing BUILD-03
+
+[2026-08-12T16:15:00+08:00] BUILD-03 UNBLOCKED
+evidence=verification:persistent-agent-preflight-order-focused-tests
+disposition=pending
+blocker=installed global AILI runtime was patched and reloaded; focused tests passed
+next_action=dispatch a fresh unchanged BUILD-03 implementer job with canonical provider/model identity
+
+[2026-08-12T16:16:00+08:00] BUILD-03 DISPATCHED
+evidence=verification:BUILD-03-dispatch-attempt-3
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join exact synchronous implementer result
+
+[2026-08-12T16:16:01+08:00] BUILD-03 RETURNED
+evidence=verification:BUILD-03-rose-aili-lock-contradiction
+disposition=needs-follow-up
+blocker=Worker found upstream/aili-workflows.lock.json still pins rose-aili 0.4.2 while accepted contract requires 0.4.7; no files changed
+next_action=inspect contradiction and obtain exact bundled-package/provenance update permission before implementation
+
+[2026-08-12T16:16:02+08:00] BUILD-03 BLOCKED
+evidence=verification:BUILD-03-rose-aili-lock-contradiction
+disposition=needs-follow-up
+blocker=canonical Workflow lock remains at rose-aili 0.4.2 and updating it is a separately gated bundled-package mutation
+next_action=request exact permission to refresh the canonical Workflow bundle/lock to verified rose-aili 0.4.7
+
+[2026-08-12T16:31:00+08:00] BUILD-03 UNBLOCKED
+evidence=decision:user-authorized-rose-aili-0.4.7-bundle-refresh
+disposition=pending
+blocker=user granted exact canonical Workflow bundle-lock-snapshot-provenance update permission; dependency and package-lock mutation remain absent
+next_action=dispatch a fresh exact implementer package for rose-aili 0.4.7 refresh and BUILD-03 convergence
+
+[2026-08-12T16:41:05+08:00] BUILD-03 DISPATCHED
+evidence=verification:BUILD-03-dispatch-attempt-4
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join exact synchronous implementer result
+
+[2026-08-12T16:41:06+08:00] BUILD-03 RETURNED
+evidence=verification:BUILD-03-terra-provider-overload
+disposition=needs-follow-up
+blocker=Terra provider returned repeated server-overloaded errors and the Worker produced no output or edits
+next_action=retry the unchanged package once with a fresh Terra Agent after the provider failure
+
+[2026-08-12T16:41:07+08:00] BUILD-03 BLOCKED
+evidence=verification:BUILD-03-terra-provider-overload
+disposition=needs-follow-up
+blocker=transient Terra provider overload prevented execution
+next_action=unblock one fresh unchanged-package retry
+
+[2026-08-12T16:41:08+08:00] BUILD-03 UNBLOCKED
+evidence=verification:BUILD-03-terra-retry-authorized
+disposition=pending
+blocker=transient-provider-failure-cleared-for-one-fresh-retry
+next_action=dispatch a fresh exact Terra implementer job
+
+[2026-08-12T16:43:30+08:00] BUILD-03 DISPATCHED
+evidence=verification:BUILD-03-dispatch-attempt-5
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join exact synchronous implementer retry
+
+[2026-08-12T16:43:31+08:00] BUILD-03 RETURNED
+evidence=verification:BUILD-03-stale-shared-lease-conflict
+disposition=needs-follow-up
+blocker=terminal failed Agent retained overlapping shared workspace lease
+next_action=release terminal Agents and retry unchanged package
+
+[2026-08-12T16:44:00+08:00] BUILD-03 DISPATCHED
+evidence=verification:BUILD-03-dispatch-attempt-6
+disposition=pending
+blocker=clear-after-lease-release
+next_action=join exact synchronous implementer retry
+
+[2026-08-12T16:44:01+08:00] BUILD-03 RETURNED
+evidence=verification:BUILD-03-worker-tool-capability-block
+disposition=needs-follow-up
+blocker=Implementer profile lacked command/network tools required for authorized tarball acquisition and verification; no files changed
+next_action=ROSE stages the exact verified tarball in repository-local .tmp, then dispatches the unchanged implementation package
+
+[2026-08-12T16:46:00+08:00] BUILD-03 DISPATCHED
+evidence=verification:BUILD-03-dispatch-attempt-7
+disposition=pending
+blocker=exact rose-aili 0.4.7 artifact staged and verified
+next_action=join exact synchronous Terra implementer result
+
+[2026-08-12T16:49:30+08:00] BUILD-03 RETURNED
+evidence=verification:BUILD-03-terra-provider-overload-2
+disposition=needs-follow-up
+blocker=Terra repeatedly returned server-overloaded errors during execution and ended with empty output; no package files changed
+next_action=obtain exact approval to use Sol high for the unchanged Specialized Implementer package or wait for Terra recovery
+
+[2026-08-12T16:49:31+08:00] BUILD-03 BLOCKED
+evidence=verification:BUILD-03-terra-provider-overload-2
+disposition=needs-follow-up
+blocker=required Terra model is currently unable to complete BUILD-03 because of repeated provider overload
+next_action=ask whether to switch unchanged BUILD-03 implementation to openai-codex gpt-5.6-sol high
+
+[2026-08-12T16:52:00+08:00] BUILD-03 UNBLOCKED
+evidence=decision:user-approved-sol-high-for-build-03
+disposition=pending
+blocker=user approved openai-codex gpt-5.6-sol high for the unchanged Specialized Implementer package
+next_action=dispatch a fresh exact Sol-high implementer job
+
+[2026-08-12T17:38:57+08:00] BUILD-03 DISPATCHED
+evidence=verification:BUILD-03-dispatch-attempt-8
+disposition=pending
+blocker=user-approved-Sol-high-dispatch
+next_action=join exact synchronous Sol-high implementer result
+
+[2026-08-12T17:38:57+08:00] BUILD-03 RETURNED
+evidence=verification:BUILD-03-implementer-bash-ceiling-block
+disposition=needs-follow-up
+blocker=canonical implementer role ceiling excludes bash so the Worker could not run snapshot synchronization or tests; no BUILD-03 files changed
+next_action=ROSE stages deterministic script results or records a scoped role-policy change
+
+[2026-08-12T17:38:57+08:00] BUILD-03 BLOCKED
+evidence=verification:BUILD-03-upstream-20-specialist-delta
+disposition=needs-follow-up
+blocker=rose-aili 0.4.7 adds canonical solution-architect, changing the current 19-specialist public selector inventory
+next_action=obtain a material public selector-contract decision before refreshing the canonical bundle
+
+[2026-08-12T18:05:51+08:00] BOARD RECONCILED
+evidence=decision:user-accepted-rose-aili-0.4.7-full-20-agent-catalog
+disposition=accepted
+blocker=none; accepted public contract now includes aili.solution-architect and all 20 canonical Specialized Agents
+next_action=refresh affected contract and test-plan rows, strict-validate, then ready BUILD-03
+
+[2026-08-12T18:05:52+08:00] BUILD-03 UNBLOCKED
+evidence=decision:user-accepted-rose-aili-0.4.7-full-20-agent-catalog
+disposition=pending
+blocker=none-within-authorized-bundle-refresh-and-local-implementation-scope
+next_action=dispatch a fresh exact aili.implementer job for the revised 20-Agent package
+
+[2026-08-12T18:05:53+08:00] BUILD-03 READY
+evidence=artifact:openspec/changes/converge-pi-runtime-mcp-memory-and-context/specs/workflow-runtime-bundle-consumption/spec.md
+disposition=pending
+blocker=clear-for-exact-owner-dispatch
+next_action=dispatch exact aili.implementer owner and join immediately
+
+[2026-08-12T18:18:00+08:00] BUILD-03 DISPATCHED
+evidence=verification:BUILD-03-dispatch-attempt-9
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join exact synchronous Sol-high implementer result
+
+[2026-08-12T18:18:01+08:00] BUILD-03 RETURNED
+evidence=verification:BUILD-03-implementer-bash-ceiling-block-2
+disposition=needs-follow-up
+blocker=exact implementer confirmed recursive snapshot synchronization, hashing, generators and tests require command execution unavailable under its canonical role ceiling; no files changed
+next_action=record a pre-execution direct-work waiver because the exact role is unavailable for the unchanged command-dependent package and ROSE has equivalent local tools
+
+[2026-08-12T18:19:39+08:00] BUILD-03 CANCELLED
+evidence=decision:user-accepted-rose-aili-0.4.7-full-20-agent-catalog
+disposition=superseded
+blocker=the former package retained the superseded 19-Agent public contract and cannot reopen under materially revised scope
+next_action=create a fresh BUILD-03-R2 package owning accepted tasks 2.1-2.3 under the 20-Agent contract
+
+[2026-08-12T18:19:40+08:00] BUILD-03-R2 READY
+evidence=artifact:openspec/changes/converge-pi-runtime-mcp-memory-and-context/specs/workflow-runtime-bundle-consumption/spec.md
+disposition=pending
+blocker=none; accepted 20-Agent scope and exact local operation permission are current
+next_action=record exact-role capability waiver before direct execution
+
+[2026-08-12T18:19:41+08:00] BUILD-03-R2 WAIVED
+evidence=verification:BUILD-03-R2-exact-role-command-capability-unavailable-waiver
+disposition=pending
+blocker=two fresh exact implementer attempts independently confirmed canonical role lacks command execution required by the command-dependent package; ROSE has equivalent repository-local read/edit/write/bash capability and exact permissions
+next_action=execute BUILD-03-R2 directly without widening scope or operation authority
+
+[2026-08-12T18:53:20+08:00] BUILD-03-R2 RETURNED
+evidence=verification:BUILD-03-R2-direct-implementation-result
+disposition=pending
+blocker=none; direct implementation under the pre-recorded exact-role capability waiver completed the accepted local package
+next_action=inspect changed source, task links and focused verification evidence
+
+[2026-08-12T18:53:21+08:00] BUILD-03-R2 INSPECTED
+evidence=artifact:BUILD-03-R2-artifact-consumer-matrix; verification:BUILD-03-R2-focused-checks
+disposition=accepted
+blocker=none; exact rose-aili 0.4.7 snapshot/runtime bundle, 20-role catalog, read-only solution architect, single consumers and report-only legacy resources were inspected with focused passing checks
+next_action=mark accepted tasks 2.1-2.3 and BUILD-03-R2 done
+
+[2026-08-12T18:53:22+08:00] BUILD-03-R2 DONE
+verification=verification:BUILD-03-R2-workflow-bundle-evidence
+disposition=accepted
+blocker=none; 68 focused bundle/role/routing/doctor/package tests and 37 persistent-runtime regression tests passed; typecheck, generated, provenance, package, dry-run inventory, OpenSpec and diff checks passed
+next_action=advance BUILD-06 dependency assessment while BUILD-04, BUILD-05, BUILD-07, BUILD-08 and BUILD-09 retain their separate gates
+
+[2026-08-12T18:56:04+08:00] BUILD-06 BLOCKED
+evidence=verification:BUILD-06-current-diff-inspection-required
+disposition=pending
+blocker=dependency and lifecycle gates are satisfied, but pre-existing task/model changes require scoped inspection before the exact remaining 5.1-5.3 implementation boundary is known
+next_action=inspect current task/hub diff and tests, then ready or split a fresh exact implementation package
+
+[2026-08-12T19:04:00+08:00] BUILD-06 UNBLOCKED
+evidence=verification:BUILD-06-current-diff-inspection
+disposition=pending
+blocker=none; inspection localized the remaining accepted boundary to pre-allocation model preflight, frozen identity propagation, shared renderers and focused tests
+next_action=mark BUILD-06 ready for exact aili.implementer dispatch
+
+[2026-08-12T19:04:01+08:00] BUILD-06 READY
+evidence=task:5.1;task:5.2;task:5.3
+disposition=pending
+blocker=none; accepted pre-existing runtime edits must be preserved and the owning Board/progress ledger remain ROSE-only
+next_action=dispatch exact aili.implementer owner with immediate join
+
+[2026-08-12T19:05:00+08:00] BUILD-06 DISPATCHED
+evidence=verification:BUILD-06-dispatch-attempt-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join exact synchronous aili.implementer result
+
+[2026-08-12T19:05:01+08:00] BUILD-06 RETURNED
+evidence=verification:BUILD-06-role-manifest-provenance-mismatch
+disposition=needs-follow-up
+blocker=the active loaded Agent runtime rejected the current role manifest source provenance before durable allocation; repository validate:roles passes and no Worker edits or result were produced
+next_action=record an unchanged-scope exact-role runtime-unavailable waiver because repairing or reloading user-home runtime is outside BUILD-06
+
+[2026-08-12T19:05:02+08:00] BUILD-06 WAIVED
+evidence=verification:BUILD-06-exact-role-runtime-provenance-mismatch-waiver
+disposition=pending
+blocker=exact aili.implementer dispatch is unavailable under the stale loaded runtime, while repository role generation is current and ROSE has equivalent local tools and exact package permission
+next_action=execute BUILD-06 directly without widening scope or operation authority
+
+[2026-08-12T19:23:00+08:00] BUILD-06 RETURNED
+evidence=verification:BUILD-06-direct-implementation-result
+disposition=pending
+blocker=none; direct implementation under the pre-recorded exact-role runtime-unavailable waiver completed the accepted package
+next_action=inspect changed task/hub/model/delivery source and fresh focused evidence
+
+[2026-08-12T19:23:01+08:00] BUILD-06 INSPECTED
+evidence=verification:BUILD-06-focused-tests;verification:BUILD-06-persistent-runtime-regression;verification:BUILD-06-typecheck;verification:BUILD-06-role-validation;verification:BUILD-06-openspec-validation;verification:BUILD-06-diff-check
+disposition=accepted
+blocker=none; model/selector/thinking preflight now precedes durable allocation, effective identity is frozen/revalidated and propagated, and shared top-level/nested task/hub renderers are redacted and non-authoritative
+next_action=mark accepted tasks 5.1-5.3 and BUILD-06 done
+
+[2026-08-12T19:23:02+08:00] BUILD-06 DONE
+verification=verification:BUILD-06-task-hub-evidence
+disposition=accepted
+blocker=none; 60 focused task/model/renderer/hub/delivery tests and 92 persistent-runtime regression tests passed; typecheck, 21-role/20-specialist generation validation, strict OpenSpec validation and diff check passed
+next_action=advance the next dependency-ready BUILD package while separately gated BUILD-04, BUILD-05, BUILD-07, BUILD-08 and BUILD-09 remain blocked or pending
+
+[2026-08-12T19:39:49+08:00] BUILD-07 UNBLOCKED
+evidence=decision:user-continued-repository-local-build-with-parent-model-2026-08-12
+disposition=pending
+blocker=none for repository-local inventory, implementation and focused tests; real TUI probe remains separately gated and not run
+next_action=ready BUILD-07 under the accepted revised test plan and current BUILD authorization
+
+[2026-08-12T19:39:50+08:00] BUILD-07 READY
+evidence=task:6.1;task:6.2;task:6.3;task:6.4
+disposition=pending
+blocker=dependency inventory must precede any UI-owner deletion and material discovery stops affected mutation
+next_action=dispatch exact aili.implementer with openai-codex/gpt-5.6-sol and xhigh thinking, then join immediately
+
+[2026-08-12T19:40:00+08:00] BUILD-07 DISPATCHED
+evidence=verification:BUILD-07-dispatch-attempt-1
+disposition=pending
+blocker=clear-at-dispatch; exact Parent model openai-codex/gpt-5.6-sol and xhigh reasoning requested
+next_action=join exact synchronous aili.implementer result
+
+[2026-08-12T19:40:01+08:00] BUILD-07 RETURNED
+evidence=verification:BUILD-07-role-manifest-provenance-mismatch
+disposition=needs-follow-up
+blocker=the active loaded Agent runtime again rejected the verified repository role manifest source provenance before durable allocation; no Worker edits or result were produced
+next_action=attempt one unchanged-package exact-role dispatch after refreshing only the adapter-side provenance binding, or stop if the loaded runtime cannot be refreshed without a separately scoped user-home/runtime mutation
+
+[2026-08-12T19:41:00+08:00] BUILD-07 WAIVED
+evidence=verification:BUILD-07-exact-role-runtime-provenance-mismatch-waiver
+disposition=pending
+blocker=repository validate:roles passes for 21 profiles and 20 specialists, but the loaded runtime cannot accept exact aili.implementer dispatch without separately gated user-home/runtime reload; ROSE has equivalent repository-local tools and unchanged package permission
+next_action=execute BUILD-07 directly without widening scope or crossing the real-TUI, dependency, user-home, Git, publish or release gates
+
+[2026-08-12T19:52:00+08:00] BUILD-07 RETURNED
+evidence=verification:BUILD-07-direct-implementation-result
+disposition=pending
+blocker=none; prerequisite inventory proved WSL image-paste is independently owned by scripts/merge-global-keybindings.mjs and bootstrap tests, while fixed-editor is contained under unregistered Zentui and can remain inactive without retaining the UI owner
+next_action=inspect package registration, footer source, retained behavior and focused verification
+
+[2026-08-12T19:53:05+08:00] BUILD-07 INSPECTED
+evidence=verification:BUILD-07-native-ui-focused-tests;verification:BUILD-07-typecheck;verification:BUILD-07-provenance-validation;verification:BUILD-07-generated-validation;verification:BUILD-07-openspec-validation;verification:BUILD-07-diff-check
+disposition=accepted
+blocker=none for tasks 6.1-6.4; package registration now has only the AILI runtime and public-API footer, no theme/header/Matrix/Zentui owner, and retained fixed-editor/WSL source checks pass
+next_action=mark tasks 6.1-6.4 done; keep task 6.5 real TUI probe NOT_RUN_GATED and Unverified
+
+[2026-08-12T19:53:06+08:00] BUILD-07 DONE
+verification=verification:BUILD-07-native-ui-evidence
+disposition=accepted
+blocker=task 6.5 remains separately gated; no real TUI probe was run
+next_action=advance the next dependency-ready repository-local BUILD package without dependency, external, user-home, Git, publish or release operations
+
+[2026-08-12T19:58:00+08:00] BUILD-07-L1 BLOCKED
+evidence=task:6.5
+disposition=pending
+blocker=separate real TUI/runtime probe approval is absent; automated ownership/layout/lifecycle checks do not prove real Parent/Worker/tool terminal behavior
+next_action=keep the probe NOT_RUN_GATED and Unverified until exact operation approval is granted
+
+[2026-08-12T20:01:49+08:00] BUILD-07 VERIFIED
+verification=verification:BUILD-07-native-ui-evidence
+disposition=accepted
+blocker=none for tasks 6.1-6.4; 71 focused UI/package/bootstrap/runtime/provenance tests pass with typecheck, deterministic provenance, generated 21-profile/20-specialist validation, strict OpenSpec validation and diff check
+next_action=continue only through a package whose exact dependency and operation gates are satisfied; BUILD-07-L1 remains blocked
+
+[2026-08-12T20:04:00+08:00] BOARD BLOCKED
+evidence=verification:remaining-package-gate-reconciliation
+disposition=pending
+blocker=BUILD-04 requires exact pi-mcp-adapter dependency/package-lock permission; BUILD-05 depends on BUILD-04 and external operation approvals; BUILD-07-L1 requires real TUI probe approval; BUILD-08 requires absent source-vendoring/acquisition and Pi 0.84.1 dependency/package-lock permissions; BUILD-09 depends on those packages and license/tarball/install permissions
+next_action=obtain one exact operation authorization for the desired next package; no further Agent-owned formal package is dependency-ready under current permissions
+
+[2026-08-12T20:06:00+08:00] BUILD-04 READY
+evidence=decision:user-authorized-pi-mcp-adapter-2.23.0-exact-install
+blocker=none for exact `npm install --save-exact --ignore-scripts pi-mcp-adapter@2.23.0`; all shared-config/server/live/user-home operations remain gated
+next_action=dispatch exact aili.implementer with Parent model openai-codex/gpt-5.6-sol and xhigh thinking before dependency execution and implementation
+
+[2026-08-12T20:06:01+08:00] BUILD-04 DISPATCHED
+evidence=verification:BUILD-04-dispatch-attempt-1
+disposition=pending
+blocker=clear-at-dispatch; exact Parent model openai-codex/gpt-5.6-sol and xhigh thinking requested
+next_action=join synchronous aili.implementer result
+
+[2026-08-12T20:06:02+08:00] BUILD-04 RETURNED
+evidence=verification:BUILD-04-role-manifest-provenance-mismatch
+disposition=needs-follow-up
+blocker=the active loaded Agent runtime rejected the current repository role manifest source provenance before durable allocation; no Worker edits or result were produced
+next_action=record exact-role runtime-unavailable waiver, then execute the unchanged authorized package directly without crossing remaining operation gates
+
+[2026-08-12T20:06:30+08:00] BUILD-04 WAIVED
+evidence=verification:BUILD-04-exact-role-runtime-provenance-mismatch-waiver
+disposition=pending
+blocker=repository `npm run validate:roles` passes for 21 profiles and 20 specialists, but the loaded runtime cannot allocate exact aili.implementer without separately gated runtime/user-home reload; unchanged package and exact dependency operation are authorized and ROSE has equivalent repository-local capability
+next_action=run exact authorized dependency install, then inspect pi-mcp-adapter 2.23.0 API before any implementation
+
+[2026-08-12T20:40:35+08:00] BUILD-04 MATERIAL_DISCOVERY
+evidence=verification:BUILD-04-dependency-install-peer-conflict
+disposition=blocked
+blocker=exact `npm install --save-exact --ignore-scripts pi-mcp-adapter@2.23.0` failed with npm ERESOLVE before package/lock installation because its peerOptional @earendil-works/pi-ai ^0.84.1 conflicts with the repository's exact 0.82.1 baseline; `--force` or `--legacy-peer-deps` would accept a potentially broken dependency graph and was not authorized
+next_action=obtain exact authorization to upgrade the four Pi packages and lockfile to 0.84.1 together with pi-mcp-adapter 2.23.0, or revise the accepted dependency decision; do not implement against an absent/incompatible adapter
+
+[2026-08-12T20:43:00+08:00] BUILD-04 RESUMED
+evidence=decision:user-authorized-exact-pi-0.84.1-and-pi-mcp-adapter-2.23.0-install
+blocker=none for the exact dependency/lockfile operation covering @earendil-works/pi-agent-core, pi-ai, pi-coding-agent and pi-tui 0.84.1 plus pi-mcp-adapter 2.23.0; scripts remain disabled and all user-config/server/live operations remain gated
+next_action=run one exact npm install for the authorized set, inspect the resolved graph and adapter API, then continue BUILD-04 under its recorded direct-work waiver
+
+[2026-08-12T20:44:00+08:00] BUILD-04 DEPENDENCIES_INSTALLED
+evidence=verification:BUILD-04-exact-dependency-graph
+disposition=pending
+blocker=none; npm installed the exact four Pi 0.84.1 packages and pi-mcp-adapter 2.23.0 without scripts, and npm ls reports one compatible resolved graph; npm audit reported one moderate and one high advisory but no audit fix was run
+next_action=inspect the adapter public factory/status/approval/lifecycle API and implement only repository-local BUILD-04 scope
+
+[2026-08-12T21:08:55+08:00] BUILD-04 RETURNED
+evidence=verification:BUILD-04-direct-implementation-result
+disposition=pending
+blocker=none; Parent and explicit Worker factories use the same portable config resolver, session replacement emits shutdown before dispose, all adapter approval origins bridge into the existing effective child permission/broker path, and status inspection consumes the adapter event snapshot without connecting lazy servers
+next_action=inspect the changed MCP/runtime/dependency/provenance surfaces and run fresh claim-matched checks
+
+[2026-08-12T21:13:14+08:00] BUILD-04 INSPECTED
+evidence=verification:BUILD-04-mcp-focused-tests;verification:BUILD-04-full-suite;verification:BUILD-04-typecheck;verification:BUILD-04-compatibility-validation;verification:BUILD-04-provenance-validation;verification:BUILD-04-generated-validation;verification:BUILD-04-package-validation;verification:BUILD-04-openspec-validation;verification:BUILD-04-diff-check
+disposition=accepted
+blocker=none for tasks 3.1-3.5; 475 tests pass with 2 accepted gated skips, including focused config/session/origin/status permission evidence, and all deterministic validations pass
+next_action=mark tasks 3.1-3.5 and BUILD-04 done; keep shared config, server install/start, MemPalace and live probes separately gated
+
+[2026-08-12T21:13:15+08:00] BUILD-04 DONE
+verification=verification:BUILD-04-mcp-runtime-evidence
+disposition=accepted
+blocker=none; npm audit advisory output remains untriaged and is not a BUILD-04 correctness failure
+next_action=advance only the dependency-ready repository-local BUILD-05 mapping/preview scope without performing any external operation
+
+[2026-08-12T21:18:59+08:00] BUILD-04 VERIFIED
+verification=verification:BUILD-04-mcp-runtime-evidence
+disposition=accepted
+blocker=none; after lifecycle cleanup correction, the full suite passes 475 tests with 2 operation-gated skips, typecheck and compatibility/provenance/generated/package/OpenSpec/diff checks all pass
+next_action=keep all external MCP and MemPalace operations gated and select the next repository-local package boundary
+
+[2026-08-12T21:20:00+08:00] BOARD UNBLOCKED
+evidence=decision:user-authorized-complete-remaining-accepted-build-scope-2026-08-12
+disposition=pending
+blocker=none for remaining accepted repository-local implementation and exact separately listed BUILD operations; destructive memory delete/import/mine, unrelated CodeGraph targets, Git, publish and release remain absent
+next_action=run BUILD-05 repository-local preview/mapping and exact external operations independently; dispatch independent BUILD-07-L1 and BUILD-08 packages with their canonical owners
+
+[2026-08-12T21:20:01+08:00] BUILD-05 READY
+evidence=task:4.1;task:4.2;task:4.3;task:4.4;task:4.5;task:4.6;task:4.7;task:4.8;task:4.9
+disposition=pending
+blocker=none; exact operations remain independently recorded and a failure cannot trigger substitution or a floating version
+next_action=implement and verify preview/mapping before any shared-config or external runtime mutation
+
+[2026-08-12T21:20:02+08:00] BUILD-07-L1 READY
+evidence=task:6.5
+disposition=pending
+blocker=none; one bounded real Pi TUI/runtime probe is authorized in the current environment
+next_action=dispatch exact aili.test-engineer owner and join immediately
+
+[2026-08-12T21:20:03+08:00] BUILD-08 READY
+evidence=task:7.1;task:7.2;task:7.3;task:7.4;task:7.5;task:7.6;task:8.1;task:8.2;task:8.3;task:9.1
+disposition=pending
+blocker=none for exact public-source/package acquisition, accepted repository-local integration and bounded probes; any frozen identity/content/license/compatibility contradiction is material discovery
+next_action=dispatch exact aili.implementer owner and join immediately
+
+[2026-08-12T21:20:04+08:00] BUILD-07-L1 WAIVED
+evidence=verification:BUILD-07-L1-role-manifest-provenance-mismatch-waiver
+disposition=pending
+blocker=the active loaded Agent runtime rejected the current repository-verified role manifest before allocating the exact test-engineer; ROSE has the same bounded terminal tools and exact probe permission
+next_action=run the unchanged evidence-only TUI probe directly without production or user-config mutation
+
+[2026-08-12T21:20:05+08:00] BUILD-08 WAIVED
+evidence=verification:BUILD-08-role-manifest-provenance-mismatch-waiver
+disposition=pending
+blocker=the active loaded Agent runtime rejected the current repository-verified role manifest before allocating the exact implementer, and its canonical tool ceiling cannot perform the command/network-dependent acquisition package; ROSE has equivalent local tools and exact permissions
+next_action=execute the unchanged BUILD-08 package directly, stopping on material upstream identity/content/license/API contradiction
+
+[2026-08-12T21:51:33+08:00] BUILD-05 RETURNED
+evidence=verification:BUILD-05-config-memory-and-live-probe-result
+disposition=pending
+blocker=none; exact lazy shared config is installed at the accepted path, pinned disposable tool environments are present, the existing Palace passed status/search plus one bounded diary write/readback, Chromium assets installed, current repository CodeGraph index refreshed, and Context7/Playwright/CodeGraph/MemPalace MCP calls returned bounded results
+next_action=inspect config bytes, no-conflict preview, mapping tests, operation evidence and Parent/Worker runtime evidence
+
+[2026-08-12T21:51:34+08:00] BUILD-05 DONE
+verification=verification:BUILD-05-mempalace-evidence
+disposition=accepted
+blocker=none; delete/import/mine remain not run, Context7/Playwright/CodeGraph/MemPalace exact versions are 4.0.2/0.0.79/1.5.0/3.7.0, all four MCP servers connected in the bounded Pi runtime probe, and no fallback memory store was created
+next_action=retain redacted receipts and advance convergence dependencies
+
+[2026-08-12T21:54:10+08:00] BUILD-07-L1 RETURNED
+evidence=verification:BUILD-07-L1-real-pi-0.84.1-pty-probe
+disposition=pending
+blocker=none; one 80-column pseudo-terminal Pi 0.84.1 Codex flow showed Pi-native Working spinner frames, stable one-line footer model/quota/receiving state, exact TUI_OK provider response, and four connected MCP servers
+next_action=inspect the typescript capture without generalizing subjective performance or unobserved Worker/tool visuals
+
+[2026-08-12T21:54:11+08:00] BUILD-07-L1 DONE
+verification=verification:BUILD-07-real-tui-evidence
+disposition=accepted
+blocker=none; the single real Parent/provider probe passed, while Worker/tool visual ownership remains supported by deterministic ownership tests rather than falsely claimed as separately observed
+next_action=advance BUILD-09 dependency readiness
+
+[2026-08-12T22:09:47+08:00] BUILD-08 RETURNED
+evidence=verification:BUILD-08-direct-context-retry-pi084-result
+disposition=pending
+blocker=none; complete billion-context tracked tree and full pi-retry published source are retained, exact Codex package is locked, one frozen provider route gates owners, Codex transport retry is zero, Pi owns attempt budget/backoff, AILI Compact production source/tests/docs are removed, and Pi graph is deduped on 0.84.1
+next_action=inspect exact identities, retained tree, generated distribution boundaries, focused tests and provider limitations
+
+[2026-08-12T22:09:48+08:00] BUILD-08 DONE
+verification=verification:BUILD-08-context-runtime-evidence
+disposition=accepted
+blocker=none; 469 automated tests plus typecheck/provenance/generated/package checks pass, exact Pi npm graph is 0.84.1, an actual Codex ordinary turn passed, direct-OpenAI/Anthropic/Google auth checks returned not_ready, and no unsupported 32K default change was made
+next_action=activate BUILD-09
+
+[2026-08-12T22:09:49+08:00] BUILD-09 READY
+evidence=task:10.1;task:10.2;task:10.3;task:10.4;task:11.1;task:11.2;task:11.3;task:12.1;task:12.2
+disposition=pending
+blocker=none; license disposition cleared, dependency packages accepted, and exact package/install/upgrade/rollback permissions are current
+next_action=finish MIT/provenance/package candidate and disposable lifecycle evidence, then inspect traceability and final diff
+
+[2026-08-12T22:18:00+08:00] BUILD-09 RETURNED
+evidence=verification:BUILD-09-package-evidence
+disposition=pending
+blocker=none; root/project/lock/README now agree on MIT, generated notices/SBOM are current, actual candidate tarball hash is recorded, required context/runtime/license files are present and retired UI/AILI Compact/algal runtime files are absent, exact-tarball clean load and baseline 0.1.16 upgrade/rollback passed with legacy file hash unchanged
+next_action=run final full fresh verification and task-scoped diff/traceability inspection
+
+[2026-08-12T22:24:00+08:00] BUILD-09 REVIEW_WAIVED
+evidence=verification:BUILD-09-review-dispatch-provenance-mismatch-waiver
+disposition=pending
+blocker=exact convergence-reviewer and code-reviewer dispatches both failed before allocation because the active loaded runtime rejected current repository-verified role provenance; ROSE performed direct changed-file/traceability inspection under the same unchanged read-only scope
+next_action=inspect Parent and explicit Worker context/retry composition, retry settings mutation paths, packaged runtime dependencies, user-home mutation paths and accepted task links
+
+[2026-08-12T22:27:00+08:00] BUILD-09 INSPECTED
+evidence=verification:BUILD-09-direct-final-inspection
+disposition=accepted
+blocker=none; direct inspection found and repaired two completion blockers before verdict: explicit persistent Workers now compose the same provider-routed context/retry runtime, and Codex settings reload/update/get all force extension transport retries to zero; upstream ACP user-home settings patch and auto-update are disabled in the AILI composition
+next_action=run one final fresh full-suite and deterministic validation sequence
+
+[2026-08-12T22:28:00+08:00] BUILD-09 DONE
+verification=verification:BUILD-09-package-evidence
+disposition=accepted
+blocker=none; all accepted tasks are implemented or truthfully bounded, direct OpenAI/non-OpenAI provider sessions remain Unverified because auth is not_ready, and the upstream retained-history default remains unchanged
+next_action=record IMPLEMENTED_TARGETED_VERIFIED and stop before Git, publish or release
+
+[2026-08-12T22:28:01+08:00] BOARD IMPLEMENTED_TARGETED_VERIFIED
+verification=verification:BUILD-09-full-suite;verification:BUILD-09-typecheck;verification:BUILD-09-provenance;verification:BUILD-09-generated;verification:BUILD-09-package;verification:BUILD-09-real-tarball;verification:BUILD-09-clean-load-upgrade-rollback;verification:BUILD-09-openspec;verification:BUILD-09-diff-check
+disposition=superseded-by-late-side-effect-discovery
+blocker=late inspection found the first authorized real TUI probe ran the upstream ACP session-start user-settings patch before the AILI no-home-mutation patch was applied; the former completion claim is withdrawn
+next_action=record the exact task-created user-home mutation and request separate restoration/deletion approval
+
+[2026-08-12T22:31:00+08:00] BUILD-09 BLOCKED
+evidence=verification:BUILD-09-late-user-home-side-effect-discovery
+disposition=needs-follow-up
+blocker=`~/.pi/agent/settings.json` currently contains ACP tool overrides for nine legacy subagent profiles and `~/.pi/agent/settings.json.acp-bak` contains the 334-byte pre-probe settings; restoring the backup and deleting the task-created backup are exact destructive user-home operations not covered by current cleanup authority
+next_action=obtain exact user approval to copy the backup over settings.json atomically and delete only settings.json.acp-bak, then rerun a bounded Pi startup and compare settings bytes/hash before and after
+
+[2026-08-12T22:34:00+08:00] BUILD-09 CLEANUP_AUTHORIZED
+evidence=user-approval:restore-acp-settings-side-effect
+operation=atomically restore `~/.pi/agent/settings.json` from task-created `~/.pi/agent/settings.json.acp-bak`, then delete only that backup and run a bounded startup/no-mutation check
+risk=user-home overwrite and deletion, exact to the two named files
+next_action=execute exact restoration and verify bytes, mode and backup absence
+
+[2026-08-12T22:35:00+08:00] BUILD-09 CLEANUP_DONE
+verification=verification:BUILD-09-acp-user-settings-restoration
+disposition=accepted
+blocker=none; restored settings bytes equal the 334-byte backup with sha256=a5de1713232e229fa4fc1c9eb0a6e39b91ebd7a08ebca609286c50cebf780418, mode remains 0644, and `settings.json.acp-bak` is absent
+next_action=run bounded Pi startup and compare settings hash/mode before and after
+
+[2026-08-12T22:36:00+08:00] BUILD-09 DONE
+verification=verification:BUILD-09-no-home-mutation-startup
+disposition=accepted
+blocker=none; bounded Pi startup reached provider authentication preflight, left settings sha256=a5de1713232e229fa4fc1c9eb0a6e39b91ebd7a08ebca609286c50cebf780418 and mode 0644 unchanged, and did not recreate the ACP backup; the expected isolated probe could not perform a provider turn because no credential was exposed to that probe
+next_action=record IMPLEMENTED_TARGETED_VERIFIED and stop before Git, publish or release
+
+[2026-08-12T22:36:01+08:00] BOARD IMPLEMENTED_TARGETED_VERIFIED
+verification=verification:BUILD-09-full-suite;verification:BUILD-09-typecheck;verification:BUILD-09-provenance;verification:BUILD-09-generated;verification:BUILD-09-package;verification:BUILD-09-real-tarball;verification:BUILD-09-clean-load-upgrade-rollback;verification:BUILD-09-openspec;verification:BUILD-09-diff-check;verification:BUILD-09-acp-user-settings-restoration;verification:BUILD-09-no-home-mutation-startup
+disposition=accepted
+blocker=none for BUILD; final fresh sequence passed 471 tests with 2 accepted skips, final candidate sha256=ce493356016e898c5b3bec01dd893399f7c1e3e9233a239c8a4ad316b4e075bd, user-home side effect is restored, and Git/publish/release were not authorized or performed
+next_action=await a fresh SHIP intent for any release closeout
+
+[2026-08-12T22:40:00+08:00] BOARD SHIP_STARTED
+evidence=user-intent:release-patch-0.2.1
+disposition=pending
+blocker=none for version candidate preparation; user selected 0.2.1 after ROSE recommended 0.3.0 and was informed that commit, push, tag, npm publish and GitHub Release remain exact operation gates
+next_action=set candidate identity 0.2.1, regenerate generated metadata and run release readiness checks
+
+[2026-08-12T23:00:00+08:00] SHIP-01 REVIEW_WAIVED
+evidence=verification:SHIP-01-sanitizer-dispatch-provenance-mismatch-waiver
+disposition=pending
+blocker=exact opensource-sanitizer dispatch failed before allocation because the active loaded Agent runtime rejected repository-verified role provenance; ROSE performed the unchanged read-only package exposure inspection directly
+next_action=inspect actual npm pack inventory and exclude private archives, local state, OpenSpec, caches and credentials
+
+[2026-08-12T23:01:00+08:00] SHIP-01 MATERIAL_FINDING
+evidence=verification:SHIP-01-provider-worker-probe-initial-failure
+disposition=repaired
+blocker=an authenticated official Pi 0.84.1 Parent-to-persistent-Worker read probe returned `definition.execute is not a function`; Pi's public `getAllTools()` returns ToolInfo metadata, not executable ToolDefinitions, so child construction incorrectly forwarded non-executable built-in metadata
+next_action=construct child built-in ToolDefinitions through official Pi factories, retain custom nested definitions separately, then rerun focused and real provider checks
+
+[2026-08-12T23:04:00+08:00] SHIP-01 RETURNED
+evidence=verification:SHIP-01-release-0.2.1-readiness
+disposition=accepted
+blocker=none; official Pi 0.84.1 authenticated Parent-to-persistent-Worker read passed with exact RELEASE_PROVIDER_WORKER_OK, release validator execution was repaired to use the explicit tsx dev dependency, stale adapter evidence was refreshed against the current bundle and implementation, and the validator now expects 20 specialized profiles plus general
+next_action=run full fresh release matrix and build the exact 0.2.1 tarball
+
+[2026-08-12T23:07:00+08:00] SHIP-01 READY_TO_RELEASE
+evidence=verification:SHIP-01-release-candidate-evidence
+disposition=accepted
+blocker=none for candidate readiness; 471 tests passed with 2 accepted skips, typecheck/compatibility/provenance/generated/package/stable-release/diff/strict-OpenSpec checks passed, npm publish dry-run selected latest/default public access, actual tarball contains 1928 entries with no forbidden public paths, clean 0.2.1 load and published 0.2.0 to 0.2.1 upgrade passed, and candidate sha256=0dbfa606fdfbb50d1a5750dcacb05faf57e834f9fb3b85126680f032c4af332a
+next_action=obtain exact approvals for commit, push current branch, create/push v0.2.1 tag, publish @rosetears/aili-pi@0.2.1 with latest/public access, and create GitHub Release v0.2.1 from the exact tag

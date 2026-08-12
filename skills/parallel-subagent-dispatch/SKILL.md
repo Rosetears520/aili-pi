@@ -1,6 +1,6 @@
 ---
 name: parallel-subagent-dispatch
-description: Proactively dispatch fresh subagents when the user requests them, a specialist capability is required, repository exploration would materially pollute context, or independent work units have clear wall-clock or context benefit; use direct ROSE work only when no trigger applies or delegation is concretely blocked.
+description: Prefer a fresh matching specialist for a clear bounded non-trivial package when current capabilities and permissions permit it; use direct ROSE work only for accepted direct-work exceptions or a concrete block.
 license: MIT
 ---
 
@@ -8,7 +8,7 @@ license: MIT
 
 ## Goal
 
-Dispatch early when an ordinary trigger is met or a ready formal Agent-owned package requires its exact owner, without turning ordinary work into orchestration overhead. ROSE retains integration and final-verdict ownership.
+Dispatch early when an ordinary package is clear, bounded, non-trivial, matched to an available specialist, and permitted by the current adapter, or when a ready formal Agent-owned package requires its exact owner. Do not turn ordinary work into orchestration overhead. ROSE retains integration and final-verdict ownership.
 
 ## Reference
 
@@ -16,14 +16,7 @@ Use `references/agent-selection-matrix.md` as the single shared `aili-agent-sele
 
 ## Trigger
 
-Use the `subagent.dispatch` capability only when at least one condition is true:
-
-- the user explicitly asks for a subagent;
-- a required capability belongs to a specialist;
-- broad search or noisy output would materially pollute ROSE context;
-- at least two independent units can run concurrently with clear benefit.
-
-Run this proactive delegation scan at the start of each non-trivial intent and again when changed evidence creates a new work split. When any trigger is true, dispatch before duplicating the assignment directly unless overlap, dependency, permission, ownership, or negative-benefit evidence blocks it. Otherwise work directly. Do not delegate a single straightforward task merely because a subagent exists.
+Run this proactive delegation scan at the start of each non-trivial intent and again when changed evidence creates a new work split, and dispatch before duplicating the assignment directly when all ordinary specialist-preferred conditions hold: the package is clear and bounded, non-trivial, matches an available narrow specialist, and current permissions/capabilities permit it. Work directly only for trivial work, contract clarification or splitting, no matching specialist, permission/capability failure, overlapping ownership, or concrete negative benefit. Multi-file shape alone is not a dispatch reason.
 
 Every dispatch operation must pass this benefit decision independently. A prior failure, partial result, empty result, or desire to continue is not by itself a reason to dispatch another operation.
 

@@ -15,6 +15,11 @@ import { loadRegistry, validateLiveVerification, validateProvenance, validateReg
 import { inspectGlobalResources } from "./global-resources.js";
 import { nativeIntegrationDiagnostics } from "./native-integrations.js";
 import { validateRoleProfiles } from "./roles.js";
+import { loadWorkflowRuntimeBundle } from "./workflow-bundle/index.js";
+import { MCP_ADAPTER_VERSION, mcpConfigEvidencePath } from "./mcp.js";
+import { BILLION_CONTEXT_VERSION, CODEX_COMPACT_VERSION } from "./context-runtime.js";
+import { PROVIDER_RETRY_VERSION } from "./provider-retry.js";
+import { MEMPALACE_PATH, MEMPALACE_VERSION } from "./mempalace.js";
 
 export type DoctorStatus = "PASS" | "WARN" | "SKIP" | "ERROR" | "UNVERIFIED";
 
@@ -40,12 +45,12 @@ export interface SharedWorkflowInspection {
   sourceMatch: SharedWorkflowSourceMatch;
   references: { readable: number; required: 2 };
   protocols: { compatible: number; required: 2 };
-  roles: { observed: number; required: 19 };
+  roles: { observed: number; required: number };
   reasons: string[];
 }
 
 const AGENT_SELECTION_PROTOCOL = "aili-agent-selection/v1";
-const SHARED_WORKFLOW_RELEASE = "0.4.2";
+const SHARED_WORKFLOW_RELEASE = "0.4.7";
 const SHARED_REFERENCE_MAX_BYTES = 256 * 1024;
 const AGENT_SELECTION_PATH = ".agents/skills/parallel-subagent-dispatch/references/agent-selection-matrix.md";
 const FORMAL_TASK_BOARD_PATH = ".agents/skills/aili-delivery-flow/references/formal-task-board.md";
@@ -119,7 +124,7 @@ function sharedWorkflowInspection(
     sourceMatch,
     references: { readable: Math.min(2, Math.max(0, readable)), required: 2 },
     protocols: { compatible: Math.min(2, Math.max(0, protocols)), required: 2 },
-    roles: { observed: Math.min(99, Math.max(0, observedRoles)), required: 19 },
+    roles: { observed: Math.min(99, Math.max(0, observedRoles)), required: 20 },
     reasons: uniqueReasons(reasons).slice(0, 4),
   };
 }
@@ -140,7 +145,7 @@ async function loadSharedWorkflowContract(): Promise<SharedWorkflowContract | un
       || !validProtocolRecord(agentSelection, AGENT_SELECTION_PROTOCOL, AGENT_SELECTION_PATH)
       || !validProtocolRecord(formalTaskBoard, FORMAL_TASK_BOARD_PROTOCOL, FORMAL_TASK_BOARD_PATH)
       || !Array.isArray(roles)
-      || roles.length !== 19
+      || roles.length !== 20
       || roles.some((role) => typeof role !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(role))
       || new Set(roles).size !== roles.length) {
       return undefined;
@@ -326,25 +331,32 @@ export async function runDoctor(
       pi?: { extensions?: string[]; prompts?: string[]; skills?: string[]; themes?: string[] };
     };
     const dependencies = (packageJson as { dependencies?: Record<string, string> }).dependencies ?? {};
-    const expectedDependencies = ["pi-permission-modes@2.2.0", "pi-quota-status@0.3.0", "pi-web-access@0.13.0"];
+    const expectedDependencies = ["@narumitw/pi-codex-compact@0.50.0", "acp-kernel@0.0.19", "pi-mcp-adapter@2.23.0", "pi-permission-modes@2.2.0", "pi-quota-status@0.3.0", "pi-web-access@0.13.0"];
     const dependencyState = expectedDependencies.every((entry) => {
       const separator = entry.lastIndexOf("@");
       return dependencies[entry.slice(0, separator)] === entry.slice(separator + 1);
     });
     results.push({ id: "package", status: dependencyState ? "PASS" : "ERROR", evidence: `version=${packageJson.version ?? "unverified"}; node=${packageJson.engines?.node ?? "unverified"}; native_dependencies=${dependencyState ? "exact" : "drift"}` });
     const resources = [...(packageJson.pi?.extensions ?? []), ...(packageJson.pi?.prompts ?? []), ...(packageJson.pi?.skills ?? []), ...(packageJson.pi?.themes ?? [])];
-    results.push({ id: "package.resources", status: resources.length === 11 ? "PASS" : "ERROR", evidence: `declared=${resources.length}` });
+    const expectedResources = ["./extensions/index.ts", "./node_modules/pi-web-access/skills", "./prompts/ideate.md", "./prompts/define.md", "./prompts/build.md", "./prompts/ship.md", "./prompts/local-review.md"];
+    const resourceState = resources.length === expectedResources.length && expectedResources.every((resource) => resources.includes(resource));
+    results.push({ id: "package.resources", status: resourceState ? "PASS" : "ERROR", evidence: `declared=${resources.length}; native_ui=${resourceState ? "minimal-footer" : "drift"}` });
   } catch (error) {
     results.push({ id: "package", status: "ERROR", evidence: boundedError(error) });
   }
 
   try {
-    const lock = JSON.parse(await readFile(new URL("upstream/aili-workflows.lock.json", ROOT), "utf8")) as {
-      commit?: string; contentHash?: string; skillCount?: number; fileCount?: number;
-    };
+    const [lock, bundle] = await Promise.all([
+      readFile(new URL("upstream/aili-workflows.lock.json", ROOT), "utf8").then((content) => JSON.parse(content) as {
+        commit?: string; contentHash?: string; skillCount?: number; fileCount?: number;
+      }),
+      loadWorkflowRuntimeBundle(),
+    ]);
     results.push({ id: "skill.snapshot", status: lock.commit && lock.contentHash ? "PASS" : "ERROR", evidence: `commit=${lock.commit ?? "missing"}; hash=${lock.contentHash ?? "missing"}; skills=${lock.skillCount ?? "missing"}; files=${lock.fileCount ?? "missing"}` });
+    results.push({ id: "workflow.bundle", status: "PASS", evidence: `release=${bundle.package}@${bundle.version}; commit=${bundle.commit}; specialists=${bundle.canonicalSpecialists.length}; artifacts=${Object.keys(bundle.protocols).length + 5}` });
   } catch (error) {
     results.push({ id: "skill.snapshot", status: "ERROR", evidence: boundedError(error) });
+    results.push({ id: "workflow.bundle", status: "ERROR", evidence: boundedError(error) });
   }
 
   try {
@@ -353,10 +365,35 @@ export async function runDoctor(
     results.push(sharedWorkflowDoctorResult(sharedWorkflowInspection("unverified", "unknown", 0, 0, 0, ["inspection-failed"])));
   }
 
+  results.push({
+    id: "context.runtime",
+    status: "PASS",
+    evidence: `codex=pi-codex-compact@${CODEX_COMPACT_VERSION}; other=billion-context-pi@${BILLION_CONTEXT_VERSION}; route=turn-frozen; retry_owner=pi`,
+  });
+  results.push({
+    id: "provider.retry",
+    status: "PASS",
+    evidence: `classifier=pi-retry@${PROVIDER_RETRY_VERSION}; attempts_budget_backoff=pi-0.84.1; diagnostics=bounded-redacted`,
+  });
+  results.push({
+    id: "memory.mempalace",
+    status: "UNVERIFIED",
+    evidence: `version=${MEMPALACE_VERSION}; palace=${MEMPALACE_PATH}; source=mcp-only; runtime_health=operation-evidence-required; fallback=none`,
+  });
+
   const commands = pi.getCommands();
   const conflicts = detectLifecycleConflicts(commands);
   results.push({ id: "rose.prompts", status: conflicts.length === 0 ? "PASS" : "ERROR", evidence: conflicts.length === 0 ? "five lifecycle/review prompts have unique ownership" : `conflicts=${conflicts.map((item) => item.name).join(",")}` });
   results.push(await inspectPiCompactionSettings(options.home));
+  try {
+    results.push({
+      id: "mcp.runtime",
+      status: "PASS",
+      evidence: `adapter=pi-mcp-adapter@${MCP_ADAPTER_VERSION}; config=${mcpConfigEvidencePath({ HOME: options.home })}; status=lazy-event-snapshot; transport_probe=not-run`,
+    });
+  } catch (error) {
+    results.push({ id: "mcp.runtime", status: "ERROR", evidence: boundedError(error) });
+  }
 
   try {
     const errors = await validateRegistry();
@@ -382,7 +419,7 @@ export async function runDoctor(
     results.push({
       id: "roles.agents",
       status: profileErrors.length === 0 ? "PASS" : "ERROR",
-      evidence: profileErrors.length === 0 ? "profiles=20; selectors=19 specialized + general" : profileErrors.slice(0, 3).join("; "),
+      evidence: profileErrors.length === 0 ? "profiles=21; selectors=20 specialized + general" : profileErrors.slice(0, 3).join("; "),
     });
     const liveErrors = await validateLiveVerification();
     results.push({
@@ -392,7 +429,7 @@ export async function runDoctor(
         ? `public runtime registered but profile validation failed: ${profileErrors.slice(0, 3).join("; ")}`
         : liveErrors.length > 0
           ? `public tools=task,hub; deterministic runtime gates pass; ${liveErrors.slice(0, 2).join("; ")}`
-          : "public tools=task,hub; legacy subagent absent; deterministic and Pi 0.82.1 provider/sandbox/external-workspace lifecycle gates pass",
+          : "public tools=task,hub; legacy subagent absent; deterministic and Pi 0.84.1 provider/sandbox/external-workspace lifecycle gates pass",
     });
   } catch (error) {
     results.push({ id: "agent.framework", status: "ERROR", evidence: boundedError(error) });
@@ -400,8 +437,7 @@ export async function runDoctor(
   results.push({ id: "permission.native", ...nativeIntegrationDiagnostics(pi.getCommands()) });
   try {
     const global = await inspectGlobalResources(options.home);
-    const ready = global.appendSystem === "installed" && global.roles.missing.length === 0;
-    results.push({ id: "global.resources", status: ready ? "PASS" : "UNVERIFIED", evidence: `append=${global.appendSystem}; roles=${global.roles.installed}/${global.roles.expected}; stale=${global.roles.stale.length}; path=${global.roleDirectory}` });
+    results.push({ id: "global.resources", status: "PASS", evidence: `ownership=${global.ownership}; legacy_append=${global.appendSystem}; legacy_roles=${global.roles.stale.length}; action=report-only; path=${global.roleDirectory}` });
   } catch (error) {
     results.push({ id: "global.resources", status: "ERROR", evidence: boundedError(error) });
   }

@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "source": {
     "repository": "https://github.com/Rosetears520/aili-workflows.git",
-    "commit": "bb1fedacc46d71045daa6257d121f2b71ba29d54",
+    "commit": "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
     "protocol": "aili-agent-selection/v1",
-    "sourceSha256": "562951ec896b351983223a4a04833c260d9570307a1688dbaf7032055ee4161d"
+    "sourceSha256": "db35b7c17ba76984d9ee2d69931dfbce80c6413b90953899a9ae5cc671855224"
   },
   "roles": [
     {
@@ -96,6 +96,24 @@
         "DEFINE"
       ],
       "executionGuidance": "Sync; join before the dependent BUILD gate."
+    },
+    {
+      "roleId": "solution-architect",
+      "selector": "aili.solution-architect",
+      "positiveTriggers": [
+        "A bounded repository-grounded technical proposal needs materially distinct options, trade-offs, boundaries/interfaces/data/call flow, impact analysis, candidate packages, and explicit unclear items."
+      ],
+      "nearMisses": [
+        "Implementing, delegating, accepting architecture, making product decisions, approving ADRs, or issuing a final verdict."
+      ],
+      "expectedEvidence": [
+        "Options and recommendation, impacts, risks, candidate packages, evidence anchors, and unclear items."
+      ],
+      "phaseAffinity": [
+        "IDEATE",
+        "DEFINE"
+      ],
+      "executionGuidance": "Read-only and usually sync; ROSE dispositions the proposal before any write-back."
     },
     {
       "roleId": "implementer",

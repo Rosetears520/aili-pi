@@ -2,10 +2,10 @@
   "spdxVersion": "SPDX-2.3",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "name": "@rosetears/aili-pi-0.2.0",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/38e3b6e8578a28a504f8d4247b5d4016",
+  "name": "@rosetears/aili-pi-0.2.1",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/f267f9b7284bdde747a27b1dd5b9bc74",
   "creationInfo": {
-    "created": "2026-08-11T10:44:36.170Z",
+    "created": "2026-08-12T15:03:13.944Z",
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
     ]
@@ -14,25 +14,73 @@
     {
       "SPDXID": "SPDXRef-Package-aili-pi",
       "name": "@rosetears/aili-pi",
-      "versionInfo": "0.2.0",
+      "versionInfo": "0.2.1",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
-      "licenseConcluded": "AGPL-3.0-or-later",
-      "licenseDeclared": "AGPL-3.0-or-later",
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "APPLICATION"
     },
     {
       "SPDXID": "SPDXRef-source-aili-workflows-ad83a8f0ba",
       "name": "aili-workflows",
-      "versionInfo": "0.4.2",
-      "downloadLocation": "https://github.com/Rosetears520/aili-workflows/commit/bb1fedacc46d71045daa6257d121f2b71ba29d54",
+      "versionInfo": "0.4.7",
+      "downloadLocation": "https://github.com/Rosetears520/aili-workflows/commit/a69f3149d8f1db81726128c2819a3ccc954b9ccc",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=bb1fedacc46d71045daa6257d121f2b71ba29d54; files=upstream/aili-workflows.lock.json#files (588 exact skill files), manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.2 source revision), upstream/opencode-global-agents.lock.json (pinned source template revision/hash); symbols=65 canonical skill bodies and owned assets; local changes=skills/** is an exact byte-for-byte snapshot with no semantic overlay | specialized role prompts and deterministic routing were regenerated from the exact 0.4.2 source revision and remain manifest-hash bound | templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded"
+      "comment": "revision=a69f3149d8f1db81726128c2819a3ccc954b9ccc; files=upstream/aili-workflows.lock.json#files (562 exact skill files), upstream/aili-workflows-runtime/** (exact generated Pi runtime bundle), manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.7 source revision); symbols=58 canonical skill bodies and owned assets, 20 canonical Specialized Agent roles, Pi system/role/selection/protocol/installation runtime bundle; local changes=skills/** is an exact byte-for-byte snapshot with no semantic overlay | the generated Pi runtime bundle is copied byte-for-byte and validated through one lock-bound loader | specialized role prompts and deterministic routing were regenerated from the exact 0.4.7 source revision and remain manifest-hash bound | legacy APPEND_SYSTEM and global-role installation ownership is retired and report-only"
+    },
+    {
+      "SPDXID": "SPDXRef-source-pi-mcp-adapter-03221c765d",
+      "name": "pi-mcp-adapter",
+      "versionInfo": "2.23.0",
+      "downloadLocation": "https://github.com/nicobailon/pi-mcp-adapter/commit/49e25be1cb917329980eb7a40786c5b91dddb277",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [],
+      "primaryPackagePurpose": "SOURCE",
+      "comment": "revision=49e25be1cb917329980eb7a40786c5b91dddb277; files=index.ts, types.ts, mcp-status.ts, tool-approval.ts; symbols=createMcpAdapter, MCP status snapshots, multi-origin tool approval event; local changes=AILI composes a fresh factory for Parent and each persistent Worker through src/runtime/mcp.ts; no upstream source is copied and the dependency is not registered as a second Pi package"
+    },
+    {
+      "SPDXID": "SPDXRef-source-billion-context-pi-2de10c672d",
+      "name": "billion-context-pi",
+      "versionInfo": "0.1.34",
+      "downloadLocation": "https://github.com/ranxianglei/billion-context-pi/commit/558a83a9db695571339d693ab75129c2f13a324c",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [],
+      "primaryPackagePurpose": "SOURCE",
+      "comment": "revision=558a83a9db695571339d693ab75129c2f13a324c; files=upstream/billion-context-pi/** (complete tracked source tree except .git metadata); symbols=compress, decompress, search_context, acp_status, acp_delegate, acp_delegate_wait, acp_delegate_cancel, context and compaction handlers; local changes=added AcpOwnershipRouter so a turn-frozen canonical route gates context, system-prompt and compaction ownership before side effects | disabled upstream auto-update and user-home subagent settings mutation in the AILI composition | rebuilt dist against the retained source and Pi 0.84.1"
+    },
+    {
+      "SPDXID": "SPDXRef-source-pi-codex-compact-33c52943bc",
+      "name": "pi-codex-compact",
+      "versionInfo": "0.50.0",
+      "downloadLocation": "https://github.com/narumiruna/pi-extensions/commit/c98af43a6c71c5839b2e0671db71ed1cc1fc0c51",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [],
+      "primaryPackagePurpose": "SOURCE",
+      "comment": "revision=c98af43a6c71c5839b2e0671db71ed1cc1fc0c51; files=node_modules/@narumitw/pi-codex-compact/src/**, upstream/pi-codex-compact-0.50.0-src/**, upstream/pi-codex-compact-0.50.0-LICENSE, upstream/pi-codex-compact-0.50.0-README.md; symbols=Codex Remote Compaction V2, opaque checkpoint marker/fingerprint replay, Pi-native fallback; local changes=composed only for canonical openai-codex/openai-codex-responses turns | settings view forces extension transport maxRetries=0 so Pi owns retries"
+    },
+    {
+      "SPDXID": "SPDXRef-source-pi-retry-689d73bf0b",
+      "name": "pi-retry",
+      "versionInfo": "0.31.0",
+      "downloadLocation": "https://github.com/narumiruna/pi-extensions/commit/3ad2c94970132353fc869cd2297b017465740791",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [],
+      "primaryPackagePurpose": "SOURCE",
+      "comment": "revision=3ad2c94970132353fc869cd2297b017465740791; files=upstream/pi-retry-0.31.0/**, src/runtime/provider-retry.ts; symbols=provider retry classifiers, stall watchdog, receiving/retrying status, Pi retry-policy integration; local changes=added bounded redacted structured retry diagnostics and exported classification helpers | Pi 0.84.1 remains the sole attempt budget/backoff owner | later upstream deprecated placement is documented in the accepted change"
     },
     {
       "SPDXID": "SPDXRef-source-pi-permission-modes-9b38b384cd",
@@ -56,7 +104,7 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=742b3e40b88fbf3d5dcd9d39af96d37bd26bb436; files=src/index.ts, src/subscription.ts, src/format.ts, src/paths.ts; symbols=quota footer, Codex subscription windows, /quota, global state maintenance; local changes=AILI initializes the pinned upstream extension; upstream owns quota polling and state files; Zentui shows one canonical weekly segment as codex, preferring explicit Wk and using the dependency's legacy-mislabeled 5h primary only as fallback, without changing selected percentage or reset data"
+      "comment": "revision=742b3e40b88fbf3d5dcd9d39af96d37bd26bb436; files=src/index.ts, src/subscription.ts, src/format.ts, src/paths.ts; symbols=quota footer, Codex subscription windows, /quota, global state maintenance; local changes=AILI initializes the pinned upstream extension; upstream owns quota polling and state files; the Pi-native minimal footer consumes its published status without changing percentage or reset data"
     },
     {
       "SPDXID": "SPDXRef-source-pi-web-access-7a2e6bb486",
@@ -80,7 +128,7 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=npm:2.6.18; files=index.ts; symbols=default Extension, /cache-optimizer, cache statistics, prompt cache hooks; local changes=AILI initializes the pinned upstream extension through its single Extension entry; Zentui defaults its pi-cache-stats footer placement off while leaving cache commands and collection unchanged; no upstream source is copied"
+      "comment": "revision=npm:2.6.18; files=index.ts; symbols=default Extension, /cache-optimizer, cache statistics, prompt cache hooks; local changes=AILI initializes the pinned upstream extension through its single Extension entry; the Pi-native minimal footer gives model and quota status priority while leaving cache commands and collection unchanged; no upstream source is copied"
     },
     {
       "SPDXID": "SPDXRef-source-pi-sakura-cyberdeck-7125826ba0",
@@ -92,7 +140,41 @@
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=165a1f8011a12a58a6409b56b8a6c0416cd9b589; files=extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**; symbols=header, matrix animation, Zentui footer, fixed editor compositor; local changes=registered as three additional Pi Package Extensions | Rose header loads a package-owned renamed artwork asset without changing upstream identity | Rose Shimmer, Rose Code Rain, and Zentui use the Rose-owned palette and gradient | overflowing Matrix tracks remain deterministic across the complete terminal width with the 96-track budget, while each rain row receives a structural blank-row repair | relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract"
+      "comment": "revision=165a1f8011a12a58a6409b56b8a6c0416cd9b589; files=extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**; symbols=retired header, retired matrix animation, retired Zentui UI, inactive fixed editor compositor; local changes=historical adapted source is retained in the repository but no header, Matrix, Zentui extension or theme is registered as a production Pi resource | legacy user configuration is untouched | the inactive fixed-editor source remains separate from the independently owned WSL image-paste keybinding behavior"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-accepts-818cd6a4d3",
+      "name": "accepts",
+      "versionInfo": "2.0.0",
+      "downloadLocation": "https://registry.npmjs.org/accepts/-/accepts-2.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/accepts; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-acp-kernel-2869312c59",
+      "name": "acp-kernel",
+      "versionInfo": "0.0.19",
+      "downloadLocation": "https://registry.npmjs.org/acp-kernel/-/acp-kernel-0.0.19.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Ul13wjjP9bWYPBaUPyap4jeD4GpUJ1/sofWyJA/PxaEIOV9QmRDOvAJRAV436dojodgCpBv9UygyaJ7eiq4LuA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/acp-kernel; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-agent-base-e28bede7a2",
@@ -110,6 +192,40 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/agent-base; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-ajv-b860c3f2df",
+      "name": "ajv",
+      "versionInfo": "8.20.0",
+      "downloadLocation": "https://registry.npmjs.org/ajv/-/ajv-8.20.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/ajv; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-ajv-formats-58ad49a1a4",
+      "name": "ajv-formats",
+      "versionInfo": "3.0.1",
+      "downloadLocation": "https://registry.npmjs.org/ajv-formats/-/ajv-formats-3.0.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/ajv-formats; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-anthropic-ai-sdk-682d4010c6",
@@ -656,6 +772,40 @@
       "comment": "npm lock path=node_modules/bignumber.js; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-body-parser-9bd71de90d",
+      "name": "body-parser",
+      "versionInfo": "2.3.0",
+      "downloadLocation": "https://registry.npmjs.org/body-parser/-/body-parser-2.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/body-parser; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-body-parser-node-modules-content-type-74b1028e8c",
+      "name": "content-type",
+      "versionInfo": "2.0.0",
+      "downloadLocation": "https://registry.npmjs.org/content-type/-/content-type-2.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "j/O/d7GcZCyNl7/hwZAb606rzqkyvaDctLmckbxLzHvFBzTJHuGEdodATcP3yIRoDrLHkIATJuvzbFlp/ki2cQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/body-parser/node_modules/content-type; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-boolbase-0f9cb075b4",
       "name": "boolbase",
       "versionInfo": "1.0.0",
@@ -707,6 +857,74 @@
       "comment": "npm lock path=node_modules/buffer-equal-constant-time; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-bundle-name-225356d405",
+      "name": "bundle-name",
+      "versionInfo": "4.1.0",
+      "downloadLocation": "https://registry.npmjs.org/bundle-name/-/bundle-name-4.1.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "tjwM5exMg6BGRI+kNmTntNsvdZS1X8BFYS6tnJ2hdH0kVxM6/eVZ2xy+FqStSWvYmtfFMDLIxurorHwDKfDz5Q=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/bundle-name; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-bytes-d60157a9b1",
+      "name": "bytes",
+      "versionInfo": "3.1.2",
+      "downloadLocation": "https://registry.npmjs.org/bytes/-/bytes-3.1.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/bytes; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-call-bind-apply-helpers-cbf8af0465",
+      "name": "call-bind-apply-helpers",
+      "versionInfo": "1.0.2",
+      "downloadLocation": "https://registry.npmjs.org/call-bind-apply-helpers/-/call-bind-apply-helpers-1.0.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/call-bind-apply-helpers; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-call-bound-0c39f76d3c",
+      "name": "call-bound",
+      "versionInfo": "1.0.4",
+      "downloadLocation": "https://registry.npmjs.org/call-bound/-/call-bound-1.0.4.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "+ys997U96po4Kx/ABpBCqhA9EuxJaQWDQg7295H4hBphv3IZg0boBKuwYpt4YXp6MZ5AmZQnU/tyMTlRpaSejg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/call-bound; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-chai-2f18c293a7",
       "name": "chai",
       "versionInfo": "6.2.2",
@@ -741,6 +959,40 @@
       "comment": "npm lock path=node_modules/commander; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-content-disposition-0635746061",
+      "name": "content-disposition",
+      "versionInfo": "1.1.0",
+      "downloadLocation": "https://registry.npmjs.org/content-disposition/-/content-disposition-1.1.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "5jRCH9Z/+DRP7rkvY83B+yGIGX96OYdJmzngqnw2SBSxqCFPd0w2km3s5iawpGX8krnwSGmF0FW5Nhr0Hfai3g=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/content-disposition; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-content-type-2e62890250",
+      "name": "content-type",
+      "versionInfo": "1.0.5",
+      "downloadLocation": "https://registry.npmjs.org/content-type/-/content-type-1.0.5.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "nTjqfcBFEipKdXCv4YDQWCfmcLZKm81ldF0pAopTvyrFGVbcR6P/VAAd5G7N+0tTr8QqiU0tFadD6FK4NtJwOA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/content-type; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-convert-source-map-4670c536d6",
       "name": "convert-source-map",
       "versionInfo": "2.0.0",
@@ -756,6 +1008,74 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/convert-source-map; development=true; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-cookie-58f3dc27f8",
+      "name": "cookie",
+      "versionInfo": "0.7.2",
+      "downloadLocation": "https://registry.npmjs.org/cookie/-/cookie-0.7.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/cookie; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-cookie-signature-aa6fdf1642",
+      "name": "cookie-signature",
+      "versionInfo": "1.2.2",
+      "downloadLocation": "https://registry.npmjs.org/cookie-signature/-/cookie-signature-1.2.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "D76uU73ulSXrD1UXF4KE2TMxVVwhsnCgfAyTg9k8P6KGZjlXKrOLe4dJQKI3Bxi5wjesZoFXJWElNWBjPZMbhg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/cookie-signature; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-cors-05dd4c355b",
+      "name": "cors",
+      "versionInfo": "2.8.6",
+      "downloadLocation": "https://registry.npmjs.org/cors/-/cors-2.8.6.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "tJtZBBHA6vjIAaF6EnIaq6laBBP9aq/Y3ouVJjEfoHbRBcHBAHYcMh/w8LDrk2PvIMMq8gmopa5D4V8RmbrxGw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/cors; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-cross-spawn-f4a37c705b",
+      "name": "cross-spawn",
+      "versionInfo": "7.0.6",
+      "downloadLocation": "https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/cross-spawn; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-css-select-1e37b3fb82",
@@ -843,6 +1163,74 @@
       "comment": "npm lock path=node_modules/debug; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-default-browser-5d8b37c415",
+      "name": "default-browser",
+      "versionInfo": "5.5.0",
+      "downloadLocation": "https://registry.npmjs.org/default-browser/-/default-browser-5.5.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "H9LMLr5zwIbSxrmvikGuI/5KGhZ8E2zH3stkMgM5LpOWDutGM2JZaj460Udnf1a+946zc7YBgrqEWwbk7zHvGw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/default-browser; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-default-browser-id-0fe2bf7095",
+      "name": "default-browser-id",
+      "versionInfo": "5.0.1",
+      "downloadLocation": "https://registry.npmjs.org/default-browser-id/-/default-browser-id-5.0.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "x1VCxdX4t+8wVfd1so/9w+vQ4vx7lKd2Qp5tDRutErwmR85OgmfX7RlLRMWafRMY7hbEiXIbudNrjOAPa/hL8Q=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/default-browser-id; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-define-lazy-prop-9b76f48c68",
+      "name": "define-lazy-prop",
+      "versionInfo": "3.0.0",
+      "downloadLocation": "https://registry.npmjs.org/define-lazy-prop/-/define-lazy-prop-3.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "N+MeXYoqr3pOgn8xfyRPREN7gHakLYjhsHhWGT3fWAiL4IkAt0iDw14QiiEm2bE30c5XX5q0FtAA3CK5f9/BUg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/define-lazy-prop; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-depd-78a340b1d8",
+      "name": "depd",
+      "versionInfo": "2.0.0",
+      "downloadLocation": "https://registry.npmjs.org/depd/-/depd-2.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/depd; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-detect-libc-0a73dfcc06",
       "name": "detect-libc",
       "versionInfo": "2.1.2",
@@ -874,7 +1262,7 @@
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/diff; development=true; optional=false"
+      "comment": "npm lock path=node_modules/diff; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-dom-serializer-841d6ae3b1",
@@ -945,51 +1333,102 @@
       "comment": "npm lock path=node_modules/domutils; development=false; optional=false"
     },
     {
-      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-agent-core-c009226610",
-      "name": "@earendil-works/pi-agent-core",
-      "versionInfo": "0.82.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.82.1.tgz",
+      "SPDXID": "SPDXRef-node-modules-dunder-proto-54633a980f",
+      "name": "dunder-proto",
+      "versionInfo": "1.0.1",
+      "downloadLocation": "https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "Z3kloziJIE2dmrisRckZX8zDca/gIv9/YdFAzeoqpHiLV2wsni6bL4hInNSjVKLbqT+4kqLIkph2JQLKvSepjg=="
+          "checksumValue": "KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/@earendil-works/pi-agent-core; development=true; optional=false"
+      "comment": "npm lock path=node_modules/dunder-proto; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-agent-core-c009226610",
+      "name": "@earendil-works/pi-agent-core",
+      "versionInfo": "0.84.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.84.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "evyzXYWCLQGmcaBYHlmSku02r8qoN4SGI60GZABo6iV+H+nqX+P9ud8fEZ4GmRq9mUSREvvfX+w9dA9ThF9C6w=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@earendil-works/pi-agent-core; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-agent-core-node-modules-typebox-a7a27f9213",
+      "name": "typebox",
+      "versionInfo": "1.3.7",
+      "downloadLocation": "https://registry.npmjs.org/typebox/-/typebox-1.3.7.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "meKuifc33Pccx0O6PdIzYMq3Og8zvP4TIi/a+Bw3AEMZMxOD0+RHGQvpglEe6Zdy3wZ8nqn/j95h8LUZLk/6Hg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@earendil-works/pi-agent-core/node_modules/typebox; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-ai-26a52f7c9a",
       "name": "@earendil-works/pi-ai",
-      "versionInfo": "0.82.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.82.1.tgz",
+      "versionInfo": "0.84.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "3WFYRhEp3lQB3444EhPMBcM7zSaEUE3eJgHOR7s4081NLqbw/FsWilIKWXSua0Gv3sRr7m9xMidR3pPDE7jI/A=="
+          "checksumValue": "wMsAdJMxuNri08vLqTyYVI201DQQezGhPSTkzYsHdw5dYX3rCNwEmSvpaAwhi7ELKI/2tE/CEgSWg/6iRxSgdQ=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/@earendil-works/pi-ai; development=false; optional=false"
     },
     {
-      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-9848483bff",
-      "name": "@earendil-works/pi-coding-agent",
-      "versionInfo": "0.82.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.82.1.tgz",
+      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-ai-node-modules-typebox-29f1220ad0",
+      "name": "typebox",
+      "versionInfo": "1.3.7",
+      "downloadLocation": "https://registry.npmjs.org/typebox/-/typebox-1.3.7.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "zbkAhoIuDPMF3pKuja0ajZabrMWU29FUMV9A/XMXT/XC1yXs5xt6t6t13GogQFsDrDqbFP4DkZQO1w8rWRAzYA=="
+          "checksumValue": "meKuifc33Pccx0O6PdIzYMq3Og8zvP4TIi/a+Bw3AEMZMxOD0+RHGQvpglEe6Zdy3wZ8nqn/j95h8LUZLk/6Hg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@earendil-works/pi-ai/node_modules/typebox; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-9848483bff",
+      "name": "@earendil-works/pi-coding-agent",
+      "versionInfo": "0.84.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.84.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "ncAqFrG+iybuPGOhMiZoEHkEzTpJgz3guYD32pD+M7ucc0WeHmauP6wa7qwP8V/KWvsZDVNa5XGsdZ7fkC7w7A=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -1542,15 +1981,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-brace-expansion-125cbb2ffa",
       "name": "brace-expansion",
-      "versionInfo": "5.0.7",
-      "downloadLocation": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.7.tgz",
+      "versionInfo": "5.0.9",
+      "downloadLocation": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.9.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "7oFy703dxfY3/NLxC1fh2SUCQ0H9rmAY+5EpDVfXjUTTs+HEwR2nYaqLv+GWcTsumwxPfiz6CzCNkwXwBUwqCA=="
+          "checksumValue": "ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -1661,8 +2100,8 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-agent-core-865ec0637c",
       "name": "@earendil-works/pi-agent-core",
-      "versionInfo": "0.82.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.82.1.tgz",
+      "versionInfo": "0.84.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.84.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1673,8 +2112,8 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-ai-93728abce9",
       "name": "@earendil-works/pi-ai",
-      "versionInfo": "0.82.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.82.1.tgz",
+      "versionInfo": "0.84.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1683,10 +2122,46 @@
       "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-client-bd5e33384d",
+      "name": "@earendil-works/pi-client",
+      "versionInfo": "0.84.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-client/-/pi-client-0.84.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-client; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-protocol-e44b6e6331",
+      "name": "@earendil-works/pi-protocol",
+      "versionInfo": "0.84.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-protocol/-/pi-protocol-0.84.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-protocol; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-telemetry-bfc6dfe468",
+      "name": "@earendil-works/pi-telemetry",
+      "versionInfo": "0.84.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-telemetry/-/pi-telemetry-0.84.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-telemetry; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-tui-eff2aca2e7",
       "name": "@earendil-works/pi-tui",
-      "versionInfo": "0.82.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.82.1.tgz",
+      "versionInfo": "0.84.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.84.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -1931,6 +2406,23 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/graceful-fs; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-grok-mermaid-a96e62e972",
+      "name": "grok-mermaid",
+      "versionInfo": "0.2.2",
+      "downloadLocation": "https://registry.npmjs.org/grok-mermaid/-/grok-mermaid-0.2.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "Apache-2.0",
+      "licenseDeclared": "Apache-2.0",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "XcJEP5dDC8liHBh52mlLjU18fNvu1ckFsu0QpIG3+APZ270fsj9wxpiA6cOURmbUEuoMVgjbC2+UYgTdCqqgzA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/grok-mermaid; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-highlight.js-b1c2e46787",
@@ -3159,15 +3651,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-typebox-de2f90c021",
       "name": "typebox",
-      "versionInfo": "1.1.38",
-      "downloadLocation": "https://registry.npmjs.org/typebox/-/typebox-1.1.38.tgz",
+      "versionInfo": "1.3.7",
+      "downloadLocation": "https://registry.npmjs.org/typebox/-/typebox-1.3.7.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "pZ0aQPmMmXoUvSbeuWf/Hzsc+avNw/Zd6VeE8CFgkVGWyuHPJvqeJJDeJqLve+K70LvjYIoleGcoJHPT17cWoA=="
+          "checksumValue": "meKuifc33Pccx0O6PdIzYMq3Og8zvP4TIi/a+Bw3AEMZMxOD0+RHGQvpglEe6Zdy3wZ8nqn/j95h8LUZLk/6Hg=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -3193,15 +3685,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-undici-ef2fbc880b",
       "name": "undici",
-      "versionInfo": "8.5.0",
-      "downloadLocation": "https://registry.npmjs.org/undici/-/undici-8.5.0.tgz",
+      "versionInfo": "8.9.0",
+      "downloadLocation": "https://registry.npmjs.org/undici/-/undici-8.9.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "xamtWoB1EshgjpmlXd7GGm2VfdDtw1+rD8uhry8pSNW3If6S8E0m2T2+orSKeZXEn/aPJMviCpDBA65WJt8zhg=="
+          "checksumValue": "aWZpUj7XoGonMClx4gdDRfgBjqeA+F473aDmROQQbM9n6PRfK/u1q/a0X4wMTgcHfT8H6fpbt98PFuDUwFg2YA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -3344,17 +3836,34 @@
       "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/zod-to-json-schema; development=false; optional=false"
     },
     {
-      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-tui-35871b6679",
-      "name": "@earendil-works/pi-tui",
-      "versionInfo": "0.82.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.82.1.tgz",
+      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-telemetry-8166135365",
+      "name": "@earendil-works/pi-telemetry",
+      "versionInfo": "0.84.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-telemetry/-/pi-telemetry-0.84.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "9yN8hALfKaxZq7n54EMxqhFCWnMi6LHkraMJ/1YjHiATq75XrI6XDMVppn9EDtiK7Fks8hUe1SDXUTrIvwRWfQ=="
+          "checksumValue": "180/xGJtsq7IoR3p9EKWjRd0e9M4DkxInhlo9xyD7prDC7Qrhqq+nhvwrW0lFjPfXcEI2FSHmGCSyvSJE9GsaQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@earendil-works/pi-telemetry; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-tui-35871b6679",
+      "name": "@earendil-works/pi-tui",
+      "versionInfo": "0.84.1",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.84.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "udeXFbgEhJ6JiB0uguwNVNkDy2FENfmtQwPcY+/iJ8GWeq18wkal1tKqa5YyeH0IqtX1vG0cGh8zfSYzyzVuLA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -3376,6 +3885,23 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/ecdsa-sig-formatter; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-ee-first-d9438890e0",
+      "name": "ee-first",
+      "versionInfo": "1.1.1",
+      "downloadLocation": "https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/ee-first; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-emnapi-core-7aa18ed93c",
@@ -3429,6 +3955,23 @@
       "comment": "npm lock path=node_modules/@emnapi/wasi-threads; development=true; optional=true"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-encodeurl-f855af3d8d",
+      "name": "encodeurl",
+      "versionInfo": "2.0.0",
+      "downloadLocation": "https://registry.npmjs.org/encodeurl/-/encodeurl-2.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/encodeurl; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-entities-5d87f72250",
       "name": "entities",
       "versionInfo": "4.5.0",
@@ -3444,6 +3987,40 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/entities; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-es-define-property-c81157bac5",
+      "name": "es-define-property",
+      "versionInfo": "1.0.1",
+      "downloadLocation": "https://registry.npmjs.org/es-define-property/-/es-define-property-1.0.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "e3nRfgfUZ4rNGL232gUgX06QNyyez04KdjFrF+LTRoOXmrOgFKDg4BCdsjW8EnT69eqdYGmRpJwiPVYNrCaW3g=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/es-define-property; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-es-errors-ce536cac63",
+      "name": "es-errors",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/es-errors/-/es-errors-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Zf5H2Kxt2xjTvbJvP2ZWLEICxA6j+hAmMzIlypy4xcBg1vKVnx89Wy0GbS+kf5cwCVFFzdCFh2XSCFNULS6csw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/es-errors; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-es-module-lexer-813d93a45c",
@@ -3463,6 +4040,40 @@
       "comment": "npm lock path=node_modules/es-module-lexer; development=true; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-es-object-atoms-c33c5ba131",
+      "name": "es-object-atoms",
+      "versionInfo": "1.1.2",
+      "downloadLocation": "https://registry.npmjs.org/es-object-atoms/-/es-object-atoms-1.1.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "HWcBoN6NileqtSydK2FqHbS/LoDd2pqrnQHLyJzBj4kOp/ky2MWMN694xOfkK8/SnUsW2DH7EfyVlydKCsm1Zw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/es-object-atoms; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-escape-html-27272b4b7d",
+      "name": "escape-html",
+      "versionInfo": "1.0.3",
+      "downloadLocation": "https://registry.npmjs.org/escape-html/-/escape-html-1.0.3.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "NiSupZ4OeuGwr68lGIeym/ksIZMJodUGOSCZ/FSnTxcrekbvqrgdUxlJOMpijaKZVjAJrWrGs/6Jy8OMuyj9ow=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/escape-html; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-estree-walker-01468cbcb0",
       "name": "estree-walker",
       "versionInfo": "3.0.3",
@@ -3478,6 +4089,57 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/estree-walker; development=true; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-etag-70a173be63",
+      "name": "etag",
+      "versionInfo": "1.8.1",
+      "downloadLocation": "https://registry.npmjs.org/etag/-/etag-1.8.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/etag; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-eventsource-9f604dad91",
+      "name": "eventsource",
+      "versionInfo": "3.0.7",
+      "downloadLocation": "https://registry.npmjs.org/eventsource/-/eventsource-3.0.7.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "CRT1WTyuQoD771GW56XEZFQ/ZoSfWid1alKGDYMmkt2yl8UXrVR4pspqWNEcqKvVIzg6PAltWjxcSSPrboA4iA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/eventsource; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-eventsource-parser-88cb479833",
+      "name": "eventsource-parser",
+      "versionInfo": "3.1.1",
+      "downloadLocation": "https://registry.npmjs.org/eventsource-parser/-/eventsource-parser-3.1.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "EKN1vKAMcZ8MlYMpaNuxN6R9yakzH6uajHcHVTqWJzvu5pWw9DyhbP35HH8MVBQ+dZjAfDxk+A8NiR9KWaXiyQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/eventsource-parser; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-expect-type-3781801e0f",
@@ -3497,6 +4159,40 @@
       "comment": "npm lock path=node_modules/expect-type; development=true; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-express-dac4790a3f",
+      "name": "express",
+      "versionInfo": "5.2.1",
+      "downloadLocation": "https://registry.npmjs.org/express/-/express-5.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "hIS4idWWai69NezIdRt2xFVofaF4j+6INOpJlVOLDO8zXGpUVEVzIYk12UUi2JzjEzWL3IOAxcTubgz9Po0yXw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/express; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-express-rate-limit-2bf1babe37",
+      "name": "express-rate-limit",
+      "versionInfo": "8.6.2",
+      "downloadLocation": "https://registry.npmjs.org/express-rate-limit/-/express-rate-limit-8.6.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "YH4ru+eOJxQABscKFfRCy9R7x9QFGdezclVMwwgFFndzS2Xnm0uo6B0ABZsLhcpeptGv2qvuJVWlQr9gQZoC3A=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/express-rate-limit; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-extend-83f708473b",
       "name": "extend",
       "versionInfo": "3.0.2",
@@ -3512,6 +4208,40 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/extend; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-fast-deep-equal-1dc28023f3",
+      "name": "fast-deep-equal",
+      "versionInfo": "3.1.3",
+      "downloadLocation": "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/fast-deep-equal; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-fast-uri-5852b277be",
+      "name": "fast-uri",
+      "versionInfo": "3.1.5",
+      "downloadLocation": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.5.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "BSD-3-Clause",
+      "licenseDeclared": "BSD-3-Clause",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "gHwA1O9LDIcKunMKhObS/HimwtehO1nPUECKAu5TpKgaO19fcWEl4bliWe1jWxVFvIXztJjjQ4L8XQ1EU9f7Jw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/fast-uri; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-fdir-2b5fa8f52c",
@@ -3548,6 +4278,23 @@
       "comment": "npm lock path=node_modules/fetch-blob; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-finalhandler-7498f428d6",
+      "name": "finalhandler",
+      "versionInfo": "2.1.1",
+      "downloadLocation": "https://registry.npmjs.org/finalhandler/-/finalhandler-2.1.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "S8KoZgRZN+a5rNwqTxlZZePjT/4cnm0ROV70LedRHZ0p8u9fRID0hJUZQpkKLzro8LfmC8sx23bY6tVNxv8pQA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/finalhandler; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-formdata-polyfill-9f5f58c811",
       "name": "formdata-polyfill",
       "versionInfo": "4.0.10",
@@ -3565,6 +4312,40 @@
       "comment": "npm lock path=node_modules/formdata-polyfill; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-forwarded-811e8b130f",
+      "name": "forwarded",
+      "versionInfo": "0.2.0",
+      "downloadLocation": "https://registry.npmjs.org/forwarded/-/forwarded-0.2.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/forwarded; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-fresh-fe46e39529",
+      "name": "fresh",
+      "versionInfo": "2.0.0",
+      "downloadLocation": "https://registry.npmjs.org/fresh/-/fresh-2.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/fresh; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-fsevents-e0a54ee2f6",
       "name": "fsevents",
       "versionInfo": "2.3.3",
@@ -3580,6 +4361,23 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/fsevents; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-function-bind-f8694b46ba",
+      "name": "function-bind",
+      "versionInfo": "1.1.2",
+      "downloadLocation": "https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/function-bind; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-gaxios-35f6fec7ca",
@@ -3633,6 +4431,57 @@
       "comment": "npm lock path=node_modules/get-east-asian-width; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-get-intrinsic-ba0227edc3",
+      "name": "get-intrinsic",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/get-intrinsic/-/get-intrinsic-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/get-intrinsic; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-get-proto-4a0fc3d8c5",
+      "name": "get-proto",
+      "versionInfo": "1.0.1",
+      "downloadLocation": "https://registry.npmjs.org/get-proto/-/get-proto-1.0.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "sTSfBjoXBp89JvIKIefqw7U2CCebsc74kiY6awiGogKtoSGbgjYE/G/+l9sF3MWFPNc9IcoOC4ODfKHfxFmp0g=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/get-proto; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-get-tsconfig-6aa1fd9a36",
+      "name": "get-tsconfig",
+      "versionInfo": "4.14.1",
+      "downloadLocation": "https://registry.npmjs.org/get-tsconfig/-/get-tsconfig-4.14.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Dz/6HxkrxgNehhxLVeyv8sad9UzF2xBVeaKBQNDfJ5XiSXmp2gTR0eO0RWiT2NCKS5aGP9jjkOMggTN90qU50A=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/get-tsconfig; development=true; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-google-auth-library-1075f2514e",
       "name": "google-auth-library",
       "versionInfo": "10.9.0",
@@ -3684,6 +4533,108 @@
       "comment": "npm lock path=node_modules/google-logging-utils; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-gopd-9d45d6c7e5",
+      "name": "gopd",
+      "versionInfo": "1.2.0",
+      "downloadLocation": "https://registry.npmjs.org/gopd/-/gopd-1.2.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/gopd; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-has-symbols-0d5368b07f",
+      "name": "has-symbols",
+      "versionInfo": "1.1.0",
+      "downloadLocation": "https://registry.npmjs.org/has-symbols/-/has-symbols-1.1.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "1cDNdwJ2Jaohmb3sg4OmKaMBwuC48sYni5HUw2DvsC8LjGTLK9h+eb1X6RyuOHe4hT0ULCW68iomhjUoKUqlPQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/has-symbols; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-hasown-b4b7d5235e",
+      "name": "hasown",
+      "versionInfo": "2.0.4",
+      "downloadLocation": "https://registry.npmjs.org/hasown/-/hasown-2.0.4.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/hasown; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-highlight.js-f1babeff31",
+      "name": "highlight.js",
+      "versionInfo": "11.11.1",
+      "downloadLocation": "https://registry.npmjs.org/highlight.js/-/highlight.js-11.11.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "BSD-3-Clause",
+      "licenseDeclared": "BSD-3-Clause",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Xwwo44whKBVCYoliBQwaPvtd/2tYFkRQtXDWj1nackaV2JPXx3L0+Jvd8/qCJ2p+ML0/XVkJ2q+Mr+UVdpJK5w=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/highlight.js; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-hono-d4342bce03",
+      "name": "hono",
+      "versionInfo": "4.13.1",
+      "downloadLocation": "https://registry.npmjs.org/hono/-/hono-4.13.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "kdJoFVv2xmayw6cY09H7AbMJMt8Jn5jdlEdXsP7AGBdF2DIptVlKlOLKXP41yPip4/a3yQPv9gVcJYI8YY04dw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/hono; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-hono-node-server-c01f149047",
+      "name": "@hono/node-server",
+      "versionInfo": "2.1.0",
+      "downloadLocation": "https://registry.npmjs.org/@hono/node-server/-/node-server-2.1.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "XovyyCCnBzW+zKu+z/zq8hwNs4KOR5rEMAOxo2f40Q5xoOI37IMm6MIg2COOUtUApo0i6850MTBKH2u4QLGIqg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@hono/node-server; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-html-escaper-65547f1d1e",
       "name": "html-escaper",
       "versionInfo": "3.0.3",
@@ -3716,6 +4667,23 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/htmlparser2; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-http-errors-6e70850ccf",
+      "name": "http-errors",
+      "versionInfo": "2.0.1",
+      "downloadLocation": "https://registry.npmjs.org/http-errors/-/http-errors-2.0.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/http-errors; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-http-proxy-agent-1224f8f0cd",
@@ -3752,6 +4720,23 @@
       "comment": "npm lock path=node_modules/https-proxy-agent; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-iconv-lite-b5c922205f",
+      "name": "iconv-lite",
+      "versionInfo": "0.7.3",
+      "downloadLocation": "https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.7.3.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/iconv-lite; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-ignore-a37e1a18eb",
       "name": "ignore",
       "versionInfo": "7.0.5",
@@ -3766,7 +4751,160 @@
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/ignore; development=true; optional=false"
+      "comment": "npm lock path=node_modules/ignore; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-inherits-c76937ee24",
+      "name": "inherits",
+      "versionInfo": "2.0.4",
+      "downloadLocation": "https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "ISC",
+      "licenseDeclared": "ISC",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/inherits; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-ip-address-072f02a1c0",
+      "name": "ip-address",
+      "versionInfo": "10.5.0",
+      "downloadLocation": "https://registry.npmjs.org/ip-address/-/ip-address-10.5.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "R5SnVLJmgYYvf2F2ZgwSBnelz5G4q5AxIC277GDfUaNbrZKNANcBC7RHqYYePlszf4kBolVkJauG0ZjHHFh55g=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/ip-address; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-ipaddr.js-8443c23cac",
+      "name": "ipaddr.js",
+      "versionInfo": "1.9.1",
+      "downloadLocation": "https://registry.npmjs.org/ipaddr.js/-/ipaddr.js-1.9.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/ipaddr.js; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-is-docker-e6eccf5447",
+      "name": "is-docker",
+      "versionInfo": "3.0.0",
+      "downloadLocation": "https://registry.npmjs.org/is-docker/-/is-docker-3.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "eljcgEDlEns/7AXFosB5K/2nCM4P7FQPkGc/DWLy5rmFEWvZayGrik1d9/QIY5nJ4f9YsVvBkA6kJpHn9rISdQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/is-docker; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-is-inside-container-262dc1fdac",
+      "name": "is-inside-container",
+      "versionInfo": "1.0.0",
+      "downloadLocation": "https://registry.npmjs.org/is-inside-container/-/is-inside-container-1.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "KIYLCCJghfHZxqjYBE7rEy0OBuTd5xCHS7tHVgvCLkx7StIoaxwNW3hCALgEUjFfeRk+MG/Qxmp/vtETEF3tRA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/is-inside-container; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-is-promise-f51471cfc2",
+      "name": "is-promise",
+      "versionInfo": "4.0.0",
+      "downloadLocation": "https://registry.npmjs.org/is-promise/-/is-promise-4.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "hvpoI6korhJMnej285dSg6nu1+e6uxs7zG3BYAm5byqDsgJNWwxzM6z6iZiAgQR4TJ30JmBTOwqZUw3WlyH3AQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/is-promise; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-is-wsl-2275f062be",
+      "name": "is-wsl",
+      "versionInfo": "3.1.1",
+      "downloadLocation": "https://registry.npmjs.org/is-wsl/-/is-wsl-3.1.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "e6rvdUCiQCAuumZslxRJWR/Doq4VpPR82kqclvcS0efgt430SlGIk05vdCN58+VrzgtIcfNODjozVielycD4Sw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/is-wsl; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-isexe-dd723b9321",
+      "name": "isexe",
+      "versionInfo": "2.0.0",
+      "downloadLocation": "https://registry.npmjs.org/isexe/-/isexe-2.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "ISC",
+      "licenseDeclared": "ISC",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/isexe; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-jose-c5c39cc91e",
+      "name": "jose",
+      "versionInfo": "6.2.8",
+      "downloadLocation": "https://registry.npmjs.org/jose/-/jose-6.2.8.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Bsdjwm3Qsd/P0jR+BHDe3LytDfY7WBq2HmCCLIwuVRHMuEC9ae7/R474GIUdF1NgCyZjzVo/A9DOiOBtXq8ZoQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/jose; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-jridgewell-sourcemap-codec-11d785d1ad",
@@ -3818,6 +4956,40 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/json-schema-to-ts; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-json-schema-traverse-bf0c880f98",
+      "name": "json-schema-traverse",
+      "versionInfo": "1.0.0",
+      "downloadLocation": "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-1.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/json-schema-traverse; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-json-schema-typed-69c23049b2",
+      "name": "json-schema-typed",
+      "versionInfo": "8.0.2",
+      "downloadLocation": "https://registry.npmjs.org/json-schema-typed/-/json-schema-typed-8.0.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "BSD-2-Clause",
+      "licenseDeclared": "BSD-2-Clause",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "fQhoXdcvc3V28x7C7BMs4P5+kNlgUURe2jmUT1T//oBRMDrqy1QPelJimwZGo7Hg9VPV3EQV5Bnq4hbFy2vetA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/json-schema-typed; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-jwa-f8895628b4",
@@ -4143,6 +5315,91 @@
       "comment": "npm lock path=node_modules/marked; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-math-intrinsics-2e6b80fbdf",
+      "name": "math-intrinsics",
+      "versionInfo": "1.1.0",
+      "downloadLocation": "https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/math-intrinsics; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-media-typer-c79520d2c2",
+      "name": "media-typer",
+      "versionInfo": "1.1.1",
+      "downloadLocation": "https://registry.npmjs.org/media-typer/-/media-typer-1.1.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "yz3xRaG20c6/BOzvYoDaGtPmGscs7YivItZEEqe6GbwNfHuxu9YNmvnEkMzKldAGY4/80pRcQRZSEnhquk9XuQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/media-typer; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-merge-descriptors-8d8ef49508",
+      "name": "merge-descriptors",
+      "versionInfo": "2.0.0",
+      "downloadLocation": "https://registry.npmjs.org/merge-descriptors/-/merge-descriptors-2.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Snk314V5ayFLhp3fkUREub6WtjBfPdCPY1Ln8/8munuLuiYhsABgBVWsozAG+MWMbVEvcdcpbi9R7ww22l9Q3g=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/merge-descriptors; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-mime-db-086e8d7d81",
+      "name": "mime-db",
+      "versionInfo": "1.54.0",
+      "downloadLocation": "https://registry.npmjs.org/mime-db/-/mime-db-1.54.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "aU5EJuIN2WDemCcAp2vFBfp/m4EAhWJnUNSSw0ixs7/kXbd6Pg64EmwJkNdFhB8aWt1sH2CTXrLxo/iAGV3oPQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/mime-db; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-mime-types-8469a1f1bf",
+      "name": "mime-types",
+      "versionInfo": "3.0.2",
+      "downloadLocation": "https://registry.npmjs.org/mime-types/-/mime-types-3.0.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Lbgzdk0h4juoQ9fCKXW4by0UJqj+nOOrI9MJ1sSj4nI8aI2eo1qmvQEie4VD1glsS250n15LsWsYtCugiStS5A=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/mime-types; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-mistralai-mistralai-4fab87b243",
       "name": "@mistralai/mistralai",
       "versionInfo": "2.2.6",
@@ -4175,6 +5432,108 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/@mixmark-io/domino; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-modelcontextprotocol-client-5d06f5441b",
+      "name": "@modelcontextprotocol/client",
+      "versionInfo": "2.0.0",
+      "downloadLocation": "https://registry.npmjs.org/@modelcontextprotocol/client/-/client-2.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "8f1OghQ2rjzIOfqgUCP+8GiUWqRs89njoWLNqAe8kWmDePv3s1fZXseej+QXemssEuuOvLLmLO/kqM3IQHtISw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@modelcontextprotocol/client; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-modelcontextprotocol-client-node-modules-zod-f41f6a255c",
+      "name": "zod",
+      "versionInfo": "4.4.3",
+      "downloadLocation": "https://registry.npmjs.org/zod/-/zod-4.4.3.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@modelcontextprotocol/client/node_modules/zod; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-modelcontextprotocol-core-7410d27dd0",
+      "name": "@modelcontextprotocol/core",
+      "versionInfo": "2.0.0",
+      "downloadLocation": "https://registry.npmjs.org/@modelcontextprotocol/core/-/core-2.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "pJCEwGG7Lfr/+PQp9ZTwKXNeO5wzbfKL7H3MYpCorM4oFBoQrdjnBgEoqG+RjhsvS1FKrDbKux+M1HhlnGWqcA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@modelcontextprotocol/core; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-modelcontextprotocol-core-node-modules-zod-f7d0d6de35",
+      "name": "zod",
+      "versionInfo": "4.4.3",
+      "downloadLocation": "https://registry.npmjs.org/zod/-/zod-4.4.3.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@modelcontextprotocol/core/node_modules/zod; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-modelcontextprotocol-ext-apps-df997009df",
+      "name": "@modelcontextprotocol/ext-apps",
+      "versionInfo": "1.7.5",
+      "downloadLocation": "https://registry.npmjs.org/@modelcontextprotocol/ext-apps/-/ext-apps-1.7.5.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "TjPH2S2y5UEGKhmI6+XGFuqfqOV4ppe1x6DA3txnUaEWkgtA4G5vo14jGKFZmegdkZ1H4QMLyujLvoU1BEdnAg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@modelcontextprotocol/ext-apps; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-modelcontextprotocol-sdk-040bd16007",
+      "name": "@modelcontextprotocol/sdk",
+      "versionInfo": "1.30.0",
+      "downloadLocation": "https://registry.npmjs.org/@modelcontextprotocol/sdk/-/sdk-1.30.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "xKd8OIzlqNzcqcNumGAa6g+PW2kjD5vrpcKOnfldAUPP3j7lnqMPwlTXQm8gF+UwH72z0lqaRbjr9hqGz0eITA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@modelcontextprotocol/sdk; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-mozilla-readability-ef1d6b4307",
@@ -4228,6 +5587,227 @@
       "comment": "npm lock path=node_modules/nanoid; development=true; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-darwin-arm64-9a40cf1feb",
+      "name": "@napi-rs/keyring-darwin-arm64",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring-darwin-arm64/-/keyring-darwin-arm64-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "pl76hJvdYUBn6I24bXiOBMA9nbDapo3I5B+f3OorjDU4dUMSypXeKbOVehJe8fhgTiH24flMyTS3aAIy43xegQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring-darwin-arm64; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-darwin-x64-2984d91a20",
+      "name": "@napi-rs/keyring-darwin-x64",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring-darwin-x64/-/keyring-darwin-x64-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "YcJtEV5LA3cvA4z3BurgxH5IhTsW1JfIvcAAcqcecwk06Si9F9NqkxbZVIfDwQ8oRHgaBmT3zZJnLAotCrVahw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring-darwin-x64; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-ff241b9162",
+      "name": "@napi-rs/keyring",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring/-/keyring-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "WrOw/bcXm0f9qHkumlT1QlArXSTWqaY9sunsDpOk+yCCorCKMxvWT/a3xko4EYHVdeZoh00yI2TydXn6eyICDA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-freebsd-x64-d7d12b5a03",
+      "name": "@napi-rs/keyring-freebsd-x64",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring-freebsd-x64/-/keyring-freebsd-x64-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "vlLf31TGhfRAaxLDBhg8b89ss0HHD/lyNmL5F3UjSaz5CUXElsJmKYq9fqA/B+cZKUEUcLHHGhF0I/CqcFdaVw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring-freebsd-x64; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-linux-arm-gnueabihf-8a2906cdaa",
+      "name": "@napi-rs/keyring-linux-arm-gnueabihf",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring-linux-arm-gnueabihf/-/keyring-linux-arm-gnueabihf-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "KiWdMMu/Inz/bHHIAGrnF7r54FZDYXuHO6UFF/rhIrshUsxbMG1Rl9lEymNtqqsVo927G0VYcb02FzWQ3iBQRQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring-linux-arm-gnueabihf; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-linux-arm64-gnu-0127839d3e",
+      "name": "@napi-rs/keyring-linux-arm64-gnu",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring-linux-arm64-gnu/-/keyring-linux-arm64-gnu-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "eyKGpY40lm9Jvs1aD294XRH4y7+TlJM0YVAryZeXA6TX0mb4gMkxVXwSQv7MCwgah7raeUd0dKUb4BPAYIgcMg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring-linux-arm64-gnu; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-linux-arm64-musl-72547a9e4e",
+      "name": "@napi-rs/keyring-linux-arm64-musl",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring-linux-arm64-musl/-/keyring-linux-arm64-musl-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "iIK6JWHXAJqDrEyLY3TmswwloVyt2vj+04TZnew+uSJ9gnDO8EwRbp3/iw3LpWaXiDO7VomGO6y8I0Id8uBZSw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring-linux-arm64-musl; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-linux-riscv64-gnu-40539dfd21",
+      "name": "@napi-rs/keyring-linux-riscv64-gnu",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring-linux-riscv64-gnu/-/keyring-linux-riscv64-gnu-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "/PGqrwn6EwgtK6vccASSXJRfOSP4vN1F4ASsIQ+7MdrK6hNvAJ1FZPrIuD5gGGdxezo3F++To2Wq7DbuGIeuNQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring-linux-riscv64-gnu; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-linux-x64-gnu-66ec6be1fd",
+      "name": "@napi-rs/keyring-linux-x64-gnu",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring-linux-x64-gnu/-/keyring-linux-x64-gnu-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "2PDK1WKWTu9lBGq9VvNEkSlQD3O7YwVpmnyN2M3cy4v7NJ/8gDMd9GXv3G+FVXN13uhp4gnnPBS+ScefmEeD2A=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring-linux-x64-gnu; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-linux-x64-musl-5faf7390ea",
+      "name": "@napi-rs/keyring-linux-x64-musl",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring-linux-x64-musl/-/keyring-linux-x64-musl-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "oJ2HkX8YUo46QBkn0pG+HuIKQNqr523q6vBobCn+P95s4C4K6/kLBqHY/1bg5J4ap31DzsznhnFKcfBNBsjCnw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring-linux-x64-musl; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-win32-arm64-msvc-0940effa9c",
+      "name": "@napi-rs/keyring-win32-arm64-msvc",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring-win32-arm64-msvc/-/keyring-win32-arm64-msvc-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "tOd3c/uAaeoE4ycVlmAdSvygz0Zt3zdca6Y7gokBeIbaRDWpjDIUOpU3MvML59XAaqyuKGsVVu0F/DZb1lHPmw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring-win32-arm64-msvc; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-win32-ia32-msvc-85f09fa2c1",
+      "name": "@napi-rs/keyring-win32-ia32-msvc",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring-win32-ia32-msvc/-/keyring-win32-ia32-msvc-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "sPSqeAFZMGqP1R++M2JTza7GQJJ/TpCo6JU6Vcd4jnebvOaEDs9b7eipakU1PJdSvhpC2yXMCNRk9gXfrhuwHQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring-win32-ia32-msvc; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-napi-rs-keyring-win32-x64-msvc-2f2970fa94",
+      "name": "@napi-rs/keyring-win32-x64-msvc",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/@napi-rs/keyring-win32-x64-msvc/-/keyring-win32-x64-msvc-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "4DnCWXwDc0HRKwyRlG5y0VhKZW2tNRQfKKfyj6IX/KWfDNyq9hn4n+GL1auyDcOO/v8PwnhmYo2+rOOqCkvvOg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@napi-rs/keyring-win32-x64-msvc; development=false; optional=true"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-napi-rs-wasm-runtime-24af2c3b1a",
       "name": "@napi-rs/wasm-runtime",
       "versionInfo": "1.1.6",
@@ -4243,6 +5823,57 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/@napi-rs/wasm-runtime; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-narumitw-pi-codex-compact-fdebc56802",
+      "name": "@narumitw/pi-codex-compact",
+      "versionInfo": "0.50.0",
+      "downloadLocation": "https://registry.npmjs.org/@narumitw/pi-codex-compact/-/pi-codex-compact-0.50.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Gq/FbqSfMViYzPqx4Gkjha1nY5S72vdp5pafaec2ydxCa0bw9S/QFDaDaFgDmCGn+cHlxpA8JHeJHUb73Fe0VQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@narumitw/pi-codex-compact; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-narumitw-pi-tui-kit-d1325f2460",
+      "name": "@narumitw/pi-tui-kit",
+      "versionInfo": "0.49.3",
+      "downloadLocation": "https://registry.npmjs.org/@narumitw/pi-tui-kit/-/pi-tui-kit-0.49.3.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "ha4MybnoJgAiNpW83Ap7EftfOuO8oNf3mIY3baPO0RFrBPyAUuxSlz7hcs9qh+9daDUMxg3sRPsvzYqFsEQKHg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@narumitw/pi-tui-kit; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-negotiator-915dcd7806",
+      "name": "negotiator",
+      "versionInfo": "1.0.0",
+      "downloadLocation": "https://registry.npmjs.org/negotiator/-/negotiator-1.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "8Ofs/AUQh8MaEcrlq5xOX0CQ9ypTF5dl78mjlMNfOK08fzpgTHQRQPBxcPlEtIw0yRpws+Zo/3r+5WRby7u3Gg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/negotiator; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-node-addon-api-42ce0abcf2",
@@ -4330,6 +5961,40 @@
       "comment": "npm lock path=node_modules/nth-check; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-object-assign-c145d125ac",
+      "name": "object-assign",
+      "versionInfo": "4.1.1",
+      "downloadLocation": "https://registry.npmjs.org/object-assign/-/object-assign-4.1.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/object-assign; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-object-inspect-6838057a0c",
+      "name": "object-inspect",
+      "versionInfo": "1.13.4",
+      "downloadLocation": "https://registry.npmjs.org/object-inspect/-/object-inspect-1.13.4.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/object-inspect; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-obug-d07d5c8694",
       "name": "obug",
       "versionInfo": "2.1.4",
@@ -4345,6 +6010,57 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/obug; development=true; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-on-finished-1ef75324b0",
+      "name": "on-finished",
+      "versionInfo": "2.4.1",
+      "downloadLocation": "https://registry.npmjs.org/on-finished/-/on-finished-2.4.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/on-finished; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-once-16a816bfa1",
+      "name": "once",
+      "versionInfo": "1.4.0",
+      "downloadLocation": "https://registry.npmjs.org/once/-/once-1.4.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "ISC",
+      "licenseDeclared": "ISC",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/once; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-open-20d11a204e",
+      "name": "open",
+      "versionInfo": "10.2.0",
+      "downloadLocation": "https://registry.npmjs.org/open/-/open-10.2.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "YgBpdJHPyQ2UE5x+hlSXcnejzAvD0b22U2OuAP+8OnlJT+PjWPxtgmGqKKc+RgTM63U9gN0YzrYc71R2WT/hTA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/open; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-openai-c70cd286d0",
@@ -4449,6 +6165,23 @@
       "comment": "npm lock path=node_modules/p-retry; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-parseurl-f80b1a804c",
+      "name": "parseurl",
+      "versionInfo": "1.3.3",
+      "downloadLocation": "https://registry.npmjs.org/parseurl/-/parseurl-1.3.3.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "CiyeOxFT/JZyN5m0z9PfXw4SCBJ6Sygz1Dpl0wqjlhDEGGBP1GnsUVEL0p63hoG1fcj3fHynXi9NYO4nWOL+qQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/parseurl; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-partial-json-9031a58b7c",
       "name": "partial-json",
       "versionInfo": "0.1.7",
@@ -4464,6 +6197,40 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/partial-json; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-path-key-5fb1164954",
+      "name": "path-key",
+      "versionInfo": "3.1.1",
+      "downloadLocation": "https://registry.npmjs.org/path-key/-/path-key-3.1.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/path-key; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-path-to-regexp-b738fd2a1b",
+      "name": "path-to-regexp",
+      "versionInfo": "8.4.2",
+      "downloadLocation": "https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-8.4.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "qRcuIdP69NPm4qbACK+aDogI5CBDMi1jKe0ry5rSQJz8JVLsC7jV8XpiJjGRLLol3N+R5ihGYcrPLTno6pAdBA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/path-to-regexp; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-pathe-0019a53c1a",
@@ -4498,6 +6265,23 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/pi-cache-optimizer; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-pi-mcp-adapter-9572fd715e",
+      "name": "pi-mcp-adapter",
+      "versionInfo": "2.23.0",
+      "downloadLocation": "https://registry.npmjs.org/pi-mcp-adapter/-/pi-mcp-adapter-2.23.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "4jtofg55o6tEP47XGYGkR2oykKMlQiJBqZcx4y9SeguNHOdBJ3sr5gT8DktLSTdZX8XGj/A6BITgV6/vLz8TGA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/pi-mcp-adapter; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-pi-permission-modes-447e1e673e",
@@ -4600,6 +6384,40 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/picomatch; development=true; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-pkce-challenge-1763fc711b",
+      "name": "pkce-challenge",
+      "versionInfo": "5.0.1",
+      "downloadLocation": "https://registry.npmjs.org/pkce-challenge/-/pkce-challenge-5.0.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/pkce-challenge; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-pkgr-core-ae6533fb65",
+      "name": "@pkgr/core",
+      "versionInfo": "0.1.2",
+      "downloadLocation": "https://registry.npmjs.org/@pkgr/core/-/core-0.1.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "fdDH1LSGfZdTH2sxdpVMw31BanV28K/Gry0cVFxaNP77neJSkd82mM8ErPNYs9e+0O7SdHBLTDzDgwUuy18RnQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@pkgr/core; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-pondwader-socks5-server-df8cd8bcdc",
@@ -4804,6 +6622,210 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/@protobufjs/utf8; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-proxy-addr-7f261d7761",
+      "name": "proxy-addr",
+      "versionInfo": "2.0.7",
+      "downloadLocation": "https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.7.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/proxy-addr; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-qs-0b5a5f3577",
+      "name": "qs",
+      "versionInfo": "6.15.3",
+      "downloadLocation": "https://registry.npmjs.org/qs/-/qs-6.15.3.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "BSD-3-Clause",
+      "licenseDeclared": "BSD-3-Clause",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "O9gl3zCl5h5blw1KGUzQKhA5oUXSl8rwUIM5o0S3nCXMliSvy5Dzx7/DJcI+SwgICv+IneSZwhBh1oSyEHA71A=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/qs; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-range-parser-e3fd31ccef",
+      "name": "range-parser",
+      "versionInfo": "1.3.0",
+      "downloadLocation": "https://registry.npmjs.org/range-parser/-/range-parser-1.3.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "hek2mFQpPuI4E1BBKrSto+BU3e3x4xuarsbiwr3+lf7p44juvFMV0XFWQAP3xUyqXA4RrXLIoaSUGbSt056ZMw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/range-parser; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-raw-body-7a3d472427",
+      "name": "raw-body",
+      "versionInfo": "3.0.2",
+      "downloadLocation": "https://registry.npmjs.org/raw-body/-/raw-body-3.0.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "K5zQjDllxWkf7Z5xJdV0/B0WTNqx6vxG70zJE4N0kBs4LovmEYWJzQGxC9bS9RAKu3bgM40lrd5zoLJ12MQ5BA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/raw-body; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-recheck-ba29fa7dbd",
+      "name": "recheck",
+      "versionInfo": "4.5.0",
+      "downloadLocation": "https://registry.npmjs.org/recheck/-/recheck-4.5.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "kPnbOV6Zfx9a25AZ++28fI1q78L/UVRQmmuazwVRPfiiqpMs+WbOU69Shx820XgfKWfak0JH75PUvZMFtRGSsw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/recheck; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-recheck-jar-738accb99e",
+      "name": "recheck-jar",
+      "versionInfo": "4.5.0",
+      "downloadLocation": "https://registry.npmjs.org/recheck-jar/-/recheck-jar-4.5.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Ad7oCQmY8cQLzd3QVNXjzZ+S6MbImGhR4AaW2yiGzteOfMV45522rt6nSzFyt8p3mCEaMcm/4MoZrMSxUcCbrA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/recheck-jar; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-recheck-linux-x64-36b18bc056",
+      "name": "recheck-linux-x64",
+      "versionInfo": "4.5.0",
+      "downloadLocation": "https://registry.npmjs.org/recheck-linux-x64/-/recheck-linux-x64-4.5.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "52kXsR/v+IbGIKYYFZfSZcgse/Ci9IA2HnuzrtvRRcfODkcUGe4n72ESQ8nOPwrdHFg9i4j9/YyPh1HWWgpJ6A=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/recheck-linux-x64; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-recheck-macos-arm64-becae304e3",
+      "name": "recheck-macos-arm64",
+      "versionInfo": "4.5.0",
+      "downloadLocation": "https://registry.npmjs.org/recheck-macos-arm64/-/recheck-macos-arm64-4.5.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "qIyK3dRuLkORQvv0b59fZZRXweSmjjWaoA4K8Kgifz0anMBH4pqsDV6plBlgjcRmW9yC12wErIRzifREaKnk2w=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/recheck-macos-arm64; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-recheck-macos-x64-72fe3d392d",
+      "name": "recheck-macos-x64",
+      "versionInfo": "4.5.0",
+      "downloadLocation": "https://registry.npmjs.org/recheck-macos-x64/-/recheck-macos-x64-4.5.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "1wp/eiLxcjC/Ex4wurlrS/LGzt8IiF4TiK5sEjldu4HVAKdNCnnmsS9a5vFpfcikDz4ZuZlLlTi1VbQTxHlwZg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/recheck-macos-x64; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-recheck-windows-x64-6ae5431ca9",
+      "name": "recheck-windows-x64",
+      "versionInfo": "4.5.0",
+      "downloadLocation": "https://registry.npmjs.org/recheck-windows-x64/-/recheck-windows-x64-4.5.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "ekBKwAp0oKkMULn5zgmHEYLwSJfkfb95AbTtbDkQazNkqYw9PRD/mVyFUR6Ff2IeRyZI0gxy+N2AKBISWydhug=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/recheck-windows-x64; development=false; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-require-from-string-e3af7aca7b",
+      "name": "require-from-string",
+      "versionInfo": "2.0.2",
+      "downloadLocation": "https://registry.npmjs.org/require-from-string/-/require-from-string-2.0.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/require-from-string; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-resolve-pkg-maps-43b11c666f",
+      "name": "resolve-pkg-maps",
+      "versionInfo": "1.0.0",
+      "downloadLocation": "https://registry.npmjs.org/resolve-pkg-maps/-/resolve-pkg-maps-1.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/resolve-pkg-maps; development=true; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-retry-f724fc8606",
@@ -5112,6 +7134,40 @@
       "comment": "npm lock path=node_modules/@rolldown/pluginutils; development=true; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-router-3f591f9fde",
+      "name": "router",
+      "versionInfo": "2.2.0",
+      "downloadLocation": "https://registry.npmjs.org/router/-/router-2.2.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "nLTrUKm2UyiL7rlhapu/Zl45FwNgkZGaCpZbIHajDYgwlJCOzLSk+cIPAnsEqV955GjILJnKbdQC1nVPz+gAYQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/router; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-run-applescript-c32b52e3b3",
+      "name": "run-applescript",
+      "versionInfo": "7.1.0",
+      "downloadLocation": "https://registry.npmjs.org/run-applescript/-/run-applescript-7.1.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "DPe5pVFaAsinSaV6QjQ6gdiedWDcRCbUuiQfQa2wmWV7+xC9bGulGI8+TdRmoFkAPaBXk8CrAbnlY2ISniJ47Q=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/run-applescript; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-safe-buffer-bce944bea3",
       "name": "safe-buffer",
       "versionInfo": "5.2.1",
@@ -5129,6 +7185,108 @@
       "comment": "npm lock path=node_modules/safe-buffer; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-safer-buffer-d9639c5ea0",
+      "name": "safer-buffer",
+      "versionInfo": "2.1.2",
+      "downloadLocation": "https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/safer-buffer; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-send-dfaab08057",
+      "name": "send",
+      "versionInfo": "1.2.1",
+      "downloadLocation": "https://registry.npmjs.org/send/-/send-1.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/send; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-serve-static-165a11af49",
+      "name": "serve-static",
+      "versionInfo": "2.2.1",
+      "downloadLocation": "https://registry.npmjs.org/serve-static/-/serve-static-2.2.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "xRXBn0pPqQTVQiC8wyQrKs2MOlX24zQ0POGaj0kultvoOCstBQM5yvOhAVSUwOMjQtTvsPWoNCHfPGwaaQJhTw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/serve-static; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-setprototypeof-64a15ed40e",
+      "name": "setprototypeof",
+      "versionInfo": "1.2.0",
+      "downloadLocation": "https://registry.npmjs.org/setprototypeof/-/setprototypeof-1.2.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "ISC",
+      "licenseDeclared": "ISC",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/setprototypeof; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-shebang-command-2658f1e743",
+      "name": "shebang-command",
+      "versionInfo": "2.0.0",
+      "downloadLocation": "https://registry.npmjs.org/shebang-command/-/shebang-command-2.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/shebang-command; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-shebang-regex-06f3113bf2",
+      "name": "shebang-regex",
+      "versionInfo": "3.0.0",
+      "downloadLocation": "https://registry.npmjs.org/shebang-regex/-/shebang-regex-3.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/shebang-regex; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-shell-quote-52cbf37778",
       "name": "shell-quote",
       "versionInfo": "1.10.0",
@@ -5144,6 +7302,74 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/shell-quote; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-side-channel-bc506c0c28",
+      "name": "side-channel",
+      "versionInfo": "1.1.1",
+      "downloadLocation": "https://registry.npmjs.org/side-channel/-/side-channel-1.1.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "6x6dK6zJdpTzF4sQeNYxwtvBzf6Eg4GtlesS94HOvTudUeyK2WXAaIfmDgsyslYrRBeFIlsi54AYsFGUuhmvrQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/side-channel; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-side-channel-list-c25540f085",
+      "name": "side-channel-list",
+      "versionInfo": "1.0.1",
+      "downloadLocation": "https://registry.npmjs.org/side-channel-list/-/side-channel-list-1.0.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "mjn/0bi/oUURjc5Xl7IaWi/OJJJumuoJFQJfDDyO46+hBWsfaVM65TBHq2eoZBhzl9EchxOijpkbRC8SVBQU0w=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/side-channel-list; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-side-channel-map-5afe8e3fd4",
+      "name": "side-channel-map",
+      "versionInfo": "1.0.1",
+      "downloadLocation": "https://registry.npmjs.org/side-channel-map/-/side-channel-map-1.0.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "VCjCNfgMsby3tTdo02nbjtM/ewra6jPHmpThenkTYh8pG9ucZ/1P8So4u4FGBek/BjpOVsDCMoLA/iuBKIFXRA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/side-channel-map; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-side-channel-weakmap-5f7ccd7336",
+      "name": "side-channel-weakmap",
+      "versionInfo": "1.0.2",
+      "downloadLocation": "https://registry.npmjs.org/side-channel-weakmap/-/side-channel-weakmap-1.0.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "WPS/HvHQTYnHisLo9McqBHOJk2FkHO/tlpvldyrnem4aeQp4hai3gythswg6p01oSoTl58rcpiFAjF2br2Ak2A=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/side-channel-weakmap; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-siginfo-fcf98727e0",
@@ -5316,6 +7542,23 @@
       "comment": "npm lock path=node_modules/@smithy/util-utf8; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-smol-toml-d244414d95",
+      "name": "smol-toml",
+      "versionInfo": "1.8.0",
+      "downloadLocation": "https://registry.npmjs.org/smol-toml/-/smol-toml-1.8.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "BSD-3-Clause",
+      "licenseDeclared": "BSD-3-Clause",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "kCZr2V3ch9i00x8zXRhjUNVcjG9ijES5dDudkXvUVCT5QlJNQWElSJdZqyPemffHoLNUYwOcou0Fy+ojN0uHSQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/smol-toml; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-source-map-js-c447b62b9e",
       "name": "source-map-js",
       "versionInfo": "1.2.1",
@@ -5364,7 +7607,24 @@
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/@standard-schema/spec; development=true; optional=false"
+      "comment": "npm lock path=node_modules/@standard-schema/spec; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-statuses-14402378d6",
+      "name": "statuses",
+      "versionInfo": "2.0.2",
+      "downloadLocation": "https://registry.npmjs.org/statuses/-/statuses-2.0.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "DvEy55V3DB7uknRo+4iOGT5fP1slR8wQohVdknigZPMpMstaKJQWhwiYBACJE3Ul2pTnATihhBYnRhZQHGBiRw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/statuses; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-std-env-a29779af65",
@@ -5382,6 +7642,40 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/std-env; development=true; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-strip-json-comments-fbb32af49e",
+      "name": "strip-json-comments",
+      "versionInfo": "5.0.3",
+      "downloadLocation": "https://registry.npmjs.org/strip-json-comments/-/strip-json-comments-5.0.3.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/strip-json-comments; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-synckit-cf2e8b4e23",
+      "name": "synckit",
+      "versionInfo": "0.9.2",
+      "downloadLocation": "https://registry.npmjs.org/synckit/-/synckit-0.9.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "vrozgXDQwYO72vHjUb/HnFbQx1exDjoKzqx23aXEg2a9VIg2TSFZ8FmeZpTjUCFMYw7mpX4BE2SFu8wI7asYsw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/synckit; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-tinybench-c1bd6a98aa",
@@ -5452,6 +7746,23 @@
       "comment": "npm lock path=node_modules/tinyrainbow; development=true; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-toidentifier-2456b6b9d7",
+      "name": "toidentifier",
+      "versionInfo": "1.0.1",
+      "downloadLocation": "https://registry.npmjs.org/toidentifier/-/toidentifier-1.0.1.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/toidentifier; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-tree-sitter-bash-75ffd340b4",
       "name": "tree-sitter-bash",
       "versionInfo": "0.25.1",
@@ -5503,6 +7814,482 @@
       "comment": "npm lock path=node_modules/tslib; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-tsx-95320cdbe2",
+      "name": "tsx",
+      "versionInfo": "4.20.6",
+      "downloadLocation": "https://registry.npmjs.org/tsx/-/tsx-4.20.6.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "ytQKuwgmrrkDTFP4LjR0ToE2nqgy886GpvRSpU0JAnrdBYppuY5rLkRUYPU1yCryb24SsKBTL/hlDQAEFVwtZg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx; development=true; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-35699e26dd",
+      "name": "esbuild",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/esbuild/-/esbuild-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "bbPBYYrtZbkt6Os6FiTLCTFxvq4tt3JKall1vRwshA3fdVztsLAatFaZobhkBC8/BrPetoa0oksYoKXoG4ryJg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/esbuild; development=true; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-aix-ppc64-0d2b4c9d1a",
+      "name": "@esbuild/aix-ppc64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/aix-ppc64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-android-arm-7d61c132c6",
+      "name": "@esbuild/android-arm",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "VJ+sKvNA/GE7Ccacc9Cha7bpS8nyzVv0jdVgwNDaR4gDMC/2TTRc33Ip8qrNYUcpkOHUT5OZ0bUcNNVZQ9RLlg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/android-arm; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-android-arm64-1360dceb76",
+      "name": "@esbuild/android-arm64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "6AAmLG7zwD1Z159jCKPvAxZd4y/VTO0VkprYy+3N2FtJ8+BQWFXU+OxARIwA46c5tdD9SsKGZ/1ocqBS/gAKHg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/android-arm64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-android-x64-8404fcbb68",
+      "name": "@esbuild/android-x64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "5jbb+2hhDHx5phYR2By8GTWEzn6I9UqR11Kwf22iKbNpYrsmRB18aX/9ivc5cabcUiAT/wM+YIZ6SG9QO6a8kg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/android-x64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-darwin-arm64-296042e54d",
+      "name": "@esbuild/darwin-arm64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "N3zl+lxHCifgIlcMUP5016ESkeQjLj/959RxxNYIthIg+CQHInujFuXeWbWMgnTo4cp5XVHqFPmpyu9J65C1Yg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/darwin-arm64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-darwin-x64-f70fbf3e14",
+      "name": "@esbuild/darwin-x64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "HQ9ka4Kx21qHXwtlTUVbKJOAnmG1ipXhdWTmNXiPzPfWKpXqASVcWdnf2bnL73wgjNrFXAa3yYvBSd9pzfEIpA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/darwin-x64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-freebsd-arm64-3e67b748dd",
+      "name": "@esbuild/freebsd-arm64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "gA0Bx759+7Jve03K1S0vkOu5Lg/85dou3EseOGUes8flVOGxbhDDh/iZaoek11Y8mtyKPGF3vP8XhnkDEAmzeg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/freebsd-arm64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-freebsd-x64-3bc90c4fa4",
+      "name": "@esbuild/freebsd-x64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "TGbO26Yw2xsHzxtbVFGEXBFH0FRAP7gtcPE7P5yP7wGy7cXK2oO7RyOhL5NLiqTlBh47XhmIUXuGciXEqYFfBQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/freebsd-x64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-arm-5f513f87bd",
+      "name": "@esbuild/linux-arm",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "lPDGyC1JPDou8kGcywY0YILzWlhhnRjdof3UlcoqYmS9El818LLfJJc3PXXgZHrHCAKs/Z2SeZtDJr5MrkxtOw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/linux-arm; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-arm64-dc1f9c2686",
+      "name": "@esbuild/linux-arm64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "8bwX7a8FghIgrupcxb4aUmYDLp8pX06rGh5HqDT7bB+8Rdells6mHvrFHHW2JAOPZUbnjUpKTLg6ECyzvas2AQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/linux-arm64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-ia32-c3ea00d44f",
+      "name": "@esbuild/linux-ia32",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "0y9KrdVnbMM2/vG8KfU0byhUN+EFCny9+8g202gYqSSVMonbsCfLjUO+rCci7pM0WBEtz+oK/PIwHkzxkyharA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/linux-ia32; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-loong64-b5c1467fb9",
+      "name": "@esbuild/linux-loong64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "h///Lr5a9rib/v1GGqXVGzjL4TMvVTv+s1DPoxQdz7l/AYv6LDSxdIwzxkrPW438oUXiDtwM10o9PmwS/6Z0Ng=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/linux-loong64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-mips64el-63a4e21f0f",
+      "name": "@esbuild/linux-mips64el",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "iyRrM1Pzy9GFMDLsXn1iHUm18nhKnNMWscjmp4+hpafcZjrr2WbT//d20xaGljXDBYHqRcl8HnxbX6uaA/eGVw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/linux-mips64el; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-ppc64-f038267b08",
+      "name": "@esbuild/linux-ppc64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "9meM/lRXxMi5PSUqEXRCtVjEZBGwB7P/D4yT8UG/mwIdze2aV4Vo6U5gD3+RsoHXKkHCfSxZKzmDssVlRj1QQA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/linux-ppc64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-riscv64-4267582401",
+      "name": "@esbuild/linux-riscv64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Zr7KR4hgKUpWAwb1f3o5ygT04MzqVrGEGXGLnj15YQDJErYu/BGg+wmFlIDOdJp0PmB0lLvxFIOXZgFRrdjR0w=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/linux-riscv64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-s390x-5a162f6cc1",
+      "name": "@esbuild/linux-s390x",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "MsKncOcgTNvdtiISc/jZs/Zf8d0cl/t3gYWX8J9ubBnVOwlk65UIEEvgBORTiljloIWnBzLs4qhzPkJcitIzIg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/linux-s390x; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-x64-7415fb9ce1",
+      "name": "@esbuild/linux-x64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "uqZMTLr/zR/ed4jIGnwSLkaHmPjOjJvnm6TVVitAa08SLS9Z0VM8wIRx7gWbJB5/J54YuIMInDquWyYvQLZkgw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/linux-x64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-netbsd-arm64-7438757841",
+      "name": "@esbuild/netbsd-arm64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "xXwcTq4GhRM7J9A8Gv5boanHhRa/Q9KLVmcyXHCTaM4wKfIpWkdXiMog/KsnxzJ0A1+nD+zoecuzqPmCRyBGjg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/netbsd-arm64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-netbsd-x64-0878942b8b",
+      "name": "@esbuild/netbsd-x64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "Ld5pTlzPy3YwGec4OuHh1aCVCRvOXdH8DgRjfDy/oumVovmuSzWfnSJg+VtakB9Cm0gxNO9BzWkj6mtO1FMXkQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/netbsd-x64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-openbsd-arm64-b43df78203",
+      "name": "@esbuild/openbsd-arm64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "fF96T6KsBo/pkQI950FARU9apGNTSlZGsv1jZBAlcLL1MLjLNIWPBkj5NlSz8aAzYKg+eNqknrUJ24QBybeR5A=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/openbsd-arm64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-openbsd-x64-a553b15a5f",
+      "name": "@esbuild/openbsd-x64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "MZyXUkZHjQxUvzK7rN8DJ3SRmrVrke8ZyRusHlP+kuwqTcfWLyqMOE3sScPPyeIXN/mDJIfGXvcMqCgYKekoQw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/openbsd-x64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-openharmony-arm64-d6dc8d6c1e",
+      "name": "@esbuild/openharmony-arm64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "rm0YWsqUSRrjncSXGA7Zv78Nbnw4XL6/dzr20cyrQf7ZmRcsovpcRBdhD43Nuk3y7XIoW2OxMVvwuRvk9XdASg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/openharmony-arm64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-sunos-x64-f54878d4f8",
+      "name": "@esbuild/sunos-x64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "3wGSCDyuTHQUzt0nV7bocDy72r2lI33QL3gkDNGkod22EsYl04sMf0qLb8luNKTOmgF/eDEDP5BFNwoBKH441w=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/sunos-x64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-win32-arm64-3f06ed6e52",
+      "name": "@esbuild/win32-arm64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "rMmLrur64A7+DKlnSuwqUdRKyd3UE7oPJZmnljqEptesKM8wx9J8gx5u0+9Pq0fQQW8vqeKebwNXdfOyP+8Bsg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/win32-arm64; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-win32-ia32-53a009c8b0",
+      "name": "@esbuild/win32-ia32",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "HkqnmmBoCbCwxUKKNPBixiWDGCpQGVsrQfJoVGYLPT41XWF8lHuE5N6WhVia2n4o5QK5M4tYr21827fNhi4byQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/win32-ia32; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-tsx-node-modules-esbuild-win32-x64-ff227b93c4",
+      "name": "@esbuild/win32-x64",
+      "versionInfo": "0.25.12",
+      "downloadLocation": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.25.12.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/tsx/node_modules/@esbuild/win32-x64; development=true; optional=true"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-turndown-38edd3ad19",
       "name": "turndown",
       "versionInfo": "7.2.4",
@@ -5535,6 +8322,40 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/@tybys/wasm-util; development=true; optional=true"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-type-is-bb6eb2991b",
+      "name": "type-is",
+      "versionInfo": "2.1.0",
+      "downloadLocation": "https://registry.npmjs.org/type-is/-/type-is-2.1.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "faYHw0anBbc/kWF3zFTEnxSFOAGUX9GFbOBthvDdLsIlEoWOFOtS0zgCiQYwIskL9iGXZL3kAXD8OoZ4GmMATA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/type-is; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-type-is-node-modules-content-type-f306a44a1b",
+      "name": "content-type",
+      "versionInfo": "2.0.0",
+      "downloadLocation": "https://registry.npmjs.org/content-type/-/content-type-2.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "j/O/d7GcZCyNl7/hwZAb606rzqkyvaDctLmckbxLzHvFBzTJHuGEdodATcP3yIRoDrLHkIATJuvzbFlp/ki2cQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/type-is/node_modules/content-type; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-typebox-a3a54bbe09",
@@ -5741,6 +8562,40 @@
       "comment": "npm lock path=node_modules/unpdf; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-unpipe-a8d5ed3a2b",
+      "name": "unpipe",
+      "versionInfo": "1.0.0",
+      "downloadLocation": "https://registry.npmjs.org/unpipe/-/unpipe-1.0.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/unpipe; development=false; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-vary-3b75c7c550",
+      "name": "vary",
+      "versionInfo": "1.1.2",
+      "downloadLocation": "https://registry.npmjs.org/vary/-/vary-1.1.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/vary; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-vite-bae5313630",
       "name": "vite",
       "versionInfo": "8.1.5",
@@ -5928,6 +8783,23 @@
       "comment": "npm lock path=node_modules/web-tree-sitter; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-which-8f0639009f",
+      "name": "which",
+      "versionInfo": "2.0.2",
+      "downloadLocation": "https://registry.npmjs.org/which/-/which-2.0.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "ISC",
+      "licenseDeclared": "ISC",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/which; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-why-is-node-running-4981b02b67",
       "name": "why-is-node-running",
       "versionInfo": "2.3.0",
@@ -5943,6 +8815,23 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/why-is-node-running; development=true; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-wrappy-09dbeea1bf",
+      "name": "wrappy",
+      "versionInfo": "1.0.2",
+      "downloadLocation": "https://registry.npmjs.org/wrappy/-/wrappy-1.0.2.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "ISC",
+      "licenseDeclared": "ISC",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/wrappy; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-ws-d987b46b2c",
@@ -5962,6 +8851,23 @@
       "comment": "npm lock path=node_modules/ws; development=false; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-wsl-utils-91cbd3b91d",
+      "name": "wsl-utils",
+      "versionInfo": "0.1.0",
+      "downloadLocation": "https://registry.npmjs.org/wsl-utils/-/wsl-utils-0.1.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "h3Fbisa2nKGPxCpm89Hk33lBLsnaGBvctQopaBSOW/uIs6FTe1ATyAnKFJrzVs9vpGdsTe73WF3V4lIsk4Gacw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/wsl-utils; development=false; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-yaml-d4ccbe242a",
       "name": "yaml",
       "versionInfo": "2.9.0",
@@ -5976,7 +8882,7 @@
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/yaml; development=true; optional=false"
+      "comment": "npm lock path=node_modules/yaml; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-yocto-queue-45c7ba434a",
@@ -6039,6 +8945,26 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-source-pi-mcp-adapter-03221c765d"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-source-billion-context-pi-2de10c672d"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-source-pi-codex-compact-33c52943bc"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-source-pi-retry-689d73bf0b"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-source-pi-permission-modes-9b38b384cd"
     },
     {
@@ -6064,7 +8990,27 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-accepts-818cd6a4d3"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-acp-kernel-2869312c59"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-agent-base-e28bede7a2"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-ajv-b860c3f2df"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-ajv-formats-58ad49a1a4"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -6229,6 +9175,16 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-body-parser-9bd71de90d"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-body-parser-node-modules-content-type-74b1028e8c"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-boolbase-0f9cb075b4"
     },
     {
@@ -6244,6 +9200,26 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-bundle-name-225356d405"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-bytes-d60157a9b1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-call-bind-apply-helpers-cbf8af0465"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-call-bound-0c39f76d3c"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-chai-2f18c293a7"
     },
     {
@@ -6254,7 +9230,37 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-content-disposition-0635746061"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-content-type-2e62890250"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-convert-source-map-4670c536d6"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-cookie-58f3dc27f8"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-cookie-signature-aa6fdf1642"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-cors-05dd4c355b"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-cross-spawn-f4a37c705b"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -6280,6 +9286,26 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-debug-e7b40ffca5"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-default-browser-5d8b37c415"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-default-browser-id-0fe2bf7095"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-define-lazy-prop-9b76f48c68"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-depd-78a340b1d8"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -6314,12 +9340,27 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-dunder-proto-54633a980f"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-agent-core-c009226610"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-agent-core-node-modules-typebox-a7a27f9213"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-ai-26a52f7c9a"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-ai-node-modules-typebox-29f1220ad0"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -6534,6 +9575,21 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-client-bd5e33384d"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-protocol-e44b6e6331"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-telemetry-bfc6dfe468"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-tui-eff2aca2e7"
     },
     {
@@ -6605,6 +9661,11 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-graceful-fs-de0bb0814f"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-grok-mermaid-a96e62e972"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7024,12 +10085,22 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-telemetry-8166135365"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-tui-35871b6679"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-ecdsa-sig-formatter-e4088f88b7"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-ee-first-d9438890e0"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7049,7 +10120,22 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-encodeurl-f855af3d8d"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-entities-5d87f72250"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-es-define-property-c81157bac5"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-es-errors-ce536cac63"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7059,7 +10145,32 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-es-object-atoms-c33c5ba131"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-escape-html-27272b4b7d"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-estree-walker-01468cbcb0"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-etag-70a173be63"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-eventsource-9f604dad91"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-eventsource-parser-88cb479833"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7069,7 +10180,27 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-express-dac4790a3f"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-express-rate-limit-2bf1babe37"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-extend-83f708473b"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-fast-deep-equal-1dc28023f3"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-fast-uri-5852b277be"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7084,12 +10215,32 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-finalhandler-7498f428d6"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-formdata-polyfill-9f5f58c811"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-forwarded-811e8b130f"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-fresh-fe46e39529"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-fsevents-e0a54ee2f6"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-function-bind-f8694b46ba"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7109,6 +10260,21 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-get-intrinsic-ba0227edc3"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-get-proto-4a0fc3d8c5"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-get-tsconfig-6aa1fd9a36"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-google-auth-library-1075f2514e"
     },
     {
@@ -7124,12 +10290,47 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-gopd-9d45d6c7e5"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-has-symbols-0d5368b07f"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-hasown-b4b7d5235e"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-highlight.js-f1babeff31"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-hono-d4342bce03"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-hono-node-server-c01f149047"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-html-escaper-65547f1d1e"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-htmlparser2-576f6cc28b"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-http-errors-6e70850ccf"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7144,7 +10345,57 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-iconv-lite-b5c922205f"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-ignore-a37e1a18eb"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-inherits-c76937ee24"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-ip-address-072f02a1c0"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-ipaddr.js-8443c23cac"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-is-docker-e6eccf5447"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-is-inside-container-262dc1fdac"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-is-promise-f51471cfc2"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-is-wsl-2275f062be"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-isexe-dd723b9321"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-jose-c5c39cc91e"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7160,6 +10411,16 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-json-schema-to-ts-a08a1f047b"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-json-schema-traverse-bf0c880f98"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-json-schema-typed-69c23049b2"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7259,12 +10520,67 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-math-intrinsics-2e6b80fbdf"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-media-typer-c79520d2c2"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-merge-descriptors-8d8ef49508"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-mime-db-086e8d7d81"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-mime-types-8469a1f1bf"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-mistralai-mistralai-4fab87b243"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-mixmark-io-domino-cf9acb6208"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-modelcontextprotocol-client-5d06f5441b"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-modelcontextprotocol-client-node-modules-zod-f41f6a255c"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-modelcontextprotocol-core-7410d27dd0"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-modelcontextprotocol-core-node-modules-zod-f7d0d6de35"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-modelcontextprotocol-ext-apps-df997009df"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-modelcontextprotocol-sdk-040bd16007"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7284,7 +10600,87 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-darwin-arm64-9a40cf1feb"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-darwin-x64-2984d91a20"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-ff241b9162"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-freebsd-x64-d7d12b5a03"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-linux-arm-gnueabihf-8a2906cdaa"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-linux-arm64-gnu-0127839d3e"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-linux-arm64-musl-72547a9e4e"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-linux-riscv64-gnu-40539dfd21"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-linux-x64-gnu-66ec6be1fd"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-linux-x64-musl-5faf7390ea"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-win32-arm64-msvc-0940effa9c"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-win32-ia32-msvc-85f09fa2c1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-keyring-win32-x64-msvc-2f2970fa94"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-napi-rs-wasm-runtime-24af2c3b1a"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-narumitw-pi-codex-compact-fdebc56802"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-narumitw-pi-tui-kit-d1325f2460"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-negotiator-915dcd7806"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7314,7 +10710,32 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-object-assign-c145d125ac"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-object-inspect-6838057a0c"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-obug-d07d5c8694"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-on-finished-1ef75324b0"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-once-16a816bfa1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-open-20d11a204e"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7349,7 +10770,22 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-parseurl-f80b1a804c"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-partial-json-9031a58b7c"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-path-key-5fb1164954"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-path-to-regexp-b738fd2a1b"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7360,6 +10796,11 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-pi-cache-optimizer-9b873d6537"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-pi-mcp-adapter-9572fd715e"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7390,6 +10831,16 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-picomatch-75ffdfefb0"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-pkce-challenge-1763fc711b"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-pkgr-core-ae6533fb65"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7450,6 +10901,66 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-protobufjs-utf8-463d1ac589"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-proxy-addr-7f261d7761"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-qs-0b5a5f3577"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-range-parser-e3fd31ccef"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-raw-body-7a3d472427"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-recheck-ba29fa7dbd"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-recheck-jar-738accb99e"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-recheck-linux-x64-36b18bc056"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-recheck-macos-arm64-becae304e3"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-recheck-macos-x64-72fe3d392d"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-recheck-windows-x64-6ae5431ca9"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-require-from-string-e3af7aca7b"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-resolve-pkg-maps-43b11c666f"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7544,12 +11055,72 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-router-3f591f9fde"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-run-applescript-c32b52e3b3"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-safe-buffer-bce944bea3"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-safer-buffer-d9639c5ea0"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-send-dfaab08057"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-serve-static-165a11af49"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-setprototypeof-64a15ed40e"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-shebang-command-2658f1e743"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-shebang-regex-06f3113bf2"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-shell-quote-52cbf37778"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-side-channel-bc506c0c28"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-side-channel-list-c25540f085"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-side-channel-map-5afe8e3fd4"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-side-channel-weakmap-5f7ccd7336"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7604,6 +11175,11 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-smol-toml-d244414d95"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-source-map-js-c447b62b9e"
     },
     {
@@ -7619,7 +11195,22 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-statuses-14402378d6"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-std-env-a29779af65"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-strip-json-comments-fbb32af49e"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-synckit-cf2e8b4e23"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7644,6 +11235,11 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-toidentifier-2456b6b9d7"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-tree-sitter-bash-75ffd340b4"
     },
     {
@@ -7659,12 +11255,162 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-95320cdbe2"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-35699e26dd"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-aix-ppc64-0d2b4c9d1a"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-android-arm-7d61c132c6"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-android-arm64-1360dceb76"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-android-x64-8404fcbb68"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-darwin-arm64-296042e54d"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-darwin-x64-f70fbf3e14"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-freebsd-arm64-3e67b748dd"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-freebsd-x64-3bc90c4fa4"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-arm-5f513f87bd"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-arm64-dc1f9c2686"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-ia32-c3ea00d44f"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-loong64-b5c1467fb9"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-mips64el-63a4e21f0f"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-ppc64-f038267b08"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-riscv64-4267582401"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-s390x-5a162f6cc1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-linux-x64-7415fb9ce1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-netbsd-arm64-7438757841"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-netbsd-x64-0878942b8b"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-openbsd-arm64-b43df78203"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-openbsd-x64-a553b15a5f"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-openharmony-arm64-d6dc8d6c1e"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-sunos-x64-f54878d4f8"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-win32-arm64-3f06ed6e52"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-win32-ia32-53a009c8b0"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-tsx-node-modules-esbuild-win32-x64-ff227b93c4"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-turndown-38edd3ad19"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-tybys-wasm-util-ff43517331"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-type-is-bb6eb2991b"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-type-is-node-modules-content-type-f306a44a1b"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -7729,6 +11475,16 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-unpipe-a8d5ed3a2b"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-vary-3b75c7c550"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-vite-bae5313630"
     },
     {
@@ -7784,12 +11540,27 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-which-8f0639009f"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-why-is-node-running-4981b02b67"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-wrappy-09dbeea1bf"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-ws-d987b46b2c"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-wsl-utils-91cbd3b91d"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",

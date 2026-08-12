@@ -37,23 +37,24 @@ afterEach(async () => {
 });
 
 describe("Pi-owned role profiles", () => {
-  it("contains the accepted 19 specialized selectors plus general with schema-v2 policy", async () => {
+  it("contains the accepted 20 specialized selectors plus general with schema-v2 policy", async () => {
     const lock = JSON.parse(await readFile(new URL("../../upstream/aili-workflows.lock.json", import.meta.url), "utf8"));
     const manifest = JSON.parse(await readFile(new URL("../../manifests/roles.json", import.meta.url), "utf8"));
     expect(lock).toMatchObject({
       repository: "https://github.com/Rosetears520/aili-workflows.git",
-      commit: "bb1fedacc46d71045daa6257d121f2b71ba29d54",
+      commit: "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
     });
     expect(manifest.source).toEqual({ repository: lock.repository, commit: lock.commit });
 
     const roles = await loadRoleProfiles();
-    expect(roles).toHaveLength(20);
+    expect(roles).toHaveLength(21);
     expect(roles.map((role) => role.selector)).toEqual(BUNDLED_ROLE_SELECTORS);
-    expect(new Set(roles.map((role) => role.name)).size).toBe(20);
+    expect(new Set(roles.map((role) => role.name)).size).toBe(21);
     expect(roles.filter((role) => role.status === "blocked")).toEqual([]);
 
     const specialized = roles.filter((role) => role.name !== "general");
-    expect(specialized).toHaveLength(19);
+    expect(specialized).toHaveLength(20);
+    expect(specialized).toContainEqual(expect.objectContaining({ selector: "aili.solution-architect", tools: ["read", "grep", "find", "ls"] }));
     expect(specialized.every((role) => role.toolPolicy === "static" && role.spawns.length === 0)).toBe(true);
     expect(specialized.every((role) => role.tools.length > 0 || role.name === "web-researcher")).toBe(true);
     expect(specialized.every((role) => role.capabilities.length > 0)).toBe(true);
@@ -93,7 +94,7 @@ describe("Pi-owned role profiles", () => {
       expect(role.prompt).toContain("Return exactly one JSON object");
     }
     for (const role of roles.filter((candidate) => candidate.name !== "general")) {
-      expect(role.prompt).toContain("Your result is evidence for ROSE or the user, not final authority");
+      expect(role.prompt).toMatch(/(?:evidence for ROSE|never final authority|final-verdict decisions)/i);
       expect(role.prompt).toContain("Do not call subagents");
     }
   });

@@ -47,7 +47,8 @@ describe("RoleProfile-derived Agent Catalog", () => {
 
     expect(catalog.entries.map((entry) => entry.selector)).toEqual(routing.roles.map((role) => role.selector));
     expect(new Set(catalog.entries.map((entry) => entry.selector)).size).toBe(SPECIALIZED_ROLE_SELECTORS.length);
-    expect(catalog.entries).toHaveLength(19);
+    expect(catalog.entries).toHaveLength(20);
+    expect(catalog.entries).toContainEqual(expect.objectContaining({ selector: "aili.solution-architect" }));
     for (const entry of catalog.entries) {
       const profile = profiles.find((candidate) => candidate.selector === entry.selector)!;
       const route = routing.roles.find((candidate) => candidate.selector === entry.selector)!;

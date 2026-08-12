@@ -4,7 +4,7 @@
 - Role namespace: `canonical`
 - Selector mapping: `adapter-owned`
 
-This is the single shared matrix for canonical Agent role selection. It defines selection policy, not a runtime registry. Harness selectors, provider or model names, tool arguments, runtime paths, and complete role instructions belong to adapters or `agents/*.md`, not this file.
+This is the compatibility selection guide for canonical Agent role selection. The shared package/result/Board semantics are owned by `core/protocols/`; canonical role definitions are owned by `core/roles/roles.json`. This guide applies those sources to selection without becoming a runtime registry. Harness selectors, provider or model names, tool arguments, runtime paths, and complete role instructions belong to adapters, generated projections, or the canonical role source, not this file.
 
 ## Selection matrix
 
@@ -15,6 +15,7 @@ This is the single shared matrix for canonical Agent role selection. It defines 
 | `web-researcher` | Current official documentation, versions, compatibility, deprecations, or other public evidence is required. | The answer is repository-local or stable knowledge needs no current web evidence. | URLs, versions, publication dates, conclusions, and limitations. | IDEATE / DEFINE | Independent research may be async; join before any dependent decision. |
 | `spec-miner` | Candidate requirements and scenarios must be mined from existing code, tests, and documentation. | Accepting the final specification, implementing it, or making product decisions. | Candidate requirements, scenarios, and repository evidence anchors. | IDEATE / DEFINE | Usually sync. |
 | `plan-auditor` | A plan, specification, task list, acceptance contract, or test plan needs a pre-implementation gap and conflict audit. | Implementation or accepting a plan on the user's behalf. | Blockers, risks, missing verification, and proposed dispositions. | DEFINE | Sync; join before the dependent BUILD gate. |
+| `solution-architect` | A bounded repository-grounded technical proposal needs materially distinct options, trade-offs, boundaries/interfaces/data/call flow, impact analysis, candidate packages, and explicit unclear items. | Implementing, delegating, accepting architecture, making product decisions, approving ADRs, or issuing a final verdict. | Options and recommendation, impacts, risks, candidate packages, evidence anchors, and unclear items. | IDEATE / DEFINE | Read-only and usually sync; ROSE dispositions the proposal before any write-back. |
 | `implementer` | One complete bounded implementation package is authorized inside accepted scope. | Architecture or product decisions, final verdicts, or unauthorized material changes. | Changed files, implementation summary, focused verification, and blockers. | BUILD | Dependency-bound packages are sync; independent non-overlapping packages may be async. |
 | `test-engineer` | Tests must be designed, added, or executed for one exact claim. | General code review or replacing the verification owner. | Test files, coverage target, commands, and results. | BUILD | Usually sync; independent test implementation may run beside non-conflicting work. |
 | `test-coverage-reviewer` | Coverage adequacy, untested branches, or verification evidence gaps need read-only analysis. | Writing production code or conducting a general quality review. | Uncovered paths, risks, and a coverage-adequacy assessment. | DEFINE / SHIP | Read-only and usually sync. |
@@ -38,10 +39,10 @@ Phase affinity is advisory. A matching role outside a phase shortlist remains va
 2. Filter to roles whose positive trigger covers the assignment and whose near-miss boundary does not exclude it.
 3. When several roles match, select the narrowest responsibility with the most specific expected-evidence contract.
 4. Do not dispatch or choose a broad role merely because work is complex, touches many files, or occurs in a particular phase.
-5. Ordinary work with no matching specialist and no other qualifying dispatch trigger may remain direct with ROSE.
+5. Ordinary work dispatches the narrowest matching specialist when the package is clear, bounded, non-trivial, non-overlapping, and permitted by current effective capabilities and permissions. Direct work remains only for trivial work, contract clarification or splitting, no matching specialist, permission/capability failure, overlap, or concrete negative benefit.
 6. A ready formal Agent-owned package fixes the exact canonical Role ID. Do not remap it through a later ordinary benefit judgment.
 7. `general` is not a canonical specialist role and cannot own a formal package.
 
 ## Ownership boundary
 
-This matrix owns role selection only. The canonical Agent descriptions under `agents/*.md` own each role's detailed behavior, tools, constraints, and result discipline. An adapter maps the selected canonical Role ID to its own runtime selector and records any runtime-private identity in adapter-owned state.
+This matrix owns role selection only. `core/roles/roles.json` owns each role's detailed behavior, constraints, and result discipline; generated `agents/*.md` files are compatibility projections. An adapter maps the selected canonical Role ID to its own runtime selector and records any runtime-private identity in adapter-owned state.

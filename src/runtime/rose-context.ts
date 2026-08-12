@@ -19,6 +19,7 @@ export type LifecycleAgentGuidanceProvider = () => LifecycleAgentGuidanceInput |
 
 export interface RoseContextOptions {
   lifecycleAgentGuidanceProvider?: LifecycleAgentGuidanceProvider;
+  workflowSystem?: string;
 }
 
 const CORE_GOVERNANCE_LINES = [
@@ -94,7 +95,7 @@ export function buildRoseAppendix(
     "## AILI runtime summary",
     `- ${projectRuleState(event)}`,
     `- ${conflictState}`,
-    "- rose_static_rules=global APPEND_SYSTEM marker resource (not injected by this Extension)",
+    "- rose_static_rules=validated rose-aili Workflow system bundle injected by this Extension; legacy APPEND_SYSTEM is report-only",
     ...CORE_GOVERNANCE_LINES,
   ];
   const activeTask = taskIsActive(pi);
@@ -125,8 +126,9 @@ export function buildRoseAppendix(
 export function registerRoseContext(pi: ExtensionAPI, options: RoseContextOptions = {}): void {
   pi.on("before_agent_start", (event) => {
     const lifecycle = taskIsActive(pi) ? options.lifecycleAgentGuidanceProvider?.() : undefined;
+    const workflowSystem = options.workflowSystem?.trim();
     return {
-      systemPrompt: `${event.systemPrompt}\n\n${buildRoseAppendix(event, pi, lifecycle)}`,
+      systemPrompt: [event.systemPrompt, workflowSystem, buildRoseAppendix(event, pi, lifecycle)].filter(Boolean).join("\n\n"),
     };
   });
 }

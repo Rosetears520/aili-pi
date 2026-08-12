@@ -6,6 +6,9 @@
     "pi-web-access",
     "pi-quota-status",
     "pi-permission-modes",
+    "pi-mcp-adapter",
+    "aili-context-runtime",
+    "aili-provider-retry",
     "aili-persistent-agents",
     "optional-pack:web-research",
     "optional-pack:browser-qa",
@@ -43,19 +46,49 @@
       "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "subagent.dispatch" }
     },
     {
-      "id": "memory.project",
+      "id": "mcp.runtime",
+      "provider": "pi-mcp-adapter",
+      "adapterOwner": "pi-mcp-adapter@2.23.0 composed by src/runtime/mcp.ts",
+      "platforms": ["linux"],
+      "class": "required",
+      "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "external-provider-state" },
+      "probe": { "id": "aili.mcp.runtime", "kind": "runtime-component", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "mcp.runtime" }
+    },
+    {
+      "id": "context.compaction",
+      "provider": "aili-context-runtime",
+      "adapterOwner": "src/runtime/context-runtime.ts with @narumitw/pi-codex-compact@0.50.0 and complete upstream/billion-context-pi@0.1.34",
+      "platforms": ["linux"],
+      "class": "required",
+      "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "session-context-and-provider-state" },
+      "probe": { "id": "aili.context.runtime", "kind": "runtime-component", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "context.compaction" }
+    },
+    {
+      "id": "provider.retry",
+      "provider": "aili-provider-retry",
+      "adapterOwner": "src/runtime/provider-retry.ts adapted from @narumitw/pi-retry@0.31.0; Pi 0.84.1 owns attempt budget/backoff",
+      "platforms": ["linux"],
+      "class": "required",
+      "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "provider-turn-abort-classification" },
+      "probe": { "id": "aili.provider.retry", "kind": "runtime-component", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "provider.retry" }
+    },
+    {
+      "id": "memory.provider.mempalace",
       "provider": "aili-core",
-      "adapterOwner": "project-memory",
+      "adapterOwner": "src/runtime/mcp.ts via pi-mcp-adapter@2.23.0",
       "platforms": ["linux"],
       "class": "optional",
-      "risk": { "secret": "possible", "network": "none", "sideEffect": "local-write" },
-      "probe": { "id": "aili.memory.project", "kind": "optional-pack", "timeoutMs": 1000 },
-      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "memory.project" },
+      "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "external-provider-state" },
+      "probe": { "id": "aili.memory.mempalace", "kind": "optional-pack", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "memory.provider.mempalace" },
       "optionalPack": {
-        "id": "project-memory",
-        "missingBehavior": "Durable project memory is unavailable.",
-        "enableGuidance": "Enable only after a project-local memory contract is accepted.",
-        "sideEffects": ["project-local database writes"],
+        "id": "mempalace-memory",
+        "missingBehavior": "MemPalace durable memory is unavailable; no fallback store is created.",
+        "enableGuidance": "Enable only after the MCP/MemPalace configuration and operation gates are satisfied.",
+        "sideEffects": ["external Palace reads and writes through MCP"],
         "futureOwner": "aili-pi"
       }
     },

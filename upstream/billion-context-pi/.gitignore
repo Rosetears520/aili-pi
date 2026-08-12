@@ -1,0 +1,7 @@
+node_modules/
+# AILI packages the verified Pi 0.84.1 build beside the complete source tree.
+*.log
+.DS_Store
+*.acp.json
+.pi-subagents/
+tmp-debug.ts

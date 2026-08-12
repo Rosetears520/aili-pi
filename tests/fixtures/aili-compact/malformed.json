@@ -1,8 +1,0 @@
-{
-  "transactions": [
-    null,
-    { "schema": "aili.compact.tx.v1", "id": 42 },
-    { "schema": "aili.compact.tx.v1", "id": "missing-kind", "epochId": "root" },
-    { "schema": "aili.compact.tx.v1", "id": "wrong-control", "kind": "control", "epochId": "root", "control": "unknown" }
-  ]
-}

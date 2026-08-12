@@ -4,14 +4,19 @@ import { registerRoseContext, type LifecycleAgentGuidanceProvider } from "./rose
 import { registerDoctor } from "./doctor.js";
 import { registerPersistentAgentRuntime } from "./persistent-agents/production.js";
 import { registerNativeIntegrations } from "./native-integrations.js";
-import { registerGlobalResourceCommand } from "./global-resources.js";
+import { loadWorkflowRuntimeBundle } from "./workflow-bundle/index.js";
+import { createAiliMcpExtension } from "./mcp.js";
+import { createProviderRoutedContextExtension } from "./context-runtime.js";
+import { createExplainableRetryExtension } from "./provider-retry.js";
 
 export const runtimeComponents: readonly RuntimeComponent[] = [
   { id: "rose-context", availability: "available", register: registerRoseContext },
   { id: "lifecycle-routing", availability: "available" },
   { id: "task-runtime", availability: "available", register: registerPersistentAgentRuntime },
+  { id: "mcp-runtime", availability: "available", register: createAiliMcpExtension() },
+  { id: "context-runtime", availability: "available", register: createProviderRoutedContextExtension() },
+  { id: "provider-retry", availability: "available", register: createExplainableRetryExtension() },
   { id: "native-integrations", availability: "available", register: registerNativeIntegrations },
-  { id: "global-resources", availability: "available", register: registerGlobalResourceCommand },
   { id: "capability-registry", availability: "available" },
   { id: "doctor", availability: "available", register: registerDoctor },
   { id: "shortcuts", availability: "available" },
@@ -23,9 +28,13 @@ export interface AiliRuntimeOptions {
 }
 
 export async function registerAiliRuntime(pi: ExtensionAPI, options: AiliRuntimeOptions = {}): Promise<void> {
+  const workflowBundle = await loadWorkflowRuntimeBundle();
   for (const component of runtimeComponents) {
     if (component.id === "rose-context") {
-      registerRoseContext(pi, { lifecycleAgentGuidanceProvider: options.lifecycleAgentGuidanceProvider });
+      registerRoseContext(pi, {
+        lifecycleAgentGuidanceProvider: options.lifecycleAgentGuidanceProvider,
+        workflowSystem: workflowBundle.system,
+      });
       continue;
     }
     await component.register?.(pi);

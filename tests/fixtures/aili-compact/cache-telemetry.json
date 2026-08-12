@@ -1,5 +1,0 @@
-{
-  "eligibleUsage": { "input": 100, "cacheRead": 900, "cacheWrite": 0 },
-  "coldUsage": { "input": 100, "cacheRead": 0, "cacheWrite": 0 },
-  "missingUsage": null
-}

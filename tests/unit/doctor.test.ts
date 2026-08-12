@@ -108,11 +108,11 @@ describe("capability registry", () => {
     expect(await validateRegistry()).toEqual([]);
     const { capabilities, compatibility } = await loadRegistry();
     expect(capabilities.capabilities.map((item) => item.id).sort()).toEqual([
-      "artifact.store", "artifact.transform", "browser.qa", "memory.project",
+      "artifact.store", "artifact.transform", "browser.qa", "context.compaction", "mcp.runtime", "memory.provider.mempalace", "provider.retry",
       "repo.read", "repo.write", "subagent.dispatch", "web.fetch",
     ]);
-    expect(compatibility.records).toHaveLength(65);
-    expect(new Set(compatibility.records.map((record) => record.status))).toEqual(new Set(["native", "optional", "adapted"]));
+    expect(compatibility.records).toHaveLength(58);
+    expect(new Set(compatibility.records.map((record) => record.status))).toEqual(new Set(["optional", "native", "adapted"]));
     expect(compatibility.records.filter((record) => record.requiredCapabilities.includes("subagent.dispatch")).every((record) => record.status === "adapted" && record.unverified.length === 0)).toBe(true);
   });
 
@@ -130,14 +130,14 @@ describe("capability registry", () => {
     expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining("dependency/lockfile approval")]));
   });
 
-  it("validates stable candidate identity independently from the 0.1.13 AGPL license-since declaration", () => {
+  it("validates the repository-owner-authorized MIT candidate identity", () => {
     const valid = {
-      packageManifest: { name: "@rosetears/aili-pi", version: "0.2.0", license: "AGPL-3.0-or-later" },
-      packageLockRoot: { name: "@rosetears/aili-pi", version: "0.2.0", license: "AGPL-3.0-or-later" },
-      licenseSha256: "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
-      readme: "version 0.1.13 and later is licensed under `AGPL-3.0-or-later`. Corresponding source is available from the repository declared in `package.json`.",
-      notices: "This distribution is AGPL-3.0-or-later licensed. Adapted sources retain their own license terms.",
-      sbomRoot: { name: "@rosetears/aili-pi", versionInfo: "0.2.0", licenseConcluded: "AGPL-3.0-or-later", licenseDeclared: "AGPL-3.0-or-later" },
+      packageManifest: { name: "@rosetears/aili-pi", version: "0.2.1", license: "MIT" },
+      packageLockRoot: { name: "@rosetears/aili-pi", version: "0.2.1", license: "MIT" },
+      licenseSha256: "50d626e331a5b05c3a574ae969762851070af5b32dbc73cc2277409eec1358f4",
+      readme: "@rosetears/aili-pi is licensed under the MIT License.",
+      notices: "This distribution is licensed under MIT. Adapted sources retain their own license terms.",
+      sbomRoot: { name: "@rosetears/aili-pi", versionInfo: "0.2.1", licenseConcluded: "MIT", licenseDeclared: "MIT" },
     };
     expect(validateLicenseDispositionData(valid)).toEqual([]);
 
@@ -152,16 +152,16 @@ describe("capability registry", () => {
 
     expect(validateLicenseDispositionData({
       ...valid,
-      readme: "version 0.2.0 and later is licensed under `AGPL-3.0-or-later`. Corresponding source is available from the repository declared in `package.json`.",
+      readme: "license declaration missing",
     })).toEqual([expect.stringContaining("README")]);
 
     expect(validateLicenseDispositionData({
       ...valid,
-      packageManifest: { ...valid.packageManifest, license: "MIT" },
+      packageManifest: { ...valid.packageManifest, license: "AGPL-3.0-or-later" },
       licenseSha256: "0".repeat(64),
       readme: "",
-      notices: "This distribution is MIT-licensed. Third-party terms are omitted.",
-      sbomRoot: { ...valid.sbomRoot, licenseDeclared: "MIT" },
+      notices: "Third-party terms are omitted.",
+      sbomRoot: { ...valid.sbomRoot, licenseDeclared: "AGPL-3.0-or-later" },
     })).toEqual(expect.arrayContaining([
       expect.stringContaining("package manifest"),
       expect.stringContaining("license text"),
@@ -202,7 +202,7 @@ describe("shared workflow doctor compatibility", () => {
         sourceMatch: "exact",
         references: { readable: 2, required: 2 },
         protocols: { compatible: 2, required: 2 },
-        roles: { observed: 19, required: 19 },
+        roles: { observed: 20, required: 20 },
         reasons: ["compatible"],
       });
       const report = await runDoctor({ getCommands: () => commands }, { home: fixture.home });
@@ -226,7 +226,7 @@ describe("shared workflow doctor compatibility", () => {
         compatibility: "present-compatible",
         sourceMatch: "modified",
         protocols: { compatible: 2, required: 2 },
-        roles: { observed: 19, required: 19 },
+        roles: { observed: 20, required: 20 },
       }));
       expect(inspection.sourceMatch).not.toBe("compatible-newer");
       await expectFixtureUnchanged(fixture);
@@ -248,7 +248,7 @@ describe("shared workflow doctor compatibility", () => {
       expect(report.results).toContainEqual(expect.objectContaining({
         id: "shared.workflows",
         status: "ERROR",
-        evidence: expect.stringMatching(/compatibility=missing; source_match=unknown;.*remediation=npx -y rose-aili@0\.4\.2 install/),
+        evidence: expect.stringMatching(/compatibility=missing; source_match=unknown;.*remediation=npx -y rose-aili@0\.4\.7 install/),
       }));
       await expectFixtureUnchanged(fixture);
     } finally {
@@ -308,7 +308,7 @@ describe("shared workflow doctor compatibility", () => {
       const report = await runDoctor({ getCommands: () => commands }, { home: fixture.home });
       const result = report.results.find((item) => item.id === "shared.workflows")!;
       expect(result.status).toBe("UNVERIFIED");
-      expect(result.evidence).toContain("remediation=npx -y rose-aili@0.4.2 update");
+      expect(result.evidence).toContain("remediation=npx -y rose-aili@0.4.7 update");
       expect(result.evidence).not.toContain(fixture.home);
       await expectFixtureUnchanged(fixture);
     } finally {
@@ -331,7 +331,7 @@ describe("doctor", () => {
       expect.objectContaining({ id: "skill.snapshot", status: "PASS" }),
       expect.objectContaining({ id: "capability.registry", status: "PASS" }),
       expect.objectContaining({ id: "optional.packs", status: "SKIP" }),
-      expect.objectContaining({ id: "roles.agents", status: "PASS", evidence: expect.stringContaining("profiles=20") }),
+      expect.objectContaining({ id: "roles.agents", status: "PASS", evidence: expect.stringContaining("profiles=21") }),
       expect.objectContaining({ id: "agent.framework", status: "UNVERIFIED", evidence: expect.stringContaining("public tools=task,hub") }),
       expect.objectContaining({ id: "permission.native", status: "PASS" }),
       expect.objectContaining({ id: "global.resources", status: expect.stringMatching(/^(PASS|UNVERIFIED)$/) }),

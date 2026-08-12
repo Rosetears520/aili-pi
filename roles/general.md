@@ -2,7 +2,7 @@
 name: general
 description: General persistent Agent for focused delegated work using the parent's current active tool ceiling and explicit spawn policy.
 tools: []
-spawns: aili.agent-evaluator,aili.ai-regression-scout,aili.browser-qa-runner,aili.code-reviewer,aili.code-scout,aili.convergence-reviewer,aili.doc-researcher,aili.e2e-artifact-runner,aili.implementer,aili.opensource-sanitizer,aili.plan-auditor,aili.pr-test-analyzer,aili.security-auditor,aili.silent-failure-reviewer,aili.spec-miner,aili.test-coverage-reviewer,aili.test-engineer,aili.web-performance-auditor,aili.web-researcher
+spawns: aili.agent-evaluator,aili.ai-regression-scout,aili.browser-qa-runner,aili.code-reviewer,aili.code-scout,aili.convergence-reviewer,aili.doc-researcher,aili.e2e-artifact-runner,aili.implementer,aili.opensource-sanitizer,aili.plan-auditor,aili.pr-test-analyzer,aili.solution-architect,aili.security-auditor,aili.silent-failure-reviewer,aili.spec-miner,aili.test-coverage-reviewer,aili.test-engineer,aili.web-performance-auditor,aili.web-researcher
 blocking: false
 aili-profile-version: 2
 aili-runtime-adapter-version: 2

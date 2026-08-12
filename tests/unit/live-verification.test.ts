@@ -57,7 +57,7 @@ describe("Persistent Agent live verification manifest", () => {
 function fixture(status: "PASS" | "NON_PASS" = "PASS"): string {
   const root = mkdtempSync(join(tmpdir(), "aili-live-verification-"));
   roots.push(root);
-  writeJson(root, "package.json", { name: "@rosetears/aili-pi", version: "0.2.0" });
+  writeJson(root, "package.json", { name: "@rosetears/aili-pi", version: "0.2.1" });
   write(root, harnessPath, "export const harness = true;\n");
   const implementation: Record<string, string> = {};
   for (const [index, path] of implementationPaths.entries()) {
@@ -71,9 +71,9 @@ function fixture(status: "PASS" | "NON_PASS" = "PASS"): string {
     schemaVersion: 4,
     capturedAt,
     platform: "linux",
-    piVersion: "0.82.1",
+    piVersion: "0.84.1",
     runtime: "aili-persistent-agents-v1",
-    package: { name: "@rosetears/aili-pi", version: "0.2.0", source: "current workspace package" },
+    package: { name: "@rosetears/aili-pi", version: "0.2.1", source: "current workspace package" },
     status,
     artifact: { path: artifactPath, sha256: sha256(body) },
     harness: { path: harnessPath, sha256: sha256(readFileSync(join(root, harnessPath), "utf8")) },
@@ -90,8 +90,8 @@ function artifact(status: "PASS" | "NON_PASS", time: string): Record<string, unk
     schemaVersion: 1,
     capturedAt: time,
     platform: "linux",
-    piVersion: "0.82.1",
-    package: { name: "@rosetears/aili-pi", version: "0.2.0", source: "current workspace package" },
+    piVersion: "0.84.1",
+    package: { name: "@rosetears/aili-pi", version: "0.2.1", source: "current workspace package" },
     status,
     probes: ["provider-turn", "child-sandbox", "external-workspace-lifecycle"].map((id) => ({ id, status: probeStatus, changedFiles: 0 })),
     sanitization: { rawProviderTranscriptIncluded: false, rawCredentialMaterialIncluded: false, credentialMarkerFindings: 0, localAbsolutePathsIncluded: false },

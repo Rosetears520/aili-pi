@@ -117,24 +117,27 @@ describe("generated skill baseline", () => {
       await readFile(new URL("../../manifests/skill-compatibility.json", import.meta.url), "utf8"),
     );
 
-    expect(stdout).toContain("PASS: 65 skills");
+    expect(stdout).toContain("PASS: 58 skills");
     expect(lock.commit).toMatch(/^[0-9a-f]{40}$/);
-    expect(lock.skillCount).toBe(65);
+    expect(lock.skillCount).toBe(58);
     expect(lock.release).toMatchObject({
       package: "rose-aili",
-      version: "0.4.2",
-      npmGitHead: "bb1fedacc46d71045daa6257d121f2b71ba29d54",
-      tarballSha256: "df7c67af6acaa7e5080e81f5c7fab6b9dc77b5a24397a26240a527370cad206f",
+      version: "0.4.7",
+      npmGitHead: "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
+      tarballSha256: "0a72de82e467bcfc386e982c33db5aa153b989a136bbb0c2423156e3c41f07a0",
       protocols: {
-        agentSelection: { protocol: "aili-agent-selection/v1", sha256: "562951ec896b351983223a4a04833c260d9570307a1688dbaf7032055ee4161d" },
-        formalTaskBoard: { protocol: "aili-task-board/v1", sha256: "04343832b5cdfbde65f53f0a981a5f0e7c6e1b3507e65e5fdfbf2b3f696af58b" },
+        agentSelection: { protocol: "aili-agent-selection/v1", sha256: "db35b7c17ba76984d9ee2d69931dfbce80c6413b90953899a9ae5cc671855224" },
+        formalTaskBoard: { protocol: "aili-task-board/v1", sha256: "3512a280b8f854da27c74af77c72709a62187be4592d53b2d7717f565975c703" },
       },
     });
-    expect(lock.release.canonicalSpecialists).toHaveLength(19);
+    expect(lock.release.canonicalSpecialists).toHaveLength(20);
+    expect(lock.release.canonicalSpecialists).toContain("solution-architect");
     expect(lock.release.canonicalSpecialists).not.toContain("general");
     expect(compatibility.source.release).toEqual(lock.release);
-    expect(compatibility.records).toHaveLength(65);
-    expect(new Set(compatibility.records.map((record: { name: string }) => record.name)).size).toBe(65);
+    expect(lock.runtimeBundle).toMatchObject({ sourceRoot: "generated/pi", targetRoot: "upstream/aili-workflows-runtime" });
+    expect(lock.runtimeBundle.fileCount).toBeGreaterThan(8);
+    expect(compatibility.records).toHaveLength(58);
+    expect(new Set(compatibility.records.map((record: { name: string }) => record.name)).size).toBe(58);
   });
 
   it("fails closed when a generated skill is edited", async () => {

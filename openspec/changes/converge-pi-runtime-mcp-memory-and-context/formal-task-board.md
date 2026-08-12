@@ -1,0 +1,333 @@
+# Formal Task Board
+
+- Protocol: `aili-task-board/v1`
+- Task kind: formal
+- Task identity: converge-pi-runtime-mcp-memory-and-context
+- Goal: converge Workflow ownership, MCP/MemPalace, Agent transparency, Pi-native UI, upstream context runtime, license and package evidence
+- Phase: SHIP
+- Board status: release-ready-awaiting-exact-git-publish-operations
+- Accepted contract: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+- Accepted verification: artifact:openspec/changes/converge-pi-runtime-mcp-memory-and-context/test-plan.md
+- Decision owner: ROSE
+- Verification owner: ROSE
+
+## Packages
+
+- [x] BUILD-01 — Freeze upstream and package identities
+  - Phase: BUILD
+  - Package kind: task-execution
+  - Source refs: task:1.1, requirement:package-license-and-provenance
+  - Accepted task IDs: 1.1
+  - Status: done
+  - Owner: agent:aili.web-researcher
+  - Dispatch: required
+  - Dispatch reason: current official release/package compatibility evidence
+  - No-dispatch reason: N/A
+  - Execution: sync
+  - Join: immediate
+  - Depends on: none
+  - Decision gate: resolved: exact identities are the package result
+  - Final test-plan gate: accepted: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+  - Implementation authorization: granted
+  - Operation permissions: granted: read-only public evidence; mutation absent
+  - Scope: verify exact frozen releases, artifacts, licenses and compatibility
+  - Forbidden scope: dependency writes, installs, floating pins, configuration mutation
+  - Expected result: immutable identity and compatibility evidence or material-discovery blocker
+  - Expected evidence: artifact:BUILD-01-public-identity-report
+  - Acceptance: all frozen identities remain compatible or BUILD stops before mutation
+  - Dispatch evidence: verification:BUILD-01-dispatch-attempt-2
+  - Result evidence: verification:BUILD-01-output-persistence-failure-2
+  - Evidence: verification:BUILD-01-public-identity-evidence
+  - ROSE disposition: accepted
+  - Blocker: none after exact registry and PyPI verification
+  - Next action: advance BUILD-02 permission recording
+
+- [x] BUILD-02 — Record exact operation permissions
+  - Phase: BUILD
+  - Package kind: task-execution
+  - Source refs: task:1.2, decision:operation-boundaries
+  - Accepted task IDs: 1.2
+  - Status: done
+  - Owner: ROSE
+  - Dispatch: forbidden
+  - Dispatch reason: N/A
+  - No-dispatch reason: N/A
+  - Execution: direct
+  - Join: N/A
+  - Depends on: BUILD-01
+  - Decision gate: resolved
+  - Final test-plan gate: accepted: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+  - Implementation authorization: granted
+  - Operation permissions: satisfied: exact risky operations recorded absent and not executed
+  - Scope: record exact target-bound permission before each risky operation
+  - Forbidden scope: infer, group or fabricate approval
+  - Expected result: operation ledger with granted/N/A/absent state
+  - Expected evidence: artifact:BUILD-02-operation-ledger
+  - Acceptance: no risky operation runs without its own current exact permission
+  - Dispatch evidence: pending
+  - Result evidence: verification:BUILD-02-operation-ledger-recorded
+  - Evidence: verification:BUILD-02-operation-ledger
+  - ROSE disposition: accepted
+  - Blocker: none; gated operations remain absent and unexecuted
+  - Next action: activate BUILD-03 within accepted local implementation scope
+
+- [ ] BUILD-03 — Workflow runtime bundle convergence (superseded 19-Agent contract)
+  - Phase: BUILD
+  - Package kind: evidence
+  - Source refs: requirement:workflow-runtime-bundle-consumption, decision:user-accepted-rose-aili-0.4.7-full-20-agent-catalog
+  - Accepted task IDs: none
+  - Status: cancelled
+  - Owner: agent:aili.implementer
+  - Dispatch: required
+  - Dispatch reason: bounded runtime and generated-resource implementation
+  - No-dispatch reason: N/A
+  - Execution: sync
+  - Join: immediate
+  - Depends on: BUILD-01, BUILD-02
+  - Decision gate: resolved: superseded by the accepted full 20-Agent public catalog
+  - Final test-plan gate: accepted: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+  - Implementation authorization: granted
+  - Operation permissions: granted: repository-local production/test edits plus exact rose-aili 0.4.7 bundle-lock-snapshot-provenance refresh; dependency and package-lock writes absent
+  - Scope: preserve dispatch and material-delta evidence for the superseded pre-decision package
+  - Forbidden scope: execution after supersession, user-file deletion, aili-workflows writes, unrelated generated cleanup
+  - Expected result: supersession evidence linked to a fresh current task-execution package
+  - Expected evidence: verification:BUILD-03-upstream-20-specialist-delta
+  - Acceptance: old 19-Agent assumptions do not execute after the user adopts the full canonical bundle
+  - Dispatch evidence: verification:BUILD-03-dispatch-attempt-9
+  - Result evidence: verification:BUILD-03-implementer-bash-ceiling-block-2
+  - Evidence: pending
+  - ROSE disposition: superseded
+  - Blocker: old package contract was materially changed by accepting the full rose-aili 0.4.7 20-Agent catalog
+  - Next action: continue accepted tasks 2.1-2.3 only through BUILD-03-R2
+
+- [x] BUILD-03-R2 — Workflow runtime bundle convergence with canonical 20-Agent catalog
+  - Phase: BUILD
+  - Package kind: task-execution
+  - Source refs: task:2.1, task:2.2, task:2.3, requirement:workflow-runtime-bundle-consumption, decision:user-accepted-rose-aili-0.4.7-full-20-agent-catalog
+  - Accepted task IDs: 2.1, 2.2, 2.3
+  - Status: done
+  - Owner: agent:aili.implementer
+  - Dispatch: waived
+  - Dispatch reason: bounded runtime and generated-resource implementation
+  - No-dispatch reason: exact aili.implementer role is unavailable for the command-dependent package after two fresh attempts because its canonical tool ceiling excludes command execution; ROSE has equivalent local tools and exact repository-local permission
+  - Execution: direct
+  - Join: N/A
+  - Depends on: BUILD-01, BUILD-02
+  - Decision gate: resolved: user accepted all 20 canonical rose-aili 0.4.7 Specialized Agents including aili.solution-architect
+  - Final test-plan gate: accepted: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+  - Implementation authorization: granted
+  - Operation permissions: granted: repository-local production/test edits plus exact rose-aili 0.4.7 bundle-lock-snapshot-provenance refresh; dependency and package-lock writes absent
+  - Scope: bundle loader, consumers, canonical 20-Agent catalog, duplicate ownership retirement and focused tests
+  - Forbidden scope: user-file deletion, aili-workflows writes, unrelated generated cleanup
+  - Expected result: one fail-closed Workflow bundle owner exposing the complete canonical 20-Agent catalog
+  - Expected evidence: verification:BUILD-03-R2-workflow-bundle-evidence
+  - Acceptance: all bundle artifacts have one consumer, all 20 canonical selectors are consistent, and duplicate production ownership is absent
+  - Dispatch evidence: verification:BUILD-03-R2-exact-role-command-capability-unavailable-waiver
+  - Result evidence: verification:BUILD-03-R2-direct-implementation-result
+  - Evidence: artifact:BUILD-03-R2-artifact-consumer-matrix, verification:BUILD-03-R2-focused-checks
+  - ROSE disposition: accepted
+  - Blocker: none
+  - Next action: advance BUILD-06 dependency assessment while other BUILD packages remain separately gated
+
+- [x] BUILD-04 — Parent/Worker MCP runtime and permissions
+  - Phase: BUILD
+  - Package kind: task-execution
+  - Source refs: task:3.1, task:3.2, task:3.3, task:3.4, task:3.5, requirement:mcp-runtime-integration
+  - Accepted task IDs: 3.1, 3.2, 3.3, 3.4, 3.5
+  - Status: done
+  - Owner: agent:aili.implementer
+  - Dispatch: waived
+  - Dispatch reason: cross-module session lifecycle and permission implementation
+  - No-dispatch reason: exact aili.implementer dispatch with the Parent model/thinking failed before allocation because the active loaded runtime rejected current repository-verified role provenance; reloading or mutating the user-home runtime remains separately gated, and ROSE has equivalent repository-local tools for the unchanged authorized package
+  - Execution: direct
+  - Join: N/A
+  - Depends on: BUILD-01, BUILD-02
+  - Decision gate: resolved
+  - Final test-plan gate: accepted: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+  - Implementation authorization: granted for repository-local BUILD by current continuation
+  - Operation permissions: granted by user for exact Pi package/lockfile upgrade of agent-core, pi-ai, coding-agent and pi-tui to 0.84.1 plus exact pi-mcp-adapter@2.23.0 install; shared config, server install/start, live probe and user-home writes remain absent
+  - Scope: config resolution, adapter factories, disposal, approval intersection and lazy status
+  - Forbidden scope: shared config write, server install, permission widening
+  - Expected result: isolated Parent/Worker MCP runtime with multi-origin permission enforcement
+  - Expected evidence: verification:BUILD-04-mcp-runtime-evidence
+  - Acceptance: same config, separate instances, complete disposal and no origin bypass
+  - Dispatch evidence: verification:BUILD-04-dispatch-attempt-1;verification:BUILD-04-exact-role-runtime-provenance-mismatch-waiver
+  - Result evidence: verification:BUILD-04-direct-implementation-result
+  - Evidence: verification:BUILD-04-exact-dependency-graph;verification:BUILD-04-mcp-focused-tests;verification:BUILD-04-full-suite;verification:BUILD-04-typecheck;verification:BUILD-04-compatibility-validation;verification:BUILD-04-provenance-validation;verification:BUILD-04-generated-validation;verification:BUILD-04-package-validation;verification:BUILD-04-openspec-validation;verification:BUILD-04-diff-check
+  - ROSE disposition: accepted
+  - Blocker: none; shared config write, server install/start and live probes remain independently gated for BUILD-05
+  - Next action: advance only the repository-local dependency-ready part of BUILD-05 while preserving every external operation gate
+
+- [x] BUILD-05 — MCP configuration and MemPalace mapping
+  - Phase: BUILD
+  - Package kind: task-execution
+  - Source refs: task:4.1, task:4.2, task:4.3, task:4.4, task:4.5, task:4.6, task:4.7, task:4.8, task:4.9, requirement:mempalace-memory-runtime
+  - Accepted task IDs: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9
+  - Status: done
+  - Owner: ROSE
+  - Dispatch: forbidden
+  - Dispatch reason: N/A
+  - No-dispatch reason: N/A
+  - Execution: direct
+  - Join: N/A
+  - Depends on: BUILD-04
+  - Decision gate: resolved product direction; runtime mapping evidence pending
+  - Final test-plan gate: accepted: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+  - Implementation authorization: granted for repository-local BUILD by current continuation
+  - Operation permissions: user authorized completing the remaining accepted BUILD scope on 2026-08-12; repository-local preview/mapping plus exact shared MCP config write, pinned tool installs, Palace init/read/write, required embedding/browser asset download, selected CodeGraph index, and bounded live/runtime probes are granted; delete/import/mine, unrelated project indexing, Git, publish and release remain absent
+  - Scope: sequence preview, mapping implementation and separately approved external operations
+  - Forbidden scope: grouped approval, implicit init/mining, secrets output, second memory store
+  - Expected result: truthful configured servers and sole Palace mapping or explicit gated residuals
+  - Expected evidence: verification:BUILD-05-mempalace-evidence
+  - Acceptance: no operation exceeds its exact approval and no fallback store exists
+  - Dispatch evidence: N/A: ROSE-owned operation package
+  - Result evidence: verification:BUILD-05-config-memory-and-live-probe-result
+  - Evidence: verification:BUILD-05-config-preview-and-atomic-write;verification:BUILD-05-pinned-install-identities;verification:BUILD-05-mempalace-status-search-write-readback;verification:BUILD-05-context7-playwright-codegraph-smokes;verification:BUILD-05-parent-worker-runtime-evidence
+  - ROSE disposition: accepted
+  - Blocker: none; delete/import/mine remain unexecuted and unauthorized
+  - Next action: retain exact redacted operation evidence for final convergence
+
+- [x] BUILD-06 — Transparent task/hub surfaces
+  - Phase: BUILD
+  - Package kind: task-execution
+  - Source refs: task:5.1, task:5.2, task:5.3, requirement:agent-dispatch-transparency, requirement:subagent-model-selection
+  - Accepted task IDs: 5.1, 5.2, 5.3
+  - Status: done
+  - Owner: agent:aili.implementer
+  - Dispatch: waived
+  - Dispatch reason: bounded persistent-Agent preflight, metadata and renderer implementation
+  - No-dispatch reason: exact aili.implementer dispatch is unavailable because the active loaded runtime rejected the current verified repository role manifest as a provenance mismatch; repairing or reloading the user-home runtime is outside this package, and ROSE has equivalent repository-local tools and permission for the unchanged scope
+  - Execution: direct
+  - Join: N/A
+  - Depends on: BUILD-03-R2
+  - Decision gate: resolved
+  - Final test-plan gate: accepted: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+  - Implementation authorization: granted
+  - Operation permissions: N/A for local code/tests
+  - Scope: complete model/selector/thinking preflight before durable allocation, freeze and propagate effective identity through task settlement/delivery/hub/audit, add shared top-level/nested task/hub renderers, and add focused tests while preserving accepted pre-existing runtime edits
+  - Forbidden scope: change formal authority, leak prompts/secrets/protected paths, alter execution from renderer, overwrite unrelated worktree changes, or modify the owning Board/progress ledger
+  - Expected result: atomic zero-allocation failure and one redacted white-box identity/rendering contract across task, hub, delivery and audit
+  - Expected evidence: verification:BUILD-06-task-hub-evidence
+  - Acceptance: flat/batch preflight allocates zero identities on any failure; effective model/thinking and IDs agree across task/hub/delivery/audit; shared renderers cover accepted statuses, batch, width, redaction and malformed fallback without affecting execution
+  - Dispatch evidence: verification:BUILD-06-exact-role-runtime-provenance-mismatch-waiver
+  - Result evidence: verification:BUILD-06-direct-implementation-result
+  - Evidence: verification:BUILD-06-focused-tests, verification:BUILD-06-persistent-runtime-regression, verification:BUILD-06-typecheck, verification:BUILD-06-role-validation, verification:BUILD-06-openspec-validation, verification:BUILD-06-diff-check
+  - ROSE disposition: accepted
+  - Blocker: none
+  - Next action: advance the next dependency-ready BUILD package while all separately gated packages retain their current blockers
+
+- [x] BUILD-07 — Pi-native UI and minimal footer
+  - Phase: BUILD
+  - Package kind: task-execution
+  - Source refs: task:6.1, task:6.2, task:6.3, task:6.4, task:6.5, requirement:pi-native-runtime-ui
+  - Accepted task IDs: 6.1, 6.2, 6.3, 6.4
+  - Status: done
+  - Owner: agent:aili.implementer
+  - Dispatch: waived
+  - Dispatch reason: bounded UI ownership inventory, retirement and footer implementation
+  - No-dispatch reason: exact aili.implementer dispatch with the Parent model/thinking failed before allocation because the active loaded runtime again rejected the current repository-verified role manifest provenance; reloading or mutating the user-home runtime is separately gated, and ROSE has equivalent repository-local tools for the unchanged scope
+  - Execution: direct
+  - Join: N/A
+  - Depends on: BUILD-02
+  - Decision gate: resolved by prerequisite read-only dependency inventory before any deletion; material discovery stops affected mutation
+  - Final test-plan gate: accepted: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+  - Implementation authorization: granted for repository-local BUILD by current continuation
+  - Operation permissions: real TUI probe absent and remains not run; local code/tests N/A
+  - Scope: first inventory fixed-editor and WSL image-paste dependency/call paths, then retire only proven in-scope UI owners, implement the public-Pi-API footer and focused deterministic tests
+  - Forbidden scope: delete retained independent behavior, mutate legacy user config, replace Pi working/thinking, run real TUI/live probes, touch owning Board/progress ledger, overwrite unrelated dirty-worktree changes
+  - Expected result: Pi-native UI with low-frequency disposable footer while retained fixed-editor/WSL behavior remains owned or affected work stops on material discovery
+  - Expected evidence: verification:BUILD-07-native-ui-evidence
+  - Acceptance: inventory precedes deletion; no retired owner remains; retained behavior is proven; footer layout/lifecycle tests pass; real TUI behavior stays explicitly unverified
+  - Dispatch evidence: verification:BUILD-07-exact-role-runtime-provenance-mismatch-waiver
+  - Result evidence: verification:BUILD-07-direct-implementation-result
+  - Evidence: verification:BUILD-07-native-ui-focused-tests, verification:BUILD-07-typecheck, verification:BUILD-07-provenance-validation, verification:BUILD-07-generated-validation, verification:BUILD-07-openspec-validation, verification:BUILD-07-diff-check
+  - ROSE disposition: accepted for tasks 6.1-6.4; task 6.5 remains operation-gated and unexecuted
+  - Blocker: none for repository-local implementation; real TUI probe remains separately gated and Unverified
+  - Next action: keep task 6.5 NOT_RUN_GATED through BUILD-07-L1 and advance the next dependency-ready package
+
+- [x] BUILD-07-L1 — Real Pi TUI ownership probe
+  - Phase: BUILD
+  - Package kind: evidence
+  - Source refs: task:6.5, requirement:pi-native-runtime-ui
+  - Accepted task IDs: 6.5
+  - Status: done
+  - Owner: agent:aili.test-engineer
+  - Dispatch: waived
+  - Dispatch reason: bounded real terminal evidence for Parent, Worker and tool working/thinking ownership
+  - No-dispatch reason: exact aili.test-engineer dispatch failed before allocation because the active loaded runtime rejected current repository-verified role provenance; reloading or mutating the user-home runtime is separately gated, and ROSE can run the unchanged bounded probe directly
+  - Execution: direct
+  - Join: immediate
+  - Depends on: BUILD-07
+  - Decision gate: resolved
+  - Final test-plan gate: accepted: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+  - Implementation authorization: N/A for evidence-only probe
+  - Operation permissions: granted by user on 2026-08-12 for one bounded real Pi TUI/runtime probe in the current environment; provider usage is limited to the selected harmless flow and user-home/config mutation remains absent
+  - Scope: observe one bounded real Pi terminal flow for Parent, Worker and tool execution and record environment and limitations
+  - Forbidden scope: production mutation, provider probe beyond the selected local flow, user-home/config mutation, subjective performance claim, Git/publish/release
+  - Expected result: bounded terminal evidence that only Pi-native working/thinking animates and the footer remains stable, or explicit Unverified blocker
+  - Expected evidence: verification:BUILD-07-real-tui-evidence
+  - Acceptance: exact approved environment and observations are recorded without generalizing beyond the probe
+  - Dispatch evidence: verification:BUILD-07-L1-role-manifest-provenance-mismatch-waiver
+  - Result evidence: verification:BUILD-07-L1-real-pi-0.84.1-pty-probe
+  - Evidence: verification:BUILD-07-L1-pi-native-working-spinner;verification:BUILD-07-L1-footer-stability;verification:BUILD-07-L1-mcp-four-server-status
+  - ROSE disposition: accepted for the single observed Parent/provider flow; Worker/tool-specific visual behavior remains bounded by deterministic ownership tests and is not generalized beyond this probe
+  - Blocker: none
+  - Next action: retain the exact environment and single-probe limitation for final convergence
+
+- [x] BUILD-08 — Provider-routed compaction, retry and Pi 0.84.1
+  - Phase: BUILD
+  - Package kind: task-execution
+  - Source refs: task:7.1, task:7.2, task:7.3, task:7.4, task:7.5, task:7.6, task:8.1, task:8.2, task:8.3, task:9.1
+  - Accepted task IDs: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 8.1, 8.2, 8.3, 9.1
+  - Status: done
+  - Owner: agent:aili.implementer
+  - Dispatch: waived
+  - Dispatch reason: complete vendored upstream integration and compatibility work
+  - No-dispatch reason: exact aili.implementer dispatch failed before allocation because the active loaded runtime rejected current repository-verified role provenance; this unchanged package also requires command/network execution beyond the generated implementer ceiling, and ROSE has equivalent repository-local tools under the user's exact operation authorization
+  - Execution: direct
+  - Join: immediate
+  - Depends on: BUILD-01, BUILD-02
+  - Decision gate: resolved: accepted Codex Remote V2 plus billion-context routing revision
+  - Final test-plan gate: accepted: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+  - Implementation authorization: granted for repository-local BUILD by current continuation
+  - Operation permissions: user authorized completing the remaining accepted BUILD scope on 2026-08-12, including exact source/package acquisition and vendoring for billion-context-pi@0.1.34 and @narumitw/pi-retry@0.31.0, exact @narumitw/pi-codex-compact@0.50.0 dependency/lockfile mutation if public package composition suffices, and bounded provider/process/package probes; Pi 0.84.1 dependency mutation is already completed; Git/publish/release remain absent
+  - Scope: exact Codex Remote V2 integration, complete billion-context tree, atomic provider router, retry diagnostics and exact Pi 0.84.1
+  - Forbidden scope: algal production integration, delete billion-context upstream files, dual owner per turn, second retry loop, false compatibility
+  - Expected result: Codex-exclusive Remote V2 plus ACP for all other providers and explainable retry on Pi 0.84.1
+  - Expected evidence: verification:BUILD-08-context-runtime-evidence
+  - Acceptance: all revised tasks satisfy specs or stop on material discovery
+  - Dispatch evidence: verification:BUILD-08-role-manifest-provenance-mismatch-waiver
+  - Result evidence: verification:BUILD-08-direct-context-retry-pi084-result
+  - Evidence: verification:BUILD-08-exact-npm-and-git-identities;verification:BUILD-08-complete-billion-tree;verification:BUILD-08-provider-router-tests;verification:BUILD-08-codex-single-retry-owner;verification:BUILD-08-retry-diagnostics;verification:BUILD-08-pi084-deduped-graph;verification:BUILD-08-focused-and-full-tests
+  - ROSE disposition: accepted; Codex provider-backed ordinary turn passed, while direct-OpenAI/non-OpenAI probes were truthfully unavailable because current auth checks returned not_ready and the 32K comparison therefore retained the upstream 64K default
+  - Blocker: none
+  - Next action: activate BUILD-09
+
+- [x] BUILD-09 — License, package integration and completion
+  - Phase: BUILD
+  - Package kind: task-execution
+  - Source refs: task:10.1, task:10.2, task:10.3, task:10.4, task:11.1, task:11.2, task:11.3, task:12.1, task:12.2
+  - Accepted task IDs: 10.1, 10.2, 10.3, 10.4, 11.1, 11.2, 11.3, 12.1, 12.2
+  - Status: done
+  - Owner: ROSE
+  - Dispatch: forbidden
+  - Dispatch reason: N/A
+  - No-dispatch reason: N/A
+  - Execution: direct
+  - Join: N/A
+  - Depends on: BUILD-03-R2, BUILD-04, BUILD-05, BUILD-06, BUILD-07, BUILD-08
+  - Decision gate: MIT direction resolved; authorization evidence pending
+  - Final test-plan gate: accepted: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+  - Implementation authorization: granted for repository-local completion work by current continuation
+  - Operation permissions: user authorized per-path license disposition and, only if it clears without blocker, owner-authorized root MIT replacement; provenance regeneration, real candidate tarball creation/hash/inventory, disposable exact-tarball install, exact public baseline install, candidate upgrade and rollback are granted; Git/publish/release remain absent
+  - Scope: license/provenance/docs, focused verification, actual tarball, disposable lifecycle and completion inspection
+  - Forbidden scope: infer legal authority, commit/push/publish/release, false PASS
+  - Expected result: IMPLEMENTED_TARGETED_VERIFIED or explicit blocker
+  - Expected evidence: verification:BUILD-09-package-evidence
+  - Acceptance: all accepted tasks linked to evidence and BUILD stops before Git/publication
+  - Dispatch evidence: verification:BUILD-09-review-dispatch-provenance-mismatch-waiver
+  - Result evidence: verification:BUILD-09-package-evidence
+  - Evidence: artifact:docs/license-disposition.md;verification:BUILD-09-full-suite;verification:BUILD-09-typecheck;verification:BUILD-09-provenance;verification:BUILD-09-generated;verification:BUILD-09-package;verification:BUILD-09-real-tarball;verification:BUILD-09-clean-load-upgrade-rollback;verification:BUILD-09-openspec;verification:BUILD-09-diff-check;verification:BUILD-09-direct-final-inspection
+  - ROSE disposition: accepted
+  - Blocker: none; provider classes without configured authentication remain Unverified live evidence, no default retained-history change was made, and the task-created ACP user-settings mutation was exactly restored with the backup removed
+  - Next action: SHIP candidate `0.2.1` is verified; await exact commit/push/tag/npm-publish/GitHub-release operation approvals

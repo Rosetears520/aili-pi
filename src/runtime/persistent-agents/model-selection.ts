@@ -48,9 +48,17 @@ export function validateModelIdentifier(model: string): { provider: string; mode
   const normalized = model.trim();
   const slash = normalized.indexOf("/");
   if (slash <= 0 || slash === normalized.length - 1 || /[\s\0\r\n]/.test(normalized)) {
-    throw new Error(`model must use canonical provider/model form: ${model}`);
+    throw new Error(`model must use canonical provider/model form (for example, openai-codex/gpt-5.6-terra): ${model}`);
   }
   return { provider: normalized.slice(0, slash), model: normalized.slice(slash + 1), canonical: normalized };
+}
+
+function validateBareModelIdentifier(model: string): string {
+  const normalized = model.trim();
+  if (!normalized || normalized.includes("/") || /[\s\0\r\n]/.test(normalized)) {
+    throw new Error(`bare model must be one exact model id without provider or whitespace: ${model}`);
+  }
+  return normalized;
 }
 
 function validateOverride(value: unknown, label: string): ModelOverride {
@@ -180,6 +188,7 @@ export interface CatalogModel {
 export interface ModelCatalog {
   resolve(model: string): Promise<CatalogModel | undefined>;
   resolveParentFallback(): Promise<CatalogModel | undefined>;
+  resolveBare?(model: string): Promise<CatalogModel[]>;
 }
 
 export class OfficialPiModelCatalog implements ModelCatalog {
@@ -207,6 +216,19 @@ export class OfficialPiModelCatalog implements ModelCatalog {
     if (!this.parentModel) return undefined;
     return await this.resolve(`${this.parentModel.provider}/${this.parentModel.id}`);
   }
+
+  async resolveBare(model: string): Promise<CatalogModel[]> {
+    const id = validateBareModelIdentifier(model);
+    return this.runtime.getModels()
+      .filter((candidate) => candidate.id === id)
+      .map((candidate) => ({
+        provider: candidate.provider,
+        model: candidate.id,
+        available: this.runtime.getAvailableSnapshot().some((available) => available.provider === candidate.provider && available.id === candidate.id),
+        authenticated: this.runtime.hasConfiguredAuth(candidate.provider),
+        thinkingLevels: this.thinkingLevels({ provider: candidate.provider, id: candidate.id }),
+      }));
+  }
 }
 
 export interface ResolveModelInput {
@@ -231,6 +253,18 @@ export interface ResolvedModelChoice {
   oneShot: boolean;
 }
 
+export async function revalidateResolvedModelChoice(choice: ResolvedModelChoice, catalog: ModelCatalog): Promise<void> {
+  const candidate = await catalog.resolve(choice.canonical);
+  if (!candidate || candidate.provider !== choice.provider || candidate.model !== choice.model) {
+    throw new ModelSelectionError(choice.layer, `${choice.canonical} is no longer present; frozen identity was not switched`);
+  }
+  if (!candidate.available) throw new ModelSelectionError(choice.layer, `${choice.canonical} is no longer available; frozen identity was not switched`);
+  if (!candidate.authenticated) throw new ModelSelectionError(choice.layer, `${choice.canonical} is no longer authenticated; frozen identity was not switched`);
+  if (candidate.thinkingLevels && !candidate.thinkingLevels.includes(choice.thinking)) {
+    throw new ModelSelectionError(choice.layer, `${choice.canonical} no longer supports thinking=${choice.thinking}; frozen identity was not switched`);
+  }
+}
+
 export class ModelSelectionError extends Error {
   constructor(readonly layer: ModelLayer, message: string) {
     super(`${layer} model selection failed: ${message}`);
@@ -251,8 +285,31 @@ export async function resolveModelChoice(input: ResolveModelInput, catalog: Mode
   const requested = selected?.value;
   let candidate: CatalogModel | undefined;
   if (requested) {
-    validateModelIdentifier(requested.model);
-    candidate = await catalog.resolve(requested.model);
+    if (layer === "one-shot" && !requested.model.includes("/")) {
+      const bare = validateBareModelIdentifier(requested.model);
+      if (!catalog.resolveBare) throw new ModelSelectionError(layer, `bare model '${bare}' cannot be resolved by this catalog`);
+      const matches = await catalog.resolveBare(bare);
+      const eligible = matches.filter((match) => match.available && match.authenticated);
+      const parentProvider = (await catalog.resolveParentFallback())?.provider;
+      const parentMatches = parentProvider ? matches.filter((match) => match.provider === parentProvider) : [];
+      if (parentMatches.length > 0) {
+        const usableParentMatches = parentMatches.filter((match) => match.available && match.authenticated);
+        if (usableParentMatches.length === 1) candidate = usableParentMatches[0];
+        else if (usableParentMatches.length > 1) {
+          throw new ModelSelectionError(layer, `bare model '${bare}' is ambiguous on Parent provider ${parentProvider}: ${usableParentMatches.map((match) => `${match.provider}/${match.model}`).join(", ")}`);
+        } else {
+          throw new ModelSelectionError(layer, `bare model '${bare}' matches Parent provider ${parentProvider} but is unavailable or unauthenticated; other providers were not considered`);
+        }
+      } else if (eligible.length === 1) candidate = eligible[0];
+      else if (eligible.length > 1) {
+        throw new ModelSelectionError(layer, `bare model '${bare}' is ambiguous across authenticated available candidates: ${eligible.map((match) => `${match.provider}/${match.model}`).join(", ")}`);
+      } else {
+        throw new ModelSelectionError(layer, `bare model '${bare}' has no authenticated available candidate${matches.length > 0 ? `; observed: ${matches.map((match) => `${match.provider}/${match.model}`).join(", ")}` : ""}`);
+      }
+    } else {
+      validateModelIdentifier(requested.model);
+      candidate = await catalog.resolve(requested.model);
+    }
   } else {
     candidate = await catalog.resolveParentFallback();
   }

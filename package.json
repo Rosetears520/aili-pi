@@ -1,9 +1,9 @@
 {
   "name": "@rosetears/aili-pi",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "AILI and ROSE distribution for official Pi",
   "type": "module",
-  "license": "AGPL-3.0-or-later",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Rosetears520/aili-pi.git"
@@ -15,15 +15,16 @@
     "rose"
   ],
   "files": [
-    "extensions/",
+    "extensions/index.ts",
+    "extensions/footer/",
     "src/",
-    "!src/runtime/aili-compact/",
     "docs/",
-    "!docs/aili-compact.md",
     "roles/",
     "prompts/",
     "manifests/",
     "upstream/",
+    "!upstream/aili-workflows-runtime/AGENTS.md",
+    "!upstream/aili-workflows-runtime/prompts/",
     "scripts/",
     "!scripts/aili-compact-*",
     "!scripts/apply-aili-compact-*",
@@ -31,7 +32,6 @@
     "!scripts/live-release-support.ts",
     "!scripts/validate-aili-compact-*",
     "!scripts/validate-live-release.ts",
-    "themes/",
     "templates/",
     "install.sh",
     "licenses/",
@@ -42,10 +42,7 @@
   ],
   "pi": {
     "extensions": [
-      "./extensions/index.ts",
-      "./extensions/header/index.ts",
-      "./extensions/matrix/index.ts",
-      "./extensions/zentui/index.ts"
+      "./extensions/index.ts"
     ],
     "skills": [
       "./node_modules/pi-web-access/skills"
@@ -56,9 +53,6 @@
       "./prompts/build.md",
       "./prompts/ship.md",
       "./prompts/local-review.md"
-    ],
-    "themes": [
-      "./themes/rose-cyberdeck.json"
     ]
   },
   "engines": {
@@ -81,8 +75,8 @@
     "verify:permission-modes": "node --experimental-strip-types scripts/sync-permission-modes.ts --verify",
     "generate:provenance": "node --experimental-strip-types scripts/sync-permission-modes.ts --verify && node --experimental-strip-types scripts/generate-provenance.ts",
     "validate:provenance": "node --experimental-strip-types scripts/sync-permission-modes.ts --verify && node --experimental-strip-types scripts/generate-provenance.ts --verify",
-    "validate:capabilities": "node --experimental-strip-types scripts/validate-runtime.ts",
-    "validate:release": "node --experimental-strip-types scripts/validate-runtime.ts --release",
+    "validate:capabilities": "node --import tsx scripts/validate-runtime.ts",
+    "validate:release": "node --import tsx scripts/validate-runtime.ts --release",
     "test:doctor": "vitest run tests/unit/doctor.test.ts",
     "test:bootstrap": "vitest run tests/bootstrap/bootstrap.test.ts",
     "test:integration": "vitest run tests/integration",
@@ -92,6 +86,8 @@
     "validate:package": "vitest run tests/unit/package.test.ts"
   },
   "bundledDependencies": [
+    "@narumitw/pi-codex-compact",
+    "acp-kernel",
     "pi-cache-optimizer"
   ],
   "peerDependencies": {
@@ -99,22 +95,28 @@
     "typebox": "*"
   },
   "devDependencies": {
-    "@earendil-works/pi-agent-core": "0.82.1",
-    "@earendil-works/pi-ai": "0.82.1",
-    "@earendil-works/pi-coding-agent": "0.82.1",
-    "@earendil-works/pi-tui": "0.82.1",
+    "@earendil-works/pi-agent-core": "0.84.1",
+    "@earendil-works/pi-ai": "0.84.1",
+    "@earendil-works/pi-coding-agent": "0.84.1",
+    "@earendil-works/pi-tui": "0.84.1",
     "@types/node": "24.12.4",
+    "tsx": "4.20.6",
     "typebox": "1.1.38",
     "typescript": "5.9.3",
     "vitest": "4.1.9"
   },
   "dependencies": {
+    "@narumitw/pi-codex-compact": "0.50.0",
+    "acp-kernel": "0.0.19",
     "pi-cache-optimizer": "2.6.18",
+    "pi-mcp-adapter": "2.23.0",
     "pi-permission-modes": "2.2.0",
     "pi-quota-status": "0.3.0",
     "pi-web-access": "0.13.0"
   },
   "bundleDependencies": [
+    "@narumitw/pi-codex-compact",
+    "acp-kernel",
     "pi-cache-optimizer"
   ]
 }

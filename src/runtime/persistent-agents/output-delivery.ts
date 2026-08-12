@@ -15,7 +15,7 @@ import { parseCanonicalFormalResult } from "./task-coordinator.js";
 import { assertNoCredentialMaterial } from "./permission.js";
 
 export const PARENT_PREVIEW_CHAR_LIMIT = 5_000;
-export const BUILTIN_PARENT_DELETE_GAP = "official Pi 0.82.1 built-in Ctrl+D/archive does not cascade AILI sidecars; use confirmed AILI deletion or reconciliation";
+export const BUILTIN_PARENT_DELETE_GAP = "official Pi 0.84.1 built-in Ctrl+D/archive does not cascade AILI sidecars; use confirmed AILI deletion or reconciliation";
 
 function isInside(root: string, candidate: string): boolean {
   const rel = relative(root, candidate);
@@ -291,6 +291,12 @@ export interface ParentResultMessage {
     jobId: string;
     turnId: string;
     status: string;
+    selector: string;
+    effectiveMode: "async";
+    requestedModel?: string;
+    effectiveModel?: string;
+    modelLayer?: string;
+    thinking?: string;
     outputRef: string;
     historyRef: string;
     previewTruncated: boolean;
@@ -363,6 +369,14 @@ export class AsyncDeliveryService {
           jobId: settlement.jobId,
           turnId: settlement.turnId,
           resultStatus: settlement.status,
+          selector: settlement.selector,
+          effectiveMode: settlement.effectiveMode,
+          requestedModel: settlement.model.requested,
+          effectiveModel: settlement.model.provider && settlement.model.model
+            ? `${settlement.model.provider}/${settlement.model.model}`
+            : undefined,
+          modelLayer: settlement.model.layer,
+          thinking: settlement.model.thinking,
           outputRef: settlement.outputRef,
           historyRef: settlement.historyRef,
           preview: outputPreview.content,
@@ -421,6 +435,12 @@ export class AsyncDeliveryService {
           jobId: String(delivery.jobId),
           turnId: String(delivery.turnId),
           status: String(delivery.resultStatus),
+          selector: String(delivery.selector),
+          effectiveMode: "async",
+          ...(typeof delivery.requestedModel === "string" ? { requestedModel: delivery.requestedModel } : {}),
+          ...(typeof delivery.effectiveModel === "string" ? { effectiveModel: delivery.effectiveModel } : {}),
+          ...(typeof delivery.modelLayer === "string" ? { modelLayer: delivery.modelLayer } : {}),
+          ...(typeof delivery.thinking === "string" ? { thinking: delivery.thinking } : {}),
           outputRef: String(delivery.outputRef),
           historyRef: String(delivery.historyRef),
           previewTruncated: truncated,

@@ -4,7 +4,7 @@
 - Scope: `formal lifecycle only`
 - Runtime mapping: `adapter-owned`
 
-The Board is the current package-state, ownership, dependency, join, evidence, inspection, and disposition projection for one formal change. It does not replace accepted scope, create a user decision, grant implementation or operation authority, or replace fresh verification.
+The Board is the current package-state, ownership, dependency, join, evidence, inspection, and disposition projection for one formal change. `core/protocols/package-envelope.schema.json` owns the shared package/result/evidence semantics and `core/protocols/aili-task-board.v1.schema.json` owns this formal extension; this Markdown reference maps them into Board fields. It does not replace accepted scope, create a user decision, grant implementation or operation authority, or replace fresh verification.
 
 ## Creation and placement
 
@@ -120,7 +120,7 @@ pending → ready → running → done
 
 ## Ownership, dispatch, and waiver
 
-Ordinary delegation keeps its trigger-and-benefit decision. Formal ownership is different:
+Ordinary delegation keeps its specialist-preferred decision and named direct-work exceptions. Formal ownership is different:
 
 - A ready `Owner: agent:<canonical-role-id>` package creates an exact-owner dispatch obligation. A later ordinary negative-benefit judgment cannot change its role or make it direct.
 - `Owner: ROSE` uses `Dispatch: forbidden` and `Execution: direct`.

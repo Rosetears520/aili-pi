@@ -4,22 +4,71 @@
     {
       "name": "aili-workflows",
       "repository": "https://github.com/Rosetears520/aili-workflows.git",
-      "revision": "bb1fedacc46d71045daa6257d121f2b71ba29d54",
-      "version": "0.4.2",
+      "revision": "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
+      "version": "0.4.7",
       "license": "MIT",
       "status": "adapted",
       "sourceFiles": [
-        "upstream/aili-workflows.lock.json#files (588 exact skill files)",
-        "manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.2 source revision)",
-        "upstream/opencode-global-agents.lock.json (pinned source template revision/hash)"
+        "upstream/aili-workflows.lock.json#files (562 exact skill files)",
+        "upstream/aili-workflows-runtime/** (exact generated Pi runtime bundle)",
+        "manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.7 source revision)"
       ],
-      "symbols": ["65 canonical skill bodies and owned assets"],
+      "symbols": ["58 canonical skill bodies and owned assets", "20 canonical Specialized Agent roles", "Pi system/role/selection/protocol/installation runtime bundle"],
       "localChanges": [
         "skills/** is an exact byte-for-byte snapshot with no semantic overlay",
-        "specialized role prompts and deterministic routing were regenerated from the exact 0.4.2 source revision and remain manifest-hash bound",
-        "templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded"
+        "the generated Pi runtime bundle is copied byte-for-byte and validated through one lock-bound loader",
+        "specialized role prompts and deterministic routing were regenerated from the exact 0.4.7 source revision and remain manifest-hash bound",
+        "legacy APPEND_SYSTEM and global-role installation ownership is retired and report-only"
       ],
-      "verification": ["npm run verify:skills", "tests/unit/generated.test.ts", "tests/unit/global-resources.test.ts"]
+      "verification": ["npm run verify:skills", "tests/unit/workflow-bundle.test.ts", "tests/integration/workflow-bundle-consumers.test.ts", "tests/unit/generated.test.ts", "tests/unit/global-resources.test.ts"]
+    },
+    {
+      "name": "pi-mcp-adapter",
+      "repository": "https://github.com/nicobailon/pi-mcp-adapter.git",
+      "revision": "49e25be1cb917329980eb7a40786c5b91dddb277",
+      "version": "2.23.0",
+      "license": "MIT",
+      "status": "dependency",
+      "sourceFiles": ["index.ts", "types.ts", "mcp-status.ts", "tool-approval.ts"],
+      "symbols": ["createMcpAdapter", "MCP status snapshots", "multi-origin tool approval event"],
+      "localChanges": ["AILI composes a fresh factory for Parent and each persistent Worker through src/runtime/mcp.ts; no upstream source is copied and the dependency is not registered as a second Pi package"],
+      "verification": ["tests/unit/mcp-config.test.ts", "tests/unit/mcp-permission.test.ts", "tests/unit/mcp-status.test.ts", "tests/integration/mcp-session-runtime.test.ts", "npm run typecheck"]
+    },
+    {
+      "name": "billion-context-pi",
+      "repository": "https://github.com/ranxianglei/billion-context-pi.git",
+      "revision": "558a83a9db695571339d693ab75129c2f13a324c",
+      "version": "0.1.34",
+      "license": "MIT",
+      "status": "adapted",
+      "sourceFiles": ["upstream/billion-context-pi/** (complete tracked source tree except .git metadata)"],
+      "symbols": ["compress", "decompress", "search_context", "acp_status", "acp_delegate", "acp_delegate_wait", "acp_delegate_cancel", "context and compaction handlers"],
+      "localChanges": ["added AcpOwnershipRouter so a turn-frozen canonical route gates context, system-prompt and compaction ownership before side effects", "disabled upstream auto-update and user-home subagent settings mutation in the AILI composition", "rebuilt dist against the retained source and Pi 0.84.1"],
+      "verification": ["tests/unit/context-upstream-inventory.test.ts", "tests/unit/context-provider-router.test.ts", "tests/integration/context-runtime-load.test.ts", "npm run typecheck"]
+    },
+    {
+      "name": "pi-codex-compact",
+      "repository": "https://github.com/narumiruna/pi-extensions.git",
+      "revision": "c98af43a6c71c5839b2e0671db71ed1cc1fc0c51",
+      "version": "0.50.0",
+      "license": "MIT",
+      "status": "dependency",
+      "sourceFiles": ["node_modules/@narumitw/pi-codex-compact/src/**", "upstream/pi-codex-compact-0.50.0-src/**", "upstream/pi-codex-compact-0.50.0-LICENSE", "upstream/pi-codex-compact-0.50.0-README.md"],
+      "symbols": ["Codex Remote Compaction V2", "opaque checkpoint marker/fingerprint replay", "Pi-native fallback"],
+      "localChanges": ["composed only for canonical openai-codex/openai-codex-responses turns", "settings view forces extension transport maxRetries=0 so Pi owns retries"],
+      "verification": ["tests/unit/context-upstream-inventory.test.ts", "tests/unit/context-provider-router.test.ts", "tests/integration/context-runtime-load.test.ts", "npm run typecheck"]
+    },
+    {
+      "name": "pi-retry",
+      "repository": "https://github.com/narumiruna/pi-extensions.git",
+      "revision": "3ad2c94970132353fc869cd2297b017465740791",
+      "version": "0.31.0",
+      "license": "MIT",
+      "status": "adapted",
+      "sourceFiles": ["upstream/pi-retry-0.31.0/**", "src/runtime/provider-retry.ts"],
+      "symbols": ["provider retry classifiers", "stall watchdog", "receiving/retrying status", "Pi retry-policy integration"],
+      "localChanges": ["added bounded redacted structured retry diagnostics and exported classification helpers", "Pi 0.84.1 remains the sole attempt budget/backoff owner", "later upstream deprecated placement is documented in the accepted change"],
+      "verification": ["tests/unit/provider-retry-classification.test.ts", "tests/unit/footer-layout.test.ts", "npm run typecheck"]
     },
     {
       "name": "pi-permission-modes",
@@ -42,7 +91,7 @@
       "status": "dependency",
       "sourceFiles": ["src/index.ts", "src/subscription.ts", "src/format.ts", "src/paths.ts"],
       "symbols": ["quota footer", "Codex subscription windows", "/quota", "global state maintenance"],
-      "localChanges": ["AILI initializes the pinned upstream extension; upstream owns quota polling and state files; Zentui shows one canonical weekly segment as codex, preferring explicit Wk and using the dependency's legacy-mislabeled 5h primary only as fallback, without changing selected percentage or reset data"],
+      "localChanges": ["AILI initializes the pinned upstream extension; upstream owns quota polling and state files; the Pi-native minimal footer consumes its published status without changing percentage or reset data"],
       "verification": ["tests/unit/extension-status.test.ts", "tests/unit/runtime.test.ts", "tests/integration/extension-load.test.ts"]
     },
     {
@@ -66,8 +115,8 @@
       "status": "dependency",
       "sourceFiles": ["index.ts"],
       "symbols": ["default Extension", "/cache-optimizer", "cache statistics", "prompt cache hooks"],
-      "localChanges": ["AILI initializes the pinned upstream extension through its single Extension entry; Zentui defaults its pi-cache-stats footer placement off while leaving cache commands and collection unchanged; no upstream source is copied"],
-      "verification": ["tests/unit/runtime.test.ts", "tests/unit/extension-status.test.ts", "tests/integration/package-runtime.test.ts", "npm pack --dry-run --json"]
+      "localChanges": ["AILI initializes the pinned upstream extension through its single Extension entry; the Pi-native minimal footer gives model and quota status priority while leaving cache commands and collection unchanged; no upstream source is copied"],
+      "verification": ["tests/unit/runtime.test.ts", "tests/unit/footer-layout.test.ts", "tests/integration/package-runtime.test.ts", "npm pack --dry-run --json"]
     },
     {
       "name": "pi-sakura-cyberdeck",
@@ -77,9 +126,9 @@
       "license": "MIT",
       "status": "adapted",
       "sourceFiles": ["extensions/header/index.ts", "extensions/matrix/index.ts", "extensions/zentui/**"],
-      "symbols": ["header", "matrix animation", "Zentui footer", "fixed editor compositor"],
-      "localChanges": ["registered as three additional Pi Package Extensions", "Rose header loads a package-owned renamed artwork asset without changing upstream identity", "Rose Shimmer, Rose Code Rain, and Zentui use the Rose-owned palette and gradient", "overflowing Matrix tracks remain deterministic across the complete terminal width with the 96-track budget, while each rain row receives a structural blank-row repair", "relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract"],
-      "verification": ["tests/unit/matrix.test.ts", "tests/unit/zentui-gradient.test.ts", "npm run typecheck", "npm test", "npm pack --dry-run --json"]
+      "symbols": ["retired header", "retired matrix animation", "retired Zentui UI", "inactive fixed editor compositor"],
+      "localChanges": ["historical adapted source is retained in the repository but no header, Matrix, Zentui extension or theme is registered as a production Pi resource", "legacy user configuration is untouched", "the inactive fixed-editor source remains separate from the independently owned WSL image-paste keybinding behavior"],
+      "verification": ["tests/integration/native-ui-ownership.test.ts", "tests/integration/footer-runtime.test.ts", "tests/unit/footer-layout.test.ts", "tests/unit/footer-lifecycle.test.ts", "tests/bootstrap/bootstrap.test.ts", "npm run typecheck"]
     },
     {
       "name": "Oh My Pi reference",
@@ -94,17 +143,16 @@
       "verification": ["tests/integration/persistent-agent-runtime.test.ts", "tests/unit/persistent-agent-output-delivery.test.ts", "manual no-copy provenance inspection"]
     },
     {
-      "name": "opencode-acp reference",
-      "repository": "https://github.com/ranxianglei/opencode-acp.git",
-      "revision": "00e8ba5c53fcbc46dfd86b5d7aa6eae058d29acb",
-      "version": "1.14.3",
-      "license": "AGPL-3.0-or-later",
+      "name": "algal pi-openai-server-compaction reference",
+      "repository": "https://github.com/algal/pi-openai-server-compaction.git",
+      "revision": "8a3de2f3b0c178fdd6f73f2f94172dfc3943e466",
+      "version": "git:8a3de2f3b0c178fdd6f73f2f94172dfc3943e466",
+      "license": "MIT",
       "status": "reference-only",
       "sourceFiles": [],
       "symbols": [],
       "localChanges": [],
-      "verification": ["tests/integration/aili-compact.test.ts", "tests/unit/provenance.test.ts", "openspec/changes/redesign-aili-compact-lifecycle/test-plan.md", "manual pinned-source no-copy provenance inspection"],
-      "attribution": "Based on opencode-dynamic-context-pruning by Tarquinen (https://github.com/Tarquinen/opencode-dynamic-context-pruning); modified by ranxianglei, 2026 — 35 bug fixes plus performance and stability improvements."
+      "verification": ["openspec/changes/converge-pi-runtime-mcp-memory-and-context/compaction-decision.md", "tests/unit/package.test.ts"]
     }
   ]
 }

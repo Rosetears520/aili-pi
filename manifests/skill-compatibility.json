@@ -2,26 +2,26 @@
   "schemaVersion": 1,
   "source": {
     "repository": "https://github.com/Rosetears520/aili-workflows.git",
-    "commit": "bb1fedacc46d71045daa6257d121f2b71ba29d54",
-    "tree": "52b9bcb51c96c0883b22b7308d5a27f514a95181",
-    "contentHash": "8c0fdf99900574bedae57ee375b22d7dfa7f1ff2f6821ad7b7f79c3ad31708b5",
+    "commit": "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
+    "tree": "a3ae306a306ebaddc0c942248b3fab455760272a",
+    "contentHash": "cce823fc0cb0b1c4d30a5b7d1a3ba8c899de088dc63ade4712b613663bb22ce5",
     "release": {
       "package": "rose-aili",
-      "version": "0.4.2",
-      "npmGitHead": "bb1fedacc46d71045daa6257d121f2b71ba29d54",
-      "tarballSha256": "df7c67af6acaa7e5080e81f5c7fab6b9dc77b5a24397a26240a527370cad206f",
+      "version": "0.4.7",
+      "npmGitHead": "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
+      "tarballSha256": "0a72de82e467bcfc386e982c33db5aa153b989a136bbb0c2423156e3c41f07a0",
       "protocols": {
         "agentSelection": {
           "protocol": "aili-agent-selection/v1",
           "path": ".agents/skills/parallel-subagent-dispatch/references/agent-selection-matrix.md",
-          "sha256": "562951ec896b351983223a4a04833c260d9570307a1688dbaf7032055ee4161d",
-          "bytes": 7788
+          "sha256": "db35b7c17ba76984d9ee2d69931dfbce80c6413b90953899a9ae5cc671855224",
+          "bytes": 8833
         },
         "formalTaskBoard": {
           "protocol": "aili-task-board/v1",
           "path": ".agents/skills/aili-delivery-flow/references/formal-task-board.md",
-          "sha256": "04343832b5cdfbde65f53f0a981a5f0e7c6e1b3507e65e5fdfbf2b3f696af58b",
-          "bytes": 10037
+          "sha256": "3512a280b8f854da27c74af77c72709a62187be4592d53b2d7717f565975c703",
+          "bytes": 10300
         }
       },
       "canonicalSpecialists": [
@@ -30,6 +30,7 @@
         "web-researcher",
         "spec-miner",
         "plan-auditor",
+        "solution-architect",
         "implementer",
         "test-engineer",
         "test-coverage-reviewer",
@@ -104,118 +105,6 @@
       ]
     },
     {
-      "name": "agents-md-initialization",
-      "sourcePath": ".agents/skills/agents-md-initialization",
-      "sourceHash": "0d6c88191838f920afba6a90478e77328a885369b94a753d62b76aabd4855280",
-      "files": [
-        {
-          "path": "references/agents_md.py",
-          "sha256": "fdd21deb50d7f70703ee243e2650c83d417d2783a974bc05e50899e6c35c829b",
-          "bytes": 7603
-        },
-        {
-          "path": "references/agents-template.md",
-          "sha256": "1bece8733202d1eece8a646eec4e2b2fa5b7b7560719aee7db8809c2e0e81df8",
-          "bytes": 3127
-        },
-        {
-          "path": "SKILL.md",
-          "sha256": "6551a2933d855297761bc29f37b3cebe52b633ec8fabdf95aefe6b054c705c50",
-          "bytes": 5407
-        }
-      ],
-      "triggers": {
-        "description": "Create, update, or validate a project-local AGENTS.md from the shared AILI template when initializing or checking repository agent rules.",
-        "nearMissDeclared": true,
-        "stopOutcomes": []
-      },
-      "backendAnchors": [
-        {
-          "id": "backend.opencode",
-          "disposition": "retained as current adapter evidence; Pi must map the capability",
-          "occurrences": [
-            {
-              "path": "references/agents-template.md",
-              "lines": [
-                9
-              ]
-            }
-          ]
-        },
-        {
-          "id": "tool.subagent",
-          "disposition": "mapped through subagent.dispatch or blocked",
-          "occurrences": [
-            {
-              "path": "references/agents-template.md",
-              "lines": [
-                55
-              ]
-            }
-          ]
-        },
-        {
-          "id": "tool.symbol-graph",
-          "disposition": "mapped through repository graph capabilities or optional",
-          "occurrences": [
-            {
-              "path": "SKILL.md",
-              "lines": [
-                71,
-                72,
-                73,
-                74,
-                75,
-                77,
-                88,
-                120
-              ]
-            }
-          ]
-        },
-        {
-          "id": "backend.openspec",
-          "disposition": "retained as an artifact backend contract; no completion authority",
-          "occurrences": [
-            {
-              "path": "SKILL.md",
-              "lines": [
-                76
-              ]
-            }
-          ]
-        },
-        {
-          "id": "external.side-effect",
-          "disposition": "retained behind explicit capability and operation gates",
-          "occurrences": [
-            {
-              "path": "references/agents-template.md",
-              "lines": [
-                30
-              ]
-            }
-          ]
-        }
-      ],
-      "requiredCapabilities": [
-        "repo.read"
-      ],
-      "optionalCapabilities": [
-        "repo.write"
-      ],
-      "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
-      "verification": [
-        "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
-      ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
-    },
-    {
       "name": "ai-regression-scout",
       "sourcePath": ".agents/skills/ai-regression-scout",
       "sourceHash": "05018edd3bcc23a77bc78b00219bcce0d261014dee6c885545cd8e18d065e529",
@@ -239,7 +128,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -252,12 +141,12 @@
     {
       "name": "aili-delivery-flow",
       "sourcePath": ".agents/skills/aili-delivery-flow",
-      "sourceHash": "5c204655d2063db0416fff201f63fcacce6707237d9976aeea9f8cad01604f06",
+      "sourceHash": "03b21b6fccabc3e2f18495443a1435c235be2ee74a2374c85adf634228648404",
       "files": [
         {
           "path": "references/artifact-contracts.md",
-          "sha256": "c7062e86dda8818a152d56cd9f5e5e96812de744293e53736dcb5ab9357e0164",
-          "bytes": 18496
+          "sha256": "d351dfb8d935e763c56b8665ac61cb1edd252f837f4b312e0beb8a32940ae7f3",
+          "bytes": 18515
         },
         {
           "path": "references/backend-routing.md",
@@ -276,23 +165,23 @@
         },
         {
           "path": "references/direct-vs-delegated-work.md",
-          "sha256": "2b3cc4d4c3d5795906bc6abfed30d7cec9a6cca159f40c64cc04a88a1de039ad",
-          "bytes": 4111
+          "sha256": "d6d85e63087b85cc434cf8fe9cecb30ba0126b2225622f2262c7d865d8b629b4",
+          "bytes": 4253
         },
         {
           "path": "references/formal-task-board.md",
-          "sha256": "04343832b5cdfbde65f53f0a981a5f0e7c6e1b3507e65e5fdfbf2b3f696af58b",
-          "bytes": 10037
+          "sha256": "3512a280b8f854da27c74af77c72709a62187be4592d53b2d7717f565975c703",
+          "bytes": 10300
         },
         {
           "path": "references/implementation-packages.md",
-          "sha256": "404ee38cd0e1c697008e56c53081e68fe87b2765d9dfbe8e66d38316a31f776f",
-          "bytes": 9473
+          "sha256": "605830d5a568b411c0913c0947aff99120f6897a382ecc2239dfd7df7b5c1e99",
+          "bytes": 9661
         },
         {
           "path": "references/lifecycle.md",
-          "sha256": "bed3b0f42ddd398b6f9f997b4280785ac1150b31b0a4b5409bd9d883c44b0c45",
-          "bytes": 25757
+          "sha256": "016f7c6e38ab8564c5d78d860f2c089fcb53162463728698c67921ceffcd0000",
+          "bytes": 26024
         },
         {
           "path": "references/protocols/acceptance-test-plan.md",
@@ -321,8 +210,8 @@
         },
         {
           "path": "references/protocols/implementation-package.md",
-          "sha256": "5574d22fd04919ce7d53f83e19d60e766a39c4c8bee545051412e441e67be5ae",
-          "bytes": 4599
+          "sha256": "79f4effe1c3fdc0ebf6b54490e784b8aceb8011403b5460385a45d3059554a95",
+          "bytes": 4857
         },
         {
           "path": "references/protocols/research-evidence-pack.md",
@@ -341,13 +230,13 @@
         },
         {
           "path": "references/protocols/subagent-result.md",
-          "sha256": "b3611e21a387c12a6645ac34d3ef66bcf7142a27db2d69b8487ebea4e0aed302",
-          "bytes": 3897
+          "sha256": "a0d8c3882c7a1bf56f76df5d287e85a23c15f3d62cd65c24fbc48be0b6773004",
+          "bytes": 4036
         },
         {
           "path": "references/protocols/subagent-task-packet.md",
-          "sha256": "7a26d010fae194277310c9a404f51eb77cd99ef23e60d96170a46a92ef56e9fd",
-          "bytes": 3553
+          "sha256": "32e9c009dd9d58f4651d36bc42223be0501d7d32b37d0b57e5ab724e37726881",
+          "bytes": 3717
         },
         {
           "path": "references/protocols/worktree-context.md",
@@ -356,8 +245,8 @@
         },
         {
           "path": "references/questionnaire-policy.md",
-          "sha256": "11e9115db4ac4a8f9bfc0329ae7903dd590011c42559df5779203c98e6edcd10",
-          "bytes": 7390
+          "sha256": "e0f753970d91c991e711d720dab195ca28088bab0cfec5516c2a6c96db0da732",
+          "bytes": 7482
         },
         {
           "path": "references/review-repair-loop.md",
@@ -371,8 +260,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "38b797cbf959b19d554fb6cdc09ea67f090c5730e2f8302a1f9d4f8a8ddecfcb",
-          "bytes": 16004
+          "sha256": "4fe6ef6221b78141419b45fd67c3ec424a40146fac11a39ae42a2874f1cede8b",
+          "bytes": 16319
         }
       ],
       "triggers": {
@@ -478,10 +367,9 @@
                 114,
                 122,
                 124,
-                130,
-                132,
                 133,
-                134
+                134,
+                135
               ]
             },
             {
@@ -510,7 +398,6 @@
               "lines": [
                 11,
                 17,
-                19,
                 28,
                 40
               ]
@@ -520,6 +407,7 @@
               "lines": [
                 1,
                 3,
+                7,
                 11,
                 13,
                 15,
@@ -559,10 +447,7 @@
                 7,
                 39,
                 41,
-                43,
-                47,
                 49,
-                59,
                 119,
                 123,
                 125
@@ -660,7 +545,6 @@
               "path": "SKILL.md",
               "lines": [
                 18,
-                50,
                 52,
                 54,
                 92,
@@ -713,7 +597,7 @@
                 113,
                 114,
                 115,
-                132
+                133
               ]
             },
             {
@@ -825,7 +709,8 @@
               "path": "references/artifact-contracts.md",
               "lines": [
                 52,
-                69
+                69,
+                130
               ]
             },
             {
@@ -1157,7 +1042,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1390,7 +1275,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1437,7 +1322,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1512,7 +1397,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1581,7 +1466,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1646,7 +1531,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1703,7 +1588,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1751,7 +1636,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1798,7 +1683,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1890,10 +1775,12 @@
         "repo.read"
       ],
       "optionalCapabilities": [
-        "repo.write"
+        "repo.write",
+        "mcp.runtime",
+        "memory.provider.mempalace"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1927,7 +1814,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1976,7 +1863,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -2025,7 +1912,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -2109,7 +1996,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -2143,104 +2030,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
-      "verification": [
-        "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
-      ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
-    },
-    {
-      "name": "evidence-scoped-retrospective",
-      "sourcePath": ".agents/skills/evidence-scoped-retrospective",
-      "sourceHash": "9486d771d43b2153b5a8bc909c2b99c44938b0a08c2c833620f03f383278d521",
-      "files": [
-        {
-          "path": "SKILL.md",
-          "sha256": "6d2fb7c892e48c61d29fa208b6cdbee011026831ab22a935f94dc3f5e42a8294",
-          "bytes": 10028
-        }
-      ],
-      "triggers": {
-        "description": "Analyze explicit user-provided or approved evidence such as sanitized OpenCode session exports, selected transcripts, git history, implementation notes, or task records to produce a safe report-first workflow retrospective; do not claim global history access, commit raw sessions/logs, or directly edit protected harness surfaces.",
-        "nearMissDeclared": true,
-        "stopOutcomes": [
-          "complete",
-          "Unverified"
-        ]
-      },
-      "backendAnchors": [
-        {
-          "id": "backend.opencode",
-          "disposition": "retained as current adapter evidence; Pi must map the capability",
-          "occurrences": [
-            {
-              "path": "SKILL.md",
-              "lines": [
-                3,
-                18
-              ]
-            }
-          ]
-        },
-        {
-          "id": "tool.subagent",
-          "disposition": "mapped through subagent.dispatch or blocked",
-          "occurrences": [
-            {
-              "path": "SKILL.md",
-              "lines": [
-                3,
-                16,
-                19,
-                21,
-                50,
-                68,
-                112
-              ]
-            }
-          ]
-        },
-        {
-          "id": "backend.openspec",
-          "disposition": "retained as an artifact backend contract; no completion authority",
-          "occurrences": [
-            {
-              "path": "SKILL.md",
-              "lines": [
-                41,
-                88,
-                95,
-                111
-              ]
-            }
-          ]
-        },
-        {
-          "id": "external.side-effect",
-          "disposition": "retained behind explicit capability and operation gates",
-          "occurrences": [
-            {
-              "path": "SKILL.md",
-              "lines": [
-                40,
-                104
-              ]
-            }
-          ]
-        }
-      ],
-      "requiredCapabilities": [
-        "repo.read"
-      ],
-      "optionalCapabilities": [
-        "repo.write"
-      ],
-      "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -2276,7 +2066,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3175,7 +2965,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3324,7 +3114,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3455,7 +3245,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3672,7 +3462,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3780,7 +3570,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3788,159 +3578,6 @@
       ],
       "status": "native",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
-    },
-    {
-      "name": "harness-optimization-audit",
-      "sourcePath": ".agents/skills/harness-optimization-audit",
-      "sourceHash": "3c975471498edfb27aab34f87c3dc3971def3856fc68ef0c17468bd382e6b1df",
-      "files": [
-        {
-          "path": "SKILL.md",
-          "sha256": "aca217ffde34ba500c53b4d95b8af31807d61983a55764ab4cd7d36aea344016",
-          "bytes": 6850
-        }
-      ],
-      "triggers": {
-        "description": "Report-first audit for AILI/ROSE harness routing, context cost, review fan-out, subagent parallelism, trigger noise, false PASS risk, and evidence-loss risk. Use when optimizing harness quality or cost; do not edit core harness controls or invoke another process skill.",
-        "nearMissDeclared": true,
-        "stopOutcomes": [
-          "complete",
-          "blocked",
-          "Unverified"
-        ]
-      },
-      "backendAnchors": [
-        {
-          "id": "tool.subagent",
-          "disposition": "mapped through subagent.dispatch or blocked",
-          "occurrences": [
-            {
-              "path": "SKILL.md",
-              "lines": [
-                51,
-                54
-              ]
-            }
-          ]
-        },
-        {
-          "id": "backend.openspec",
-          "disposition": "retained as an artifact backend contract; no completion authority",
-          "occurrences": [
-            {
-              "path": "SKILL.md",
-              "lines": [
-                30
-              ]
-            }
-          ]
-        }
-      ],
-      "requiredCapabilities": [
-        "repo.read"
-      ],
-      "optionalCapabilities": [
-        "repo.write"
-      ],
-      "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
-      "verification": [
-        "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
-      ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
-    },
-    {
-      "name": "i-have-adhd",
-      "sourcePath": ".agents/skills/i-have-adhd",
-      "sourceHash": "23d1a0ac44d126a7ac87b3da86829db5880e5aaa410e0a0f4476b9560e36086e",
-      "files": [
-        {
-          "path": "references/upstream/ayghri-i-have-adhd/34f746dda9664fb5ea52149be5dbab2adc6e60d3/LICENSE",
-          "sha256": "8acbb618089b738404f76ac60fca1aaa995d9a87995eddf95f0b777acd7f7d2c",
-          "bytes": 1069
-        },
-        {
-          "path": "references/upstream/ayghri-i-have-adhd/34f746dda9664fb5ea52149be5dbab2adc6e60d3/NOTICE.md",
-          "sha256": "c68df76d56a4b7c2df88688434de9e37d65be34cb3978899651dc54f1ff6cb45",
-          "bytes": 571
-        },
-        {
-          "path": "references/upstream/ayghri-i-have-adhd/34f746dda9664fb5ea52149be5dbab2adc6e60d3/SKILL.upstream.md",
-          "sha256": "cae8c063977214b372c6897b7c93ac8faa573214a8635896f767e3bac092adf8",
-          "bytes": 6848
-        },
-        {
-          "path": "SKILL.md",
-          "sha256": "05b30ad826d452b3c9608f72e7e3cc9b1f1308dd5ad24bfc33c59921eb8ce995",
-          "bytes": 4309
-        }
-      ],
-      "triggers": {
-        "description": "Shape one current response into an ADHD-friendly, action-first, low-friction format when the user explicitly invokes i-have-adhd, asks for ADHD mode, or directly requests this response style; do not trigger from ordinary coding, planning, documentation, or concise questions without a style request.",
-        "nearMissDeclared": true,
-        "stopOutcomes": [
-          "complete"
-        ]
-      },
-      "backendAnchors": [
-        {
-          "id": "tool.subagent",
-          "disposition": "mapped through subagent.dispatch or blocked",
-          "occurrences": [
-            {
-              "path": "references/upstream/ayghri-i-have-adhd/34f746dda9664fb5ea52149be5dbab2adc6e60d3/SKILL.upstream.md",
-              "lines": [
-                82,
-                113,
-                127
-              ]
-            },
-            {
-              "path": "SKILL.md",
-              "lines": [
-                26,
-                37,
-                42,
-                50,
-                75
-              ]
-            }
-          ]
-        },
-        {
-          "id": "external.side-effect",
-          "disposition": "retained behind explicit capability and operation gates",
-          "occurrences": [
-            {
-              "path": "references/upstream/ayghri-i-have-adhd/34f746dda9664fb5ea52149be5dbab2adc6e60d3/LICENSE",
-              "lines": [
-                8
-              ]
-            },
-            {
-              "path": "references/upstream/ayghri-i-have-adhd/34f746dda9664fb5ea52149be5dbab2adc6e60d3/SKILL.upstream.md",
-              "lines": [
-                40
-              ]
-            }
-          ]
-        }
-      ],
-      "requiredCapabilities": [],
-      "optionalCapabilities": [],
-      "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
-      "verification": [
-        "snapshot-hash:verified",
-        "vitest run tests/integration/i-have-adhd-compatibility.test.ts"
-      ],
-      "status": "native",
-      "reason": "The exact skill snapshot is covered by verified Pi native discovery and on-demand behavior evidence.",
       "unverified": []
     },
     {
@@ -4034,7 +3671,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -4101,7 +3738,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -4255,291 +3892,6 @@
       "unverified": [
         "Pi discovery and behavior evidence are pending later BUILD packages."
       ]
-    },
-    {
-      "name": "local-review-gate",
-      "sourcePath": ".agents/skills/local-review-gate",
-      "sourceHash": "f5bd45630aa6f584bccfc98469cdd56eec600e7fc84b1cb0fde4e441faacc842",
-      "files": [
-        {
-          "path": "references/addyosmani-code-review-rubric.md",
-          "sha256": "d11a72de34a8b11e6ba049f968edd1c9dbbd4b5f6bd6064f9553fc1db88c3561",
-          "bytes": 2395
-        },
-        {
-          "path": "references/codex-github-compatibility.md",
-          "sha256": "905a33dc32bbc97288575f1b767c41ab65ed3b574544dabb3e4aef411a7b0b8c",
-          "bytes": 1995
-        },
-        {
-          "path": "references/ecc-code-review-adaptation.md",
-          "sha256": "26d9c66d378798c6969f150f9098ec18cf7cad1d037671150382ccaa9b750b21",
-          "bytes": 2762
-        },
-        {
-          "path": "references/graphify-local-review.md",
-          "sha256": "203d308374b740b003a05d13ef39ecbc4f234d59a39a8a7ce9e1ed159498e4b1",
-          "bytes": 2796
-        },
-        {
-          "path": "references/orchestration-adaptation.md",
-          "sha256": "a799e59368d00e71fe95f2007f94c8f75b521d1a1dcc5cfafd9b0ab646549a34",
-          "bytes": 4171
-        },
-        {
-          "path": "references/review-repair-lane-adaptation.md",
-          "sha256": "3cd1590a0b07a9e3e1b13c908fb2e31aa8a097a8badf1e053abf217d12f7bae3",
-          "bytes": 3960
-        },
-        {
-          "path": "references/upstream-provenance.md",
-          "sha256": "98259c5cedf2d5a16aa37933d94abf0f9e19a018de9350c14e9c20f78ab69a6b",
-          "bytes": 9295
-        },
-        {
-          "path": "SKILL.md",
-          "sha256": "5f4a188cf5333286bfcf488bcfd0722629e65afad99cfae151c88bd31fc022ba",
-          "bytes": 17704
-        }
-      ],
-      "triggers": {
-        "description": "Run the explicit `/local-review` command or an equivalent user-requested standalone local audit over a diff, ref, PR, or OpenSpec change; do not trigger automatically from BUILD/SHIP, implementation completion, merge wording, or ordinary review-adjacent work.",
-        "nearMissDeclared": true,
-        "stopOutcomes": [
-          "complete",
-          "blocked",
-          "Unverified"
-        ]
-      },
-      "backendAnchors": [
-        {
-          "id": "backend.opencode",
-          "disposition": "retained as current adapter evidence; Pi must map the capability",
-          "occurrences": [
-            {
-              "path": "references/addyosmani-code-review-rubric.md",
-              "lines": [
-                15,
-                17,
-                18
-              ]
-            },
-            {
-              "path": "references/codex-github-compatibility.md",
-              "lines": [
-                11
-              ]
-            },
-            {
-              "path": "references/ecc-code-review-adaptation.md",
-              "lines": [
-                15,
-                18
-              ]
-            },
-            {
-              "path": "references/graphify-local-review.md",
-              "lines": [
-                30
-              ]
-            },
-            {
-              "path": "references/orchestration-adaptation.md",
-              "lines": [
-                26
-              ]
-            },
-            {
-              "path": "references/review-repair-lane-adaptation.md",
-              "lines": [
-                15
-              ]
-            },
-            {
-              "path": "references/upstream-provenance.md",
-              "lines": [
-                15,
-                21,
-                29,
-                37
-              ]
-            },
-            {
-              "path": "SKILL.md",
-              "lines": [
-                12,
-                16,
-                40
-              ]
-            }
-          ]
-        },
-        {
-          "id": "tool.subagent",
-          "disposition": "mapped through subagent.dispatch or blocked",
-          "occurrences": [
-            {
-              "path": "references/addyosmani-code-review-rubric.md",
-              "lines": [
-                12,
-                24
-              ]
-            },
-            {
-              "path": "references/review-repair-lane-adaptation.md",
-              "lines": [
-                20,
-                37,
-                38,
-                46
-              ]
-            },
-            {
-              "path": "references/upstream-provenance.md",
-              "lines": [
-                22,
-                24,
-                25,
-                33,
-                35,
-                37,
-                39,
-                41,
-                43,
-                45,
-                49,
-                54
-              ]
-            },
-            {
-              "path": "SKILL.md",
-              "lines": [
-                32,
-                150
-              ]
-            }
-          ]
-        },
-        {
-          "id": "tool.symbol-graph",
-          "disposition": "mapped through repository graph capabilities or optional",
-          "occurrences": [
-            {
-              "path": "references/graphify-local-review.md",
-              "lines": [
-                1,
-                3,
-                7,
-                9,
-                13,
-                14,
-                15,
-                16,
-                17,
-                21,
-                25,
-                29,
-                31
-              ]
-            },
-            {
-              "path": "SKILL.md",
-              "lines": [
-                34
-              ]
-            }
-          ]
-        },
-        {
-          "id": "backend.openspec",
-          "disposition": "retained as an artifact backend contract; no completion authority",
-          "occurrences": [
-            {
-              "path": "references/addyosmani-code-review-rubric.md",
-              "lines": [
-                24
-              ]
-            },
-            {
-              "path": "references/graphify-local-review.md",
-              "lines": [
-                21
-              ]
-            },
-            {
-              "path": "SKILL.md",
-              "lines": [
-                3,
-                54,
-                58,
-                60,
-                79,
-                80,
-                98,
-                130
-              ]
-            }
-          ]
-        },
-        {
-          "id": "external.side-effect",
-          "disposition": "retained behind explicit capability and operation gates",
-          "occurrences": [
-            {
-              "path": "references/graphify-local-review.md",
-              "lines": [
-                3,
-                21,
-                30,
-                31
-              ]
-            },
-            {
-              "path": "references/orchestration-adaptation.md",
-              "lines": [
-                48
-              ]
-            },
-            {
-              "path": "references/review-repair-lane-adaptation.md",
-              "lines": [
-                28
-              ]
-            },
-            {
-              "path": "SKILL.md",
-              "lines": [
-                12,
-                17,
-                18,
-                19,
-                34,
-                115,
-                126
-              ]
-            }
-          ]
-        }
-      ],
-      "requiredCapabilities": [
-        "subagent.dispatch"
-      ],
-      "optionalCapabilities": [
-        "repo.read"
-      ],
-      "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "src/runtime/persistent-agents/production.ts",
-      "verification": [
-        "snapshot-hash:verified",
-        "npm run verify:roles",
-        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
-        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/persistent-agent-task-collision.test.ts tests/integration/package-runtime.test.ts",
-        "vitest run tests/unit/persistent-agent-task-registration.test.ts",
-        "npm run test:doctor"
-      ],
-      "status": "adapted",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
-      "unverified": []
     },
     {
       "name": "mature-project-pattern-research",
@@ -5778,7 +5130,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -5791,21 +5143,21 @@
     {
       "name": "parallel-subagent-dispatch",
       "sourcePath": ".agents/skills/parallel-subagent-dispatch",
-      "sourceHash": "189ec2df0c8b13ada312a16f7de42717fe52ae47749d39ebf6f94b7d5012f423",
+      "sourceHash": "eef484aa6f70ee787b7f032668bae285dffa133dd5157a7fe6dc24ab70dc0f50",
       "files": [
         {
           "path": "references/agent-selection-matrix.md",
-          "sha256": "562951ec896b351983223a4a04833c260d9570307a1688dbaf7032055ee4161d",
-          "bytes": 7788
+          "sha256": "db35b7c17ba76984d9ee2d69931dfbce80c6413b90953899a9ae5cc671855224",
+          "bytes": 8833
         },
         {
           "path": "SKILL.md",
-          "sha256": "e9c8471744a76c6747eed8fe11f0dff89796ae669bff4a7d5b7d742b0424e4fe",
-          "bytes": 5652
+          "sha256": "618d7cfb6dff942acc4b0660a9881b6f7f2f0e4e7f832f5d21a9cf0e9a5bcd52",
+          "bytes": 5533
         }
       ],
       "triggers": {
-        "description": "Proactively dispatch fresh subagents when the user requests them, a specialist capability is required, repository exploration would materially pollute context, or independent work units have clear wall-clock or context benefit; use direct ROSE work only when no trigger applies or delegation is concretely blocked.",
+        "description": "Prefer a fresh matching specialist for a clear bounded non-trivial package when current capabilities and permissions permit it; use direct ROSE work only for accepted direct-work exceptions or a concrete block.",
         "nearMissDeclared": true,
         "stopOutcomes": [
           "blocked"
@@ -5819,7 +5171,7 @@
             {
               "path": "SKILL.md",
               "lines": [
-                45
+                38
               ]
             }
           ]
@@ -5832,19 +5184,17 @@
               "path": "references/agent-selection-matrix.md",
               "lines": [
                 17,
-                30
+                31
               ]
             },
             {
               "path": "SKILL.md",
               "lines": [
-                19,
-                26,
-                35,
-                43,
-                45,
-                51,
-                67
+                28,
+                36,
+                38,
+                44,
+                60
               ]
             }
           ]
@@ -5868,8 +5218,8 @@
             {
               "path": "references/agent-selection-matrix.md",
               "lines": [
-                26,
-                31
+                27,
+                32
               ]
             }
           ]
@@ -5969,7 +5319,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -6078,7 +5428,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -6824,7 +6174,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7266,7 +6616,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7328,266 +6678,6 @@
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
       "unverified": []
-    },
-    {
-      "name": "rose-memory",
-      "sourcePath": ".agents/skills/rose-memory",
-      "sourceHash": "e2e8a57e4b444b588531d700ef128c7aa14b9d6d32f5d5b3bd0e5e91ee723c70",
-      "files": [
-        {
-          "path": "references/memory_cli.py",
-          "sha256": "45df29c0ccfdfe8de8b8a15ff441ce26cd7a0f4b2bf2443f594f101733600743",
-          "bytes": 89559
-        },
-        {
-          "path": "references/README.md",
-          "sha256": "0caf142fd63f2d8e2ca97409463b1d1b5f1bd38911946ab7339bc2a28ea7f19c",
-          "bytes": 3397
-        },
-        {
-          "path": "references/schema.sql",
-          "sha256": "75c5bb989a04de0a160bd4ce93a7736ef90e2dedd4249da19f8f3403df554854",
-          "bytes": 11048
-        },
-        {
-          "path": "SKILL.md",
-          "sha256": "d160dd18b5d92f5657fd2f5659d558ae32e64bfa1ab3d3855c7862aaeb9490df",
-          "bytes": 10917
-        }
-      ],
-      "triggers": {
-        "description": "Use the legacy/pre-runtime ROSE project-local SQLite continuity backend through memory_cli.py for scoped user facts, checkpoints, candidates, and focused retrieval; never treat it as native/global memory or formal authority.",
-        "nearMissDeclared": true,
-        "stopOutcomes": [
-          "complete",
-          "Unverified"
-        ]
-      },
-      "backendAnchors": [
-        {
-          "id": "tool.subagent",
-          "disposition": "mapped through subagent.dispatch or blocked",
-          "occurrences": [
-            {
-              "path": "references/memory_cli.py",
-              "lines": [
-                45,
-                199,
-                217,
-                249,
-                268,
-                289,
-                293,
-                636,
-                692,
-                708,
-                714,
-                1042,
-                1057,
-                1060,
-                1063,
-                1065,
-                1067,
-                1072,
-                1073,
-                1074,
-                1075,
-                1078,
-                1093,
-                1096,
-                1098,
-                1103,
-                1104,
-                1105,
-                1109,
-                1113,
-                1117,
-                1120,
-                1122,
-                1124,
-                1130,
-                1131,
-                1132,
-                1135,
-                1140,
-                1214,
-                1215,
-                1216,
-                1223,
-                1237,
-                1276,
-                1277,
-                1278,
-                1284,
-                1290,
-                1321,
-                1354,
-                1355,
-                1356,
-                1362,
-                1871,
-                1872,
-                1873,
-                1875,
-                1878,
-                1881,
-                1894,
-                1898,
-                1899,
-                1900,
-                1920,
-                1921,
-                1922,
-                1981,
-                1982,
-                1983,
-                2001,
-                2005,
-                2006,
-                2019,
-                2020,
-                2021,
-                2022,
-                2023,
-                2025,
-                2036,
-                2041,
-                2042,
-                2043,
-                2081,
-                2082,
-                2137,
-                2138,
-                2144,
-                2151,
-                2159,
-                2169,
-                2198,
-                2218,
-                2242,
-                2246,
-                2337,
-                2349,
-                2359,
-                2370
-              ]
-            },
-            {
-              "path": "references/README.md",
-              "lines": [
-                20,
-                23,
-                27,
-                29,
-                44
-              ]
-            },
-            {
-              "path": "references/schema.sql",
-              "lines": [
-                30,
-                48,
-                80,
-                99,
-                120,
-                124
-              ]
-            },
-            {
-              "path": "SKILL.md",
-              "lines": [
-                30,
-                32,
-                45,
-                49,
-                50,
-                52,
-                53,
-                59,
-                72,
-                73,
-                81,
-                123,
-                126,
-                129,
-                137,
-                158,
-                170,
-                173,
-                176,
-                181,
-                186,
-                204
-              ]
-            }
-          ]
-        },
-        {
-          "id": "backend.openspec",
-          "disposition": "retained as an artifact backend contract; no completion authority",
-          "occurrences": [
-            {
-              "path": "references/README.md",
-              "lines": [
-                25
-              ]
-            },
-            {
-              "path": "SKILL.md",
-              "lines": [
-                44,
-                80,
-                176
-              ]
-            }
-          ]
-        },
-        {
-          "id": "path.backend-home",
-          "disposition": "must resolve through the active adapter or remain blocked",
-          "occurrences": [
-            {
-              "path": "references/README.md",
-              "lines": [
-                41
-              ]
-            }
-          ]
-        },
-        {
-          "id": "external.side-effect",
-          "disposition": "retained behind explicit capability and operation gates",
-          "occurrences": [
-            {
-              "path": "SKILL.md",
-              "lines": [
-                47,
-                55,
-                83,
-                210
-              ]
-            }
-          ]
-        }
-      ],
-      "requiredCapabilities": [
-        "memory.project"
-      ],
-      "optionalCapabilities": [
-        "repo.read"
-      ],
-      "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "optional-pack:memory",
-      "verification": [
-        "snapshot-hash:verified",
-        "pi-discovery:pending",
-        "pi-behavior:pending"
-      ],
-      "status": "optional",
-      "reason": "The memory capability is not bundled until its optional provider is verified.",
-      "unverified": [
-        "Pi discovery and behavior evidence are pending later BUILD packages."
-      ]
     },
     {
       "name": "security-and-hardening",
@@ -7662,184 +6752,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
-      "verification": [
-        "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
-      ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
-    },
-    {
-      "name": "session-handoff",
-      "sourcePath": ".agents/skills/session-handoff",
-      "sourceHash": "f4adfb4db10fa14433db39c987425b35de3e176cc7c456d376f91e0067290efa",
-      "files": [
-        {
-          "path": "references/upstream/mattpocock-skills/391a2701dd948f94f56a39f7533f8eea9a859c87/LICENSE",
-          "sha256": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5",
-          "bytes": 1068
-        },
-        {
-          "path": "references/upstream/mattpocock-skills/391a2701dd948f94f56a39f7533f8eea9a859c87/NOTICE.md",
-          "sha256": "54c42aa6a672d4dc79343ac2659af563153eb6edcf21a73e52d3d765174cc38c",
-          "bytes": 539
-        },
-        {
-          "path": "references/upstream/mattpocock-skills/391a2701dd948f94f56a39f7533f8eea9a859c87/productivity/handoff/SKILL.upstream.md",
-          "sha256": "57c9f1f392d7352cdc85b1e39ca49eddc70ce1dc278bd9653fb4f23dfc2560fc",
-          "bytes": 879
-        },
-        {
-          "path": "scripts/session_handoff.py",
-          "sha256": "65334bfe07e967ebeaafa3bae10adaac3e77b5d02e4f7dea65ad1e414689830d",
-          "bytes": 34792
-        },
-        {
-          "path": "SKILL.md",
-          "sha256": "5dfe6f844a12096ed3d3105f485e6a5465a4e56276541d58dc04c0b8472dcd34",
-          "bytes": 7265
-        }
-      ],
-      "triggers": {
-        "description": "Create versioned session handoffs, list handoff history, or resume from an exact snapshot when the user explicitly asks; do not trigger for ordinary checkpoints, context pressure, memory storage, or automatic cleanup.",
-        "nearMissDeclared": true,
-        "stopOutcomes": [
-          "complete",
-          "need-user",
-          "need-evidence",
-          "blocked",
-          "Unverified"
-        ]
-      },
-      "backendAnchors": [
-        {
-          "id": "tool.subagent",
-          "disposition": "mapped through subagent.dispatch or blocked",
-          "occurrences": [
-            {
-              "path": "scripts/session_handoff.py",
-              "lines": [
-                2,
-                95,
-                105,
-                109,
-                110,
-                111,
-                123,
-                151,
-                165,
-                166,
-                167,
-                170,
-                180,
-                181,
-                202,
-                207,
-                214,
-                224,
-                226,
-                229,
-                243,
-                246,
-                272,
-                276,
-                286,
-                288,
-                289,
-                292,
-                294,
-                331,
-                332,
-                333,
-                334,
-                335,
-                338,
-                339,
-                372,
-                375,
-                376,
-                399,
-                406,
-                521,
-                527,
-                528,
-                587,
-                594,
-                595,
-                600,
-                603,
-                611,
-                633,
-                636,
-                649,
-                663,
-                664,
-                722
-              ]
-            },
-            {
-              "path": "SKILL.md",
-              "lines": [
-                8,
-                13,
-                21,
-                22,
-                23,
-                24,
-                30,
-                35,
-                39,
-                50,
-                58,
-                75,
-                86
-              ]
-            }
-          ]
-        },
-        {
-          "id": "backend.openspec",
-          "disposition": "retained as an artifact backend contract; no completion authority",
-          "occurrences": [
-            {
-              "path": "SKILL.md",
-              "lines": [
-                21
-              ]
-            }
-          ]
-        },
-        {
-          "id": "external.side-effect",
-          "disposition": "retained behind explicit capability and operation gates",
-          "occurrences": [
-            {
-              "path": "references/upstream/mattpocock-skills/391a2701dd948f94f56a39f7533f8eea9a859c87/LICENSE",
-              "lines": [
-                8
-              ]
-            },
-            {
-              "path": "scripts/session_handoff.py",
-              "lines": [
-                63,
-                551
-              ]
-            }
-          ]
-        }
-      ],
-      "requiredCapabilities": [
-        "repo.read"
-      ],
-      "optionalCapabilities": [
-        "repo.write"
-      ],
-      "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -8367,7 +7280,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -8404,7 +7317,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -8598,7 +7511,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -8647,7 +7560,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -8787,7 +7700,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -8879,7 +7792,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -8991,7 +7904,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.82.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",

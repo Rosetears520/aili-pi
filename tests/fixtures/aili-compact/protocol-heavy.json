@@ -1,8 +1,0 @@
-{
-  "entries": [
-    { "id": "protocol-user", "type": "message", "message": { "role": "user", "content": "inspect the repository" } },
-    { "id": "protocol-call", "type": "message", "message": { "role": "assistant", "content": [{ "type": "toolCall", "id": "call-1", "name": "read", "arguments": { "path": "notes.txt" } }] } },
-    { "id": "protocol-result", "type": "message", "message": { "role": "toolResult", "toolCallId": "call-1", "toolName": "read", "content": [{ "type": "text", "text": "synthetic tool output" }] } },
-    { "id": "protocol-followup", "type": "message", "message": { "role": "assistant", "content": "the result was consumed" } }
-  ]
-}

@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aili://protocols/package-envelope/v1",
+  "title": "AILI portable package envelope",
+  "type": "object",
+  "required": [
+    "package_id",
+    "role_id",
+    "assignment",
+    "scope",
+    "forbidden_scope",
+    "permission_boundary",
+    "acceptance_boundary",
+    "write_scope",
+    "expected_result",
+    "expected_evidence"
+  ],
+  "properties": {
+    "package_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "role_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assignment": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "forbidden_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "permission_boundary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acceptance_boundary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "write_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_result": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "result": {
+      "$ref": "#/$defs/result"
+    },
+    "verification_evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "convergence": {
+      "$ref": "#/$defs/convergence"
+    }
+  },
+  "$defs": {
+    "source": {
+      "title": "Typed canonical source reference",
+      "type": "object",
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "requirement",
+            "decision",
+            "risk",
+            "artifact",
+            "verification",
+            "task"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "anchor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "freshness": {
+          "type": "string",
+          "enum": [
+            "current",
+            "stale",
+            "unverified"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "legacy_source_ref": {
+      "type": "string",
+      "pattern": "^(requirement|decision|risk|artifact|verification|task):"
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "source",
+        "claim",
+        "status"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "claim": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "observed",
+            "inferred",
+            "unverified"
+          ]
+        },
+        "verification_status": {
+          "type": "string",
+          "enum": [
+            "not-run",
+            "partial",
+            "passed",
+            "failed",
+            "stale"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "status",
+        "evidence",
+        "blockers",
+        "confidence"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "need-user",
+            "need-evidence",
+            "material-delta",
+            "blocked",
+            "Unverified",
+            "cancelled",
+            "budget-exhausted"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/evidence"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "decision_status": {
+          "type": "string",
+          "enum": [
+            "proposed",
+            "conditional",
+            "accepted",
+            "rejected"
+          ]
+        },
+        "authorization_status": {
+          "type": "string",
+          "enum": [
+            "absent",
+            "granted",
+            "expired",
+            "revoked"
+          ]
+        },
+        "execution_status": {
+          "type": "string",
+          "enum": [
+            "not-started",
+            "partial",
+            "completed",
+            "failed"
+          ]
+        },
+        "verification_status": {
+          "type": "string",
+          "enum": [
+            "not-run",
+            "partial",
+            "passed",
+            "failed",
+            "stale"
+          ]
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "HIGH",
+            "MED",
+            "LOW",
+            "VERY LOW",
+            "UNKNOWN"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "convergence": {
+      "type": "object",
+      "required": [
+        "requirement_or_decision",
+        "task_or_package",
+        "file_or_artifact",
+        "fresh_verification",
+        "status"
+      ],
+      "properties": {
+        "requirement_or_decision": {
+          "type": "string"
+        },
+        "task_or_package": {
+          "type": "string"
+        },
+        "file_or_artifact": {
+          "type": "string"
+        },
+        "fresh_verification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/evidence"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "review_or_security_disposition": {
+          "type": "string"
+        },
+        "freshness": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "linked",
+            "missing",
+            "stale",
+            "conflicting",
+            "blocked",
+            "Unverified"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$comment": "Generated by aili-runtime-projections/v1; canonical inputs: adapters/pi/adapter.json, core/protocols/package-envelope.schema.json, manifests/runtime-projections.json; input_sha256: 68a8d0bfc9a139ac27f09fdd23b13625c590c5a20c41b36a2dc82fcee3c8168f"
+}

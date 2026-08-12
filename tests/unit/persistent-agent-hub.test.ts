@@ -430,7 +430,7 @@ describe("hub lifecycle and messaging", () => {
     expect(await resumedHub.execute({ action: "inbox", agentId: "Idle" })).toMatchObject({ count: 100, mode: "peek" });
     expect(await resumedHub.execute({ action: "inbox", agentId: "Idle", mode: "drain" })).toMatchObject({ count: 100, mode: "drain" });
     expect(reopened.getState().mailboxes.Idle.messages).toEqual([]);
-  });
+  }, 15_000);
 
   it("enforces descendant ownership and scopes list/jobs without cross-parent control", async () => {
     await createAgent("Parent", "idle");

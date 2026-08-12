@@ -1,0 +1,261 @@
+{
+  "schemaVersion": 1,
+  "generator": "aili-runtime-projections/v1",
+  "adapter": "pi",
+  "canonicalInputs": [
+    "adapters/opencode/adapter.json",
+    "adapters/opencode/mempalace.json",
+    "adapters/pi/adapter.json",
+    "adapters/pi/mempalace.json",
+    "core/commands/agents-md.md",
+    "core/commands/build.md",
+    "core/commands/define.md",
+    "core/commands/handoff.md",
+    "core/commands/harness-audit.md",
+    "core/commands/ideate.md",
+    "core/commands/local-review.md",
+    "core/commands/retro.md",
+    "core/commands/security-review.md",
+    "core/commands/ship.md",
+    "core/governance/decision-core.md",
+    "core/governance/hero-scope-limits.md",
+    "core/governance/mempalace.md",
+    "core/governance/operating-discipline.md",
+    "core/protocols/README.md",
+    "core/protocols/aili-agent-selection.v1.schema.json",
+    "core/protocols/aili-task-board.v1.schema.json",
+    "core/protocols/package-envelope.schema.json",
+    "core/roles/roles.json",
+    "manifests/runtime-projections.json"
+  ],
+  "inputSha256": "8c1162aba100e3caf7983e810703cb1ca7ace8a69aa06d7c86a4079693ab36d0",
+  "outputs": [
+    {
+      "path": "generated/pi/AGENTS.md",
+      "canonicalInputs": [
+        "adapters/pi/adapter.json",
+        "core/governance/decision-core.md",
+        "core/governance/hero-scope-limits.md",
+        "core/governance/operating-discipline.md",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "ba63be0260b13b0b844e09843cef877b3025a14652b931812028639a7951608e",
+      "outputSha256": "a1a8e89613f833f64d0f1f8da1205560b8fbc416e95baddf3e11ef68ed78b699"
+    },
+    {
+      "path": "generated/pi/installation-contract.json",
+      "canonicalInputs": [
+        "adapters/pi/adapter.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "51e4cdba8def1c648e62e186dcb5f03ce93a4ae0d5e125bb7a51061e4d2a2513",
+      "outputSha256": "a521249240077ce08be4ba1c20376b428d224bfa6d75ef8684988442e7e273c5"
+    },
+    {
+      "path": "generated/pi/prompts/agents-md.md",
+      "canonicalInputs": [
+        "adapters/opencode/adapter.json",
+        "adapters/pi/adapter.json",
+        "core/commands/agents-md.md",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "58801bf5cdc573ba6f1f0947ec861b3b6405d882cfbad2286717a5962f125762",
+      "outputSha256": "72d40542732b8877791f35d96c02498f655fc4898f85d2bab76f48251d0dd58d"
+    },
+    {
+      "path": "generated/pi/prompts/build.md",
+      "canonicalInputs": [
+        "adapters/opencode/adapter.json",
+        "adapters/pi/adapter.json",
+        "core/commands/build.md",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "c344080336633c35758a5acdd4dd70a7276af8024461b517ac12a2778bd22931",
+      "outputSha256": "2e85c42bec2e38687b52ef8bf5794a0ae990c54a6ee20f788009cf9e704dd64a"
+    },
+    {
+      "path": "generated/pi/prompts/define.md",
+      "canonicalInputs": [
+        "adapters/opencode/adapter.json",
+        "adapters/pi/adapter.json",
+        "core/commands/define.md",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "6e43fb74dd1b0027ee1e2b4041c9a8ca1b3922973b89aefbabbe5c879ad27d65",
+      "outputSha256": "6017424310e50218d853cc45d89afa049a9c85dd361e261f49d160382e8aa315"
+    },
+    {
+      "path": "generated/pi/prompts/handoff.md",
+      "canonicalInputs": [
+        "adapters/opencode/adapter.json",
+        "adapters/pi/adapter.json",
+        "core/commands/handoff.md",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "2ba09107b1bc2fac64cf881c7a8a032e957deb951ced036e23c489a966c5740f",
+      "outputSha256": "b7521e4d6512448183ad5791daa6daf18044becd7e8012d16066630e73e7a97c"
+    },
+    {
+      "path": "generated/pi/prompts/harness-audit.md",
+      "canonicalInputs": [
+        "adapters/opencode/adapter.json",
+        "adapters/pi/adapter.json",
+        "core/commands/harness-audit.md",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "34f30e9f467c48910659695b147674e748fa28a3a6d15a75f263d77bef9d965a",
+      "outputSha256": "5f668e49974a6fd463f2ce718ca633694719f4c079e16119989a2baf3851cfd2"
+    },
+    {
+      "path": "generated/pi/prompts/ideate.md",
+      "canonicalInputs": [
+        "adapters/opencode/adapter.json",
+        "adapters/pi/adapter.json",
+        "core/commands/ideate.md",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "808247f006607fc0469cd7db779f473473a26c9f28107606014461acdaa2dfb3",
+      "outputSha256": "5184836f1325319f3a798d2e92526209fa71627b8d5266bcbed9e5a3062df2c0"
+    },
+    {
+      "path": "generated/pi/prompts/local-review.md",
+      "canonicalInputs": [
+        "adapters/opencode/adapter.json",
+        "adapters/pi/adapter.json",
+        "core/commands/local-review.md",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "ffa286fb15feb979b138ae722c521a5fe128aaa37022855e9e33d2f2e2788a88",
+      "outputSha256": "0e42753af2c892f299949dc607aa2150c36248f14e38e4aa500e16c82573850a"
+    },
+    {
+      "path": "generated/pi/prompts/retro.md",
+      "canonicalInputs": [
+        "adapters/opencode/adapter.json",
+        "adapters/pi/adapter.json",
+        "core/commands/retro.md",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "dd6464633670de9c57189b47d9891d4f3030d50993f1c6d1ad30ed55546947dd",
+      "outputSha256": "4e0644c73f0a8def62566f77f4f2b53c79fa862bd282c7797f5fcee16f92871b"
+    },
+    {
+      "path": "generated/pi/prompts/security-review.md",
+      "canonicalInputs": [
+        "adapters/opencode/adapter.json",
+        "adapters/pi/adapter.json",
+        "core/commands/security-review.md",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "ae250107962d32b1ae16a14a0e413008d2010e42ab9e29defbd61197928e8ecb",
+      "outputSha256": "4ccf80cee8472b1cd768a0cb4884557eb158a313a31d84079b447adffe0eac1d"
+    },
+    {
+      "path": "generated/pi/prompts/ship.md",
+      "canonicalInputs": [
+        "adapters/opencode/adapter.json",
+        "adapters/pi/adapter.json",
+        "core/commands/ship.md",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "1cd016b5661b0f65760694c7a7b058c9541182567ede9244011bc98914ca270a",
+      "outputSha256": "55def4e627a3e1b037ea3fc5be18f9a02b4a9ef530b4e79b034b49fdd7f26aa4"
+    },
+    {
+      "path": "generated/pi/protocols/aili-agent-selection.v1.schema.json",
+      "canonicalInputs": [
+        "adapters/pi/adapter.json",
+        "core/protocols/aili-agent-selection.v1.schema.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "5f6066aa04e1648f462400de64e0971aa3803e058c62928c128551d257548966",
+      "outputSha256": "d1330eee121fcb32f8b8abe80acdafa35a1487d59f49475b715c1cd42eb6ac73"
+    },
+    {
+      "path": "generated/pi/protocols/aili-task-board.v1.schema.json",
+      "canonicalInputs": [
+        "adapters/pi/adapter.json",
+        "core/protocols/aili-task-board.v1.schema.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "cbf6224130098c51ed40c27a98548cab48cd3be85dafbb4d1e599a3ad8ab8096",
+      "outputSha256": "dbecae6fb0c84d9554379855b6b2abae9bae5ade65bff4e5a634a536d3669740"
+    },
+    {
+      "path": "generated/pi/protocols/package-envelope.schema.json",
+      "canonicalInputs": [
+        "adapters/pi/adapter.json",
+        "core/protocols/package-envelope.schema.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "68a8d0bfc9a139ac27f09fdd23b13625c590c5a20c41b36a2dc82fcee3c8168f",
+      "outputSha256": "3164a1476ba36949b91f033b0bb18faa8e7988e27a4b657bf5854bd789cbe037"
+    },
+    {
+      "path": "generated/pi/role-metadata.json",
+      "canonicalInputs": [
+        "adapters/pi/adapter.json",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "06b44525cd9551b834d05500e06e1a20d4b409835d0553ccbcae41290ebfd608",
+      "outputSha256": "45a15ccb584a2799593ab4063137d42f231a366a2e3006fcf93b62162ce4efe5"
+    },
+    {
+      "path": "generated/pi/selection-map.json",
+      "canonicalInputs": [
+        "adapters/pi/adapter.json",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "06b44525cd9551b834d05500e06e1a20d4b409835d0553ccbcae41290ebfd608",
+      "outputSha256": "12c348dd896a298bdc47884aaa4aa0a413212fbacbed3e76905f5191a018d0cb"
+    },
+    {
+      "path": "generated/pi/system.md",
+      "canonicalInputs": [
+        "adapters/pi/adapter.json",
+        "core/governance/decision-core.md",
+        "core/governance/operating-discipline.md",
+        "core/roles/roles.json",
+        "manifests/runtime-projections.json"
+      ],
+      "inputSha256": "06b44525cd9551b834d05500e06e1a20d4b409835d0553ccbcae41290ebfd608",
+      "outputSha256": "00818a6ba7bd1507248b8193c4a1168bca9087eed87a166970a524ac3e1a1dd5"
+    }
+  ]
+}

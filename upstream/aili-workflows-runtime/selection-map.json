@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "protocol": "aili-agent-selection/v1",
+  "roles": [
+    {
+      "id": "rose",
+      "mode": "decision-core"
+    },
+    {
+      "id": "solution-architect",
+      "mode": "research"
+    },
+    {
+      "id": "implementer",
+      "mode": "execution"
+    },
+    {
+      "id": "code-scout",
+      "mode": "research"
+    },
+    {
+      "id": "doc-researcher",
+      "mode": "research"
+    },
+    {
+      "id": "web-researcher",
+      "mode": "research"
+    },
+    {
+      "id": "plan-auditor",
+      "mode": "review"
+    },
+    {
+      "id": "code-reviewer",
+      "mode": "review"
+    },
+    {
+      "id": "security-auditor",
+      "mode": "review"
+    },
+    {
+      "id": "test-engineer",
+      "mode": "verification"
+    },
+    {
+      "id": "test-coverage-reviewer",
+      "mode": "review"
+    },
+    {
+      "id": "pr-test-analyzer",
+      "mode": "review"
+    },
+    {
+      "id": "ai-regression-scout",
+      "mode": "review"
+    },
+    {
+      "id": "silent-failure-reviewer",
+      "mode": "review"
+    },
+    {
+      "id": "browser-qa-runner",
+      "mode": "verification"
+    },
+    {
+      "id": "e2e-artifact-runner",
+      "mode": "verification"
+    },
+    {
+      "id": "convergence-reviewer",
+      "mode": "review"
+    },
+    {
+      "id": "spec-miner",
+      "mode": "research"
+    },
+    {
+      "id": "agent-evaluator",
+      "mode": "review"
+    },
+    {
+      "id": "opensource-sanitizer",
+      "mode": "review"
+    },
+    {
+      "id": "web-performance-auditor",
+      "mode": "review"
+    }
+  ],
+  "decisionOwner": "ROSE",
+  "persistentContinuation": "Only unchanged same-package work may continue; runtime IDs are private mappings and not completion evidence.",
+  "generated": {
+    "generator": "aili-runtime-projections/v1",
+    "canonicalInputs": [
+      "adapters/pi/adapter.json",
+      "core/governance/decision-core.md",
+      "core/governance/operating-discipline.md",
+      "core/roles/roles.json",
+      "manifests/runtime-projections.json"
+    ],
+    "inputSha256": "06b44525cd9551b834d05500e06e1a20d4b409835d0553ccbcae41290ebfd608"
+  }
+}

@@ -4,6 +4,7 @@ import {
   type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import type { TaskExecutionOutput, TaskExecutorInput } from "./task-coordinator.js";
+import type { ResolvedModelChoice } from "./model-selection.js";
 import { TaskCoordinator } from "./task-coordinator.js";
 import { HUB_TOOL_SCHEMA, HubService, type HubCaller, type LiveAgentAdapter } from "./hub.js";
 import { TASK_TOOL_SCHEMA } from "./task-schema.js";
@@ -42,6 +43,7 @@ import {
 import { loadRoleProfiles } from "../roles.js";
 import type { FormalContinuationAudit } from "./task-schema.js";
 import { registerCanonicalAiliTaskTool } from "./task-registration.js";
+import { HUB_RENDERERS, TASK_RENDERERS } from "./task-hub-renderer.js";
 
 export interface PersistentRuntimeExecutorInput extends TaskExecutorInput {
   sessionManager: SessionManager;
@@ -52,6 +54,7 @@ export interface PersistentAgentRuntimeOptions {
   parentId: string;
   cwd: string;
   execute: (input: PersistentRuntimeExecutorInput) => Promise<TaskExecutionOutput>;
+  preallocate?: (input: { item: TaskExecutorInput["item"]; role: TaskExecutorInput["role"] }) => ResolvedModelChoice | Promise<ResolvedModelChoice>;
   preflight?: (input: TaskExecutorInput) => void | Promise<void>;
   preflightContinuation?: (agentId: string) => void | Promise<void>;
   parentDelivery: ParentDeliveryAdapter;
@@ -142,9 +145,36 @@ export class PersistentAgentRuntime {
     this.task = new TaskCoordinator({
       journal: this.journal,
       repositoryRoot: options.cwd,
+      preflight: options.preallocate,
       execute: async (input) => {
-        await options.preflight?.(input);
+        // Allocate and register the exact child history before any fallible
+        // preflight. If preflight fails, persist that failure as non-provider
+        // runtime evidence so official Pi materializes the deferred JSONL.
         const manager = await this.childManager(input.agentId);
+        try {
+          await options.preflight?.(input);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          manager.appendMessage({
+            role: "assistant",
+            content: [{ type: "text", text: `Agent preflight failed before execution: ${message}` }],
+            timestamp: Date.now(),
+            api: "aili-runtime",
+            provider: "aili-runtime",
+            model: "preflight",
+            usage: {
+              input: 0,
+              output: 0,
+              cacheRead: 0,
+              cacheWrite: 0,
+              totalTokens: 0,
+              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+            },
+            stopReason: "error",
+            errorMessage: message,
+          } as never);
+          throw error;
+        }
         return await options.execute({ ...input, sessionManager: manager });
       },
       onSettled: async (settlement, fullOutput) => {
@@ -445,6 +475,7 @@ export function registerPersistentAgentTools(pi: ExtensionAPI, options: Internal
     promptSnippet: TASK_PROMPT_SNIPPET,
     promptGuidelines: [...TASK_PROMPT_GUIDELINES, compactCatalog.value],
     parameters: TASK_TOOL_SCHEMA,
+    ...TASK_RENDERERS,
     async execute(_toolCallId, params, signal, _onUpdate, context) {
       const runtime = await options.runtimeForContext(context);
       const result = await runtime.task.submit(params, undefined, signal);
@@ -456,6 +487,7 @@ export function registerPersistentAgentTools(pi: ExtensionAPI, options: Internal
     label: "Hub",
     description: "Inspect and control persistent Agents, jobs, messages, output, history, cancellation, and model requests.",
     parameters: HUB_TOOL_SCHEMA,
+    ...HUB_RENDERERS,
     async execute(_toolCallId, params, _signal, _onUpdate, context) {
       const runtime = await options.runtimeForContext(context);
       const result = await runtime.hub.execute(params);

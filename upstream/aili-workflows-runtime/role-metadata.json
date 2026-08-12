@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "protocol": "aili-pi-role-metadata/v1",
+  "roles": [
+    {
+      "id": "rose",
+      "title": "ROSE",
+      "mode": "decision-core",
+      "description": "ROSE - shipping-oriented semantic router and primary coding agent.",
+      "goal": "Deliver the complete accepted scope with the least process that safely proves the result.",
+      "output": "Answer in the user's language. State completed work, evidence, blockers, and `Unverified` limits; ROSE alone may issue the user-facing integration and final verdict."
+    },
+    {
+      "id": "solution-architect",
+      "title": "Solution Architect",
+      "mode": "research",
+      "description": "Repository-grounded solution-design Worker for bounded technical options, interfaces, impact analysis, and implementation-package candidates.",
+      "goal": "Produce a bounded technical proposal that lets ROSE or the user make an informed architecture decision.",
+      "output": "Return the canonical package result. Its summary separates options and trade-offs, recommendation, boundaries/interfaces/data/call flow, file/dependency/migration/rollout/observability/security/testability impact, candidate packages, evidence anchors, and unclear items; ROSE owns disposition and write-back."
+    },
+    {
+      "id": "implementer",
+      "title": "Implementer",
+      "mode": "execution",
+      "description": "One bounded, single-use implementation Worker for a scoped code-change package.",
+      "goal": "Implement one complete, scoped code-change assignment.",
+      "output": "Return `STATUS`, compact `EVIDENCE` anchors or artifacts, `BLOCKERS`, and `CONFIDENCE: HIGH | MED | LOW | VERY LOW | UNKNOWN`."
+    },
+    {
+      "id": "code-scout",
+      "title": "Code Scout",
+      "mode": "research",
+      "description": "Read-only code scouting Worker for files, symbols, tests, callers, configuration, patterns, and constraints.",
+      "goal": "Locate code, tests, callers, configuration, patterns, and constraints for another agent.",
+      "output": "Return `STATUS`, source anchors, blockers, and confidence."
+    },
+    {
+      "id": "doc-researcher",
+      "title": "Documentation Researcher",
+      "mode": "research",
+      "description": "Read-only local documentation researcher for project rules, specifications, decisions, and documentation.",
+      "goal": "Find project-local rules, specifications, decisions, and documentation evidence.",
+      "output": "Return `STATUS`, source anchors, blockers, and confidence."
+    },
+    {
+      "id": "web-researcher",
+      "title": "Web Researcher",
+      "mode": "research",
+      "description": "Read-only public web researcher for explicitly scoped official documentation, releases, and package evidence.",
+      "goal": "Research current public evidence using web search and fetch only.",
+      "output": "Return `STATUS`, external source anchors, blockers, and confidence."
+    },
+    {
+      "id": "plan-auditor",
+      "title": "Plan Auditor",
+      "mode": "review",
+      "description": "Read-only plan auditor for specifications, plans, tasks, acceptance criteria, and verification gaps.",
+      "goal": "Audit a specification or plan for gaps, conflicts, overengineering, unsafe assumptions, and weak verification.",
+      "output": "Return a bounded finding result with evidence anchors and `Unverified` limits."
+    },
+    {
+      "id": "code-reviewer",
+      "title": "Code Reviewer",
+      "mode": "review",
+      "description": "Senior read-only code reviewer for correctness, readability, architecture, security, and performance risks.",
+      "goal": "Review a supplied change for correctness, maintainability, architecture, security, and performance.",
+      "output": "Return the canonical result and finding envelope; compatibility aliases `STATUS`, `EVIDENCE`, `BLOCKERS`, and `CONFIDENCE` do not extend it."
+    },
+    {
+      "id": "security-auditor",
+      "title": "Security Auditor",
+      "mode": "review",
+      "description": "Read-only security reviewer for a scoped local trust-boundary or vulnerability question.",
+      "goal": "Review an assigned surface for concrete security and trust-boundary risks.",
+      "output": "Return the canonical result and finding envelope."
+    },
+    {
+      "id": "test-engineer",
+      "title": "Test Engineer",
+      "mode": "verification",
+      "description": "QA Worker for focused test design, writing, execution, CLI/browser verification, and coverage analysis.",
+      "goal": "Design, write, and run focused tests for an assigned behavior.",
+      "output": "Return the canonical result and finding envelope."
+    },
+    {
+      "id": "test-coverage-reviewer",
+      "title": "Test Coverage Reviewer",
+      "mode": "review",
+      "description": "Read-only reviewer for test coverage adequacy and verification sufficiency.",
+      "goal": "Assess whether tests and verification evidence cover changed behavior and important failure paths.",
+      "output": "Return the canonical result and finding envelope."
+    },
+    {
+      "id": "pr-test-analyzer",
+      "title": "PR Test Analyzer",
+      "mode": "review",
+      "description": "Read-only PR testing analyst for diff-level test impact, changed-test quality, and provided CI evidence.",
+      "goal": "Analyze a diff or PR for test impact, changed-test quality, CI evidence, and focused commands.",
+      "output": "Return the canonical result and finding envelope."
+    },
+    {
+      "id": "ai-regression-scout",
+      "title": "AI Regression Scout",
+      "mode": "review",
+      "description": "Read-only scout for prompt, agent, skill, routing, and generated-output regression scenarios.",
+      "goal": "Identify focused regression scenarios for prompts, Agents, Skills, routing, and generated-output expectations.",
+      "output": "Return the canonical result and finding envelope."
+    },
+    {
+      "id": "silent-failure-reviewer",
+      "title": "Silent-failure Reviewer",
+      "mode": "review",
+      "description": "Read-only reviewer for false-success paths, skipped work, swallowed errors, lost evidence, and weakened gates.",
+      "goal": "Find paths that can report success while skipping work, swallowing errors, or losing evidence.",
+      "output": "Return the canonical result and finding envelope."
+    },
+    {
+      "id": "browser-qa-runner",
+      "title": "Browser QA Runner",
+      "mode": "verification",
+      "description": "Browser QA test runner for bounded local UI verification.",
+      "goal": "Run bounded browser QA for local, non-production UI flows.",
+      "output": "Return `STATUS`, compact `EVIDENCE` anchors or artifacts, `BLOCKERS`, and confidence."
+    },
+    {
+      "id": "e2e-artifact-runner",
+      "title": "E2E Artifact Runner",
+      "mode": "verification",
+      "description": "E2E artifact runner for controlled traces, videos, screenshots, reports, and failure bundles.",
+      "goal": "Run an approved end-to-end scenario and package requested evidence artifacts.",
+      "output": "Return `STATUS`, artifact paths, blockers, and confidence."
+    },
+    {
+      "id": "convergence-reviewer",
+      "title": "Convergence Reviewer",
+      "mode": "review",
+      "description": "Read-only reviewer for formal artifact, task, implementation, and evidence consistency.",
+      "goal": "Compare formal artifacts, task rows, implementation evidence, and verification for missing or contradictory work.",
+      "output": "Return the canonical result and finding envelope; attach the exact matrix only for a named checklist-completeness gap."
+    },
+    {
+      "id": "spec-miner",
+      "title": "Spec Miner",
+      "mode": "research",
+      "description": "Read-only miner for candidate requirements and scenarios from current code, tests, docs, and OpenSpec artifacts.",
+      "goal": "Extract candidate requirements and scenarios from existing code, tests, documentation, and formal artifacts.",
+      "output": "Return `STATUS`, candidate anchors, blockers, and confidence."
+    },
+    {
+      "id": "agent-evaluator",
+      "title": "Agent Evaluator",
+      "mode": "review",
+      "description": "Read-only evaluator for Worker output task fit, evidence quality, claim hygiene, missed constraints, and handoff usability.",
+      "goal": "Evaluate agent or Worker output for task fit, evidence quality, missed constraints, claim hygiene, and handoff usability.",
+      "output": "Return the canonical result and finding envelope."
+    },
+    {
+      "id": "opensource-sanitizer",
+      "title": "Open-source Sanitizer",
+      "mode": "review",
+      "description": "Read-only open-source release sanitizer for public, npm, and package exposure risks.",
+      "goal": "Check public, npm, and package exposure for internal artifacts, provenance, privacy, and secret risks.",
+      "output": "Return `STATUS`, evidence, blockers, and confidence."
+    },
+    {
+      "id": "web-performance-auditor",
+      "title": "Web Performance Auditor",
+      "mode": "review",
+      "description": "Read-only reviewer for measurable web performance risks and relevant user-facing metrics.",
+      "goal": "Audit a web change for measurable performance risks and relevant user-facing metrics.",
+      "output": "Return `STATUS`, evidence, blockers, and confidence."
+    }
+  ],
+  "authorityBoundary": "Adapter metadata may narrow loadability but cannot grant Worker decision, integration, verification-selection, or final-verdict authority.",
+  "generated": {
+    "generator": "aili-runtime-projections/v1",
+    "canonicalInputs": [
+      "adapters/pi/adapter.json",
+      "core/governance/decision-core.md",
+      "core/governance/operating-discipline.md",
+      "core/roles/roles.json",
+      "manifests/runtime-projections.json"
+    ],
+    "inputSha256": "06b44525cd9551b834d05500e06e1a20d4b409835d0553ccbcae41290ebfd608"
+  }
+}

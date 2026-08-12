@@ -54,12 +54,20 @@ for (const record of evidence.records) {
   if (targetMap.has(targetId)) throw new Error(`adapter evidence contains duplicate target ${target}`);
   targetMap.set(targetId, record);
   if (!new Set(["native", "adapted", "unverified"]).has(record.status)) throw new Error(`${target}: invalid evidence status`);
-  if (record.sourceRevision !== lock.commit) throw new Error(`${target}: adapter evidence revision does not match the skill lock`);
+  const staleRevision = record.sourceRevision !== lock.commit;
+  if (staleRevision) {
+    // Stale evidence remains evidence, not authority. Leave affected skills
+    // blocked until fresh revision-bound artifacts are recorded.
+    record.status = "unverified";
+  }
   if (!record.owner || record.verification.length === 0 || record.artifacts.length === 0) throw new Error(`${target}: adapter evidence is incomplete`);
   if (hasSkill) {
     if (record.status === "adapted") throw new Error(`${target}: skill-scoped evidence must be native or unverified`);
     const skill = compatibility.records.find((candidate) => candidate.name === record.skill);
-    if (!skill) throw new Error(`${target}: compatibility target is missing`);
+    if (!skill) {
+      if (record.status === "unverified") continue;
+      throw new Error(`${target}: compatibility target is missing`);
+    }
     if (skill.requiredCapabilities.length !== 0) throw new Error(`${target}: skill-scoped evidence is only valid without required capabilities`);
     if (!record.sourceHash || record.sourceHash !== skill.sourceHash) throw new Error(`${target}: evidence source hash does not match the skill snapshot`);
     if (record.status === "native") {
@@ -73,11 +81,13 @@ for (const record of evidence.records) {
       }
     }
   }
-  for (const artifact of record.artifacts) {
-    if (artifact.path.startsWith("/") || artifact.path.includes("..")) throw new Error(`${target}: unsafe evidence path ${artifact.path}`);
-    const content = await readFile(new URL(artifact.path, ROOT));
-    const actual = createHash("sha256").update(content).digest("hex");
-    if (actual !== artifact.sha256) throw new Error(`${target}: evidence hash drift at ${artifact.path} (actual ${actual})`);
+  if (record.status !== "unverified") {
+    for (const artifact of record.artifacts) {
+      if (artifact.path.startsWith("/") || artifact.path.includes("..")) throw new Error(`${target}: unsafe evidence path ${artifact.path}`);
+      const content = await readFile(new URL(artifact.path, ROOT));
+      const actual = createHash("sha256").update(content).digest("hex");
+      if (actual !== artifact.sha256) throw new Error(`${target}: evidence hash drift at ${artifact.path} (actual ${actual})`);
+    }
   }
 }
 let updated = 0;
@@ -93,7 +103,7 @@ for (const skill of compatibility.records) {
     } else if (record.status === "unverified") {
       skill.status = "blocked";
       skill.adapterOwner = `planned:${record.owner}`;
-      skill.verification = ["snapshot-hash:verified", ...record.verification.map((command) => `pending:${command}`)];
+      skill.verification = ["snapshot-hash:verified", ...record.verification.map((command) => `pending:${command.replace(/^stale:/, "")}`)];
       skill.reason = "Skill-scoped Pi native discovery and behavior evidence remains unverified.";
       skill.unverified = ["Fresh revision-bound behavior evidence is required before compatibility promotion."];
     } else {

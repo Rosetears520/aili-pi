@@ -1,17 +1,61 @@
 # Third-Party Notices
 
-This distribution is licensed under AGPL-3.0-or-later. The following adapted sources, behavioral references, and locked development/runtime dependencies retain their own license terms.
+This distribution is licensed under MIT. The following adapted sources, behavioral references, and locked development/runtime dependencies retain their own license terms.
 
 ## aili-workflows
 
 - Status: adapted
 - Source: https://github.com/Rosetears520/aili-workflows.git
-- Revision: bb1fedacc46d71045daa6257d121f2b71ba29d54
-- Version: 0.4.2
+- Revision: a69f3149d8f1db81726128c2819a3ccc954b9ccc
+- Version: 0.4.7
 - License: MIT
-- Source files: upstream/aili-workflows.lock.json#files (588 exact skill files), manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.2 source revision), upstream/opencode-global-agents.lock.json (pinned source template revision/hash)
-- Reused symbols/patterns: 65 canonical skill bodies and owned assets
-- Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; specialized role prompts and deterministic routing were regenerated from the exact 0.4.2 source revision and remain manifest-hash bound; templates/APPEND_SYSTEM.md is a Pi-native governance derivation of the pinned global AGENTS template, with OpenCode-only control planes excluded
+- Source files: upstream/aili-workflows.lock.json#files (562 exact skill files), upstream/aili-workflows-runtime/** (exact generated Pi runtime bundle), manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.7 source revision)
+- Reused symbols/patterns: 58 canonical skill bodies and owned assets, 20 canonical Specialized Agent roles, Pi system/role/selection/protocol/installation runtime bundle
+- Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; the generated Pi runtime bundle is copied byte-for-byte and validated through one lock-bound loader; specialized role prompts and deterministic routing were regenerated from the exact 0.4.7 source revision and remain manifest-hash bound; legacy APPEND_SYSTEM and global-role installation ownership is retired and report-only
+
+## pi-mcp-adapter
+
+- Status: dependency
+- Source: https://github.com/nicobailon/pi-mcp-adapter.git
+- Revision: 49e25be1cb917329980eb7a40786c5b91dddb277
+- Version: 2.23.0
+- License: MIT
+- Source files: index.ts, types.ts, mcp-status.ts, tool-approval.ts
+- Reused symbols/patterns: createMcpAdapter, MCP status snapshots, multi-origin tool approval event
+- Local changes: AILI composes a fresh factory for Parent and each persistent Worker through src/runtime/mcp.ts; no upstream source is copied and the dependency is not registered as a second Pi package
+
+## billion-context-pi
+
+- Status: adapted
+- Source: https://github.com/ranxianglei/billion-context-pi.git
+- Revision: 558a83a9db695571339d693ab75129c2f13a324c
+- Version: 0.1.34
+- License: MIT
+- Source files: upstream/billion-context-pi/** (complete tracked source tree except .git metadata)
+- Reused symbols/patterns: compress, decompress, search_context, acp_status, acp_delegate, acp_delegate_wait, acp_delegate_cancel, context and compaction handlers
+- Local changes: added AcpOwnershipRouter so a turn-frozen canonical route gates context, system-prompt and compaction ownership before side effects; disabled upstream auto-update and user-home subagent settings mutation in the AILI composition; rebuilt dist against the retained source and Pi 0.84.1
+
+## pi-codex-compact
+
+- Status: dependency
+- Source: https://github.com/narumiruna/pi-extensions.git
+- Revision: c98af43a6c71c5839b2e0671db71ed1cc1fc0c51
+- Version: 0.50.0
+- License: MIT
+- Source files: node_modules/@narumitw/pi-codex-compact/src/**, upstream/pi-codex-compact-0.50.0-src/**, upstream/pi-codex-compact-0.50.0-LICENSE, upstream/pi-codex-compact-0.50.0-README.md
+- Reused symbols/patterns: Codex Remote Compaction V2, opaque checkpoint marker/fingerprint replay, Pi-native fallback
+- Local changes: composed only for canonical openai-codex/openai-codex-responses turns; settings view forces extension transport maxRetries=0 so Pi owns retries
+
+## pi-retry
+
+- Status: adapted
+- Source: https://github.com/narumiruna/pi-extensions.git
+- Revision: 3ad2c94970132353fc869cd2297b017465740791
+- Version: 0.31.0
+- License: MIT
+- Source files: upstream/pi-retry-0.31.0/**, src/runtime/provider-retry.ts
+- Reused symbols/patterns: provider retry classifiers, stall watchdog, receiving/retrying status, Pi retry-policy integration
+- Local changes: added bounded redacted structured retry diagnostics and exported classification helpers; Pi 0.84.1 remains the sole attempt budget/backoff owner; later upstream deprecated placement is documented in the accepted change
 
 ## pi-permission-modes
 
@@ -33,7 +77,7 @@ This distribution is licensed under AGPL-3.0-or-later. The following adapted sou
 - License: MIT
 - Source files: src/index.ts, src/subscription.ts, src/format.ts, src/paths.ts
 - Reused symbols/patterns: quota footer, Codex subscription windows, /quota, global state maintenance
-- Local changes: AILI initializes the pinned upstream extension; upstream owns quota polling and state files; Zentui shows one canonical weekly segment as codex, preferring explicit Wk and using the dependency's legacy-mislabeled 5h primary only as fallback, without changing selected percentage or reset data
+- Local changes: AILI initializes the pinned upstream extension; upstream owns quota polling and state files; the Pi-native minimal footer consumes its published status without changing percentage or reset data
 
 ## pi-web-access
 
@@ -55,7 +99,7 @@ This distribution is licensed under AGPL-3.0-or-later. The following adapted sou
 - License: MIT
 - Source files: index.ts
 - Reused symbols/patterns: default Extension, /cache-optimizer, cache statistics, prompt cache hooks
-- Local changes: AILI initializes the pinned upstream extension through its single Extension entry; Zentui defaults its pi-cache-stats footer placement off while leaving cache commands and collection unchanged; no upstream source is copied
+- Local changes: AILI initializes the pinned upstream extension through its single Extension entry; the Pi-native minimal footer gives model and quota status priority while leaving cache commands and collection unchanged; no upstream source is copied
 
 ## pi-sakura-cyberdeck
 
@@ -65,8 +109,8 @@ This distribution is licensed under AGPL-3.0-or-later. The following adapted sou
 - Version: git:165a1f8011a12a58a6409b56b8a6c0416cd9b589
 - License: MIT
 - Source files: extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**
-- Reused symbols/patterns: header, matrix animation, Zentui footer, fixed editor compositor
-- Local changes: registered as three additional Pi Package Extensions; Rose header loads a package-owned renamed artwork asset without changing upstream identity; Rose Shimmer, Rose Code Rain, and Zentui use the Rose-owned palette and gradient; overflowing Matrix tracks remain deterministic across the complete terminal width with the 96-track budget, while each rain row receives a structural blank-row repair; relative import specifiers and session lifecycle event are adapted for this package's NodeNext TypeScript contract
+- Reused symbols/patterns: retired header, retired matrix animation, retired Zentui UI, inactive fixed editor compositor
+- Local changes: historical adapted source is retained in the repository but no header, Matrix, Zentui extension or theme is registered as a production Pi resource; legacy user configuration is untouched; the inactive fixed-editor source remains separate from the independently owned WSL image-paste keybinding behavior
 
 ## Oh My Pi reference
 
@@ -79,20 +123,19 @@ This distribution is licensed under AGPL-3.0-or-later. The following adapted sou
 - Reused symbols/patterns: none
 - Local changes: none
 
-## opencode-acp reference
+## algal pi-openai-server-compaction reference
 
 - Status: reference-only
-- Source: https://github.com/ranxianglei/opencode-acp.git
-- Revision: 00e8ba5c53fcbc46dfd86b5d7aa6eae058d29acb
-- Version: 1.14.3
-- License: AGPL-3.0-or-later
-- Upstream notice: Based on opencode-dynamic-context-pruning by Tarquinen (https://github.com/Tarquinen/opencode-dynamic-context-pruning); modified by ranxianglei, 2026 — 35 bug fixes plus performance and stability improvements.
+- Source: https://github.com/algal/pi-openai-server-compaction.git
+- Revision: 8a3de2f3b0c178fdd6f73f2f94172dfc3943e466
+- Version: git:8a3de2f3b0c178fdd6f73f2f94172dfc3943e466
+- License: MIT
 - Source files: none copied
 - Reused symbols/patterns: none
 - Local changes: none
 
 ## npm dependency inventory
 
-The exact 350-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
+The exact 519-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
 
 Runtime dependencies are initialized through the single AILI Extension entry. Package-owned third-party adaptations are copied only where their provenance sourceFiles explicitly name repository paths.

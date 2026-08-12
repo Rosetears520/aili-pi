@@ -273,9 +273,28 @@ export class HubService {
   private list(caller: HubCaller, includeReleased: boolean) {
     const state = this.options.journal.getState();
     const visible = (agent: AgentRecord) => !caller.agentId || isDescendant(state, caller.agentId, agent.id);
+    const display = (agent: AgentRecord) => {
+      const latestTurn = Object.values(state.turns)
+        .filter((candidate) => candidate.agentId === agent.id)
+        .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0];
+      return {
+        ...agent,
+        display: {
+          selector: agent.selector,
+          effectiveModel: typeof latestTurn?.metadata?.effectiveModel === "string" ? latestTurn.metadata.effectiveModel : undefined,
+          modelLayer: typeof latestTurn?.metadata?.modelLayer === "string" ? latestTurn.metadata.modelLayer : undefined,
+          thinking: typeof latestTurn?.metadata?.thinking === "string" ? latestTurn.metadata.thinking : undefined,
+          effectiveMode: typeof latestTurn?.metadata?.effectiveMode === "string" ? latestTurn.metadata.effectiveMode : undefined,
+          turnId: latestTurn?.id ?? agent.currentTurnId,
+          jobId: latestTurn?.jobId ?? agent.currentJobId,
+          outputRef: typeof latestTurn?.metadata?.outputRef === "string" ? latestTurn.metadata.outputRef : `agent://${agent.id}`,
+          historyRef: typeof latestTurn?.metadata?.historyRef === "string" ? latestTurn.metadata.historyRef : `history://${agent.id}`,
+        },
+      };
+    };
     return {
-      agents: Object.values(state.agents).filter(visible),
-      released: includeReleased ? Object.values(state.releasedAgents).filter(visible) : [],
+      agents: Object.values(state.agents).filter(visible).map(display),
+      released: includeReleased ? Object.values(state.releasedAgents).filter(visible).map(display) : [],
     };
   }
 
@@ -604,6 +623,22 @@ export class HubService {
     const visible = Object.values(state.jobs).filter((job) => {
       if (jobId && job.id !== jobId) return false;
       return !caller.agentId || isDescendant(state, caller.agentId, job.agentId);
+    }).map((job) => {
+      const agent = state.agents[job.agentId] ?? state.releasedAgents[job.agentId];
+      const turn = Object.values(state.turns).find((candidate) => candidate.jobId === job.id && candidate.agentId === job.agentId);
+      return {
+        ...job,
+        display: {
+          selector: agent?.selector,
+          effectiveModel: typeof turn?.metadata?.effectiveModel === "string" ? turn.metadata.effectiveModel : undefined,
+          modelLayer: typeof turn?.metadata?.modelLayer === "string" ? turn.metadata.modelLayer : undefined,
+          thinking: typeof turn?.metadata?.thinking === "string" ? turn.metadata.thinking : undefined,
+          effectiveMode: typeof turn?.metadata?.effectiveMode === "string" ? turn.metadata.effectiveMode : undefined,
+          turnId: turn?.id,
+          outputRef: typeof turn?.metadata?.outputRef === "string" ? turn.metadata.outputRef : `agent://${job.agentId}`,
+          historyRef: `history://${job.agentId}`,
+        },
+      };
     });
     if (jobId && visible.length === 0) throw new Error(`${jobId}: unknown or cross-owner job`);
     return { jobs: visible };

@@ -10,6 +10,7 @@ import {
 } from "../../src/runtime/persistent-agents/runtime.js";
 import { TASK_TOOL_SCHEMA } from "../../src/runtime/persistent-agents/task-schema.js";
 import { loadAgentCatalog } from "../../src/runtime/agent-catalog.js";
+import type { ResolvedModelChoice } from "../../src/runtime/persistent-agents/model-selection.js";
 
 let scratch = "";
 
@@ -52,15 +53,18 @@ describe("internal persistent Agent runtime wiring", () => {
     await writeFile(parentFile, "fixture parent\n");
     const parentEntries: unknown[] = [];
     let executions = 0;
+    const frozen: ResolvedModelChoice = { provider: "fixture", model: "offline", canonical: "fixture/offline", layer: "parent-fallback", thinking: "high", persistent: false, oneShot: false };
     const create = () => PersistentAgentRuntime.create({
       parentSessionPath: parentFile,
       parentId: "parent-1",
       cwd: scratch,
+      preallocate: async () => frozen,
       execute: async (input) => {
         executions += 1;
         const output = `execution-${executions}:${input.item.task}`;
         persistAssistant(input, output);
-        return { output, model: { provider: "fixture", model: "offline", layer: "parent-fallback" } };
+        expect(input.modelChoice).toEqual(frozen);
+        return { output, model: input.modelChoice };
       },
       parentDelivery: {
         scanDeliveryIds: async () => scanDeliveryIdsFromParentEntries(parentEntries),
@@ -78,7 +82,7 @@ describe("internal persistent Agent runtime wiring", () => {
 
     const runtime = await create();
     const sync = await runtime.task.submit({ task: "sync work", name: "Scout", async: false });
-    expect(sync.results[0]).toMatchObject({ status: "completed", agentId: "Scout", outputRef: "agent://Scout" });
+    expect(sync.results[0]).toMatchObject({ status: "completed", agentId: "Scout", outputRef: "agent://Scout", model: { provider: "fixture", model: "offline", layer: "parent-fallback", thinking: "high" } });
     const scout = runtime.journal.getState().agents.Scout;
     expect(scout.sessionPath).toBeTruthy();
     expect(await readFile(scout.sessionPath!, "utf8")).toContain("execution-1:sync work");
@@ -87,9 +91,24 @@ describe("internal persistent Agent runtime wiring", () => {
     expect(parentEntries).toEqual([]);
 
     const accepted = await runtime.task.submit({ task: "async work", name: "Worker" });
-    expect(accepted.results[0]).toMatchObject({ status: "accepted", agentId: "Worker", jobId: "job-2" });
+    expect(accepted.results[0]).toMatchObject({ status: "accepted", agentId: "Worker", jobId: "job-2", model: { provider: "fixture", model: "offline", layer: "parent-fallback", thinking: "high" } });
     await runtime.task.getSettlement("job-2");
     expect(parentEntries).toHaveLength(1);
+    expect(parentEntries[0]).toMatchObject({
+      details: {
+        selector: "general",
+        effectiveMode: "async",
+        effectiveModel: "fixture/offline",
+        modelLayer: "parent-fallback",
+        thinking: "high",
+        agentId: "Worker",
+        jobId: "job-2",
+        turnId: "turn-2",
+      },
+    });
+    expect(await runtime.hub.execute({ action: "jobs", jobId: "job-2" })).toMatchObject({
+      jobs: [{ display: { selector: "general", effectiveModel: "fixture/offline", modelLayer: "parent-fallback", thinking: "high", turnId: "turn-2" } }],
+    });
     expect(scanDeliveryIdsFromParentEntries(parentEntries)).toEqual(new Set(["delivery-job-2"]));
     await runtime.shutdown();
 
@@ -101,6 +120,39 @@ describe("internal persistent Agent runtime wiring", () => {
     expect(next.results[0]).toMatchObject({ agentId: "Scout-2", jobId: "job-3" });
     expect(executions).toBe(beforeResumeExecutions + 1);
     await resumed.shutdown();
+  });
+
+  it("retains a formal preflight error after registering a readable child history without executor work", async () => {
+    const parentFile = join(scratch, "parent.jsonl");
+    const changeId = "preflight-failure";
+    await writeFile(parentFile, "fixture parent\n");
+    const formalRoot = join(scratch, "openspec", "changes", changeId);
+    await mkdir(formalRoot, { recursive: true });
+    await writeFile(join(formalRoot, "formal-task-board.md"), [
+      "# Task Board", "", "- Protocol: `aili-task-board/v1`", "- Task kind: `formal`",
+      `- Task identity: \`${changeId}\``, "- Goal: bounded preflight fixture", "- Phase: `BUILD`", "- Board status: `active`",
+      "- Accepted contract: `fixture`", "- Accepted verification: `accepted fixture`", "- Decision owner: `ROSE`", "- Verification owner: `ROSE`", "", "## Packages", "",
+      "- [ ] P-01 — Preserve preflight error",
+      "  - Phase: `BUILD`", "  - Package kind: `task-execution`", "  - Source refs: `task:P-01`", "  - Accepted task IDs: `P-01`", "  - Status: `ready`", "  - Owner: `agent:aili.implementer`", "  - Dispatch: `required`", "  - Dispatch reason: `fixture`", "  - No-dispatch reason: `N/A`", "  - Execution: `sync`", "  - Join: `immediate`", "  - Depends on: `none`", "  - Decision gate: `N/A`", "  - Final test-plan gate: `accepted`", "  - Implementation authorization: `granted`", "  - Operation permissions: `N/A`", "  - Scope: `fixture scope`", "  - Forbidden scope: `outside fixture`", "  - Expected result: `preflight failure`", "  - Expected evidence: `verification:preflight; artifact:result`", "  - Acceptance: `error remains exact`", "  - Dispatch evidence: `pending`", "  - Result evidence: `pending`", "  - Evidence: `pending`", "  - ROSE disposition: `pending`", "  - Blocker: `none`", "  - Next action: `run fixture`", "",
+    ].join("\n"));
+    await writeFile(join(formalRoot, "progress.txt"), "[2026-07-29T00:00:00Z] BOARD BOARD_CREATED\n\n[2026-07-29T00:00:01Z] P-01 READY\nevidence=artifact:ready/P-01\n");
+    let executions = 0;
+    const runtime = await PersistentAgentRuntime.create({
+      parentSessionPath: parentFile, parentId: "parent-1", cwd: scratch,
+      preflight: async () => { throw new Error("injected formal preflight failure"); },
+      execute: async () => { executions += 1; return { output: "unexpected" }; },
+      parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "sent" },
+      revive: async () => ({ steer() {}, sendUserMessage() {}, dispose() {} }),
+    });
+    const audit = { packageId: "P-01", canonicalRole: "aili.implementer", scope: "fixture scope", forbiddenScope: "outside fixture", writeScope: { paths: [], resources: [] }, acceptanceBoundary: "error remains exact", expectedEvidence: "verification:preflight; artifact:result" };
+    const response = await runtime.task.submit({ task: "must not execute", agent: "aili.implementer", async: false, formalContext: { changeId }, continuationAudit: audit });
+    expect(response.results[0]).toMatchObject({ status: "failed", error: "injected formal preflight failure", formalResultStatus: "malformed" });
+    expect(executions).toBe(0);
+    const agent = runtime.journal.getState().agents[response.results[0]!.agentId]!;
+    expect(agent.sessionPath).toBeTruthy();
+    expect(await readFile(agent.sessionPath!, "utf8")).toContain('"type":"session"');
+    expect(runtime.journal.getState().formalResultEvidence[response.results[0]!.jobId]).toMatchObject({ historyPath: agent.sessionPath, canonicalStatus: "malformed" });
+    await runtime.shutdown();
   });
 
   it("registers only canonical internal task/hub tools and the direct-user model command", async () => {
@@ -161,10 +213,15 @@ describe("internal persistent Agent runtime wiring", () => {
       expect.stringMatching(/^Worker boundary:/),
       expect.stringContaining("Specialized Agent catalog (generated routing cues"),
     ]);
-    expect(taskTool.promptGuidelines.at(-1)).toContain("aili.code-scout — Read-only code scouting subagent.");
+    expect(taskTool.promptGuidelines.at(-1)).toContain("aili.code-scout — Read-only code scouting Worker");
+    expect(taskTool.promptGuidelines.at(-1)).toContain("aili.solution-architect — Repository-grounded solution-design Worker");
     expect(taskTool.promptGuidelines.at(-1)).toContain("phases(advisory)=IDEATE/DEFINE/BUILD");
     expect(taskTool.promptGuidelines.at(-1)).not.toContain("toolPolicy");
     expect(taskTool.parameters).toBe(TASK_TOOL_SCHEMA);
+    expect(taskTool.renderCall).toBeTypeOf("function");
+    expect(taskTool.renderResult).toBeTypeOf("function");
+    expect(tools.get("hub").renderCall).toBeTypeOf("function");
+    expect(tools.get("hub").renderResult).toBeTypeOf("function");
 
     const context = { ui: { notify() {} } } as never;
     const taskResult = await taskTool.execute("call-1", { task: "internal", async: false }, new AbortController().signal, undefined, context);

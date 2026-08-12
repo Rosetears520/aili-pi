@@ -6,15 +6,15 @@
 
 - Linux
 - Node.js 22.19.0 or newer
-- Pi 0.82.1 or newer with the Package and Extension APIs used by this release
+- Exact tested Pi baseline `0.84.1` with the Package and Extension APIs used by this release
 
-AILI does not replace Pi's provider/model catalog. On the tested Pi 0.82.1 baseline, Codex-authenticated GPT-5.6 Sol, Terra, and Luna retain Pi's `272000` context-window metadata unless you explicitly configure a supported Pi model override.
+AILI does not replace Pi's provider/model catalog. On the tested Pi 0.84.1 baseline, Codex-authenticated GPT-5.6 models retain Pi-owned model metadata unless you explicitly configure a supported Pi model override.
 
 macOS and native Windows are not supported by this bootstrap and fail before installation mutation.
 
 ## Install
 
-### Stable 0.2.0
+### Stable 0.2.1
 
 Install the current stable package through Pi:
 
@@ -34,7 +34,7 @@ If Pi is absent, the script downloads only `https://pi.dev/install.sh` over HTTP
 
 The script preserves an existing compatible Pi by default. It validates an existing user-global `~/.pi/agent/settings.json` but never creates, rewrites, or refreshes that file. Absent settings retain Pi defaults; explicit `true`, unmarked `false`, and unrelated settings are preserved byte-for-byte. Malformed or non-object settings fail without replacing the original file. Project `.pi/settings.json` files are never scanned or rewritten. If Pi automatic threshold/overflow compaction is disabled, set `compaction.enabled` to `true`. Context compaction is owned entirely by Pi.
 
-On WSL2, the bootstrap also validates `~/.pi/agent/keybindings.json` before package installation. If the file is absent or has no explicit `app.clipboard.pasteImage` action, it atomically adds both `Ctrl+V` and `Alt+V`; an existing explicit action is left byte-for-byte unchanged, and malformed or unsafe targets fail closed. This only exposes Pi 0.82.1's existing WSL clipboard-image path—AILI does not add another clipboard reader.
+On WSL2, the bootstrap also validates `~/.pi/agent/keybindings.json` before package installation. If the file is absent or has no explicit `app.clipboard.pasteImage` action, it atomically adds both `Ctrl+V` and `Alt+V`; an existing explicit action is left byte-for-byte unchanged, and malformed or unsafe targets fail closed. This only exposes Pi 0.84.1's existing WSL clipboard-image path—AILI does not add another clipboard reader.
 
 To request Pi's own self-update first:
 
@@ -49,8 +49,8 @@ Shared Skills/workflows and the Pi Package have two independent lifecycle owners
 **Shared Skills/workflows — explicit user-owned lifecycle.** Install or update them only by explicitly running `npx -y rose-aili@<exact-or-user-selected-version> install` or `npx -y rose-aili@<exact-or-user-selected-version> update`. The accepted exact baseline is:
 
 ```sh
-npx -y rose-aili@0.4.2 install
-npx -y rose-aili@0.4.2 update
+npx -y rose-aili@0.4.7 install
+npx -y rose-aili@0.4.7 update
 ```
 
 Choose a different version deliberately when needed. A moving `rose-aili@latest` may be a convenience command, but it is not valid doctor or release evidence; those claims require an exact version.
@@ -70,27 +70,15 @@ The repository `skills/**` tree is only an exact verification baseline for the s
 
 Removal is destructive for this Package. It does not remove Pi and must not be presented as rollback when replacing a pre-existing AILI installation.
 
-### Explicit global resources
+### Global Workflow ownership
 
-The package does not write global AILI resources during extension load. After reviewing the target, explicitly run:
+`rose-aili@0.4.7` owns global Pi `AGENTS.md` and Workflow prompts. The Package consumes the pinned validated runtime bundle but no longer registers `/aili-install-global-resources` or writes `~/.pi/agent/APPEND_SYSTEM.md` and `~/.pi/agent/agents/aili/`. Doctor reports legacy marker/profile files without rewriting or deleting them; cleanup remains manual and separately authorized.
 
-```text
-/aili-install-global-resources
-```
+## Pi-native UI
 
-That command creates or updates only the AILI marker block in `~/.pi/agent/APPEND_SYSTEM.md` and installs the 19 packaged profiles at `~/.pi/agent/agents/aili/`. The marker block is a Pi-native governance derivation of the pinned `aili-workflows` global AGENTS template: it retains instruction precedence, untrusted-content handling, approval/evidence/verification discipline, bounded delegation, project-rule precedence, and user-language output, while excluding OpenCode-only control planes. It preserves unrelated prompt content, rejects malformed markers or an unowned profile collision, and reports stale profiles without pruning them.
+Pi owns the active theme, startup header, editor, message rendering, tool rendering, and working/thinking indicators. AILI registers no Matrix animation, custom header, theme, editor replacement, thinking renderer, or prototype patch. Its single Extension entry adds only a lightweight footer through Pi's public `setFooter()` API. The footer prioritizes the active model and the existing `pi-quota-status` value, includes minute-level time and other optional fields only when space and data permit, and disposes its timer and branch listener with the session.
 
-## Rose Cyberdeck
-
-The package supplies the dark `rose-cyberdeck` theme plus three additional Pi Extensions: a Rose header, Rose Shimmer + four-row Rose Code Rain working surface, and Zentui footer/editor surface. Select it through Pi's `/settings` theme selector or set `"theme": "rose-cyberdeck"` in `~/.pi/agent/settings.json`. The visual extensions are adapted from `pi-sakura-cyberdeck` at revision `165a1f8011a12a58a6409b56b8a6c0416cd9b589` under MIT; see `THIRD_PARTY_NOTICES.md` and `notices/pi-sakura-cyberdeck-NOTICE.txt`.
-
-Rose Code Rain uses the original sparse, fixed-column waterfall geometry: `density` selects even-cell tracks, at most 96 tracks span ultra-wide terminals, and each track falls vertically with a randomized tail and gap. The default 12 FPS cadence and 8–16 rows/second fall speed sit between the released and dense-preview profiles. `/rose-matrix on|off` controls the whole working widget; `/rose-matrix rain on|off` independently controls the four Rain rows while retaining Rose Shimmer. `/rose-matrix status`, `/rose-matrix fps <8-18>`, `/rose-matrix density <0.45-0.95>`, and `/rose-matrix appearance <auto|dark|light>` change active preferences. `/sakura-matrix` remains a deprecated compatibility alias. Header, rain, frames, footer, and editor use the Rose six-color system: Blue, Ice, Cyan, Violet, Rose, and Soft Rose.
-
-### Migrating from Rem/Sakura names
-
-Replace an exact legacy `rem-cyberdeck` theme token with `rose-cyberdeck` through `/settings` or `~/.pi/agent/settings.json`; when using a `light/dark` pair, replace only the legacy side. Existing `sakura-cyberdeck-matrix.json` and `rem-cyberdeck-zentui.json` configuration files are read compatibly and retained. Legacy product names below appear only for migration or upstream attribution.
-
-Zentui keeps Pi's native editor by default. Its experimental fixed-bottom editor is opt-in because it replaces Pi's renderer, uses the terminal alternate screen, and renders its own overflow scrollbar at the right edge. Enable it through `/zentui fixed editor on`; disable it with `/zentui fixed editor off` to restore native terminal scrollback and selection. Mouse drag selection can continue across transcript viewports through wheel or bounded edge auto-scroll, then copies once on release. Zentui hides `pi-cache-stats` by default so the one canonical Codex weekly quota remains visible; explicitly re-enabled cache stats follow quota in the bounded footer.
+Legacy Rose/Matrix/Zentui source and user configuration may remain for history or migration evidence, but they are not registered as production Pi resources and are not rewritten or deleted. The experimental fixed-editor source is likewise retained but inactive; WSL image-paste remains independently owned by the bootstrap keybinding merger described below.
 
 ### WSL2 clipboard-image paste
 
@@ -103,20 +91,19 @@ After bootstrap installation, take or copy an image in Windows and press `Alt+V`
 - `/aili-doctor` or `/aili-doctor --json`: human or machine-readable health evidence.
 - `/perm`: the revision-bound `pi-permission-modes@2.2.0` adaptation controls `Default`, `Plan`, `Build`, and `YOLO`.
 - `Alt+M`: upstream mode-cycle shortcut.
-- `/aili-install-global-resources`: explicit installation/update of marker-owned global ROSE and AILI-role resources.
 
-### Context compaction
+### Context compaction and retry
 
-AILI Compact is removed from the 0.2.0 runtime. The package no longer registers its command, tools, provider projection, Session hooks, compaction hook, or diagnostics. Pi's native `/compact`, automatic threshold compaction, overflow summary, and retry behavior are the only supported compaction path. Historical implementation source is retained in the repository for possible future redesign but is not a supported 0.2.0 capability.
+AILI Compact is retired. A turn-frozen canonical provider/API/model route selects exactly one context owner: compatible `openai-codex` uses `@narumitw/pi-codex-compact@0.50.0` for Remote Compaction V2; all other providers use the retained `billion-context-pi@0.1.34` runtime. ACP delegate tools remain a separate non-formal surface and never replace persistent `task`/`hub` ownership. `@narumitw/pi-retry@0.31.0` classifier/watchdog behavior is integrated for explainable status, while Pi 0.84.1 remains the only attempt-budget and backoff owner.
 
-The `pi-permission-modes@2.2.0` baseline owns mode persistence, prompts, and sandbox behavior. AILI carries hash-locked adaptations so `*` and `?` also match line terminators and the one process-owned ready SandboxController can supply exact-profile Bash operations to persistent children. Children never initialize, reconfigure, reset, or silently downgrade that process-global runtime; a missing, degraded, disabled, or profile-mismatched sandbox denies sandbox-required child Bash. Linux disposable fixtures and a Pi 0.82.1 provider-backed child turn verified the Build path through installed Bubblewrap, while an incompatible Git-worktree fixture remained fail closed for children. This is not a universal isolation guarantee. `YOLO` remains unrestricted and unsandboxed.
+The `pi-permission-modes@2.2.0` baseline owns mode persistence, prompts, and sandbox behavior. AILI carries hash-locked adaptations so `*` and `?` also match line terminators and the one process-owned ready SandboxController can supply exact-profile Bash operations to persistent children. Children never initialize, reconfigure, reset, or silently downgrade that process-global runtime; a missing, degraded, disabled, or profile-mismatched sandbox denies sandbox-required child Bash. Linux disposable fixtures and a Pi 0.84.1 provider-backed child turn verified the Build path through installed Bubblewrap, while an incompatible Git-worktree fixture remained fail closed for children. This is not a universal isolation guarantee. `YOLO` remains unrestricted and unsandboxed.
 
 ## Native integrations and side effects
 
 - `pi-web-access@0.13.0` provides its complete upstream web-search, content-fetch, curator, clone/PDF/video, and bundled-skill surface. Its provider fallback, network traffic, config/credential paths, clone cache, temporary curator service, downloads, and optional browser-cookie access are upstream behavior; inspect its tool requests and configuration before use.
-- `pi-quota-status@0.3.0` is enabled by default. It may maintain `~/.pi/agent/pi-quota-status/state.json`; `/quota config` creates its configuration template. Zentui displays exactly one weekly value as `codex <percent> <reset>`, preferring explicit `Wk` data and treating the dependency's current `5h`-labeled primary value only as a compatibility fallback when weekly is absent.
+- `pi-quota-status@0.3.0` is enabled by default. It may maintain `~/.pi/agent/pi-quota-status/state.json`; `/quota config` creates its configuration template. The Pi-native AILI footer displays the dependency's bounded active-model status without changing its selected percentage or reset data.
 - `pi-permission-modes@2.2.0` provides the permission UI and process-owned sandbox lifecycle above through AILI's exact-source adaptation. The semantic adaptations are line-terminator-safe shared glob matching, Pi session-environment forwarding, and the fail-closed persistent-child sandbox bridge; `upstream/pi-permission-modes.lock.json` records the baseline and adapted hashes. AILI does not retain `/aili-mode` or `Ctrl+Shift+Alt+A` as competing controls.
-- AILI owns the public `task`/`hub` persistent Agent framework. `task` creates parent-scoped official Pi child sessions using 19 specialized `aili.*` selectors or `general`; top-level work is async by default, supports bounded batch scheduling, and returns stable Agent/job/turn IDs plus `agent://` and `history://` references. `hub` provides list/send/wait/inbox/output/history/jobs/cancel/model operations, park/revive, durable delivery, and owner/descendant scoping. No `subagent` compatibility alias or run/attempt backend selector remains. See [`docs/persistent-agents.md`](docs/persistent-agents.md).
+- AILI owns the public `task`/`hub` persistent Agent framework. `task` creates parent-scoped official Pi child sessions using 20 specialized `aili.*` selectors, including read-only `aili.solution-architect`, or `general`; top-level work is async by default, supports bounded batch scheduling, and returns stable Agent/job/turn IDs plus `agent://` and `history://` references. `hub` provides list/send/wait/inbox/output/history/jobs/cancel/model operations, park/revive, durable delivery, and owner/descendant scoping. No `subagent` compatibility alias or run/attempt backend selector remains. See [`docs/persistent-agents.md`](docs/persistent-agents.md).
 - `pi-cache-optimizer@2.6.18` provides `/cache-optimizer`, provider cache diagnostics, cache statistics, and prompt-cache optimization. It may maintain `~/.pi/agent/pi-cache-optimizer-stats.json`; `/cache-optimizer fix` is interactive and is the only command that may propose editing `models.json`.
 
 ## Optional capability packs
@@ -140,11 +127,11 @@ Use `hub jobs`, `hub wait`, `hub output`, and `hub history` to inspect durable a
 
 ## Provenance and reproducibility
 
-- `upstream/aili-workflows.lock.json` pins the exact canonical 65-skill/588-file verification snapshot from `rose-aili@0.4.2` commit `bb1fedacc46d71045daa6257d121f2b71ba29d54`.
-- `upstream/opencode-global-agents.lock.json` pins the global AGENTS source revision/hash and documents its Pi-native derivation.
+- `upstream/aili-workflows.lock.json` pins the exact canonical 58-skill/562-file verification snapshot and Pi runtime bundle from `rose-aili@0.4.7` commit `a69f3149d8f1db81726128c2819a3ccc954b9ccc`.
+- `upstream/aili-workflows-runtime/` contains the hash-bound generated Pi system, role metadata, selection map, protocols, installation contract, and provenance consumed by the runtime.
 - `upstream/pi-permission-modes.lock.json` pins the exact upstream and adapted permission runtime files and semantic diff.
 - `manifests/skill-compatibility.json` records one compatibility state per skill.
-- `manifests/roles.json` records 19 generated specialized profiles plus the AILI-owned `general` profile.
+- `manifests/roles.json` records 20 generated specialized profiles plus the AILI-owned `general` profile.
 - `manifests/provenance.json`, `manifests/sbom.json`, and `THIRD_PARTY_NOTICES.md` record adapted/reference sources and the exact npm lock inventory.
 
 Verify generated artifacts with:
@@ -164,11 +151,11 @@ npm run validate:release
 - **YOLO still asks for multiline Bash:** confirm the loaded Package contains the adapted permission runtime with `npm run verify:permission-modes`; do not work around it by granting every distinct script for the session.
 - **Persistent task says the parent Session is not durable:** start/save a normal Pi session first; Agents require a parent JSONL so their sidecar can be scoped exactly.
 - **Child Bash is denied in a sandbox-required mode:** inspect `/sandbox` and the active profile. Persistent children require the process-owned sandbox to be ready with an exact matching profile; disabled/degraded state and Git-worktree `.git` files remain fail closed and approval cannot downgrade them to unsandboxed execution.
-- **Global resources are non-pass:** run `/aili-install-global-resources` only after reviewing the exact `~/.pi/agent/` targets. A malformed marker or an unowned role collision intentionally leaves files unchanged.
+- **Legacy global resources are reported:** current global context/prompts are installed by exact `rose-aili`; AILI Package doctor reports old APPEND_SYSTEM/profile files but never rewrites or removes them.
 - **Offline use:** the installed Package does not embed the generic shared-Skill snapshot and does not fetch or synchronize `aili-workflows` at runtime. Shared workflow installation/update remains an explicit user-run `rose-aili` operation; Pi Package installation/update remains a separate Pi operation. First-time installation still requires the relevant package sources.
 
 ## License
 
-`@rosetears/aili-pi` version 0.1.13 and later is licensed under `AGPL-3.0-or-later`; see [`LICENSE`](LICENSE). Corresponding source is available from the repository declared in `package.json`. This prospective license declaration does not revoke licenses already granted for 0.1.12 or earlier releases.
+`@rosetears/aili-pi` is licensed under the MIT License; see [`LICENSE`](LICENSE).
 
 Bundled dependencies, adaptations, assets, and behavioral references retain their own license terms. See `THIRD_PARTY_NOTICES.md` for exact source, revision, reuse boundary, and license details. No official endorsement by the Pi maintainers is claimed.

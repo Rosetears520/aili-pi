@@ -4,7 +4,7 @@ ROSE retains scope, decision, integration, inspection, verification selection, d
 
 ## Ordinary lane
 
-Ordinary work uses the proactive trigger-and-benefit scan: a qualifying trigger plus concrete benefit dispatches the narrowest matching canonical role; no trigger or a concrete overlap, dependency, permission, ownership, or negative-benefit blocker permits direct ROSE fallback. Multi-file or complex work alone does not require delegation.
+Ordinary work uses a specialist-preferred scan. Dispatch the narrowest matching canonical role when the package is clear, bounded, non-trivial, non-overlapping, available, and permitted by current effective capabilities and permissions. ROSE works directly only for trivial work, contract clarification or splitting, no matching specialist, permission/capability failure, overlapping ownership, or concrete negative benefit. Multi-file or complex work alone does not require delegation.
 
 ## Formal lane
 
@@ -14,18 +14,18 @@ Formal hard dispatch does not extend to ordinary conversation or bounded ordinar
 
 ## Proactive scan
 
-Run a proactive delegation scan at the start of every non-trivial ordinary intent and whenever changed evidence exposes a new ordinary work split. Evaluate the triggers before ROSE performs the same evidence gathering or implementation directly. First classify assignment shape, then select the narrowest matching role from `../../parallel-subagent-dispatch/references/agent-selection-matrix.md`. A user request for frequent or aggressive subagent use remains a routing preference across the current intent, but every ordinary `subagent.dispatch` operation still needs one bounded eligible assignment and current permission.
+Run a proactive delegation scan at the start of every non-trivial ordinary intent and whenever changed evidence exposes a new ordinary work split. Evaluate specialist availability and effective capability/permission before ROSE performs the same evidence gathering or implementation directly. First classify assignment shape, then select the narrowest matching role from `../../parallel-subagent-dispatch/references/agent-selection-matrix.md`. A user request for frequent or aggressive subagent use remains a routing preference across the current intent, but every ordinary `subagent.dispatch` operation still needs one bounded eligible assignment and current permission.
 
-## Use `subagent.dispatch` only when
+## Specialist-preferred dispatch
 
-At least one condition is true:
+Dispatch is the ordinary default only when all of these conditions hold:
 
-- the user explicitly requests a subagent;
-- a specialist owns a capability ROSE cannot perform directly;
-- broad search or noisy output would materially pollute the main context;
-- at least two independent units can run concurrently with clear wall-clock or context benefit.
+- the assignment forms one clear bounded non-trivial package;
+- the narrowest matching specialist is available;
+- current effective capabilities and permissions permit the package; and
+- ownership does not overlap another current package.
 
-When any condition is true, dispatch is the ordinary default action unless units overlap, have an unresolved dependency, lack permission or ownership, or cost more than their concrete wall-clock/context benefit. Record the reason internally when an eligible-looking ordinary task stays direct. Otherwise ROSE reads, edits, and verifies directly. This judgment cannot override a ready formal Agent owner.
+Otherwise ROSE works directly only for a named direct exception: trivial work, contract clarification or splitting, no matching specialist, permission/capability failure, overlap, or concrete negative benefit. Record the exception internally when an eligible-looking ordinary task stays direct. This judgment cannot override a ready formal Agent owner.
 
 ## Dispatch shape
 

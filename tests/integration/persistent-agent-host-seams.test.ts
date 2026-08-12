@@ -43,7 +43,7 @@ afterEach(async () => {
   await rm(scratch, { recursive: true, force: true });
 });
 
-describe("official Pi 0.82.1 persistent Agent host seams", () => {
+describe("official Pi 0.84.1 persistent Agent host seams", () => {
   it("creates and reopens a parent-scoped child Session JSONL without a model call", async () => {
     const cwd = join(scratch, "project");
     const sessionDir = join(scratch, "sessions");
@@ -238,7 +238,7 @@ describe("official Pi 0.82.1 persistent Agent host seams", () => {
     expect(existsSync(isolated)).toBe(false);
   });
 
-  it("binds host seam evidence to the installed and declared Pi 0.82.1 baseline", async () => {
+  it("binds host seam evidence to the installed and declared Pi 0.84.1 baseline", async () => {
     const projectPackage = JSON.parse(await readFile(resolve("package.json"), "utf8")) as {
       devDependencies: Record<string, string>;
     };
@@ -246,7 +246,7 @@ describe("official Pi 0.82.1 persistent Agent host seams", () => {
       await readFile(resolve("node_modules/@earendil-works/pi-coding-agent/package.json"), "utf8"),
     ) as { version: string };
 
-    expect(projectPackage.devDependencies["@earendil-works/pi-coding-agent"]).toBe("0.82.1");
-    expect(installedPackage.version).toBe("0.82.1");
+    expect(projectPackage.devDependencies["@earendil-works/pi-coding-agent"]).toBe("0.84.1");
+    expect(installedPackage.version).toBe("0.84.1");
   });
 });

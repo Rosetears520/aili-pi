@@ -37,7 +37,7 @@
   "localChanges": [
     "Package-owned adapted entry redirects all unchanged sibling modules to the exact pi-permission-modes dependency while owning resolve.ts locally.",
     "matchPattern compiles its anchored glob RegExp with dotAll so * and ? include ECMAScript line terminators.",
-    "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.82.1 can derive current PI_* session environment values.",
+    "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.84.1 can derive current PI_* session environment values.",
     "The adapted sandbox BashOperations wrapper injects Pi's resolved five-variable session environment as a shell-safe prelude because pi-permission-modes@2.2.0 ignores BashOperations.options.env.",
     "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime.",
     "Formal persistent children compose their exact two owning-file denyWrite paths into each sandboxed command while preserving the active profile, network rules, and blocked-host diagnostics."

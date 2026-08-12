@@ -1,4 +1,4 @@
-import { createBashToolDefinition, getAgentDir, type AgentSession, type CreateAgentSessionOptions, type ExtensionAPI, type ExtensionContext, type SessionManager, type ToolDefinition } from "@earendil-works/pi-coding-agent";
+import { createBashToolDefinition, createEditToolDefinition, createFindToolDefinition, createGrepToolDefinition, createLsToolDefinition, createReadToolDefinition, createWriteToolDefinition, getAgentDir, type AgentSession, type CreateAgentSessionOptions, type ExtensionAPI, type ExtensionContext, type SessionManager, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 import { loadModeConfig } from "pi-permission-modes/src/config-load.ts";
@@ -13,6 +13,7 @@ import {
   ModelConfigurationService,
   defaultGlobalModelConfigPath,
   defaultProjectModelConfigPath,
+  revalidateResolvedModelChoice,
   resolveAgentModel,
   type CatalogModel,
   type ModelCatalog,
@@ -35,6 +36,7 @@ import { persistFullAgentOutput } from "./output-delivery.js";
 import { formalChildHardDeniedTools, resolvePersistentAgentSandbox } from "./child-sandbox.js";
 import {
   assertCurrentFormalRoleProfile,
+  renderCanonicalFormalResultInstruction,
   resolveFormalTaskProtection,
   type FormalTaskProtection,
   type FormalWorkspaceRequest,
@@ -43,6 +45,10 @@ import {
 import { normalizeFormalContinuationAudit, type FormalContinuationAudit } from "./task-schema.js";
 import { loadRoleProfiles, type RoleProfile } from "../roles.js";
 import { loadAgentCatalog } from "../agent-catalog.js";
+import { HUB_RENDERERS, TASK_RENDERERS } from "./task-hub-renderer.js";
+import { createAiliMcpExtension, MCP_TOOL_NAMES, resolveSharedMcpConfigPath } from "../mcp.js";
+import { createProviderRoutedContextExtension } from "../context-runtime.js";
+import { createExplainableRetryExtension } from "../provider-retry.js";
 
 const BUILTIN_CHILD_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls"] as const;
 const DEFAULT_IDLE_TTL_MS = 420_000;
@@ -190,6 +196,7 @@ class ContextModelCatalog implements ModelCatalog {
       model: model.id,
       available: this.context.modelRegistry.getAvailable().some((candidate) => candidate.provider === model.provider && candidate.id === model.id),
       authenticated: this.context.modelRegistry.hasConfiguredAuth(model),
+      thinkingLevels: supportedThinkingLevels(model),
     };
   }
 
@@ -197,10 +204,30 @@ class ContextModelCatalog implements ModelCatalog {
     const model = this.context.model;
     return model ? await this.resolve(`${model.provider}/${model.id}`) : undefined;
   }
+
+  async resolveBare(modelId: string): Promise<CatalogModel[]> {
+    return this.context.modelRegistry.getAll()
+      .filter((model) => model.id === modelId)
+      .map((model) => ({
+        provider: model.provider,
+        model: model.id,
+        available: this.context.modelRegistry.getAvailable().some((candidate) => candidate.provider === model.provider && candidate.id === model.id),
+        authenticated: this.context.modelRegistry.hasConfiguredAuth(model),
+        thinkingLevels: supportedThinkingLevels(model),
+      }));
+  }
 }
 
 function parseOverride(model: string | undefined): ModelOverride | undefined {
   return model ? { model } : undefined;
+}
+
+function supportedThinkingLevels(model: { reasoning?: boolean; thinkingLevelMap?: Partial<Record<ModelThinking, string | null>> }): ModelThinking[] {
+  if (!model.reasoning) return ["off"];
+  const levels: ModelThinking[] = ["off", "minimal", "low", "medium", "high", "xhigh"];
+  return model.thinkingLevelMap
+    ? levels.filter((level) => model.thinkingLevelMap?.[level] !== null)
+    : levels;
 }
 
 class ProductionAgentController implements LiveAgentAdapter {
@@ -250,14 +277,23 @@ class ProductionAgentController implements LiveAgentAdapter {
     await this.session?.abort();
   }
 
-  dispose(): void {
+  async prepareForRevive(): Promise<void> {
+    await this.prepare();
+  }
+
+  async dispose(): Promise<void> {
     this.disposed = true;
-    this.session?.dispose();
+    const session = this.session;
     this.session = undefined;
+    if (!session) return;
+    await session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" });
+    session.dispose();
   }
 
   private async runHubTurn(message: string): Promise<void> {
-    const prepared = await this.prepare();
+    const prepared = this.session
+      ? { session: this.session, initialMessage: "" }
+      : await this.prepare();
     let status: "completed" | "failed" = "completed";
     let error: string | undefined;
     try {
@@ -275,11 +311,20 @@ class ProductionAgentController implements LiveAgentAdapter {
   }
 
   private async prepare(input?: PersistentRuntimeExecutorInput): Promise<{ session: AgentSession; initialMessage: string }> {
-    this.session?.dispose();
-    const prepared = await this.owner.buildChildSession(this.state, this, this.manager, input);
-    this.session = prepared.session;
-    this.disposed = false;
-    return prepared;
+    await this.dispose();
+    let prepared: Awaited<ReturnType<PersistentAgentProduction["buildChildSession"]>> | undefined;
+    try {
+      prepared = await this.owner.buildChildSession(this.state, this, this.manager, input);
+      this.session = prepared.session;
+      this.disposed = false;
+      return prepared;
+    } catch (error) {
+      if (prepared) {
+        await prepared.session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" }).catch(() => undefined);
+        prepared.session.dispose();
+      }
+      throw error;
+    }
   }
 }
 
@@ -311,7 +356,7 @@ export class PersistentAgentProduction {
         if (!state) continue;
         state.approval.shutdown();
         for (const timer of state.parkTimers.values()) clearTimeout(timer);
-        for (const controller of state.controllers.values()) controller.dispose();
+        await Promise.all([...state.controllers.values()].map(async (controller) => await controller.dispose()));
         await state.runtime.shutdown();
       }
       this.parents.clear();
@@ -359,36 +404,60 @@ export class PersistentAgentProduction {
       : undefined;
 
     const nestedDefinitions = this.childToolDefinitions(state, input, role, sandboxedBash);
+    const parentActive = this.pi.getActiveTools();
+    const parentDefinitions = new Map<string, ToolDefinition>([
+      ["read", createReadToolDefinition(childCwd) as unknown as ToolDefinition],
+      ["bash", (sandboxedBash ?? createBashToolDefinition(childCwd)) as unknown as ToolDefinition],
+      ["edit", createEditToolDefinition(childCwd) as unknown as ToolDefinition],
+      ["write", createWriteToolDefinition(childCwd) as unknown as ToolDefinition],
+      ["grep", createGrepToolDefinition(childCwd) as unknown as ToolDefinition],
+      ["find", createFindToolDefinition(childCwd) as unknown as ToolDefinition],
+      ["ls", createLsToolDefinition(childCwd) as unknown as ToolDefinition],
+    ]);
+    for (const definition of nestedDefinitions) parentDefinitions.set(definition.name, definition);
     const parent: ParentToolSnapshot = {
-      active: this.pi.getActiveTools(),
-      definitions: new Map(nestedDefinitions.map((definition) => [definition.name, definition])),
+      active: parentActive,
+      definitions: parentDefinitions,
     };
+    const requestedTools = input?.item.tools;
+    const mcpRequested = requestedTools?.some((name) => (MCP_TOOL_NAMES as readonly string[]).includes(name)) ?? false;
+    const mcpRoleCeiling = role.toolPolicy === "inherit-parent"
+      || role.capabilities.includes("memory.provider.mempalace")
+      || role.tools.some((name) => (MCP_TOOL_NAMES as readonly string[]).includes(name));
+    const effectiveRole = mcpRequested && mcpRoleCeiling && role.toolPolicy === "static"
+      ? { ...role, tools: [...new Set([...role.tools, ...MCP_TOOL_NAMES])] }
+      : role;
     const policy = computeEffectiveTools({
       parent,
-      childLoadable: [...BUILTIN_CHILD_TOOLS, "task", "hub"],
+      childLoadable: [...BUILTIN_CHILD_TOOLS, "task", "hub", ...MCP_TOOL_NAMES],
       childDefinitions: parent.definitions,
-      role,
-      callTools: input?.item.tools,
+      role: effectiveRole,
+      callTools: requestedTools,
       hardDenied: [...(input ? [] : ["task"]), ...formalHardDenied],
       currentDepth: input?.depth ?? Number(agent.metadata?.depth ?? 0),
     });
-    const configs = await new ModelConfigStore({
-      globalPath: defaultGlobalModelConfigPath(),
-      projectPath: defaultProjectModelConfigPath(context.cwd),
-    }).load(context.isProjectTrusted());
-    const choice = await resolveAgentModel({
-      input: {
-        selector: role.selector,
-        agentId: controller.agentId,
-        oneShot: parseOverride(input?.item.model),
-        projectTrusted: context.isProjectTrusted(),
-        profile: parseOverride(role.model),
-        parentThinking: "medium",
-      },
-      journal: state.runtime.journal,
-      configs,
-      catalog: new ContextModelCatalog(context),
-    });
+    const catalog = new ContextModelCatalog(context);
+    let choice = input?.modelChoice;
+    if (choice) {
+      await revalidateResolvedModelChoice(choice, catalog);
+    } else {
+      const configs = await new ModelConfigStore({
+        globalPath: defaultGlobalModelConfigPath(),
+        projectPath: defaultProjectModelConfigPath(context.cwd),
+      }).load(context.isProjectTrusted());
+      choice = await resolveAgentModel({
+        input: {
+          selector: role.selector,
+          agentId: controller.agentId,
+          projectTrusted: context.isProjectTrusted(),
+          profile: parseOverride(role.model),
+          parentThinking: context.thinkingLevel as ModelThinking,
+        },
+        journal: state.runtime.journal,
+        configs,
+        catalog,
+      });
+    }
     const model = context.modelRegistry.find(choice.provider, choice.model);
     if (!model) throw new Error(`${choice.canonical}: resolved model disappeared before Agent turn start`);
     const turnId = input?.turnId ?? state.runtime.journal.getState().agents[controller.agentId]?.currentTurnId;
@@ -408,8 +477,12 @@ export class PersistentAgentProduction {
           unavailableTools: policy.unavailable,
           provider: choice.provider,
           model: choice.model,
+          effectiveModel: choice.canonical,
           modelLayer: choice.layer,
           thinking: choice.thinking,
+          effectiveMode: input ? (state.runtime.journal.getState().turns[turnId]?.metadata?.effectiveMode ?? "sync") : "hub",
+          outputRef: `agent://${controller.agentId}`,
+          historyRef: `history://${controller.agentId}`,
           oneShot: choice.oneShot,
           persistent: choice.persistent,
         },
@@ -429,6 +502,21 @@ export class PersistentAgentProduction {
       decide: permission.decide,
       requestApproval: permission.requestApproval,
     });
+    const mcp = createAiliMcpExtension({
+      configPath: resolveSharedMcpConfigPath(),
+      approvalPolicy: {
+        decide: async (request) => await permission.decide("mcp", {
+          tool: request.prefixedToolName,
+          server: request.serverName,
+          args: request.args,
+          origin: request.origin,
+        }),
+        requestApproval: async (request) => await permission.requestApproval({
+          toolName: `mcp:${request.serverName}/${request.originalToolName}`,
+          summary: `MCP ${request.origin} ${request.serverName}/${request.originalToolName}`,
+        }),
+      },
+    });
     const prompt = assembleChildPrompt({
       runtimeEnvelope: [
         "Official Pi persistent Agent runtime. The parent conversation is not copied.",
@@ -442,6 +530,15 @@ export class PersistentAgentProduction {
       context: input?.item.context,
       cwd: childCwd,
       workspace: { mode: workspace.mode, root: workspace.root },
+      ...(formalProtection ? {
+        formalResultInstruction: renderCanonicalFormalResultInstruction({
+          packageId: normalizeFormalContinuationAudit(
+            agent.metadata?.formalContinuationIdentity,
+            `${controller.agentId}.formalContinuationIdentity`,
+          ).packageId,
+          roleId: role.selector,
+        }),
+      } : {}),
     });
     return await createPersistentChildSession({
       cwd: childCwd,
@@ -453,6 +550,9 @@ export class PersistentAgentProduction {
       childExtensions: [
         { name: "aili-child-approval", factory: approval },
         { name: "aili-child-workspace", factory: createWorkspaceMutationGuard(state.leases, controller.agentId) },
+        { name: "aili-child-mcp", factory: mcp },
+        { name: "aili-child-context", factory: createProviderRoutedContextExtension() },
+        { name: "aili-child-retry", factory: createExplainableRetryExtension() },
       ],
       topLevelExtensionNames: ["aili-runtime", "aili-top-coordinator"],
       modelRuntime: this.options.childModelRuntime,
@@ -516,6 +616,28 @@ export class PersistentAgentProduction {
       parentSessionPath: parentPath,
       parentId,
       cwd: context.cwd,
+      preallocate: async ({ item, role }) => {
+        const configs = await new ModelConfigStore({
+          globalPath: defaultGlobalModelConfigPath(),
+          projectPath: defaultProjectModelConfigPath(context.cwd),
+        }).load(context.isProjectTrusted());
+        return await resolveAgentModel({
+          input: {
+            selector: role.selector,
+            // Before allocation there cannot be a durable instance override for
+            // this new Agent identity. One-shot/config/profile/Parent layers are
+            // resolved atomically for the whole request.
+            agentId: `preflight:${role.selector}`,
+            oneShot: parseOverride(item.model),
+            projectTrusted: context.isProjectTrusted(),
+            profile: parseOverride(role.model),
+            parentThinking: context.thinkingLevel as ModelThinking,
+          },
+          journal: state.runtime.journal,
+          configs,
+          catalog: new ContextModelCatalog(context),
+        });
+      },
       preflight: async (input) => {
         if (!input.formalProtection) return;
         await this.ensureWorkspace(state, input, input.formalProtection);
@@ -529,6 +651,8 @@ export class PersistentAgentProduction {
         try {
           return { output: await controller.runInitial(input) };
         } catch (error) {
+          await controller.dispose().catch(() => undefined);
+          state.controllers.delete(input.agentId);
           return { status: "failed", output: "", error: error instanceof Error ? error.message : String(error) };
         }
       },
@@ -544,9 +668,14 @@ export class PersistentAgentProduction {
       },
       revive: async (agentId, manager) => {
         const controller = new ProductionAgentController(this, state, agentId, manager);
-        await this.buildChildSession(state, controller, manager);
-        state.controllers.set(agentId, controller);
-        return controller;
+        try {
+          await controller.prepareForRevive();
+          state.controllers.set(agentId, controller);
+          return controller;
+        } catch (error) {
+          await controller.dispose().catch(() => undefined);
+          throw error;
+        }
       },
       modelHubOperation: async (request, caller) => await this.modelHub(state, modelService, request, caller),
       onRelease: async (agentId) => await this.releaseAgent(state, agentId),
@@ -588,6 +717,7 @@ export class PersistentAgentProduction {
       label: "Task",
       description: "Create a nested persistent Agent synchronously within the explicit spawn/depth policy. Use the public async field if supplied; never send profile-only blocking metadata.",
       parameters: TASK_TOOL_SCHEMA,
+      ...TASK_RENDERERS,
       execute: async (_id, params) => {
         if (!input) throw new Error("nested task is unavailable outside an inherited scheduled turn");
         const result = await state.runtime.task.submit(params, {
@@ -605,6 +735,7 @@ export class PersistentAgentProduction {
       label: "Hub",
       description: "Inspect or message this Agent and its descendants.",
       parameters: HUB_TOOL_SCHEMA,
+      ...HUB_RENDERERS,
       execute: async (_id, params) => {
         const result = await state.runtime.hub.execute(params, { agentId: input?.agentId });
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
@@ -822,7 +953,7 @@ export class PersistentAgentProduction {
 
   private async releaseAgent(state: ParentState, agentId: string): Promise<void> {
     this.clearPark(state, agentId);
-    state.controllers.get(agentId)?.dispose();
+    await state.controllers.get(agentId)?.dispose();
     state.controllers.delete(agentId);
     const isolated = state.isolated.get(agentId);
     if (isolated) {

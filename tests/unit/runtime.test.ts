@@ -78,16 +78,17 @@ function expectAlignedGovernance(surface: string): void {
 describe("AILI runtime composition", () => {
   it("exports one extension entry and keeps native integrations behind it", () => {
     expect(runtimeComponents.map((component) => component.id)).toEqual([
-      "rose-context", "lifecycle-routing", "task-runtime", "native-integrations",
-      "global-resources", "capability-registry", "doctor", "shortcuts", "status",
+      "rose-context", "lifecycle-routing", "task-runtime", "mcp-runtime", "context-runtime", "provider-retry", "native-integrations",
+      "capability-registry", "doctor", "shortcuts", "status",
     ]);
   });
 
   it("registers delegated and selected community surfaces without legacy AILI mode controls", async () => {
     const harness = await runtimeHarness();
     expect(harness.registeredCommands).toEqual(expect.arrayContaining([
-      "aili-doctor", "aili-install-global-resources", "perm", "cache-optimizer",
+      "aili-doctor", "perm", "cache-optimizer",
     ]));
+    expect(harness.registeredCommands).not.toContain("aili-install-global-resources");
     expect(harness.registeredCommands).not.toContain("aili-compact");
     expect(harness.registeredCommands.filter((name) => [
       "preview", "preview-browser", "preview-pdf", "preview-clear-cache", "lsp",
@@ -96,7 +97,7 @@ describe("AILI runtime composition", () => {
     expect(harness.registeredShortcuts).toContain("alt+m");
     expect(harness.registeredShortcuts).not.toContain("ctrl+shift+alt+a");
     expect(harness.registeredTools).toEqual(expect.arrayContaining([
-      "task", "hub", "web_search", "fetch_content", "get_search_content",
+      "task", "hub", "mcp", "mcpScript", "compress", "decompress", "search_context", "acp_status", "web_search", "fetch_content", "get_search_content",
     ]));
     expect(harness.registeredTools.filter((name) => name.startsWith("aili_compact") || [
       "aili_decompress", "aili_prune", "aili_search_context", "aili_context_recap",
@@ -131,7 +132,8 @@ describe("AILI runtime composition", () => {
     const result = results.find((candidate) => candidate?.systemPrompt?.includes("AILI runtime summary"));
     expect(result).toBeDefined();
     expect(result?.systemPrompt).toMatch(/^PI BASE PROMPT/);
-    expect(result?.systemPrompt).toContain("rose_static_rules=global APPEND_SYSTEM marker resource");
+    expect(result?.systemPrompt).toContain("# AILI Pi System Projection");
+    expect(result?.systemPrompt).toContain("rose_static_rules=validated rose-aili Workflow system bundle injected by this Extension");
     expect(result?.systemPrompt).toContain("project_rules=loaded (/project/AGENTS.md)");
     expect(result?.systemPrompt).toContain("delegation_policy=benefit-based");
     expect(result?.systemPrompt).toContain("Agents improve efficiency and preserve parent context");

@@ -46,11 +46,11 @@ const EXPECTED_GPT_56 = {
     reasoning: true,
     input: ["text", "image"],
     cost: {
-      input: 2.5,
-      output: 15,
-      cacheRead: 0.25,
-      cacheWrite: 3.125,
-      tiers: [{ inputTokensAbove: 272000, input: 5, output: 22.5, cacheRead: 0.5, cacheWrite: 6.25 }],
+      input: 2,
+      output: 12,
+      cacheRead: 0.2,
+      cacheWrite: 2.5,
+      tiers: [{ inputTokensAbove: 272000, input: 4, output: 18, cacheRead: 0.4, cacheWrite: 5 }],
     },
     contextWindow: 272000,
     maxTokens: 128000,
@@ -66,11 +66,11 @@ const EXPECTED_GPT_56 = {
     reasoning: true,
     input: ["text", "image"],
     cost: {
-      input: 1,
-      output: 6,
-      cacheRead: 0.1,
-      cacheWrite: 1.25,
-      tiers: [{ inputTokensAbove: 272000, input: 2, output: 9, cacheRead: 0.2, cacheWrite: 2.5 }],
+      input: 0.2,
+      output: 1.2,
+      cacheRead: 0.02,
+      cacheWrite: 0.25,
+      tiers: [{ inputTokensAbove: 272000, input: 0.4, output: 1.8, cacheRead: 0.04, cacheWrite: 0.5 }],
     },
     contextWindow: 272000,
     maxTokens: 128000,
@@ -127,13 +127,13 @@ function registrationSpy(): { pi: ExtensionAPI; providerCalls: unknown[][] } {
   return { pi, providerCalls };
 }
 
-describe("Pi 0.82.1-owned GPT-5.6 Codex metadata", () => {
+describe("Pi 0.84.1-owned GPT-5.6 Codex metadata", () => {
   it("keeps the installed Pi version and exact Sol, Terra, and Luna catalog values", async () => {
     const piPackage = JSON.parse(await readFile(
       new URL("../../node_modules/@earendil-works/pi-coding-agent/package.json", import.meta.url),
       "utf8",
     )) as { version?: string };
-    expect(piPackage.version).toBe("0.82.1");
+    expect(piPackage.version).toBe("0.84.1");
 
     const registry = await createOfflineRegistry();
     for (const [id, expected] of Object.entries(EXPECTED_GPT_56)) {

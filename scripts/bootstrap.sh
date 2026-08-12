@@ -4,7 +4,7 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd -P)
 PACKAGE_SOURCE='npm:@rosetears/aili-pi@latest'
 PACKAGE_ID='npm:@rosetears/aili-pi'
-MINIMUM_PI_VERSION='0.82.1'
+MINIMUM_PI_VERSION='0.84.1'
 OFFICIAL_INSTALLER_URL='https://pi.dev/install.sh'
 UPDATE_PI=0
 PI_STATE='existing'
@@ -183,8 +183,8 @@ node "$SCRIPT_DIR/merge-global-settings.mjs" || fail 'user-global-settings-merge
 say "AILI bootstrap: success pi_state=$PI_STATE aili_state=installed"
 say 'start=pi'
 say 'shared_workflows_status=not-run owner=explicit-user-command'
-say 'shared_workflows_install_command=npx -y rose-aili@0.4.2 install'
-say 'shared_workflows_update_command=npx -y rose-aili@0.4.2 update'
+say 'shared_workflows_install_command=npx -y rose-aili@0.4.7 install'
+say 'shared_workflows_update_command=npx -y rose-aili@0.4.7 update'
 say "pi_package_update_command=pi update $PACKAGE_ID"
 say "pi_package_list_command=pi list"
 say "pi_package_remove_command=pi remove $PACKAGE_ID"
