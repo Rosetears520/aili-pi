@@ -235,7 +235,7 @@ describe("production persistent Agent controlled path", () => {
         status: "PASS",
         generatedAt: new Date().toISOString(),
         evidenceClass: "deterministic-controlled-production",
-        packageVersion: "0.2.1",
+        packageVersion: "0.2.2",
         piVersion: "0.84.1",
         test: { path: persistentTestPath, command: `npm test -- ${persistentTestPath}` },
         hashes: {

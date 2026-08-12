@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { access, readFile, readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PERSISTENT_LIVE_IMPLEMENTATION_PATHS } from "./persistent-agents/live-evidence-contract.ts";
@@ -138,10 +138,7 @@ export async function validateStableRelease(): Promise<string[]> {
       .map((record) => `${record.name}: blocked (${record.reason})`),
   ];
   const packageJson = await json<{ pi?: { prompts?: string[] } }>("package.json");
-  if (packageJson.pi?.prompts?.length !== 5) errors.push("lifecycle prompts: expected exactly five prompt resources");
-  for (const prompt of packageJson.pi?.prompts ?? []) {
-    try { await access(new URL(prompt, ROOT)); } catch { errors.push(`lifecycle prompt: missing ${prompt}`); }
-  }
+  if (packageJson.pi?.prompts !== undefined) errors.push("Workflow prompts: package must not register resources owned by rose-aili");
   try {
     const roles = (await readdir(new URL("roles/", ROOT))).filter((name) => name.endsWith(".md"));
     if (roles.length !== 21) errors.push(`roles: expected 21 bundled profiles (20 specialized + general), found ${roles.length}`);

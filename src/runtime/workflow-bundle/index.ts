@@ -213,10 +213,14 @@ export async function loadWorkflowRuntimeBundle(options: WorkflowRuntimeBundleOp
   const byPath = new Map(records.map((record) => [record.path, record]));
   if (byPath.size !== records.length) throw new Error("Workflow runtime bundle lock contains duplicate paths");
   const required = Object.values(WORKFLOW_RUNTIME_ARTIFACTS);
-  for (const path of required) if (!byPath.has(path)) throw new Error(`Workflow runtime bundle required artifact missing from lock: ${path}`);
+  const requiredRecords = required.map((path) => {
+    const record = byPath.get(path);
+    if (!record) throw new Error(`Workflow runtime bundle required artifact missing from lock: ${path}`);
+    return record;
+  });
 
   const loaded = new Map<string, Buffer>();
-  await Promise.all(records.map(async (record) => loaded.set(record.path, await readLockedFile(bundleUrl, record))));
+  await Promise.all(requiredRecords.map(async (record) => loaded.set(record.path, await readLockedFile(bundleUrl, record))));
   const roleMetadata = parseJson<RoleMetadata>(loaded.get(WORKFLOW_RUNTIME_ARTIFACTS.roleMetadata)!, "role metadata");
   const selectionMap = parseJson<SelectionMap>(loaded.get(WORKFLOW_RUNTIME_ARTIFACTS.selectionMap)!, "selection map");
   const installationContract = parseJson<InstallationContract>(loaded.get(WORKFLOW_RUNTIME_ARTIFACTS.installationContract)!, "installation contract");

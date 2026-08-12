@@ -6,11 +6,11 @@ import { loadRoleProfiles, SPECIALIZED_ROLE_SELECTORS } from "../../src/runtime/
 import { loadWorkflowRuntimeBundle, WORKFLOW_RUNTIME_ARTIFACTS } from "../../src/runtime/workflow-bundle/index.js";
 
 const commands = [
-  { name: "ideate", source: "prompt", path: "prompts/ideate.md" },
-  { name: "define", source: "prompt", path: "prompts/define.md" },
-  { name: "build", source: "prompt", path: "prompts/build.md" },
-  { name: "ship", source: "prompt", path: "prompts/ship.md" },
-  { name: "local-review", source: "prompt", path: "prompts/local-review.md" },
+  { name: "ideate", source: "prompt", path: "/home/.pi/agent/prompts/ideate.md" },
+  { name: "define", source: "prompt", path: "/home/.pi/agent/prompts/define.md" },
+  { name: "build", source: "prompt", path: "/home/.pi/agent/prompts/build.md" },
+  { name: "ship", source: "prompt", path: "/home/.pi/agent/prompts/ship.md" },
+  { name: "local-review", source: "prompt", path: "/home/.pi/agent/prompts/local-review.md" },
 ] as never;
 
 describe("Workflow runtime bundle consumers", () => {

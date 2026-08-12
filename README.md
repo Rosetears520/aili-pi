@@ -1,6 +1,6 @@
 # AILI for Pi
 
-`@rosetears/aili-pi` is a Pi Package that adds ROSE delivery routing, five workflow prompts, native Pi integrations, and diagnostics to the official `pi` CLI. It does not replace or fork Pi.
+`@rosetears/aili-pi` is a Pi Package that adds ROSE delivery routing, native Pi integrations, and diagnostics to the official `pi` CLI. It does not replace or fork Pi. Global Workflow prompts are installed separately by `rose-aili`.
 
 ## Requirements
 
@@ -14,7 +14,7 @@ macOS and native Windows are not supported by this bootstrap and fail before ins
 
 ## Install
 
-### Stable 0.2.1
+### Stable 0.2.2
 
 Install the current stable package through Pi:
 
@@ -46,16 +46,16 @@ The bootstrap installs or updates only official Pi and the Pi Package. It does n
 
 Shared Skills/workflows and the Pi Package have two independent lifecycle owners; neither owner replaces the other.
 
-**Shared Skills/workflows — explicit user-owned lifecycle.** Install or update them only by explicitly running `npx -y rose-aili@<exact-or-user-selected-version> install` or `npx -y rose-aili@<exact-or-user-selected-version> update`. The accepted exact baseline is:
+**Shared Skills/workflows — explicit user-owned lifecycle.** Install or update them only by explicitly running `npx -y rose-aili@<exact-or-user-selected-version> install --profile pi` or `npx -y rose-aili@<exact-or-user-selected-version> update --profile pi`. The accepted exact baseline is:
 
 ```sh
-npx -y rose-aili@0.4.7 install
-npx -y rose-aili@0.4.7 update
+npx -y rose-aili@0.4.7 install --profile pi
+npx -y rose-aili@0.4.7 update --profile pi
 ```
 
 Choose a different version deliberately when needed. A moving `rose-aili@latest` may be a convenience command, but it is not valid doctor or release evidence; those claims require an exact version.
 
-**Pi Package — Pi-owned lifecycle.** Pi alone installs, lists, updates, and removes the Package resources: Extensions, prompts, theme, roles, and the Pi-owned package skill.
+**Pi Package — Pi-owned lifecycle.** Pi alone installs, lists, updates, and removes the Package resources: its Extension, generated role/runtime metadata, and Pi-owned package skill. It does not register Workflow prompts.
 
 **Stable only — not a preview route:**
 
@@ -72,7 +72,7 @@ Removal is destructive for this Package. It does not remove Pi and must not be p
 
 ### Global Workflow ownership
 
-`rose-aili@0.4.7` owns global Pi `AGENTS.md` and Workflow prompts. The Package consumes the pinned validated runtime bundle but no longer registers `/aili-install-global-resources` or writes `~/.pi/agent/APPEND_SYSTEM.md` and `~/.pi/agent/agents/aili/`. Doctor reports legacy marker/profile files without rewriting or deleting them; cleanup remains manual and separately authorized.
+`rose-aili@0.4.7` owns global Pi `AGENTS.md` and Workflow prompts under `~/.pi/agent/`. The Package neither registers nor packages those prompt/global-context resources; it consumes only the pinned package-owned generated runtime subset. It no longer registers `/aili-install-global-resources` or writes `~/.pi/agent/APPEND_SYSTEM.md` and `~/.pi/agent/agents/aili/`. Doctor reports legacy marker/profile files without rewriting or deleting them; cleanup remains manual and separately authorized.
 
 ## Pi-native UI
 

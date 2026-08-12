@@ -23,16 +23,16 @@ async function readManifest(): Promise<PackageManifest> {
 }
 
 describe("Pi package baseline", () => {
-  it("declares one AILI entry with its minimal footer, five prompts, and no replacement CLI or theme", async () => {
+  it("declares one AILI entry with its minimal footer, no duplicate prompts, and no replacement CLI or theme", async () => {
     const manifest = await readManifest();
 
     expect(manifest.name).toBe("@rosetears/aili-pi");
-    expect(manifest.version).toBe("0.2.1");
+    expect(manifest.version).toBe("0.2.2");
     expect(manifest.license).toBe("MIT");
     expect(manifest.bin).toBeUndefined();
     expect(manifest.engines?.node).toBe(">=22.19.0");
     expect(manifest.pi?.extensions).toEqual(["./extensions/index.ts"]);
-    expect(manifest.pi?.prompts).toHaveLength(5);
+    expect(manifest.pi?.prompts).toBeUndefined();
     expect(manifest.pi?.themes).toBeUndefined();
     expect(manifest.bundledDependencies).toEqual(["@narumitw/pi-codex-compact", "acp-kernel", "pi-cache-optimizer"]);
     expect(manifest.bundleDependencies).toEqual(["@narumitw/pi-codex-compact", "acp-kernel", "pi-cache-optimizer"]);
@@ -70,15 +70,10 @@ describe("Pi package baseline", () => {
     expect(manifest.files).not.toContain("themes/");
   });
 
-  it("packages five described prompts with explicit lifecycle boundaries", async () => {
+  it("leaves global Workflow prompt registration to rose-aili", async () => {
     const manifest = await readManifest();
-    const prompts = manifest.pi?.prompts ?? [];
-    const contents = await Promise.all(
-      prompts.map((prompt) => readFile(new URL(`../../${prompt}`, import.meta.url), "utf8")),
-    );
-    expect(contents.every((content) => content.startsWith("---\ndescription:"))).toBe(true);
-    expect(contents.join("\n")).toContain("does not itself grant approval");
-    expect(contents.join("\n")).toContain("not a fifth lifecycle mode");
+    expect(manifest.pi?.prompts).toBeUndefined();
+    expect(manifest.files).not.toContain("prompts/");
   });
 
   it("keeps the repository snapshot out of the package and registers only the Pi-owned skill", async () => {
@@ -122,8 +117,8 @@ describe("Pi package baseline", () => {
     expect(readme).toContain("is licensed under the MIT License");
     expect(packageLock).toMatchObject({
       name: "@rosetears/aili-pi",
-      version: "0.2.1",
-      packages: { "": { name: "@rosetears/aili-pi", version: "0.2.1", license: "MIT" } },
+      version: "0.2.2",
+      packages: { "": { name: "@rosetears/aili-pi", version: "0.2.2", license: "MIT" } },
     });
     expect(JSON.stringify(packageLock)).not.toContain("@agwab/pi-subagent");
     expect(createHash("sha256").update(licenseText).digest("hex")).toBe("50d626e331a5b05c3a574ae969762851070af5b32dbc73cc2277409eec1358f4");

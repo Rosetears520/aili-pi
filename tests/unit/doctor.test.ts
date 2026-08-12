@@ -95,7 +95,7 @@ const commands: Array<{
 }> = LIFECYCLE_PROMPTS.map((name) => ({
   name,
   source: "prompt" as const,
-  sourceInfo: { path: `/prompts/${name}.md`, source: "@rosetears/aili-pi", scope: "user" as const, origin: "package" as const },
+  sourceInfo: { path: `/home/.pi/agent/prompts/${name}.md`, source: "rose-aili", scope: "user" as const, origin: "package" as const },
 }));
 commands.push({
   name: "perm",
@@ -132,12 +132,12 @@ describe("capability registry", () => {
 
   it("validates the repository-owner-authorized MIT candidate identity", () => {
     const valid = {
-      packageManifest: { name: "@rosetears/aili-pi", version: "0.2.1", license: "MIT" },
-      packageLockRoot: { name: "@rosetears/aili-pi", version: "0.2.1", license: "MIT" },
+      packageManifest: { name: "@rosetears/aili-pi", version: "0.2.2", license: "MIT" },
+      packageLockRoot: { name: "@rosetears/aili-pi", version: "0.2.2", license: "MIT" },
       licenseSha256: "50d626e331a5b05c3a574ae969762851070af5b32dbc73cc2277409eec1358f4",
       readme: "@rosetears/aili-pi is licensed under the MIT License.",
       notices: "This distribution is licensed under MIT. Adapted sources retain their own license terms.",
-      sbomRoot: { name: "@rosetears/aili-pi", versionInfo: "0.2.1", licenseConcluded: "MIT", licenseDeclared: "MIT" },
+      sbomRoot: { name: "@rosetears/aili-pi", versionInfo: "0.2.2", licenseConcluded: "MIT", licenseDeclared: "MIT" },
     };
     expect(validateLicenseDispositionData(valid)).toEqual([]);
 
@@ -329,6 +329,8 @@ describe("doctor", () => {
     expect(report.status).toBe("NON_PASS");
     expect(report.results).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "skill.snapshot", status: "PASS" }),
+      expect.objectContaining({ id: "package.resources", status: "PASS", evidence: expect.stringContaining("prompts=rose-aili-owned") }),
+      expect.objectContaining({ id: "rose.prompts", status: "PASS", evidence: expect.stringContaining("one rose-aili global owner") }),
       expect.objectContaining({ id: "capability.registry", status: "PASS" }),
       expect.objectContaining({ id: "optional.packs", status: "SKIP" }),
       expect.objectContaining({ id: "roles.agents", status: "PASS", evidence: expect.stringContaining("profiles=21") }),

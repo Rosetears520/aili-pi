@@ -9,7 +9,7 @@ const execFile = promisify(execFileCallback);
 const ROOT = resolve(import.meta.dirname, "..");
 const PACKAGE_NAME = "@rosetears/aili-pi";
 const INITIAL_VERSION = "0.1.12";
-const CURRENT_VERSION = "0.2.1";
+const CURRENT_VERSION = "0.2.2";
 const SOURCE = `npm:${PACKAGE_NAME}`;
 const requested = process.argv[2];
 const expected = requested === "linux" ? "linux" : undefined;
@@ -234,9 +234,20 @@ function assertPackedInventory(files: Array<{ path: string }>, manifest: PiManif
     if (inventoryPaths.includes(retired)) throw new Error(`packed candidate contains retired ${retired}`);
   }
   if (manifest.scripts?.postinstall) throw new Error("packed candidate declares postinstall");
-  for (const required of ["extensions/index.ts", "themes/rose-cyberdeck.json", "prompts/build.md"]) {
+  for (const required of [
+    "extensions/index.ts",
+    "upstream/aili-workflows-runtime/system.md",
+    "upstream/aili-workflows-runtime/role-metadata.json",
+    "upstream/aili-workflows-runtime/selection-map.json",
+  ]) {
     if (!inventoryPaths.includes(required)) throw new Error(`packed candidate omits required Pi resource ${required}`);
   }
+  for (const excluded of ["prompts/", "upstream/aili-workflows-runtime/AGENTS.md", "upstream/aili-workflows-runtime/prompts/"]) {
+    if (inventoryPaths.some((path) => path === excluded.replace(/\/$/, "") || path.startsWith(excluded))) {
+      throw new Error(`packed candidate contains Workflow resource owned by rose-aili: ${excluded}`);
+    }
+  }
+  if (manifest.pi?.prompts !== undefined) throw new Error("packed candidate duplicates rose-aili Workflow prompts");
   if (manifest.pi?.skills?.length !== 1 || manifest.pi.skills[0] !== "./node_modules/pi-web-access/skills") {
     throw new Error("packed candidate Pi skill declaration is not the required bundled resource");
   }

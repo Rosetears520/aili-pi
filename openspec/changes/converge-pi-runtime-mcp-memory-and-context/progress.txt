@@ -691,3 +691,64 @@ evidence=verification:SHIP-01-release-candidate-evidence
 disposition=accepted
 blocker=none for candidate readiness; 471 tests passed with 2 accepted skips, typecheck/compatibility/provenance/generated/package/stable-release/diff/strict-OpenSpec checks passed, npm publish dry-run selected latest/default public access, actual tarball contains 1928 entries with no forbidden public paths, clean 0.2.1 load and published 0.2.0 to 0.2.1 upgrade passed, and candidate sha256=0dbfa606fdfbb50d1a5750dcacb05faf57e834f9fb3b85126680f032c4af332a
 next_action=obtain exact approvals for commit, push current branch, create/push v0.2.1 tag, publish @rosetears/aili-pi@0.2.1 with latest/public access, and create GitHub Release v0.2.1 from the exact tag
+
+[2026-08-13T00:00:00+08:00] SHIP-01 DONE
+evidence=verification:release-0.2.1-publication
+verification=commit:f497bded889e2266d0dd903ca7cd80dbc268df5e;tag:v0.2.1;npm:@rosetears/aili-pi@0.2.1;github-release:https://github.com/Rosetears520/aili-pi/releases/tag/v0.2.1
+disposition=superseded-by-post-install-defect
+blocker=public 0.2.1 was released and installed, then the standalone installed extension failed because the Workflow loader required intentionally excluded global AGENTS.md and prompts
+next_action=repair the package loader/ownership boundary without packaging Workflow-owned global files
+
+[2026-08-13T00:01:00+08:00] SHIP-02 READY
+evidence=user-intent:repair-workflow-package-and-remove-only-aili-pi-prompts
+disposition=pending
+blocker=none; user authorized repository-local repair and exact removal of only the installed aili-pi prompt ownership while preserving rose-aili global prompts and backups
+next_action=dispatch exact aili.implementer with immediate join for the bounded source hotfix
+
+[2026-08-13T00:02:00+08:00] SHIP-02 WAIVED
+evidence=verification:SHIP-02-role-manifest-provenance-mismatch-waiver
+disposition=pending
+blocker=exact aili.implementer dispatch failed before allocation because the active loaded runtime rejected repository-verified role manifest source provenance; repairing or reloading user-home runtime is outside the hotfix and ROSE has equivalent repository-local tools and exact permission for the unchanged scope
+next_action=execute SHIP-02 directly without widening scope
+
+[2026-08-13T00:05:00+08:00] SHIP-02 INSPECTED
+evidence=verification:SHIP-02-focused-tests;verification:SHIP-02-typecheck;verification:SHIP-02-stable-release-validation;verification:SHIP-02-exact-packed-artifact-load;verification:SHIP-02-diff-check
+disposition=accepted
+blocker=none; 32 focused tests passed, typecheck and stable release validation passed, exact packed artifact had 1923 entries with zero Workflow-owned AGENTS/prompt files and loaded one extension with zero errors; unrelated pre-existing sbom timestamp/namespace diff was untouched
+next_action=mark SHIP-02 done and ready the exact installed-package cleanup
+
+[2026-08-13T00:05:01+08:00] SHIP-02 DONE
+verification=verification:SHIP-02-workflow-package-hotfix
+disposition=accepted
+blocker=none; source manifest has no pi.prompts, obsolete top-level prompt sources are removed, global resource exclusions are restored, and loader validates only the explicit runtime subset while retaining lock/hash/provenance checks
+next_action=apply the accepted repair only to the installed @rosetears/aili-pi package
+
+[2026-08-13T00:05:02+08:00] SHIP-03 READY
+evidence=verification:SHIP-02-workflow-package-hotfix
+disposition=pending
+blocker=none; global prompt inventory and bytes must be preserved while only the installed aili-pi prompt ownership is removed
+next_action=snapshot global prompt evidence and patch the exact installed package
+
+[2026-08-13T00:07:00+08:00] SHIP-03 INSPECTED
+evidence=verification:SHIP-03-global-prompt-byte-preservation;verification:SHIP-03-installed-manifest-and-file-removal;verification:SHIP-03-installed-extension-load;verification:SHIP-03-pi-list
+disposition=accepted
+blocker=none; global prompt inventory and sha256 records are byte-identical before/after, installed 0.2.1 no longer declares pi.prompts, exactly its five prompt files are absent, installed extension load reports one extension and zero errors, and pi list retains only npm:@rosetears/aili-pi@latest
+next_action=mark SHIP-03 done and stop before Git or public release operations
+
+[2026-08-13T00:07:01+08:00] SHIP-03 DONE
+verification=verification:SHIP-03-installed-local-hotfix
+disposition=accepted
+blocker=local runtime is repaired, but it remains a modified installed 0.2.1 and any public update can overwrite the hotfix until a corrected release is separately authorized
+next_action=await exact hotfix version, commit, push, tag, npm publish and GitHub Release decisions
+
+[2026-08-13T00:10:00+08:00] SHIP-04 READY
+evidence=decision:user-requested-release-0.2.2
+disposition=pending
+blocker=none; user explicitly requested publishing exact patch version 0.2.2, authorizing the task-scoped version/generated metadata, release verification, commit, current-branch push, v0.2.2 tag push, npm latest/public publish, GitHub Release and corrected local update required to complete that release; merge, force/history rewrite, deprecation and unrelated cleanup remain absent
+next_action=set exact 0.2.2 identity, regenerate version-bound evidence and run the release matrix before external release operations
+
+[2026-08-13T00:26:00+08:00] SHIP-04 INSPECTED
+evidence=verification:SHIP-04-release-candidate-matrix
+disposition=accepted-with-unverified
+blocker=none in source/package behavior; 473 tests passed with 2 accepted skips, typecheck/compatibility/provenance/generated/package/stable-release/strict-OpenSpec/diff checks passed, exact tarball has 1923 entries and sha256=f973e2606799f30cedcaa18b80176f3d3fd5672cf076b3cf221c3e661f667cfe, excludes all Workflow-owned global resources and loads one extension with zero errors; existing offline E2E dependency seeding stopped before Pi installation because it cannot represent the real supported nested dual zod graph, so this fixture lane remains Unverified and will be replaced for the release claim by a real public npm install after publish
+next_action=inspect final task-scoped diff, commit exact release candidate, and continue authorized public operations

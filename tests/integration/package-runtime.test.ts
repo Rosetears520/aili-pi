@@ -53,9 +53,7 @@ describe("offline packaged runtime discovery", () => {
     expect(roles.schemaVersion).toBe(2);
     expect(roles.records).toHaveLength(21);
     expect(roles.bundledSelectors).toEqual(expect.arrayContaining(["general", "aili.code-scout", "aili.implementer", "aili.solution-architect"]));
-    expect(packageJson.pi.prompts).toEqual([
-      "./prompts/ideate.md", "./prompts/define.md", "./prompts/build.md", "./prompts/ship.md", "./prompts/local-review.md",
-    ]);
+    expect(packageJson.pi.prompts).toBeUndefined();
     expect(packageJson.pi.skills).toEqual(["./node_modules/pi-web-access/skills"]);
     expect(await readFile(new URL("../../node_modules/pi-web-access/skills/librarian/SKILL.md", import.meta.url), "utf8")).toContain("Librarian");
     await Promise.all(skillDirectories.map((name) => readFile(new URL(`../../skills/${name}/SKILL.md`, import.meta.url), "utf8")));

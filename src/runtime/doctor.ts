@@ -337,10 +337,12 @@ export async function runDoctor(
       return dependencies[entry.slice(0, separator)] === entry.slice(separator + 1);
     });
     results.push({ id: "package", status: dependencyState ? "PASS" : "ERROR", evidence: `version=${packageJson.version ?? "unverified"}; node=${packageJson.engines?.node ?? "unverified"}; native_dependencies=${dependencyState ? "exact" : "drift"}` });
-    const resources = [...(packageJson.pi?.extensions ?? []), ...(packageJson.pi?.prompts ?? []), ...(packageJson.pi?.skills ?? []), ...(packageJson.pi?.themes ?? [])];
-    const expectedResources = ["./extensions/index.ts", "./node_modules/pi-web-access/skills", "./prompts/ideate.md", "./prompts/define.md", "./prompts/build.md", "./prompts/ship.md", "./prompts/local-review.md"];
-    const resourceState = resources.length === expectedResources.length && expectedResources.every((resource) => resources.includes(resource));
-    results.push({ id: "package.resources", status: resourceState ? "PASS" : "ERROR", evidence: `declared=${resources.length}; native_ui=${resourceState ? "minimal-footer" : "drift"}` });
+    const resources = [...(packageJson.pi?.extensions ?? []), ...(packageJson.pi?.skills ?? []), ...(packageJson.pi?.themes ?? [])];
+    const expectedResources = ["./extensions/index.ts", "./node_modules/pi-web-access/skills"];
+    const resourceState = packageJson.pi?.prompts === undefined
+      && resources.length === expectedResources.length
+      && expectedResources.every((resource) => resources.includes(resource));
+    results.push({ id: "package.resources", status: resourceState ? "PASS" : "ERROR", evidence: `declared=${resources.length}; prompts=${packageJson.pi?.prompts === undefined ? "rose-aili-owned" : "duplicate"}; native_ui=${resourceState ? "minimal-footer" : "drift"}` });
   } catch (error) {
     results.push({ id: "package", status: "ERROR", evidence: boundedError(error) });
   }
@@ -383,7 +385,7 @@ export async function runDoctor(
 
   const commands = pi.getCommands();
   const conflicts = detectLifecycleConflicts(commands);
-  results.push({ id: "rose.prompts", status: conflicts.length === 0 ? "PASS" : "ERROR", evidence: conflicts.length === 0 ? "five lifecycle/review prompts have unique ownership" : `conflicts=${conflicts.map((item) => item.name).join(",")}` });
+  results.push({ id: "rose.prompts", status: conflicts.length === 0 ? "PASS" : "ERROR", evidence: conflicts.length === 0 ? "Workflow prompts have one rose-aili global owner" : `conflicts=${conflicts.map((item) => item.name).join(",")}` });
   results.push(await inspectPiCompactionSettings(options.home));
   try {
     results.push({

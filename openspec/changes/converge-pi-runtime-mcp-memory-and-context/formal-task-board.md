@@ -5,7 +5,7 @@
 - Task identity: converge-pi-runtime-mcp-memory-and-context
 - Goal: converge Workflow ownership, MCP/MemPalace, Agent transparency, Pi-native UI, upstream context runtime, license and package evidence
 - Phase: SHIP
-- Board status: release-ready-awaiting-exact-git-publish-operations
+- Board status: release-0.2.2-authorized-in-progress
 - Accepted contract: decision:user-accepted-codex-remote-v2-revision-2026-08-12
 - Accepted verification: artifact:openspec/changes/converge-pi-runtime-mcp-memory-and-context/test-plan.md
 - Decision owner: ROSE
@@ -330,4 +330,91 @@
   - Evidence: artifact:docs/license-disposition.md;verification:BUILD-09-full-suite;verification:BUILD-09-typecheck;verification:BUILD-09-provenance;verification:BUILD-09-generated;verification:BUILD-09-package;verification:BUILD-09-real-tarball;verification:BUILD-09-clean-load-upgrade-rollback;verification:BUILD-09-openspec;verification:BUILD-09-diff-check;verification:BUILD-09-direct-final-inspection
   - ROSE disposition: accepted
   - Blocker: none; provider classes without configured authentication remain Unverified live evidence, no default retained-history change was made, and the task-created ACP user-settings mutation was exactly restored with the backup removed
-  - Next action: SHIP candidate `0.2.1` is verified; await exact commit/push/tag/npm-publish/GitHub-release operation approvals
+  - Next action: release `0.2.1` completed, but post-install startup exposed the Workflow bundle packaging defect now owned by SHIP-02
+
+- [x] SHIP-02 — Repair Workflow bundle packaging and duplicate prompt ownership
+  - Phase: SHIP
+  - Package kind: evidence
+  - Source refs: requirement:workflow-runtime-bundle-consumption, requirement:workflow-semantic-ownership-is-not-duplicated, verification:public-0.2.1-installed-startup-failure
+  - Accepted task IDs: none
+  - Status: done
+  - Owner: agent:aili.implementer
+  - Dispatch: required
+  - Dispatch reason: bounded package-loader, manifest, documentation and regression-test repair
+  - No-dispatch reason: exact `aili.implementer` dispatch failed before allocation because the active loaded runtime rejected the current repository-verified role manifest source provenance; repairing or reloading the user-home runtime is outside this hotfix, and ROSE has equivalent repository-local tools and exact permission for the unchanged scope
+  - Execution: direct
+  - Join: N/A
+  - Depends on: BUILD-09
+  - Decision gate: resolved: `rose-aili` owns global Pi `AGENTS.md` and Workflow prompts; `aili-pi` consumes only package-owned generated runtime artifacts
+  - Final test-plan gate: accepted: decision:user-accepted-codex-remote-v2-revision-2026-08-12
+  - Implementation authorization: granted by user repair request
+  - Operation permissions: granted for repository-local source/test/docs edits and deletion of only the five obsolete `aili-pi` prompt sources; dependency/lockfile, Git, publish and release operations remain absent
+  - Scope: restore global-resource package exclusions, remove `aili-pi` prompt registration/source, load only explicit package runtime artifacts from the full upstream lock, and add packed-install startup regression coverage
+  - Forbidden scope: alter `rose-aili` global files, modify the upstream lock/snapshot, change dependencies or package-lock, touch unrelated dirty paths, commit, push, tag, publish, release or deprecate
+  - Expected result: a correctly scoped source hotfix whose package excludes Workflow-owned global files and loads from the exact packed artifact without duplicate prompts
+  - Expected evidence: verification:SHIP-02-workflow-package-hotfix
+  - Acceptance: package manifest registers no prompts; tarball excludes `upstream/aili-workflows-runtime/AGENTS.md`, both Workflow prompt trees and the obsolete top-level prompt sources; loader validates only `WORKFLOW_RUNTIME_ARTIFACTS`; focused package/runtime tests pass
+  - Dispatch evidence: verification:SHIP-02-role-manifest-provenance-mismatch-waiver
+  - Result evidence: verification:SHIP-02-direct-implementation-result
+  - Evidence: verification:SHIP-02-focused-tests;verification:SHIP-02-typecheck;verification:SHIP-02-stable-release-validation;verification:SHIP-02-exact-packed-artifact-load;verification:SHIP-02-diff-check
+  - ROSE disposition: accepted
+  - Blocker: none; the unrelated pre-existing `manifests/sbom.json` timestamp/namespace diff remains untouched
+  - Next action: apply the verified repair to the exact installed package under SHIP-03 without touching global prompts or backups
+
+- [x] SHIP-03 — Remove only `aili-pi` prompt ownership from the installed local package
+  - Phase: SHIP
+  - Package kind: evidence
+  - Source refs: decision:user-requested-local-aili-pi-prompt-removal, verification:SHIP-02-workflow-package-hotfix
+  - Accepted task IDs: none
+  - Status: done
+  - Owner: ROSE
+  - Dispatch: forbidden
+  - Dispatch reason: N/A
+  - No-dispatch reason: exact user-home package target and destructive deletion remain ROSE-owned
+  - Execution: direct
+  - Join: N/A
+  - Depends on: SHIP-02
+  - Decision gate: resolved: preserve `rose-aili` global prompts and backups; remove only the five prompts supplied by installed `@rosetears/aili-pi@0.2.1`
+  - Final test-plan gate: N/A
+  - Implementation authorization: granted by user repair request
+  - Operation permissions: granted for exact installed-package manifest/loader repair and deletion of only `~/.pi/agent/npm/node_modules/@rosetears/aili-pi/prompts/{ideate,define,build,ship,local-review}.md`; all global prompts/backups, settings, package source, Git and release state remain forbidden
+  - Scope: apply the verified source repair to the currently installed npm package and remove only its duplicate prompt files
+  - Forbidden scope: modify or delete `~/.pi/agent/prompts/**`, settings, backups, `rose-aili` resources, unrelated packages or user data
+  - Expected result: local Pi sees the ten `rose-aili` global prompts once and the installed AILI extension loads without requiring excluded global resources
+  - Expected evidence: verification:SHIP-03-installed-local-hotfix
+  - Acceptance: installed manifest has no `pi.prompts`; its five prompt files are absent; global prompt bytes/inventory are unchanged; bounded installed startup reaches extension load without the Workflow missing-artifact error
+  - Dispatch evidence: N/A
+  - Result evidence: verification:SHIP-03-installed-local-hotfix
+  - Evidence: verification:SHIP-03-global-prompt-byte-preservation;verification:SHIP-03-installed-manifest-and-file-removal;verification:SHIP-03-installed-extension-load;verification:SHIP-03-pi-list
+  - ROSE disposition: accepted
+  - Blocker: none for local repair; the installed package remains version `0.2.1` and a future `pi update` from public `latest` can overwrite this local hotfix until a corrected release is separately authorized and published
+  - Next action: release `0.2.2` through SHIP-04 under the user’s explicit release intent
+
+- [ ] SHIP-04 — Prepare and publish hotfix `0.2.2`
+  - Phase: SHIP
+  - Package kind: evidence
+  - Source refs: verification:SHIP-02-workflow-package-hotfix, verification:SHIP-03-installed-local-hotfix, decision:user-requested-release-0.2.2
+  - Accepted task IDs: none
+  - Status: ready
+  - Owner: ROSE
+  - Dispatch: forbidden
+  - Dispatch reason: N/A
+  - No-dispatch reason: versioning, integration, release verification, Git and publication decisions remain ROSE-owned
+  - Execution: direct
+  - Join: N/A
+  - Depends on: SHIP-02, SHIP-03
+  - Decision gate: resolved: release exact patch version `0.2.2`
+  - Final test-plan gate: N/A
+  - Implementation authorization: granted
+  - Operation permissions: granted by explicit user release request for task-scoped version/lock/generated release metadata edits, exact candidate creation/install, commit, current-branch push, annotated `v0.2.2` tag creation/push, public npm publish with `latest`, GitHub Release creation, and local Pi update to the corrected public latest; force/history rewrite, merge, main push, deprecation and unrelated cleanup remain absent
+  - Scope: set `0.2.2`, regenerate version-bound evidence, run the release matrix, publish the exact verified commit/tag/package/release, and replace the local patched install with public `0.2.2`
+  - Forbidden scope: stage or mutate unrelated `.pi/`, archive, Graphify, Zone.Identifier or pre-existing unrelated SBOM content except deterministic version-bound regeneration; merge to main; deprecate `0.2.1`; force push; rewrite history; publish any version other than `0.2.2`
+  - Expected result: npm `latest=0.2.2`, tag and GitHub Release point to the exact release commit, and the installed package loads without duplicate prompts or missing Workflow globals
+  - Expected evidence: verification:SHIP-04-release-0.2.2
+  - Acceptance: version-bound files agree; full fresh checks and exact tarball extraction/load plus public npm install pass; scoped commit/push/tag/npm/GitHub operations succeed; local installed manifest is `0.2.2` with no `pi.prompts`; global Workflow prompts remain unchanged
+  - Dispatch evidence: N/A
+  - Result evidence: pending
+  - Evidence: pending
+  - ROSE disposition: pending
+  - Blocker: disposable offline `test:e2e:linux-clean` dependency seeding is Unverified for this release because the existing fixture flattens nested dependencies and rejected the real supported dual `zod@4.4.3`/`zod@3.25.76` graph before Pi installation; no production or package defect was observed, and the exact packed artifact extraction/load passed
+  - Next action: proceed with commit/publication only after retaining this fixture limitation and validating the published package through a real public npm install

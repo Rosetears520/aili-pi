@@ -59,7 +59,16 @@ describe("validated Workflow runtime bundle", () => {
     expect(Object.keys(bundle.protocols)).toEqual(["agentSelection", "formalTaskBoard", "packageEnvelope"]);
   });
 
-  it("fails closed for missing and byte-drifted artifacts", async () => {
+  it("loads the package runtime subset without Workflow-owned global resources", async () => {
+    const paths = await fixture();
+    await Promise.all([
+      rm(join(paths.bundle, "AGENTS.md")),
+      rm(join(paths.bundle, "prompts"), { recursive: true }),
+    ]);
+    await expect(load(paths)).resolves.toMatchObject({ package: "rose-aili", version: "0.4.7" });
+  });
+
+  it("fails closed for missing and byte-drifted runtime artifacts", async () => {
     const missing = await fixture();
     await rm(join(missing.bundle, "system.md"));
     await expect(load(missing)).rejects.toThrow(/artifact missing or unreadable: system\.md/);
