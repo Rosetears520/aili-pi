@@ -752,3 +752,9 @@ evidence=verification:SHIP-04-release-candidate-matrix
 disposition=accepted-with-unverified
 blocker=none in source/package behavior; 473 tests passed with 2 accepted skips, typecheck/compatibility/provenance/generated/package/stable-release/strict-OpenSpec/diff checks passed, exact tarball has 1923 entries and sha256=f973e2606799f30cedcaa18b80176f3d3fd5672cf076b3cf221c3e661f667cfe, excludes all Workflow-owned global resources and loads one extension with zero errors; existing offline E2E dependency seeding stopped before Pi installation because it cannot represent the real supported nested dual zod graph, so this fixture lane remains Unverified and will be replaced for the release claim by a real public npm install after publish
 next_action=inspect final task-scoped diff, commit exact release candidate, and continue authorized public operations
+
+[2026-08-13T00:31:00+08:00] SHIP-04 DONE
+verification=verification:SHIP-04-release-0.2.2;verification:SHIP-04-public-install-load
+disposition=accepted
+blocker=none for release; commit 70c60357f112877ea4e34e052d81c5bd2d07d3b9 is pushed on the current branch, annotated tag v0.2.2 peels to that commit, npm latest is @rosetears/aili-pi@0.2.2 with shasum e77d40dd16d39f37e5545c1c5acf802be8ccd347, GitHub Release is published, and the real local Pi update installed 0.2.2 with no pi.prompts, unchanged global prompt inventory/bytes and one extension loaded with zero errors; only the known offline dual-zod fixture limitation remains Unverified
+next_action=none; release 0.2.2 is complete

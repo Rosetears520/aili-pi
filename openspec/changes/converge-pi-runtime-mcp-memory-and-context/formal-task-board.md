@@ -5,7 +5,7 @@
 - Task identity: converge-pi-runtime-mcp-memory-and-context
 - Goal: converge Workflow ownership, MCP/MemPalace, Agent transparency, Pi-native UI, upstream context runtime, license and package evidence
 - Phase: SHIP
-- Board status: release-0.2.2-authorized-in-progress
+- Board status: done
 - Accepted contract: decision:user-accepted-codex-remote-v2-revision-2026-08-12
 - Accepted verification: artifact:openspec/changes/converge-pi-runtime-mcp-memory-and-context/test-plan.md
 - Decision owner: ROSE
@@ -390,12 +390,12 @@
   - Blocker: none for local repair; the installed package remains version `0.2.1` and a future `pi update` from public `latest` can overwrite this local hotfix until a corrected release is separately authorized and published
   - Next action: release `0.2.2` through SHIP-04 under the user’s explicit release intent
 
-- [ ] SHIP-04 — Prepare and publish hotfix `0.2.2`
+- [x] SHIP-04 — Prepare and publish hotfix `0.2.2`
   - Phase: SHIP
   - Package kind: evidence
   - Source refs: verification:SHIP-02-workflow-package-hotfix, verification:SHIP-03-installed-local-hotfix, decision:user-requested-release-0.2.2
   - Accepted task IDs: none
-  - Status: ready
+  - Status: done
   - Owner: ROSE
   - Dispatch: forbidden
   - Dispatch reason: N/A
@@ -413,8 +413,8 @@
   - Expected evidence: verification:SHIP-04-release-0.2.2
   - Acceptance: version-bound files agree; full fresh checks and exact tarball extraction/load plus public npm install pass; scoped commit/push/tag/npm/GitHub operations succeed; local installed manifest is `0.2.2` with no `pi.prompts`; global Workflow prompts remain unchanged
   - Dispatch evidence: N/A
-  - Result evidence: pending
-  - Evidence: pending
-  - ROSE disposition: pending
-  - Blocker: disposable offline `test:e2e:linux-clean` dependency seeding is Unverified for this release because the existing fixture flattens nested dependencies and rejected the real supported dual `zod@4.4.3`/`zod@3.25.76` graph before Pi installation; no production or package defect was observed, and the exact packed artifact extraction/load passed
-  - Next action: proceed with commit/publication only after retaining this fixture limitation and validating the published package through a real public npm install
+  - Result evidence: verification:SHIP-04-release-0.2.2
+  - Evidence: commit:70c60357f112877ea4e34e052d81c5bd2d07d3b9;tag:v0.2.2;npm:@rosetears/aili-pi@0.2.2;github-release:https://github.com/Rosetears520/aili-pi/releases/tag/v0.2.2;verification:SHIP-04-public-install-load
+  - ROSE disposition: accepted
+  - Blocker: none for release; disposable offline `test:e2e:linux-clean` dependency seeding remains Unverified because the existing fixture flattens nested dependencies and rejected the real supported dual `zod@4.4.3`/`zod@3.25.76` graph before Pi installation, while the real public npm update installed `0.2.2`, preserved global prompt bytes, and loaded one extension with zero errors
+  - Next action: none; release `0.2.2` is complete
