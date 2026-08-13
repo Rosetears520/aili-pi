@@ -151,8 +151,8 @@ export function formatStampEntry(entry: StampEntry): string {
   } else if (entry.version === 3 && entry.thinking) {
     segments.push(entry.thinking);
   }
-  const tokens = displayedTokenTotal(entry.provenance?.usage);
-  if (tokens !== undefined) segments.push(`${tokens.toLocaleString()} tokens`);
+  const tokens = entry.provenance?.usage?.outputTokens;
+  if (tokens !== undefined) segments.push(`out ${formatOutputTokens(tokens)}`);
   return segments.join(" · ");
 }
 
@@ -229,10 +229,10 @@ async function openStamp(args: string, context: ExtensionCommandContext): Promis
 function append(pi: ExtensionAPI, entry: StampEntry): void { if (isStampEntry(entry)) pi.appendEntry<StampEntry>(STAMP_ENTRY_TYPE, entry); }
 function leftAligned(lines: () => readonly string[]): Component { return { render: (width) => lines().flatMap((line) => wrapTextWithAnsi(line, width)), invalidate() {} }; }
 function isMeaningfulUpdate(value: unknown): boolean { return isRecord(value) && ((["text_delta", "thinking_delta", "toolcall_delta"].includes(value.type as string) && typeof value.delta === "string" && value.delta.length > 0) || (["text_end", "thinking_end"].includes(value.type as string) && typeof value.content === "string" && value.content.length > 0) || (value.type === "toolcall_end" && isRecord(value.toolCall))); }
-function displayedTokenTotal(usage: StampProvenance["usage"] | undefined): number | undefined {
-  if (!usage) return undefined;
-  if (usage.totalTokens !== undefined) return usage.totalTokens;
-  return usage.inputTokens !== undefined && usage.outputTokens !== undefined ? usage.inputTokens + usage.outputTokens : undefined;
+/** A stamp reports this response's generated tokens, never its input/context or request total. */
+function formatOutputTokens(tokens: number): string {
+  if (tokens < 100) return String(tokens);
+  return `${(tokens / 1_000).toFixed(1)}k`;
 }
 function formatElapsed(milliseconds: number): string { return `${(Math.max(0, milliseconds) / 1_000).toFixed(1)}s`; }
 function isTimestamp(value: unknown): value is number { return typeof value === "number" && Number.isSafeInteger(value) && value >= 0; }

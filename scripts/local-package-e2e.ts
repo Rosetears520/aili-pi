@@ -9,7 +9,7 @@ const execFile = promisify(execFileCallback);
 const ROOT = resolve(import.meta.dirname, "..");
 const PACKAGE_NAME = "@rosetears/aili-pi";
 const INITIAL_VERSION = "0.1.12";
-const CURRENT_VERSION = "0.2.5";
+const CURRENT_VERSION = "0.2.6";
 const SOURCE = `npm:${PACKAGE_NAME}`;
 const requested = process.argv[2];
 const expected = requested === "linux" ? "linux" : undefined;
