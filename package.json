@@ -1,6 +1,6 @@
 {
   "name": "@rosetears/aili-pi",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "AILI and ROSE distribution for official Pi",
   "type": "module",
   "license": "MIT",

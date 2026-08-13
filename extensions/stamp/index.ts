@@ -1,5 +1,5 @@
 import type { EntryRenderer, ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { type Component, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import { type Component, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
 export const STAMP_COMMAND_NAME = "stamp" as const;
 export const STAMP_ENTRY_TYPE = "aili-stamp" as const;
@@ -28,6 +28,17 @@ export interface AssistantStampV2 {
   readonly provenance?: StampProvenance;
 }
 
+/** Version 3 additionally retains the actual active Pi thinking level for this turn. */
+export interface AssistantStampV3 {
+  readonly version: 3;
+  readonly kind: "assistant";
+  readonly timestamp: number;
+  readonly completedAt?: number;
+  readonly firstContentAt?: number;
+  readonly thinking?: string;
+  readonly provenance?: StampProvenance;
+}
+
 /** Tool call IDs are used only in memory to pair events and are never persisted. */
 export interface ToolStampV1 {
   readonly version: 1;
@@ -47,7 +58,7 @@ export interface StampProvenance {
   readonly usage?: Readonly<{ inputTokens?: number; outputTokens?: number; totalTokens?: number; estimatedCost?: number }>;
 }
 
-export type StampEntry = MessageStampV1 | AssistantStampV2 | ToolStampV1;
+export type StampEntry = MessageStampV1 | AssistantStampV2 | AssistantStampV3 | ToolStampV1;
 
 interface AssistantObservation {
   readonly timestamp: number;
@@ -74,11 +85,15 @@ export function isStampEntry(value: unknown): value is StampEntry {
       && isReportedText(value.name) && isTimestamp(value.startedAt) && isTimestamp(value.completedAt)
       && value.completedAt >= value.startedAt && (value.outcome === "success" || value.outcome === "error");
   }
-  if (value.version !== 2 || value.kind !== "assistant") return false;
-  if (!hasOnly(value, ["version", "kind", "timestamp", "completedAt", "firstContentAt", "provenance"]) || !isTimestamp(value.timestamp)) return false;
+  if ((value.version !== 2 && value.version !== 3) || value.kind !== "assistant") return false;
+  const keys = value.version === 3
+    ? ["version", "kind", "timestamp", "completedAt", "firstContentAt", "thinking", "provenance"]
+    : ["version", "kind", "timestamp", "completedAt", "firstContentAt", "provenance"];
+  if (!hasOnly(value, keys) || !isTimestamp(value.timestamp)) return false;
   if (Object.hasOwn(value, "completedAt") && (!isTimestamp(value.completedAt) || value.completedAt < value.timestamp)) return false;
   const completedAt = value.completedAt;
   if (Object.hasOwn(value, "firstContentAt") && (!isTimestamp(completedAt) || !isTimestamp(value.firstContentAt) || value.firstContentAt < value.timestamp || value.firstContentAt > completedAt)) return false;
+  if (Object.hasOwn(value, "thinking") && !isReportedText(value.thinking)) return false;
   return !Object.hasOwn(value, "provenance") || isStampProvenance(value.provenance);
 }
 
@@ -124,18 +139,27 @@ export function captureStampProvenance(message: unknown): StampProvenance | unde
 
 export function formatStampEntry(entry: StampEntry): string {
   if (entry.kind === "tool") return `tool ${entry.name} · ${formatElapsed(entry.completedAt - entry.startedAt)} · ${entry.outcome}`;
-  const clock = new Date(entry.timestamp).toISOString().slice(11, 19);
+  const clock = new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
   if (entry.kind === "message") return clock;
-  const timing = entry.completedAt === undefined ? "" : ` · total ${formatElapsed(entry.completedAt - entry.timestamp)}`;
-  const first = entry.firstContentAt === undefined ? (entry.completedAt === undefined ? "" : " · first n/a") : ` · first ${formatElapsed(entry.firstContentAt - entry.timestamp)}`;
-  const provenance = entry.provenance ? `\n${entry.provenance.requestedModel}${entry.provenance.responseModel ? ` → ${entry.provenance.responseModel}` : ""}` : "";
-  return `${clock}${first}${timing}${provenance}`;
+  const segments = [
+    clock,
+    ...(entry.firstContentAt === undefined ? (entry.completedAt === undefined ? [] : ["first n/a"]) : [`first ${formatElapsed(entry.firstContentAt - entry.timestamp)}`]),
+    ...(entry.completedAt === undefined ? [] : [`total ${formatElapsed(entry.completedAt - entry.timestamp)}`]),
+  ];
+  if (entry.provenance) {
+    segments.push(`${entry.provenance.requestedModel}${entry.provenance.responseModel ? ` → ${entry.provenance.responseModel}` : ""}${entry.version === 3 && entry.thinking ? ` ${entry.thinking}` : ""}`);
+  } else if (entry.version === 3 && entry.thinking) {
+    segments.push(entry.thinking);
+  }
+  const tokens = displayedTokenTotal(entry.provenance?.usage);
+  if (tokens !== undefined) segments.push(`${tokens.toLocaleString()} tokens`);
+  return segments.join(" · ");
 }
 
 export function createStampEntryRenderer(): EntryRenderer<StampEntry> {
   return (entry, _options, theme) => {
     const data = entry.data;
-    return isStampEntry(data) ? rightAligned(() => [theme.fg("dim", formatStampEntry(data))]) : undefined;
+    return isStampEntry(data) ? leftAligned(() => [theme.fg("dim", formatStampEntry(data))]) : undefined;
   };
 }
 
@@ -179,11 +203,12 @@ export function registerStampCommand(pi: ExtensionAPI, now: () => number = Date.
     if (!tuiActive || !timing || timing.completedAt !== undefined || !isTimestamp(observed) || observed < timing.startedAt) { if (timing && (!isTimestamp(observed) || observed < timing.startedAt)) tools.delete(event.toolCallId); return; }
     timing.completedAt = observed; timing.outcome = event.isError ? "error" : "success";
   });
-  pi.on("turn_end", (event) => {
+  pi.on("turn_end", (event, context) => {
     if (tuiActive && event.message.role === "assistant" && isTimestamp(event.message.timestamp)) {
       const timing = completed?.timestamp === event.message.timestamp ? completed : undefined;
       const provenance = captureStampProvenance(event.message);
-      append(pi, { version: 2, kind: "assistant", timestamp: event.message.timestamp, ...(timing ? { completedAt: timing.completedAt, ...(timing.firstContentAt === undefined ? {} : { firstContentAt: timing.firstContentAt }) } : {}), ...(provenance ? { provenance } : {}) });
+      const thinking = exactReportedText(context?.thinkingLevel);
+      append(pi, { version: 3, kind: "assistant", timestamp: event.message.timestamp, ...(timing ? { completedAt: timing.completedAt, ...(timing.firstContentAt === undefined ? {} : { firstContentAt: timing.firstContentAt }) } : {}), ...(thinking ? { thinking } : {}), ...(provenance ? { provenance } : {}) });
     }
     for (const result of event.toolResults) {
       if (!isRecord(result) || typeof result.toolCallId !== "string") continue;
@@ -202,8 +227,13 @@ async function openStamp(args: string, context: ExtensionCommandContext): Promis
   await context.ui.select("Stamp", ["Retained timing/provenance entries are outside model context", "Close"]);
 }
 function append(pi: ExtensionAPI, entry: StampEntry): void { if (isStampEntry(entry)) pi.appendEntry<StampEntry>(STAMP_ENTRY_TYPE, entry); }
-function rightAligned(lines: () => readonly string[]): Component { return { render: (width) => lines().flatMap((line) => wrapTextWithAnsi(line, width).map((part) => `${" ".repeat(Math.max(0, width - visibleWidth(part)))}${part}`)), invalidate() {} }; }
+function leftAligned(lines: () => readonly string[]): Component { return { render: (width) => lines().flatMap((line) => wrapTextWithAnsi(line, width)), invalidate() {} }; }
 function isMeaningfulUpdate(value: unknown): boolean { return isRecord(value) && ((["text_delta", "thinking_delta", "toolcall_delta"].includes(value.type as string) && typeof value.delta === "string" && value.delta.length > 0) || (["text_end", "thinking_end"].includes(value.type as string) && typeof value.content === "string" && value.content.length > 0) || (value.type === "toolcall_end" && isRecord(value.toolCall))); }
+function displayedTokenTotal(usage: StampProvenance["usage"] | undefined): number | undefined {
+  if (!usage) return undefined;
+  if (usage.totalTokens !== undefined) return usage.totalTokens;
+  return usage.inputTokens !== undefined && usage.outputTokens !== undefined ? usage.inputTokens + usage.outputTokens : undefined;
+}
 function formatElapsed(milliseconds: number): string { return `${(Math.max(0, milliseconds) / 1_000).toFixed(1)}s`; }
 function isTimestamp(value: unknown): value is number { return typeof value === "number" && Number.isSafeInteger(value) && value >= 0; }
 function isReportedText(value: unknown): value is string { return typeof value === "string" && value.length > 0 && value.length <= MAX_REPORTED_TEXT && !/[\x00-\x1f\x7f-\x9f]/.test(value); }
