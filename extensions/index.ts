@@ -4,10 +4,14 @@ import registerNativeFooter from "./footer/index.js";
 import { registerBtwCommand } from "./btw/index.js";
 import { registerAnalyticsCommand } from "./analytics/index.js";
 import { registerStampCommand } from "./stamp/index.js";
+import { registerPiNotify } from "../src/runtime/notify.js";
+import { registerFileContext } from "./file-context/index.js";
 
 export default async function ailiPi(pi: ExtensionAPI): Promise<void> {
   await registerAiliRuntime(pi);
   registerNativeFooter(pi);
+  registerPiNotify(pi);
+  registerFileContext(pi);
   registerBtwCommand(pi);
   registerAnalyticsCommand(pi);
   registerStampCommand(pi);

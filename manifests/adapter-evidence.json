@@ -13,7 +13,7 @@
       "artifacts": [
         {
           "path": "package-lock.json",
-          "sha256": "8e53f5ebd520563a0254fcb4c4f29259fe177f15f1560b72a643376cb150199c"
+          "sha256": "588bbed986f5c99cb78b6f40994536ed38222c353aa2e3140e25f794380a23b5"
         },
         {
           "path": "tests/integration/extension-load.test.ts",
@@ -40,11 +40,11 @@
       "artifacts": [
         {
           "path": "src/runtime/persistent-agents/production.ts",
-          "sha256": "8863b2317f48b6f6eac7b4cecef1c58627eb732e08fd81e1cddad6b0b3e82e14"
+          "sha256": "6131bed0a86ec594298d32a576a204ec6e27f8b29bd6f464a1d233bb788727dd"
         },
         {
           "path": "src/runtime/persistent-agents/runtime.ts",
-          "sha256": "b0ae085d3df6fdeb7b176c807349c820d7c04bde664e3d98b93533d0069f5877"
+          "sha256": "3d4718c48ad34330b8b88dd4794f7f7da2b53c160980a503514a63ed9a10d885"
         },
         {
           "path": "src/runtime/persistent-agents/session-factory.ts",
@@ -60,7 +60,7 @@
         },
         {
           "path": "src/runtime/persistent-agents/storage.ts",
-          "sha256": "4bfdc33b719327e5c65583dbba8641cdfa6f1cb56eba4b63d925eaa6d6dceff5"
+          "sha256": "3f68f60bdab0f352745faa674b9031216805c53e3ac57a0bc6a3cbac0f1fa5a6"
         },
         {
           "path": "src/runtime/persistent-agents/permission.ts",
@@ -68,7 +68,7 @@
         },
         {
           "path": "tests/unit/persistent-agent-task.test.ts",
-          "sha256": "ff5d1522593d1da2531fe755e7e09cf2b6759d5bd54ebdba43290f3dc90f0dac"
+          "sha256": "34b61f0270600576caa97bd67483dbbf58a3408a073eb8b8ac1aa8a0f0f7b043"
         },
         {
           "path": "tests/unit/persistent-agent-hub.test.ts",
@@ -80,7 +80,7 @@
         },
         {
           "path": "tests/integration/persistent-agent-runtime.test.ts",
-          "sha256": "6c495e303651105ba4c713d4c8192b649ce55e21e771210f8cc5ff2d3eba5c86"
+          "sha256": "6be8f80b93ef23eb060def34904d2c3acc16bd8cc77b2b5bfefb3028e77ed511"
         },
         {
           "path": "tests/integration/persistent-agent-production.test.ts",
@@ -96,7 +96,7 @@
         },
         {
           "path": "tests/integration/package-runtime.test.ts",
-          "sha256": "74d87595004b8436a0d9a45e0c55a58201f4af3cd3cb7de694fbd3c257041234"
+          "sha256": "55a80484585d53c263cdb9b1b050cfe58e477aa55d5a11278ad8371e817ec556"
         }
       ]
     },
@@ -123,7 +123,7 @@
         },
         {
           "path": "package-lock.json",
-          "sha256": "8e53f5ebd520563a0254fcb4c4f29259fe177f15f1560b72a643376cb150199c"
+          "sha256": "588bbed986f5c99cb78b6f40994536ed38222c353aa2e3140e25f794380a23b5"
         },
         {
           "path": "node_modules/@earendil-works/pi-coding-agent/docs/skills.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "node_modules/@earendil-works/pi-coding-agent/dist/core/package-manager.js",
-          "sha256": "fddbddad498026c16dbd73e70c6ca4d9714c5767575e258f102a6907277f5d48"
+          "sha256": "643d15e9dc277bea7a0daeadde94207b25143cf23556b2e30af4dbc3fcfb7974"
         }
       ]
     }

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/narumiruna/pi-extensions.git",
+  "revision": "7624b3c50d09d2e9dafa8dbc810c7f2adb453d70",
+  "package": { "name": "@narumitw/pi-file-context", "version": "0.53.0", "license": "MIT" },
+  "companion": { "name": "@narumitw/pi-tui-kit", "version": "0.53.0", "disposition": "not vendored; AILI uses the public Pi UI API through extensions/file-context/index.ts" },
+  "importedFiles": ["packages/pi-file-context/index.ts", "packages/pi-file-context/src/**", "packages/pi-file-context/LICENSE"],
+  "adaptation": "AILI retains bounded search and immutable snapshot selection in src/runtime/file-context.ts and keeps the sole current TUI consumer in extensions/file-context/index.ts. No pi-tui-kit range is installed or retained."
+}

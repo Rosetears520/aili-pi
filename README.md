@@ -14,7 +14,7 @@ macOS and native Windows are not supported by this bootstrap and fail before ins
 
 ## Install
 
-### Stable 0.2.2
+### Stable 0.2.4
 
 Install the current stable package through Pi:
 
@@ -76,7 +76,7 @@ Removal is destructive for this Package. It does not remove Pi and must not be p
 
 ## Pi-native UI
 
-Pi owns the active theme, startup header, editor, message rendering, tool rendering, and working/thinking indicators. AILI registers no Matrix animation, custom header, theme, editor replacement, thinking renderer, or prototype patch. Its single Extension entry adds only a lightweight footer through Pi's public `setFooter()` API. The footer prioritizes the active model and the existing `pi-quota-status` value, includes minute-level time and other optional fields only when space and data permit, and disposes its timer and branch listener with the session.
+Pi owns the active theme, startup header, editor, message rendering, tool rendering, and working/thinking indicators. AILI registers no Matrix animation, custom header, theme, editor replacement, thinking renderer, or prototype patch. Its single Extension entry adds only a lightweight footer through Pi's public `setFooter()` API. The footer renders the actual `provider/model thinking` state, normalizes recognized compact Codex 5h quota as `codex <percentage> <MM/DD> <HH:mm>`, orders live secondary state as `Permission Mode · MCP x/y · HH:mm`, and disposes its timer and branch listener with the session.
 
 Legacy Rose/Matrix/Zentui source and user configuration may remain for history or migration evidence, but they are not registered as production Pi resources and are not rewritten or deleted. The experimental fixed-editor source is likewise retained but inactive; WSL image-paste remains independently owned by the bootstrap keybinding merger described below.
 
@@ -103,8 +103,10 @@ The `pi-permission-modes@2.2.0` baseline owns mode persistence, prompts, and san
 - `pi-web-access@0.13.0` provides its complete upstream web-search, content-fetch, curator, clone/PDF/video, and bundled-skill surface. Its provider fallback, network traffic, config/credential paths, clone cache, temporary curator service, downloads, and optional browser-cookie access are upstream behavior; inspect its tool requests and configuration before use. This restores only the native extension and its Pi-owned skill; the paused foreground Pi Web application remains excluded from the published artifact.
 - `pi-quota-status@0.3.0` is enabled by default. It may maintain `~/.pi/agent/pi-quota-status/state.json`; `/quota config` creates its configuration template. The Pi-native AILI footer displays the dependency's bounded active-model status without changing its selected percentage or reset data.
 - `pi-permission-modes@2.2.0` provides the permission UI and process-owned sandbox lifecycle above through AILI's exact-source adaptation. The semantic adaptations are line-terminator-safe shared glob matching, Pi session-environment forwarding, and the fail-closed persistent-child sandbox bridge; `upstream/pi-permission-modes.lock.json` records the baseline and adapted hashes. AILI does not retain `/aili-mode` or `Ctrl+Shift+Alt+A` as competing controls.
-- AILI owns the public `task`/`hub` persistent Agent framework. `task` creates parent-scoped official Pi child sessions using 20 specialized `aili.*` selectors, including read-only `aili.solution-architect`, or `general`; top-level work is async by default, supports bounded batch scheduling, and returns stable Agent/job/turn IDs plus `agent://` and `history://` references. `hub` provides list/send/wait/inbox/output/history/jobs/cancel/model operations, park/revive, durable delivery, and owner/descendant scoping. No `subagent` compatibility alias or run/attempt backend selector remains. See [`docs/persistent-agents.md`](docs/persistent-agents.md).
+- AILI owns the public `task`/`hub` persistent Agent framework. `task` creates parent-scoped official Pi child sessions using 20 specialized `aili.*` selectors, including read-only `aili.solution-architect`, or `general`; top-level work is async by default, supports bounded batch scheduling, and returns stable Agent/job/turn IDs plus `agent://` and `history://` references. `hub` provides list/send/wait/inbox/output/history/jobs/cancel/model operations, park/revive, durable delivery, and owner/descendant scoping. Use `/aili-agent-fast <standard|priority>` to select the Parent session's Fast tier for newly created Persistent Agents. No `subagent` compatibility alias or run/attempt backend selector remains. See [`docs/persistent-agents.md`](docs/persistent-agents.md).
 - `pi-cache-optimizer@2.6.18` provides `/cache-optimizer`, provider cache diagnostics, cache statistics, and prompt-cache optimization. It may maintain `~/.pi/agent/pi-cache-optimizer-stats.json`; `/cache-optimizer fix` is interactive and is the only command that may propose editing `models.json`.
+- The Parent Pi session has an advisory `pi-notify@1.4.0` adaptation. It preserves OSC 777, iTerm OSC 9, Kitty OSC 99, tmux passthrough, Windows Terminal PowerShell toast, and terminal-bell routes. Every route is best-effort and failure is nonfatal; Persistent Workers do not load the notifier.
+- `/file-context` attaches bounded immutable project-file selections; `/file-context-files` searches paths and `/file-context-search` searches content. It supports multiple line ranges, Git status/diff/blame/history/revision provenance, SHA-256/token estimates, and rejects root/symlink escapes, binary files, and previews over 1 MiB. UI registration stays separate from the file-context core. The upstream `@narumitw/pi-file-context@0.53.0` identity and its exact `@narumitw/pi-tui-kit@0.53.0` companion disposition are recorded in provenance; AILI does not retain a floating TUI-kit dependency.
 
 ## Optional capability packs
 

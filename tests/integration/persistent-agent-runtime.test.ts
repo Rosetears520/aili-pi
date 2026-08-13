@@ -172,6 +172,7 @@ describe("internal persistent Agent runtime wiring", () => {
     const tools = new Map<string, any>();
     const commands = new Map<string, any>();
     const directCalls: string[] = [];
+    const fastCalls: string[] = [];
     const catalog = await loadAgentCatalog();
     if (!catalog.ok) throw new Error(catalog.diagnostics.map((diagnostic) => diagnostic.code).join(", "));
     registerPersistentAgentTools({
@@ -184,11 +185,16 @@ describe("internal persistent Agent runtime wiring", () => {
         directCalls.push(args);
         return "model updated";
       },
+      directFastCommand: async (args) => {
+        fastCalls.push(args);
+        return "fast updated";
+      },
     });
     expect([...tools.keys()]).toEqual(["task", "hub"]);
     expect([...tools.keys()]).not.toContain("subagent");
     expect([...tools.keys()]).not.toContain("aili_task");
     expect(commands.has("aili-agent-model")).toBe(true);
+    expect(commands.has("aili-agent-fast")).toBe(true);
 
     const taskTool = tools.get("task");
     expect(taskTool.description).toContain("Ordinary Pi remains benefit-based");
@@ -228,6 +234,8 @@ describe("internal persistent Agent runtime wiring", () => {
     expect(JSON.parse(taskResult.content[0].text)).toMatchObject({ results: [expect.objectContaining({ status: "completed" })] });
     await commands.get("aili-agent-model").handler("global general provider/model", context);
     expect(directCalls).toEqual(["global general provider/model"]);
+    await commands.get("aili-agent-fast").handler("priority", context);
+    expect(fastCalls).toEqual(["priority"]);
     await runtime.shutdown();
   });
 

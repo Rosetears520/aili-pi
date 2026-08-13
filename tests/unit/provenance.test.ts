@@ -31,10 +31,10 @@ describe("provenance and SBOM", () => {
       readFile(new URL("../../manifests/provenance.json", import.meta.url), "utf8").then(JSON.parse),
       readFile(new URL("../../THIRD_PARTY_NOTICES.md", import.meta.url), "utf8"),
     ]);
-    expect(provenance.sources).toHaveLength(12);
-    expect(provenance.sources.filter((item: { status: string }) => item.status === "adapted")).toHaveLength(5);
+    expect(provenance.sources).toHaveLength(17);
+    expect(provenance.sources.filter((item: { status: string }) => item.status === "adapted")).toHaveLength(7);
     expect(provenance.sources.filter((item: { status: string }) => item.status === "dependency")).toHaveLength(5);
-    expect(provenance.sources.filter((item: { status: string }) => item.status === "reference-only")).toHaveLength(2);
+    expect(provenance.sources.filter((item: { status: string }) => item.status === "reference-only")).toHaveLength(5);
     expect(provenance.sources.find((item: { name: string }) => item.name === "Oh My Pi reference")).toMatchObject({
       status: "reference-only",
       revision: "59619623e1eeb7c290649eeaf3a269284ce8adef",
@@ -52,6 +52,9 @@ describe("provenance and SBOM", () => {
       localChanges: [],
     });
     expect(notices).toContain("## algal pi-openai-server-compaction reference");
+    expect(provenance.sources.find((item: { name: string }) => item.name === "pi-codex-fast reference")).toMatchObject({ status: "reference-only", revision: "npm:0.1.5" });
+    expect(provenance.sources.find((item: { name: string }) => item.name === "Graphify reference")).toMatchObject({ status: "reference-only", revision: "e4bfd2ad1a9393251023a4edef93e93dc798afc7" });
+    expect(provenance.sources.find((item: { name: string }) => item.name === "pi-tool-display reference")).toMatchObject({ status: "reference-only", revision: "91cef7580078371f8dc49a8607222807ad6a424d" });
     expect(notices).toContain("Source files: none copied");
     expect(provenance.sources.find((item: { name: string }) => item.name === "@agwab/pi-subagent")).toBeUndefined();
     expect(provenance.sources.find((item: { name: string }) => item.name === "@narumitw/pi-lsp")).toBeUndefined();
@@ -71,6 +74,18 @@ describe("provenance and SBOM", () => {
       revision: "165a1f8011a12a58a6409b56b8a6c0416cd9b589",
       version: "git:165a1f8011a12a58a6409b56b8a6c0416cd9b589",
       localChanges: expect.arrayContaining([expect.stringContaining("no header, Matrix, Zentui extension or theme is registered")]),
+    }));
+    expect(provenance.sources.find((item: { name: string }) => item.name === "pi-notify")).toEqual(expect.objectContaining({
+      status: "adapted",
+      revision: "a17c63ef1c3071d793aad7e9d327a3728f2ad88c",
+      version: "1.4.0",
+      license: "MIT",
+    }));
+    expect(provenance.sources.find((item: { name: string }) => item.name === "pi-file-context")).toEqual(expect.objectContaining({
+      status: "adapted",
+      revision: "7624b3c50d09d2e9dafa8dbc810c7f2adb453d70",
+      version: "0.53.0",
+      license: "MIT",
     }));
     expect(notices).not.toContain("Version: undefined");
   });
@@ -93,14 +108,14 @@ describe("provenance and SBOM", () => {
   it("emits a deterministic SPDX 2.3 inventory with locked package integrity", async () => {
     const sbom = JSON.parse(await readFile(new URL("../../manifests/sbom.json", import.meta.url), "utf8"));
     expect(sbom.spdxVersion).toBe("SPDX-2.3");
-    expect(sbom.name).toBe("@rosetears/aili-pi-0.2.3");
+    expect(sbom.name).toBe("@rosetears/aili-pi-0.2.4");
     expect(sbom.creationInfo).toMatchObject({
       created: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
       creators: ["Tool: @rosetears/aili-pi scripts/generate-provenance.ts"],
     });
     expect(sbom.packages[0]).toMatchObject({
       name: "@rosetears/aili-pi",
-      versionInfo: "0.2.3",
+      versionInfo: "0.2.4",
       licenseConcluded: "MIT",
       licenseDeclared: "MIT",
     });

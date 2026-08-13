@@ -54,7 +54,7 @@ export interface PersistentAgentRuntimeOptions {
   parentId: string;
   cwd: string;
   execute: (input: PersistentRuntimeExecutorInput) => Promise<TaskExecutionOutput>;
-  preallocate?: (input: { item: TaskExecutorInput["item"]; role: TaskExecutorInput["role"] }) => ResolvedModelChoice | Promise<ResolvedModelChoice>;
+  preallocate?: (input: { item: TaskExecutorInput["item"]; role: TaskExecutorInput["role"]; ancestry?: import("./task-coordinator.js").TaskAncestry }) => ResolvedModelChoice | Promise<ResolvedModelChoice>;
   preflight?: (input: TaskExecutorInput) => void | Promise<void>;
   preflightContinuation?: (agentId: string) => void | Promise<void>;
   parentDelivery: ParentDeliveryAdapter;
@@ -442,6 +442,7 @@ export interface InternalPersistentToolRegistrationOptions {
   runtimeForContext: (context: ExtensionContext) => Promise<PersistentAgentRuntime>;
   catalog: AgentCatalog;
   directModelCommand?: (args: string, context: ExtensionContext) => Promise<string>;
+  directFastCommand?: (args: string, context: ExtensionContext) => Promise<string>;
 }
 
 const TASK_DESCRIPTION = "Delegate bounded work to parent-scoped persistent AILI Agents. Ordinary Pi remains benefit-based: direct work is valid when delegation adds no concrete benefit, and omitted agent retains general compatibility. In an active formal lifecycle, ROSE owns decomposition, decisions, integration, and final verification; dispatch each ready Agent-owned package to its exact Specialized selector before duplicate direct work. Formal calls explicitly set agent and async: use async:false for prerequisites with an immediate join, and async:true only for independent packages with a named join, then inspect output/history before dependents. Direct execution requires a valid pre-recorded waiver. Workers never write the owning formal-task-board.md/progress.txt or decide phase/verdict. Never send blocking: it is profile-only internal metadata.";
@@ -494,6 +495,18 @@ export function registerPersistentAgentTools(pi: ExtensionAPI, options: Internal
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
     },
   });
+  if (options.directFastCommand) {
+    pi.registerCommand("aili-agent-fast", {
+      description: "Direct user operation to select the Persistent Agent Fast service tier",
+      handler: async (args, context) => {
+        try {
+          context.ui.notify(await options.directFastCommand!(args, context), "info");
+        } catch (error) {
+          context.ui.notify(error instanceof Error ? error.message : String(error), "error");
+        }
+      },
+    });
+  }
   if (options.directModelCommand) {
     pi.registerCommand("aili-agent-model", {
       description: "Direct user operation for AILI Agent instance/global/project model overrides",

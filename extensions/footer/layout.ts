@@ -3,7 +3,9 @@ import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 export interface NativeFooterSnapshot {
   provider?: string;
   model?: string;
+  thinking?: string;
   quota?: string;
+  permissionMode?: string;
   retry?: string;
   clock?: string;
   cwd?: string;
@@ -27,7 +29,28 @@ export function plainDisplayText(value: unknown): string | undefined {
 function modelLabel(snapshot: NativeFooterSnapshot): string {
   const model = plainDisplayText(snapshot.model) ?? "no-model";
   const provider = plainDisplayText(snapshot.provider);
-  return provider ? `${provider}/${model}` : model;
+  const identity = provider ? `${provider}/${model}` : model;
+  return `${identity} ${plainDisplayText(snapshot.thinking) ?? "off"}`;
+}
+
+export function normalizeCodexQuota(value: unknown): string | undefined {
+  const text = plainDisplayText(value);
+  const match = text?.match(/(?:^| · )5h\s+(\d{1,3})%\s+(\d{1,2}):(\d{2})(AM|PM)\s+\((\d{2})\/(\d{2})\)/i);
+  if (!match) return undefined;
+  const percentage = Number(match[1]);
+  const hour12 = Number(match[2]);
+  const minute = Number(match[3]);
+  const day = Number(match[5]);
+  const month = Number(match[6]);
+  if (percentage > 100 || hour12 < 1 || hour12 > 12 || minute > 59 || day < 1 || day > 31 || month < 1 || month > 12) return undefined;
+  let hour = hour12 % 12;
+  if (match[4]?.toUpperCase() === "PM") hour += 12;
+  return `codex ${percentage}% ${match[6]}/${match[5]} ${String(hour).padStart(2, "0")}:${match[3]}`;
+}
+
+export function permissionModeLabel(value: unknown): string | undefined {
+  const text = plainDisplayText(value);
+  return text?.match(/^(Default|Plan|Build|YOLO)\b/)?.[1];
 }
 
 function truncateCell(value: string, width: number): string {
@@ -144,7 +167,7 @@ function renderPrimary(snapshot: NativeFooterSnapshot, width: number): string {
   const left = modelLabel(snapshot);
   const requiredRight = [
     contextTokenLabel(snapshot.contextTokens, snapshot.contextWindow),
-    plainDisplayText(snapshot.quota),
+    normalizeCodexQuota(snapshot.quota) ?? plainDisplayText(snapshot.quota),
   ].filter((value): value is string => Boolean(value));
   const retry = plainDisplayText(snapshot.retry);
   const withRetry = retry ? [...requiredRight, retry] : requiredRight;
@@ -175,6 +198,7 @@ function renderSecondary(snapshot: NativeFooterSnapshot, width: number): string 
   const cwd = plainDisplayText(snapshot.cwd);
   const branch = plainDisplayText(snapshot.gitBranch);
   const rightSegments = [
+    permissionModeLabel(snapshot.permissionMode),
     mcpLabel(snapshot.mcpConnectedCount, snapshot.mcpEnabledCount),
     plainDisplayText(snapshot.clock),
   ].filter((value): value is string => Boolean(value));

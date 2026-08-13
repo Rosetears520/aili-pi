@@ -109,6 +109,7 @@ export function buildRoseAppendix(
     "- permission_runtime=pi-permission-modes (Default/Plan/Build/YOLO; /perm; Alt+M; sandbox availability is vendor-reported)",
     "- native_web=pi-web-access complete upstream surface; provider/network/filesystem side effects remain visible to the active permission policy",
     "- quota_status=pi-quota-status default enabled; its global state is maintained by the upstream extension",
+    "- mcp_routing=CodeGraph for precise symbols/call paths/tests/impact; Graphify for macro cross-material structure; MemPalace for durable history; Context7 for current third-party docs; Playwright for real browser behavior; filesystem tools for current disk/generated/unindexed data. Indexes navigate only; current disk and focused verification decide correctness. Do not chain MCP tools redundantly by default.",
     "- capability_registry=available; optional or unavailable capability decisions must report SKIP/WARN and must not claim work ran",
     "- doctor=available (/aili-doctor; current core remains non-pass until required provenance and release evidence pass)",
   );

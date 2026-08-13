@@ -28,7 +28,7 @@ describe("Pi package baseline", () => {
     const manifest = await readManifest();
 
     expect(manifest.name).toBe("@rosetears/aili-pi");
-    expect(manifest.version).toBe("0.2.3");
+    expect(manifest.version).toBe("0.2.4");
     expect(manifest.license).toBe("MIT");
     expect(manifest.bin).toBeUndefined();
     expect(manifest.engines?.node).toBe(">=22.19.0");
@@ -122,6 +122,7 @@ describe("Pi package baseline", () => {
     expect(manifest.files).toEqual(expect.arrayContaining([
       "!upstream/aili-workflows-runtime/AGENTS.md",
       "!upstream/aili-workflows-runtime/prompts/",
+      "!upstream/billion-context-pi/AGENTS.md",
     ]));
     expect(manifest.pi?.skills).toEqual(["./node_modules/pi-web-access/skills"]);
   });
@@ -157,8 +158,8 @@ describe("Pi package baseline", () => {
     expect(readme).toContain("is licensed under the MIT License");
     expect(packageLock).toMatchObject({
       name: "@rosetears/aili-pi",
-      version: "0.2.3",
-      packages: { "": { name: "@rosetears/aili-pi", version: "0.2.3", license: "MIT" } },
+      version: "0.2.4",
+      packages: { "": { name: "@rosetears/aili-pi", version: "0.2.4", license: "MIT" } },
     });
     expect(JSON.stringify(packageLock)).not.toContain("@agwab/pi-subagent");
     expect(createHash("sha256").update(licenseText).digest("hex")).toBe("50d626e331a5b05c3a574ae969762851070af5b32dbc73cc2277409eec1358f4");

@@ -1,6 +1,6 @@
 {
   "name": "@rosetears/aili-pi",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "AILI and ROSE distribution for official Pi",
   "type": "module",
   "license": "MIT",
@@ -17,6 +17,7 @@
   "files": [
     "extensions/index.ts",
     "extensions/footer/",
+    "extensions/file-context/",
     "extensions/analytics/",
     "extensions/btw/",
     "extensions/stamp/",
@@ -28,6 +29,7 @@
     "manifests/",
     "upstream/",
     "!upstream/pi-web-0.8.8/",
+    "!upstream/billion-context-pi/AGENTS.md",
     "!upstream/pi-extensions/",
     "!upstream/aili-workflows-runtime/AGENTS.md",
     "!upstream/aili-workflows-runtime/prompts/",

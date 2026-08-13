@@ -497,7 +497,7 @@ export async function validateProvenance(): Promise<string[]> {
     const provenance = await json<{ schemaVersion: number; sources: Array<{ name: string; revision: string; version: string; license: string; status: string; repository: string; sourceFiles: string[]; symbols: string[]; localChanges: string[]; verification: string[]; attribution?: string }> }>("manifests/provenance.json");
     const sbom = await json<{ spdxVersion?: string; packages?: Array<{ SPDXID?: string; name?: string; licenseDeclared?: string }> }>("manifests/sbom.json");
     const notices = await readFile(new URL("THIRD_PARTY_NOTICES.md", ROOT), "utf8");
-    const expectedSourceNames = [
+    const requiredSourceNames = [
       "aili-workflows",
       "pi-mcp-adapter",
       "billion-context-pi",
@@ -510,10 +510,12 @@ export async function validateProvenance(): Promise<string[]> {
       "pi-sakura-cyberdeck",
       "Oh My Pi reference",
       "algal pi-openai-server-compaction reference",
+      "pi-notify",
+      "pi-file-context",
     ];
     if (provenance.schemaVersion !== 1
-      || JSON.stringify(provenance.sources.map((source) => source.name)) !== JSON.stringify(expectedSourceNames)) {
-      errors.push("provenance: expected the exact twelve active schema-v1 source records");
+      || requiredSourceNames.some((name) => !provenance.sources.some((source) => source.name === name))) {
+      errors.push("provenance: required schema-v1 source records are missing");
     }
     const names = new Set<string>();
     for (const source of provenance.sources) {

@@ -13,12 +13,15 @@ import {
   ModelConfigurationService,
   defaultGlobalModelConfigPath,
   defaultProjectModelConfigPath,
+  confirmTaskModelRequest,
   revalidateResolvedModelChoice,
   resolveAgentModel,
   type CatalogModel,
   type ModelCatalog,
   type ModelOverride,
   type ModelThinking,
+  type ResolvedModelChoice,
+  type SpeedTier,
 } from "./model-selection.js";
 import {
   GitIsolationAdapter,
@@ -49,6 +52,7 @@ import { HUB_RENDERERS, TASK_RENDERERS } from "./task-hub-renderer.js";
 import { createAiliMcpExtension, MCP_TOOL_NAMES, resolveSharedMcpConfigPath } from "../mcp.js";
 import { createProviderRoutedContextExtension } from "../context-runtime.js";
 import { createExplainableRetryExtension } from "../provider-retry.js";
+import { createCodexFastExtension } from "../codex-fast.js";
 
 const BUILTIN_CHILD_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls"] as const;
 const DEFAULT_IDLE_TTL_MS = 420_000;
@@ -67,6 +71,7 @@ interface ParentState {
   isolated: Map<string, IsolatedWorkspaceRecord>;
   controllers: Map<string, ProductionAgentController>;
   parkTimers: Map<string, NodeJS.Timeout>;
+  speedTier: SpeedTier;
 }
 
 export interface PersistentAgentProductionOptions {
@@ -224,7 +229,7 @@ function parseOverride(model: string | undefined): ModelOverride | undefined {
 
 function supportedThinkingLevels(model: { reasoning?: boolean; thinkingLevelMap?: Partial<Record<ModelThinking, string | null>> }): ModelThinking[] {
   if (!model.reasoning) return ["off"];
-  const levels: ModelThinking[] = ["off", "minimal", "low", "medium", "high", "xhigh"];
+  const levels: ModelThinking[] = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
   return model.thinkingLevelMap
     ? levels.filter((level) => model.thinkingLevelMap?.[level] !== null)
     : levels;
@@ -346,6 +351,7 @@ export class PersistentAgentProduction {
       catalog: catalog.value,
       runtimeForContext: async (context) => (await this.parent(context)).runtime,
       directModelCommand: async (args, context) => await this.directModel(args, context),
+      directFastCommand: async (args, context) => await this.directFast(args, context),
     });
     this.pi.on("session_start", (_event, context) => {
       this.activeParentPath = context.sessionManager.getSessionFile();
@@ -479,7 +485,9 @@ export class PersistentAgentProduction {
           model: choice.model,
           effectiveModel: choice.canonical,
           modelLayer: choice.layer,
+          modelSource: choice.source,
           thinking: choice.thinking,
+          speedTier: choice.speedTier ?? "standard",
           effectiveMode: input ? (state.runtime.journal.getState().turns[turnId]?.metadata?.effectiveMode ?? "sync") : "hub",
           outputRef: `agent://${controller.agentId}`,
           historyRef: `history://${controller.agentId}`,
@@ -521,7 +529,7 @@ export class PersistentAgentProduction {
       runtimeEnvelope: [
         "Official Pi persistent Agent runtime. The parent conversation is not copied.",
         `Agent ID: ${controller.agentId}`,
-        `Model: ${choice.canonical} (${choice.layer}, thinking=${choice.thinking})`,
+        `Model: ${choice.canonical} (${choice.source ?? choice.layer}, thinking=${choice.thinking}, speed=${choice.speedTier ?? "standard"})`,
         `Unavailable requested tools: ${policy.unavailable.map((item) => `${item.name}:${item.reason}`).join(", ") || "none"}`,
         `Child sandbox: ${mode.sandbox.enabled ? (sandbox.available ? "active" : `unavailable (${sandbox.reason ?? "unknown"})`) : "not required by active mode"}`,
       ].join("\n"),
@@ -553,6 +561,9 @@ export class PersistentAgentProduction {
         { name: "aili-child-mcp", factory: mcp },
         { name: "aili-child-context", factory: createProviderRoutedContextExtension() },
         { name: "aili-child-retry", factory: createExplainableRetryExtension() },
+        { name: "aili-child-codex-fast", factory: createCodexFastExtension(choice.provider, choice.speedTier ?? "standard", async (evidence) => {
+          if (turnId) await state.runtime.journal.append({ kind: "turn.audit", agentId: controller.agentId, jobId: input?.jobId, turnId, payload: { speedTier: choice.speedTier ?? "standard", priorityRequestApplied: evidence.applied, priorityRequestReason: evidence.reason } });
+        }) },
       ],
       topLevelExtensionNames: ["aili-runtime", "aili-top-coordinator"],
       modelRuntime: this.options.childModelRuntime,
@@ -616,21 +627,41 @@ export class PersistentAgentProduction {
       parentSessionPath: parentPath,
       parentId,
       cwd: context.cwd,
-      preallocate: async ({ item, role }) => {
+      preallocate: async ({ item, role, ancestry }) => {
         const configs = await new ModelConfigStore({
           globalPath: defaultGlobalModelConfigPath(),
           projectPath: defaultProjectModelConfigPath(context.cwd),
         }).load(context.isProjectTrusted());
+        const parent: ResolvedModelChoice | undefined = ancestry?.parentResolution ?? (context.model ? {
+          provider: context.model.provider,
+          model: context.model.id,
+          canonical: `${context.model.provider}/${context.model.id}`,
+          layer: "parent-fallback",
+          source: "inherited-parent",
+          thinking: context.thinkingLevel as ModelThinking,
+          speedTier: state.speedTier,
+          persistent: false,
+          oneShot: false,
+        } : undefined);
+        const oneShot = await confirmTaskModelRequest(parseOverride(item.model), parent, {
+          hasUI: context.hasUI,
+          confirm: async ({ parent: from, requested }) => {
+            if (!context.hasUI) return "dismiss";
+            const selected = await context.ui.select(`Worker model override: ${from} → ${requested}`, ["Allow once", "Deny"], { signal: context.signal });
+            return selected === "Allow once" ? "confirm" : selected === "Deny" ? "deny" : "dismiss";
+          },
+        });
         return await resolveAgentModel({
           input: {
             selector: role.selector,
             // Before allocation there cannot be a durable instance override for
-            // this new Agent identity. One-shot/config/profile/Parent layers are
-            // resolved atomically for the whole request.
+            // this new Agent identity. Model-facing task.model only becomes a
+            // one-shot after the direct Parent UI confirms it.
             agentId: `preflight:${role.selector}`,
-            oneShot: parseOverride(item.model),
+            oneShot,
             projectTrusted: context.isProjectTrusted(),
             profile: parseOverride(role.model),
+            parent,
             parentThinking: context.thinkingLevel as ModelThinking,
           },
           journal: state.runtime.journal,
@@ -702,6 +733,7 @@ export class PersistentAgentProduction {
       isolated: new Map(),
       controllers: new Map(),
       parkTimers: new Map(),
+      speedTier: "standard",
     };
     return state;
   }
@@ -725,6 +757,7 @@ export class PersistentAgentProduction {
           parentSelector: role.selector,
           parentDepth: input.depth,
           inheritedPermit: input.context.permit,
+          ...(input.modelChoice ? { parentResolution: input.modelChoice } : {}),
           ...(input.item.formalContext ? { formalChangeId: input.item.formalContext.changeId } : {}),
         });
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
@@ -991,6 +1024,14 @@ export class PersistentAgentProduction {
     return agentId
       ? await service.requestInstanceChange(agentId, override, confirmation)
       : await service.requestRoleChange("global", selector!, override, state.context.isProjectTrusted(), confirmation);
+  }
+
+  private async directFast(args: string, context: ExtensionContext): Promise<string> {
+    const tier = args.trim();
+    if (tier !== "standard" && tier !== "priority") throw new Error("usage: /aili-agent-fast <standard|priority>");
+    const state = await this.parent(context);
+    state.speedTier = tier;
+    return `Persistent Agent Fast tier set to ${tier} for this Parent session`;
   }
 
   private async directModel(args: string, context: ExtensionContext): Promise<string> {

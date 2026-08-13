@@ -446,6 +446,7 @@ describe("task schema and coordinator", () => {
     expect(await coordinator.getSettlement("job-2")).toMatchObject({ status: "aborted", lifecycle: { agent: "aborted", job: "aborted", turn: "aborted" } });
     expect(journal.getState().jobs["job-2"].state).toBe("aborted");
     expect(journal.getState().agents["general-2"].state).toBe("aborted");
+    expect(journal.getState().turns["turn-2"].metadata).toMatchObject({ completedAt: expect.any(String), outcome: "aborted-before-start" });
     firstGate.resolve({ output: "released" });
     await coordinator.getSettlement("job-1");
   });

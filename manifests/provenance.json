@@ -131,6 +131,66 @@
       "verification": ["tests/integration/native-ui-ownership.test.ts", "tests/integration/footer-runtime.test.ts", "tests/unit/footer-layout.test.ts", "tests/unit/footer-lifecycle.test.ts", "tests/bootstrap/bootstrap.test.ts", "npm run typecheck"]
     },
     {
+      "name": "pi-notify",
+      "repository": "https://github.com/ferologics/pi-notify.git",
+      "revision": "a17c63ef1c3071d793aad7e9d327a3728f2ad88c",
+      "version": "1.4.0",
+      "license": "MIT",
+      "status": "adapted",
+      "sourceFiles": ["upstream/pi-notify-1.4.0/package.json", "upstream/pi-notify-1.4.0/SOURCE_INVENTORY.json", "upstream/pi-notify-1.4.0/LICENSE", "licenses/pi-notify-MIT.txt", "src/runtime/notify.ts", "extensions/index.ts"],
+      "symbols": ["agent-end notification", "OSC 777", "iTerm OSC 9", "Kitty OSC 99", "tmux passthrough", "Windows Terminal PowerShell toast", "terminal bell"],
+      "localChanges": ["all terminal writes, PowerShell start/error events, and sound fallback failures are individually nonfatal", "the top-level sole extension entry registers notifications only for the Parent session; Persistent Worker inline extension sets omit it to prevent notification storms"],
+      "verification": ["tests/unit/notify.test.ts", "tests/integration/extension-load.test.ts", "npm run typecheck"]
+    },
+    {
+      "name": "pi-file-context",
+      "repository": "https://github.com/narumiruna/pi-extensions.git",
+      "revision": "7624b3c50d09d2e9dafa8dbc810c7f2adb453d70",
+      "version": "0.53.0",
+      "license": "MIT",
+      "status": "adapted",
+      "sourceFiles": ["upstream/pi-file-context-0.53.0/package.json", "upstream/pi-file-context-0.53.0/SOURCE_INVENTORY.json", "upstream/pi-file-context-0.53.0/LICENSE", "licenses/pi-file-context-MIT.txt", "src/runtime/file-context.ts", "extensions/file-context/index.ts"],
+      "symbols": ["bounded file search", "line-range snapshots", "SHA-256 provenance", "deterministic token estimate", "Git provenance adapter seam", "immutable prompt attachment"],
+      "localChanges": ["AILI keeps selection and snapshot policy independent of menus/components behind a thin Pi UI registration seam", "the declared companion @narumitw/pi-tui-kit is resolved as exact 0.53.0 metadata only and is not vendored or installed; no floating range remains", "filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git data is caller-supplied and bounded without starting a Git process"],
+      "verification": ["tests/unit/file-context-inventory.test.ts", "tests/integration/extension-load.test.ts", "npm run typecheck"]
+    },
+    {
+      "name": "pi-codex-fast reference",
+      "repository": "https://github.com/calesennett/pi-codex-fast.git",
+      "revision": "npm:0.1.5",
+      "version": "0.1.5",
+      "license": "LicenseRef-Unknown",
+      "status": "reference-only",
+      "sourceFiles": [],
+      "symbols": [],
+      "localChanges": [],
+      "verification": ["tests/unit/codex-fast.test.ts", "manual no-copy provenance inspection"]
+    },
+    {
+      "name": "Graphify reference",
+      "repository": "https://github.com/whixam/graphify.git",
+      "revision": "e4bfd2ad1a9393251023a4edef93e93dc798afc7",
+      "version": "0.9.41",
+      "license": "Apache-2.0",
+      "status": "reference-only",
+      "sourceFiles": [],
+      "symbols": [],
+      "localChanges": [],
+      "verification": ["tests/unit/mcp-config.test.ts", "manual no-copy provenance inspection"]
+    },
+    {
+      "name": "pi-tool-display reference",
+      "repository": "https://github.com/danielgindi/pi-tool-display.git",
+      "revision": "91cef7580078371f8dc49a8607222807ad6a424d",
+      "version": "git:91cef7580078371f8dc49a8607222807ad6a424d",
+      "license": "MIT",
+      "status": "reference-only",
+      "sourceFiles": [],
+      "symbols": [],
+      "localChanges": [],
+      "verification": ["openspec/changes/absorb-pi-runtime-integrations-and-agent-controls/specs/future-runtime-projections/spec.md", "manual no-copy provenance inspection"]
+    },
+    {
       "name": "Oh My Pi reference",
       "repository": "https://github.com/can1357/oh-my-pi.git",
       "revision": "59619623e1eeb7c290649eeaf3a269284ce8adef",

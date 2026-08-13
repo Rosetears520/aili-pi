@@ -1,0 +1,293 @@
+[2026-08-13T19:36:13+08:00] BOARD BOARD_CREATED
+evidence=artifact:openspec/changes/absorb-pi-runtime-integrations-and-agent-controls/formal-task-board.md
+disposition=accepted
+blocker=all dependency-ready packages have explicit implementation authorization
+next_action=dispatch independent BUILD-01 and BUILD-03 packages then join before dependent packages
+
+[2026-08-13T19:42:17+08:00] EVID-00 READY
+evidence=verification:BUILD-glob-rejection
+disposition=accepted
+blocker=glob-rejection evidence must be recorded without a Worker retry
+next_action=record the no-mutation result
+
+[2026-08-13T19:42:17+08:00] EVID-00 INSPECTED
+evidence=verification:BUILD-glob-rejection
+disposition=accepted
+blocker=runtime rejected job-5, job-6 and job-7 before Worker execution because writeScope globs are unsupported
+next_action=use exact directory/file paths in replacement envelopes
+
+[2026-08-13T19:42:17+08:00] EVID-00 DONE
+evidence=verification:BUILD-glob-rejection; verification:BUILD-01-no-worker-mutation; verification:BUILD-02-no-worker-mutation; verification:BUILD-03-no-worker-mutation
+verification=verification:BUILD-glob-rejection
+disposition=accepted
+blocker=replacement package envelopes are now required
+next_action=dispatch BUILD-01 and BUILD-03
+
+[2026-08-13T19:45:41+08:00] BUILD-01 READY
+evidence=artifact:openspec/changes/absorb-pi-runtime-integrations-and-agent-controls/test-plan.md
+disposition=accepted
+blocker=exact-path Worker dispatch pending
+next_action=dispatch exact aili.implementer owner
+
+[2026-08-13T19:45:41+08:00] BUILD-01 DISPATCHED
+evidence=verification:BUILD-01-R2-exact-path-dispatch
+disposition=accepted
+blocker=awaiting synchronous package join
+next_action=inspect BUILD-01-R2 output before BUILD-02 dispatch
+
+[2026-08-13T19:54:32+08:00] BUILD-01 RETURNED
+evidence=verification:BUILD-01-R2-worker-output; verification:BUILD-01-R2-focused-tests; verification:BUILD-01-R2-typecheck; verification:BUILD-01-R2-provenance
+disposition=needs-follow-up
+blocker=worker result lacked the formal CANONICAL RESULT prefix and its file-context adapter omits required Git/content/multi-selection behavior
+next_action=inspect the returned scope and prepare a replacement package
+
+[2026-08-13T19:54:52+08:00] BUILD-01 INSPECTED
+evidence=verification:BUILD-01-R2-focused-tests; verification:BUILD-01-R2-typecheck; verification:BUILD-01-R2-provenance
+disposition=partially-accepted
+blocker=focused tests/typecheck/provenance pass, but current file-context implementation remains incomplete against accepted requirements
+next_action=complete the residual through BUILD-01-R3
+
+[2026-08-13T19:55:00+08:00] BUILD-01 DONE
+evidence=verification:BUILD-01-R2-focused-tests; verification:BUILD-01-R2-typecheck; verification:BUILD-01-R2-provenance
+verification=verification:BUILD-01-R2-focused-tests
+disposition=partially-accepted
+blocker=BUILD-01-R3 owns missing file-context interaction behavior
+next_action=advance BUILD-01-R3
+
+[2026-08-13T19:58:00+08:00] BUILD-01-R3 READY
+evidence=artifact:openspec/changes/absorb-pi-runtime-integrations-and-agent-controls/tasks.md
+disposition=accepted
+blocker=direct waiver is recorded because the fresh Worker was rejected by a stale shared-workspace lease before execution
+next_action=perform the bounded direct corrective implementation
+
+[2026-08-13T19:58:00+08:00] BUILD-01-R3 WAIVED
+evidence=verification:BUILD-01-R3-worker-lease-conflict-waiver
+disposition=accepted
+blocker=persistent runtime shared-workspace lease conflict blocks a fresh exact Worker before execution
+next_action=ROSE performs the recorded direct corrective package
+
+[2026-08-13T20:26:09+08:00] BUILD-02 READY
+evidence=artifact:openspec/changes/absorb-pi-runtime-integrations-and-agent-controls/test-plan.md
+disposition=accepted
+blocker=direct corrective implementation follows the recorded worker lease-conflict waiver
+next_action=run the selected focused automated tests
+
+[2026-08-13T20:26:09+08:00] BUILD-02 WAIVED
+evidence=verification:BUILD-02-R2-worker-lease-conflict-waiver
+disposition=accepted
+blocker=job-11 was rejected before Worker execution by stale overlapping shared-workspace leases
+next_action=ROSE performs the bounded direct implementation
+
+[2026-08-13T20:26:09+08:00] BUILD-02 INSPECTED
+evidence=verification:BUILD-02-model-fast-scheduler-tests; verification:BUILD-02-typecheck
+disposition=partially-accepted
+blocker=real provider priority request and three-agent runtime overlap remain separately gated
+next_action=record automated package completion with live limits
+
+[2026-08-13T20:26:09+08:00] BUILD-02 DONE
+evidence=verification:BUILD-02-model-fast-scheduler-tests; verification:BUILD-02-typecheck
+verification=verification:BUILD-02-model-fast-scheduler-tests
+disposition=partially-accepted
+blocker=real provider priority request and three-agent runtime overlap remain separately gated
+next_action=advance BUILD-03 deterministic implementation
+
+[2026-08-13T20:26:10+08:00] BUILD-03 READY
+evidence=artifact:openspec/changes/absorb-pi-runtime-integrations-and-agent-controls/test-plan.md
+disposition=accepted
+blocker=exact-path Worker dispatch remains pending after prior shared-workspace conflict
+next_action=dispatch exact aili.implementer owner after BUILD-01-R3 joins
+
+[2026-08-13T20:26:11+08:00] BUILD-01-R3 INSPECTED
+evidence=verification:BUILD-01-R3-file-context-tests; verification:BUILD-01-R3-typecheck
+disposition=accepted
+blocker=focused file-context interaction coverage is complete
+next_action=record completion after direct corrective implementation
+
+[2026-08-13T20:26:12+08:00] BUILD-01-R3 DONE
+evidence=verification:BUILD-01-R3-file-context-tests; verification:BUILD-01-R3-typecheck
+verification=verification:BUILD-01-R3-file-context-tests
+disposition=accepted
+blocker=BUILD-01-R3 acceptance boundary is satisfied
+next_action=dispatch BUILD-02 and BUILD-03 in dependency order
+
+[2026-08-13T20:30:24+08:00] BUILD-03 WAIVED
+evidence=verification:BUILD-03-R2-worker-lease-conflict-waiver
+disposition=accepted
+blocker=job-9 was rejected before Worker execution by overlapping shared-workspace scope
+next_action=ROSE performs bounded direct implementation
+
+[2026-08-13T20:30:24+08:00] BUILD-03 INSPECTED
+evidence=verification:BUILD-03-mcp-config-doctor-tests; verification:BUILD-03-typecheck
+disposition=partially-accepted
+blocker=BUILD-03-LIVE owns separately gated server and Graphify probes
+next_action=record bounded completion
+
+[2026-08-13T20:30:24+08:00] BUILD-03 DONE
+evidence=verification:BUILD-03-mcp-config-doctor-tests; verification:BUILD-03-typecheck
+verification=verification:BUILD-03-mcp-config-doctor-tests
+disposition=partially-accepted
+blocker=BUILD-03-LIVE owns separately gated server and Graphify probes
+next_action=advance BUILD-04
+
+[2026-08-13T20:30:25+08:00] BUILD-04 READY
+evidence=artifact:openspec/changes/absorb-pi-runtime-integrations-and-agent-controls/test-plan.md
+disposition=accepted
+blocker=direct package follows completed dependencies
+next_action=run focused footer and documentation checks
+
+[2026-08-13T20:30:25+08:00] BUILD-04 INSPECTED
+evidence=verification:BUILD-04-footer-tests; verification:BUILD-04-typecheck
+disposition=partially-accepted
+blocker=BUILD-04-LIVE owns separately gated TUI observation
+next_action=record bounded completion
+
+[2026-08-13T20:30:25+08:00] BUILD-04 DONE
+evidence=verification:BUILD-04-footer-tests; verification:BUILD-04-typecheck
+verification=verification:BUILD-04-footer-tests
+disposition=partially-accepted
+blocker=BUILD-04-LIVE owns separately gated TUI observation
+next_action=await exact live-operation approval if needed
+
+[2026-08-13T21:01:57+08:00] BUILD-02-LIVE READY
+evidence=decision:user-live-probe-authorization-2026-08-13
+disposition=accepted
+blocker=bounded provider request and local scheduler probe are authorized
+next_action=run one harmless provider request and bounded three-agent overlap probe
+
+[2026-08-13T21:01:57+08:00] BUILD-02-LIVE INSPECTED
+evidence=verification:BUILD-02-live-provider; verification:BUILD-02-live-overlap
+disposition=accepted
+blocker=provider and scheduler receipts are available
+next_action=record live evidence completion
+
+[2026-08-13T21:01:57+08:00] BUILD-02-LIVE DONE
+evidence=verification:BUILD-02-live-provider; verification:BUILD-02-live-overlap
+verification=verification:BUILD-02-live-provider
+disposition=accepted
+blocker=provider receipt reports HTTP 200; scheduler receipt records three intervals with 34ms overlap and no task-content fields
+next_action=advance BUILD-03-LIVE
+
+[2026-08-13T21:01:58+08:00] BUILD-03-LIVE READY
+evidence=decision:user-live-probe-authorization-2026-08-13
+disposition=accepted
+blocker=bounded MCP, Graphify, config and CLI operations are authorized
+next_action=apply one shared config update and run bounded CLI/server/query probes
+
+[2026-08-13T21:01:58+08:00] BUILD-03-LIVE INSPECTED
+evidence=verification:BUILD-03-live-mcp; verification:BUILD-03-live-graphify; verification:BUILD-03-live-config
+disposition=partially-accepted
+blocker=CodeGraph PATH 1.4.1 is an accepted bounded limitation; npx fallback remains configured and no CodeGraph query ran
+next_action=record current live state without changing PATH strategy
+
+[2026-08-13T21:01:58+08:00] BUILD-03-LIVE DONE
+evidence=verification:BUILD-03-live-mcp; verification:BUILD-03-live-graphify; verification:BUILD-03-live-config
+verification=verification:BUILD-03-live-mcp
+disposition=partially-accepted
+blocker=CodeGraph PATH 1.4.1 is an accepted bounded limitation; five stdio servers stayed live for three seconds and were terminated; Graphify upgraded to 0.9.41 and queried current graph
+next_action=advance BUILD-04-LIVE
+
+[2026-08-13T21:01:59+08:00] BUILD-04-LIVE READY
+evidence=decision:user-live-probe-authorization-2026-08-13
+disposition=accepted
+blocker=bounded real TUI observation is authorized
+next_action=observe bounded Pi TUI footer after a turn start/abort
+
+[2026-08-13T21:01:59+08:00] BUILD-04-LIVE INSPECTED
+evidence=verification:BUILD-04-live-footer
+disposition=accepted
+blocker=footer observation receipt is available
+next_action=record live footer observation
+
+[2026-08-13T21:01:59+08:00] BUILD-04-LIVE DONE
+evidence=verification:BUILD-04-live-footer
+verification=verification:BUILD-04-live-footer
+disposition=accepted
+blocker=real TUI rendered openai-codex/gpt-5.6-terra, quota and MCP 0/4 clock line after the bounded turn; no model/thinking switch was issued
+next_action=run final selected verification and inspect task-scoped diff
+
+[2026-08-13T21:08:00+08:00] SHIP-01 READY
+evidence=artifact:openspec/changes/absorb-pi-runtime-integrations-and-agent-controls/formal-task-board.md
+disposition=accepted
+blocker=awaiting independent code review
+next_action=dispatch exact code-reviewer and join ship-review-join
+
+[2026-08-13T21:08:00+08:00] SHIP-02 READY
+evidence=artifact:openspec/changes/absorb-pi-runtime-integrations-and-agent-controls/formal-task-board.md
+disposition=accepted
+blocker=awaiting independent package exposure review
+next_action=dispatch exact opensource-sanitizer and join ship-review-join
+
+[2026-08-13T21:25:08+08:00] SHIP-01 DISPATCHED
+evidence=verification:SHIP-01-dispatch
+disposition=accepted
+blocker=awaiting J-SHIP-REVIEW join
+next_action=inspect code-reviewer output
+
+[2026-08-13T21:25:08+08:00] SHIP-02 DISPATCHED
+evidence=verification:SHIP-02-dispatch
+disposition=accepted
+blocker=awaiting J-SHIP-REVIEW join
+next_action=inspect opensource-sanitizer output
+
+[2026-08-13T21:25:09+08:00] SHIP-01 RETURNED
+evidence=verification:SHIP-01-code-review
+disposition=needs-follow-up
+blocker=code review reports five P1 and one P2 findings
+next_action=bind repairs to SHIP-REPAIR-01
+
+[2026-08-13T21:25:10+08:00] SHIP-02 RETURNED
+evidence=verification:SHIP-02-malformed-envelope
+disposition=needs-follow-up
+blocker=worker terminal envelope was malformed, but its persisted output identifies public-package release blockers
+next_action=ROSE independently verifies package findings and binds accepted repairs
+
+[2026-08-13T21:25:11+08:00] SHIP-REPAIR-01 READY
+evidence=verification:SHIP-01-code-review; verification:SHIP-02-package-sanitization
+disposition=accepted
+blocker=bounded correctness and packaging repairs are required before release
+next_action=dispatch exact aili.implementer owner
+
+[2026-08-13T21:29:00+08:00] SHIP-01 INSPECTED
+evidence=verification:SHIP-01-code-review
+disposition=partially-accepted
+blocker=SHIP-REPAIR-01 owns each P1/P2 finding
+next_action=record review completion with repair linkage
+
+[2026-08-13T21:29:00+08:00] SHIP-01 DONE
+evidence=verification:SHIP-01-code-review
+verification=verification:SHIP-01-code-review
+disposition=partially-accepted
+blocker=SHIP-REPAIR-01 owns each P1/P2 finding
+next_action=run SHIP-REPAIR-01
+
+[2026-08-13T21:29:01+08:00] SHIP-02 INSPECTED
+evidence=verification:SHIP-02-malformed-envelope
+disposition=partially-accepted
+blocker=ROSE reproduced the pack dry-run and bound package findings to SHIP-REPAIR-01
+next_action=record bounded inspection despite malformed Worker envelope
+
+[2026-08-13T21:29:01+08:00] SHIP-02 DONE
+evidence=verification:SHIP-02-malformed-envelope
+verification=verification:SHIP-02-malformed-envelope
+disposition=partially-accepted
+blocker=SHIP-REPAIR-01 owns stale version/provenance and package inventory findings
+next_action=run SHIP-REPAIR-01
+
+[2026-08-13T21:35:00+08:00] SHIP-REPAIR-01 WAIVED
+evidence=verification:SHIP-REPAIR-01-formal-dispatch-rejection
+disposition=accepted
+blocker=fresh exact implementation dispatch was rejected before Worker execution by formal continuation-audit/write-scope validation
+next_action=ROSE performs the bounded direct corrective package
+
+[2026-08-13T21:58:00+08:00] SHIP-REPAIR-01 INSPECTED
+evidence=verification:SHIP-REPAIR-01-focused-tests; verification:SHIP-REPAIR-01-typecheck; verification:SHIP-REPAIR-01-pack-dry-run
+disposition=partially-accepted
+blocker=selected release matrix passes; unrelated paused-Web full-suite failures remain outside the accepted change
+next_action=record repair completion and inspect scoped diff
+
+[2026-08-13T21:58:00+08:00] SHIP-REPAIR-01 DONE
+evidence=verification:SHIP-REPAIR-01-focused-tests; verification:SHIP-REPAIR-01-typecheck; verification:SHIP-REPAIR-01-pack-dry-run
+verification=verification:SHIP-REPAIR-01-focused-tests
+disposition=partially-accepted
+blocker=selected release matrix passes; unrelated paused-Web full-suite failures remain outside the accepted change
+next_action=inspect scoped diff and release candidate

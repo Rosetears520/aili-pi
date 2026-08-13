@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ModelConfigurationService,
   ModelConfigStore,
+  confirmTaskModelRequest,
   ModelSelectionError,
   parseModelOverrideConfig,
   revalidateResolvedModelChoice,
@@ -68,7 +69,7 @@ afterEach(async () => {
   await rm(scratch, { recursive: true, force: true });
 });
 
-describe("six-layer model resolution", () => {
+describe("direct-parent model resolution", () => {
   const base = {
     selector: "general",
     agentId: "Worker",
@@ -82,13 +83,13 @@ describe("six-layer model resolution", () => {
   };
 
   it("uses the fixed precedence and source-aware audit metadata", async () => {
-    expect(await resolveModelChoice(base, catalog())).toMatchObject({ canonical: "provider/one", layer: "one-shot", oneShot: true, persistent: false, thinking: "high" });
-    expect(await resolveModelChoice({ ...base, oneShot: undefined }, catalog())).toMatchObject({ canonical: "provider/instance", layer: "instance", persistent: true });
-    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined }, catalog())).toMatchObject({ canonical: "provider/project", layer: "project-role" });
-    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectTrusted: false }, catalog())).toMatchObject({ canonical: "provider/user", layer: "user-role" });
-    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined }, catalog())).toMatchObject({ canonical: "provider/profile", layer: "profile" });
-    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, profile: undefined }, catalog())).toMatchObject({ canonical: "provider/parent", layer: "parent-fallback", persistent: false, thinking: "medium" });
-    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, profile: undefined, parentThinking: "high" }, catalog())).toMatchObject({ canonical: "provider/parent", layer: "parent-fallback", persistent: false, thinking: "high" });
+    expect(await resolveModelChoice(base, catalog())).toMatchObject({ canonical: "provider/instance", layer: "instance", source: "instance-override", oneShot: false, persistent: true, thinking: "medium" });
+    expect(await resolveModelChoice({ ...base, instance: undefined }, catalog())).toMatchObject({ canonical: "provider/project", layer: "project-role", source: "project-role-override" });
+    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined }, catalog())).toMatchObject({ canonical: "provider/user", layer: "user-role", source: "user-role-override" });
+    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined }, catalog())).toMatchObject({ canonical: "provider/one", layer: "one-shot", source: "confirmed-one-shot", oneShot: true, thinking: "high" });
+    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined }, catalog())).toMatchObject({ canonical: "provider/profile", layer: "profile", source: "profile-fallback", persistent: true, thinking: "medium" });
+    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "high", speedTier: "priority" } }, catalog())).toMatchObject({ canonical: "provider/parent", source: "inherited-parent", thinking: "high", speedTier: "priority" });
+    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, parent: undefined }, catalog())).toMatchObject({ canonical: "provider/profile", layer: "profile", source: "profile-fallback" });
   });
 
   it("resolves an explicit bare model through Parent provider first and otherwise requires one candidate", async () => {
@@ -96,23 +97,23 @@ describe("six-layer model resolution", () => {
       { provider: "other", model: "shared", available: true, authenticated: true },
       { provider: "provider", model: "shared", available: true, authenticated: true },
     ];
-    expect(await resolveModelChoice({ ...base, oneShot: { model: "shared" } }, catalog({ resolveBare: async () => candidates }))).toMatchObject({ canonical: "provider/shared", layer: "one-shot" });
-    await expect(resolveModelChoice({ ...base, oneShot: { model: "shared" } }, catalog({ resolveBare: async () => [
+    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "shared" } }, catalog({ resolveBare: async () => candidates }))).toMatchObject({ canonical: "provider/shared", layer: "one-shot" });
+    await expect(resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "shared" } }, catalog({ resolveBare: async () => [
       { provider: "provider", model: "shared", available: false, authenticated: true },
       { provider: "other", model: "shared", available: true, authenticated: true },
     ] }))).rejects.toThrow(/matches Parent provider provider but is unavailable.*other providers were not considered/);
-    expect(await resolveModelChoice({ ...base, oneShot: { model: "unique" } }, catalog({ resolveBare: async () => [{ provider: "other", model: "unique", available: true, authenticated: true }] }))).toMatchObject({ canonical: "other/unique" });
-    await expect(resolveModelChoice({ ...base, oneShot: { model: "shared" } }, catalog({
+    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "unique" } }, catalog({ resolveBare: async () => [{ provider: "other", model: "unique", available: true, authenticated: true }] }))).toMatchObject({ canonical: "other/unique" });
+    await expect(resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "shared" } }, catalog({
       resolveParentFallback: async () => undefined,
       resolveBare: async () => candidates,
     }))).rejects.toThrow(/ambiguous.*other\/shared.*provider\/shared/);
-    await expect(resolveModelChoice({ ...base, oneShot: { model: "missing" } }, catalog({ resolveBare: async () => [] }))).rejects.toThrow(/no authenticated available candidate/);
+    await expect(resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "missing" } }, catalog({ resolveBare: async () => [] }))).rejects.toThrow(/no authenticated available candidate/);
   });
 
   it("fails closed for every unusable explicit model without consulting lower layers", async () => {
     const fallback = vi.fn(async () => models["provider/parent"]);
-    await expect(resolveModelChoice({ ...base, oneShot: { model: "provider/unknown" } }, catalog({ resolveParentFallback: fallback }))).rejects.toMatchObject({ layer: "one-shot" });
-    await expect(resolveModelChoice({ ...base, oneShot: { model: "provider/unavailable" } }, catalog())).rejects.toThrow(/one-shot.*unavailable.*lower layers were not considered/);
+    await expect(resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "provider/unknown" } }, catalog({ resolveParentFallback: fallback }))).rejects.toMatchObject({ layer: "one-shot" });
+    await expect(resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "provider/unavailable" } }, catalog())).rejects.toThrow(/one-shot.*unavailable.*lower layers were not considered/);
     await expect(resolveModelChoice({ ...base, oneShot: undefined, instance: { model: "provider/noauth" } }, catalog())).rejects.toThrow(/instance.*unauthenticated/);
     await expect(resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, profile: { model: "provider/limited", thinking: "high" } }, catalog())).rejects.toThrow(/profile.*incompatible/);
     expect(fallback).not.toHaveBeenCalled();
@@ -120,7 +121,7 @@ describe("six-layer model resolution", () => {
   });
 
   it("revalidates the frozen identity without consulting fallback or switching models", async () => {
-    const frozen = await resolveModelChoice(base, catalog());
+    const frozen = await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined }, catalog());
     const fallback = vi.fn(async () => models["provider/parent"]);
     await expect(revalidateResolvedModelChoice(frozen, catalog({
       resolve: async () => ({ ...models["provider/one"]!, available: false }),
@@ -149,8 +150,8 @@ describe("six-layer model resolution", () => {
       journal,
       configs,
       catalog: catalog(),
-    })).toMatchObject({ canonical: "provider/one", layer: "one-shot" });
-    expect(await resolveModelChoice({ ...base, oneShot: { model: "provider/project" } }, catalog())).toMatchObject({ canonical: "provider/project", layer: "one-shot" });
+    })).toMatchObject({ canonical: "provider/instance", layer: "instance" });
+    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "provider/project" } }, catalog())).toMatchObject({ canonical: "provider/project", layer: "one-shot" });
     expect(await readFile(globalPath, "utf8")).toBe(beforeBytes);
     expect(journal.getState().models).toEqual(beforeState);
     expect(await resolveAgentModel({
@@ -159,6 +160,18 @@ describe("six-layer model resolution", () => {
       configs,
       catalog: catalog(),
     })).toMatchObject({ canonical: "provider/instance", layer: "instance" });
+  });
+});
+
+describe("model-facing task confirmation", () => {
+  it("requires fresh UI confirmation and never turns a denied or headless request into an override", async () => {
+    const parent = { canonical: "provider/parent" };
+    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: false, confirm: async () => "confirm" })).resolves.toBeUndefined();
+    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "deny" })).resolves.toBeUndefined();
+    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "dismiss" })).resolves.toBeUndefined();
+    await expect(confirmTaskModelRequest({ model: "provider/one" }, undefined, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
+    await expect(confirmTaskModelRequest({ model: "provider/parent" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
+    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toEqual({ model: "provider/one" });
   });
 });
 

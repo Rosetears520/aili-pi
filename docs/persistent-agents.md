@@ -2,7 +2,7 @@
 
 > **Availability:** The AILI-owned local runtime is the public orchestration surface. The package registers `task` and `hub` and does not register a legacy `subagent` alias. Deterministic tests and bounded local probes are recorded in `manifests/live-verification.json`; they do not establish preview publication, installed-package behavior, or real-provider behavior as PASS.
 
-> **Release status:** Persistent Agents are part of `@rosetears/aili-pi@0.2.2`. Provider/model behavior still depends on the configured Pi environment.
+> **Release status:** Persistent Agents are part of `@rosetears/aili-pi@0.2.4`. Provider/model behavior still depends on the configured Pi environment.
 
 ## Agent selectors
 
@@ -94,14 +94,17 @@ Child history cannot be deleted independently. It follows the parent session. Fo
 
 Each turn resolves in this order:
 
-1. one-shot `task.model`
-2. stable Agent instance override
-3. trusted project role override
-4. user-global role override
-5. profile frontmatter model
-6. official parent fallback
+1. direct-user stable Agent instance override
+2. trusted project role override
+3. user-global role override
+4. user-confirmed one-shot `task.model` request
+5. direct Parent resolved model, thinking level, and speed tier
+6. profile frontmatter fallback, only when no Parent identity exists
+7. runtime fallback
 
-An explicit unknown, unavailable, unauthenticated, or incompatible model fails at its source layer and does not fall through. One-shot values never change configuration. Direct users can run `/aili-agent-model <global|project|instance> <selector|agent-id> <provider/model|clear> [thinking]`; model-facing persistent requests through `hub model` require a fresh interactive confirmation every time. Project model configuration is ignored and cannot be written before project trust is active.
+A model-facing `task.model` is never user authorization: a different requested model must show the direct Parent from/to choice and receive fresh **Allow once** confirmation before any Agent/job/turn allocation. No UI, dismissal, expiry, rejection, a matching request, or no Parent identity does not apply that request. Direct-user config remains higher priority than an accepted one-shot. Nested children inherit their direct Persistent Parent, not the root Main. The effective record exposes a source such as `confirmed-one-shot`, `instance-override`, `project-role-override`, `user-role-override`, `inherited-parent`, `profile-fallback`, or `runtime-fallback`.
+
+Thinking is inherited and passed to the actual child session; an incompatible level fails rather than silently switching model or level. Fast is a separate `standard|priority` service tier, not a model alias: supported Codex payloads may receive `service_tier: "priority"`; unsupported models remain unchanged. Real provider payload proof remains separately operation-gated. Direct users can run `/aili-agent-model <global|project|instance> <selector|agent-id> <provider/model|clear> [thinking]`; model-facing persistent requests through `hub model` require a fresh interactive confirmation every time. Project model configuration is ignored and cannot be written before project trust is active.
 
 ## Workspaces and permissions
 

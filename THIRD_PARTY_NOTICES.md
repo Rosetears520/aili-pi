@@ -112,6 +112,61 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 - Reused symbols/patterns: retired header, retired matrix animation, retired Zentui UI, inactive fixed editor compositor
 - Local changes: historical adapted source is retained in the repository but no header, Matrix, Zentui extension or theme is registered as a production Pi resource; legacy user configuration is untouched; the inactive fixed-editor source remains separate from the independently owned WSL image-paste keybinding behavior
 
+## pi-notify
+
+- Status: adapted
+- Source: https://github.com/ferologics/pi-notify.git
+- Revision: a17c63ef1c3071d793aad7e9d327a3728f2ad88c
+- Version: 1.4.0
+- License: MIT
+- Source files: upstream/pi-notify-1.4.0/package.json, upstream/pi-notify-1.4.0/SOURCE_INVENTORY.json, upstream/pi-notify-1.4.0/LICENSE, licenses/pi-notify-MIT.txt, src/runtime/notify.ts, extensions/index.ts
+- Reused symbols/patterns: agent-end notification, OSC 777, iTerm OSC 9, Kitty OSC 99, tmux passthrough, Windows Terminal PowerShell toast, terminal bell
+- Local changes: all terminal writes, PowerShell start/error events, and sound fallback failures are individually nonfatal; the top-level sole extension entry registers notifications only for the Parent session; Persistent Worker inline extension sets omit it to prevent notification storms
+
+## pi-file-context
+
+- Status: adapted
+- Source: https://github.com/narumiruna/pi-extensions.git
+- Revision: 7624b3c50d09d2e9dafa8dbc810c7f2adb453d70
+- Version: 0.53.0
+- License: MIT
+- Source files: upstream/pi-file-context-0.53.0/package.json, upstream/pi-file-context-0.53.0/SOURCE_INVENTORY.json, upstream/pi-file-context-0.53.0/LICENSE, licenses/pi-file-context-MIT.txt, src/runtime/file-context.ts, extensions/file-context/index.ts
+- Reused symbols/patterns: bounded file search, line-range snapshots, SHA-256 provenance, deterministic token estimate, Git provenance adapter seam, immutable prompt attachment
+- Local changes: AILI keeps selection and snapshot policy independent of menus/components behind a thin Pi UI registration seam; the declared companion @narumitw/pi-tui-kit is resolved as exact 0.53.0 metadata only and is not vendored or installed; no floating range remains; filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git data is caller-supplied and bounded without starting a Git process
+
+## pi-codex-fast reference
+
+- Status: reference-only
+- Source: https://github.com/calesennett/pi-codex-fast.git
+- Revision: npm:0.1.5
+- Version: 0.1.5
+- License: LicenseRef-Unknown
+- Source files: none copied
+- Reused symbols/patterns: none
+- Local changes: none
+
+## Graphify reference
+
+- Status: reference-only
+- Source: https://github.com/whixam/graphify.git
+- Revision: e4bfd2ad1a9393251023a4edef93e93dc798afc7
+- Version: 0.9.41
+- License: Apache-2.0
+- Source files: none copied
+- Reused symbols/patterns: none
+- Local changes: none
+
+## pi-tool-display reference
+
+- Status: reference-only
+- Source: https://github.com/danielgindi/pi-tool-display.git
+- Revision: 91cef7580078371f8dc49a8607222807ad6a424d
+- Version: git:91cef7580078371f8dc49a8607222807ad6a424d
+- License: MIT
+- Source files: none copied
+- Reused symbols/patterns: none
+- Local changes: none
+
 ## Oh My Pi reference
 
 - Status: reference-only

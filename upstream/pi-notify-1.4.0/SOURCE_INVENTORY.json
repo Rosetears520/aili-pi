@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/ferologics/pi-notify.git",
+  "revision": "a17c63ef1c3071d793aad7e9d327a3728f2ad88c",
+  "package": { "name": "pi-notify", "version": "1.4.0", "license": "MIT" },
+  "importedFiles": ["index.ts", "LICENSE"],
+  "adaptation": "AILI reimplements the agent-end notifier in src/runtime/notify.ts; terminal writes, tmux passthrough, PowerShell launch/error, and bell failures are nonfatal; registration is parent-only."
+}

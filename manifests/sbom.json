@@ -2,10 +2,10 @@
   "spdxVersion": "SPDX-2.3",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "name": "@rosetears/aili-pi-0.2.3",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/4f7460a77244288ea69d3b4f99597d60",
+  "name": "@rosetears/aili-pi-0.2.4",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/4fde990d6ee85edcec8eb5443b2c1ee6",
   "creationInfo": {
-    "created": "2026-08-13T10:17:52.801Z",
+    "created": "2026-08-13T13:56:37.679Z",
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
     ]
@@ -14,7 +14,7 @@
     {
       "SPDXID": "SPDXRef-Package-aili-pi",
       "name": "@rosetears/aili-pi",
-      "versionInfo": "0.2.3",
+      "versionInfo": "0.2.4",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -141,6 +141,30 @@
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
       "comment": "revision=165a1f8011a12a58a6409b56b8a6c0416cd9b589; files=extensions/header/index.ts, extensions/matrix/index.ts, extensions/zentui/**; symbols=retired header, retired matrix animation, retired Zentui UI, inactive fixed editor compositor; local changes=historical adapted source is retained in the repository but no header, Matrix, Zentui extension or theme is registered as a production Pi resource | legacy user configuration is untouched | the inactive fixed-editor source remains separate from the independently owned WSL image-paste keybinding behavior"
+    },
+    {
+      "SPDXID": "SPDXRef-source-pi-notify-c046224493",
+      "name": "pi-notify",
+      "versionInfo": "1.4.0",
+      "downloadLocation": "https://github.com/ferologics/pi-notify/commit/a17c63ef1c3071d793aad7e9d327a3728f2ad88c",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [],
+      "primaryPackagePurpose": "SOURCE",
+      "comment": "revision=a17c63ef1c3071d793aad7e9d327a3728f2ad88c; files=upstream/pi-notify-1.4.0/package.json, upstream/pi-notify-1.4.0/SOURCE_INVENTORY.json, upstream/pi-notify-1.4.0/LICENSE, licenses/pi-notify-MIT.txt, src/runtime/notify.ts, extensions/index.ts; symbols=agent-end notification, OSC 777, iTerm OSC 9, Kitty OSC 99, tmux passthrough, Windows Terminal PowerShell toast, terminal bell; local changes=all terminal writes, PowerShell start/error events, and sound fallback failures are individually nonfatal | the top-level sole extension entry registers notifications only for the Parent session; Persistent Worker inline extension sets omit it to prevent notification storms"
+    },
+    {
+      "SPDXID": "SPDXRef-source-pi-file-context-a13bd6c97d",
+      "name": "pi-file-context",
+      "versionInfo": "0.53.0",
+      "downloadLocation": "https://github.com/narumiruna/pi-extensions/commit/7624b3c50d09d2e9dafa8dbc810c7f2adb453d70",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [],
+      "primaryPackagePurpose": "SOURCE",
+      "comment": "revision=7624b3c50d09d2e9dafa8dbc810c7f2adb453d70; files=upstream/pi-file-context-0.53.0/package.json, upstream/pi-file-context-0.53.0/SOURCE_INVENTORY.json, upstream/pi-file-context-0.53.0/LICENSE, licenses/pi-file-context-MIT.txt, src/runtime/file-context.ts, extensions/file-context/index.ts; symbols=bounded file search, line-range snapshots, SHA-256 provenance, deterministic token estimate, Git provenance adapter seam, immutable prompt attachment; local changes=AILI keeps selection and snapshot policy independent of menus/components behind a thin Pi UI registration seam | the declared companion @narumitw/pi-tui-kit is resolved as exact 0.53.0 metadata only and is not vendored or installed; no floating range remains | filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git data is caller-supplied and bounded without starting a Git process"
     },
     {
       "SPDXID": "SPDXRef-node-modules-accepts-818cd6a4d3",
@@ -8986,6 +9010,16 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-source-pi-sakura-cyberdeck-7125826ba0"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-source-pi-notify-c046224493"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-source-pi-file-context-a13bd6c97d"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",

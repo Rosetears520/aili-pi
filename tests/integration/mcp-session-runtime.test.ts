@@ -9,6 +9,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { afterEach, describe, expect, it } from "vitest";
 import { createAiliMcpExtension, resolveSharedMcpConfigPath } from "../../src/runtime/mcp.js";
+import type { McpConfig } from "pi-mcp-adapter/types";
 
 let scratch = "";
 
@@ -16,11 +17,11 @@ afterEach(async () => {
   if (scratch) await rm(scratch, { recursive: true, force: true });
 });
 
-async function session(name: string, configPath: string) {
+async function session(name: string, options: { configPath?: string; config?: McpConfig }) {
   const cwd = resolve(scratch, name);
   const agentDir = resolve(scratch, "agent");
   await Promise.all([mkdir(cwd, { recursive: true }), mkdir(agentDir, { recursive: true })]);
-  const extension: ExtensionFactory = createAiliMcpExtension({ configPath });
+  const extension: ExtensionFactory = createAiliMcpExtension(options);
   const settings = SettingsManager.inMemory({}, { projectTrusted: true });
   const loader = new DefaultResourceLoader({
     cwd,
@@ -52,7 +53,7 @@ describe("session-owned MCP adapter composition", () => {
     scratch = await mkdtemp(resolve(".tmp/mcp-session-runtime-"));
     const configPath = resolveSharedMcpConfigPath({ HOME: resolve(scratch, "home") });
     const [parent, workerA, workerB] = await Promise.all([
-      session("parent", configPath), session("worker-a", configPath), session("worker-b", configPath),
+      session("parent", { configPath }), session("worker-a", { configPath }), session("worker-b", { configPath }),
     ]);
     expect(new Set([parent.session, workerA.session, workerB.session]).size).toBe(3);
     for (const runtime of [parent, workerA, workerB]) {
@@ -70,7 +71,7 @@ describe("session-owned MCP adapter composition", () => {
 
   it("does not connect or start a process for an empty lazy configuration during inspection", async () => {
     scratch = await mkdtemp(resolve(".tmp/mcp-session-lazy-"));
-    const runtime = await session("lazy", resolve(scratch, "missing", "mcp.json"));
+    const runtime = await session("lazy", { config: { mcpServers: {} } });
     const mcp = runtime.session.getToolDefinition("mcp")!;
     const result = await mcp.execute("status", {}, undefined, undefined, {
       mode: "print", hasUI: false, cwd: resolve(scratch, "lazy"),

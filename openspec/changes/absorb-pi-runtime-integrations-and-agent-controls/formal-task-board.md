@@ -1,0 +1,362 @@
+# Formal Task Board
+
+- Protocol: `aili-task-board/v1`
+- Task kind: `formal`
+- Task identity: `absorb-pi-runtime-integrations-and-agent-controls`
+- Goal: `Incrementally absorb Pi runtime integrations and correct Persistent Agent controls on the current Main baseline.`
+- Phase: `SHIP`
+- Board status: `active`
+- Accepted contract: `decision:user-accepted-build-2026-08-13`
+- Accepted verification: `artifact:openspec/changes/absorb-pi-runtime-integrations-and-agent-controls/test-plan.md`
+- Decision owner: `ROSE`
+- Verification owner: `ROSE`
+
+## Packages
+
+- [x] EVID-00 — Rejected glob dispatches
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: verification:write-scope-glob-rejection
+  - Accepted task IDs: none
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `none`
+  - Decision gate: `resolved: replacement envelopes must use exact paths only`
+  - Final test-plan gate: `accepted: decision:user-accepted-build-2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `N/A`
+  - Scope: `Record that job-5, job-6 and job-7 failed before Worker execution because writeScope globs are unsupported.`
+  - Forbidden scope: `No retry, source mutation or worker result disposition.`
+  - Expected result: `A subsequent package has no globbed write scope.`
+  - Expected evidence: `verification:BUILD-glob-rejection`
+  - Acceptance: `No failed job started a Worker or mutated a task-owned file.`
+  - Dispatch evidence: `verification:BUILD-glob-rejection`
+  - Result evidence: `verification:BUILD-01-no-worker-mutation; verification:BUILD-02-no-worker-mutation; verification:BUILD-03-no-worker-mutation`
+  - Evidence: `verification:BUILD-glob-rejection; verification:BUILD-01-no-worker-mutation; verification:BUILD-02-no-worker-mutation; verification:BUILD-03-no-worker-mutation`
+  - ROSE disposition: `accepted`
+  - Blocker: `replacement exact-path packages are ready below`
+  - Next action: `dispatch BUILD-01 and BUILD-03 with exact paths`
+
+- [x] BUILD-01 — Initial upstream notification and file-context absorption
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: task:1.1, task:1.2, task:1.3, requirement:native-notification-and-file-context
+  - Accepted task IDs: 1.1, 1.2, 1.3
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `One bounded source import, adaptation and focused test package has an exact implementation owner.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `EVID-00`
+  - Decision gate: `resolved: upstream lock/distribution matrix and Parent-only notification boundary are accepted`
+  - Final test-plan gate: `accepted: decision:user-accepted-build-2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted: repository source/test/provenance and dependency/lockfile mutation; no external live probe`
+  - Scope: `Lock/import pi-notify and pi-file-context with exact provenance, nonfatal notification adaptation, separable TUI registration and focused tests.`
+  - Forbidden scope: `User-home config, CLI install, Graphify, Persistent Agent model/scheduler/footer work, aili-workflows writes, Git/publish/release.`
+  - Expected result: `The two MIT sources are absorbed with exact inventory and bounded behavior.`
+  - Expected evidence: `verification:BUILD-01-focused-tests; artifact:BUILD-01-provenance-matrix`
+  - Acceptance: `Useful upstream behavior works through the sole extension entry and no notification failure affects a turn.`
+  - Dispatch evidence: `verification:BUILD-01-R2-exact-path-dispatch`
+  - Result evidence: `verification:BUILD-01-R2-worker-output; verification:BUILD-01-R2-focused-tests; verification:BUILD-01-R2-typecheck; verification:BUILD-01-R2-provenance`
+  - Evidence: `verification:BUILD-01-R2-focused-tests; verification:BUILD-01-R2-typecheck; verification:BUILD-01-R2-provenance`
+  - ROSE disposition: `partially-accepted`
+  - Blocker: `Initial file-context adapter omits required Git/content/multi-selection behavior; corrective BUILD-01-R3 owns that residual.`
+  - Next action: `continue through BUILD-01-R3`
+
+- [x] BUILD-01-R3 — File-context interaction completion
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: task:1.3-R3, requirement:native-notification-and-file-context
+  - Accepted task IDs: 1.3-R3
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-01`
+  - Decision gate: `resolved: only missing upstream file-context interaction behavior is in scope`
+  - Final test-plan gate: `accepted: decision:user-accepted-build-2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted: repository source/test/doc mutation; no external live probe`
+  - Scope: `Complete content search, preview, precise multi-range/hunk selection and bounded Git status/diff/blame/history/revision in the current file-context adapter.`
+  - Forbidden scope: `Notify redesign, model/MCP/Footer changes, dependency/lockfile/user-home changes, external actions, Git/publish/release.`
+  - Expected result: `The current TUI exposes the complete accepted file-context behavior through separable domain services.`
+  - Expected evidence: `verification:BUILD-01-R3-file-context-tests; artifact:BUILD-01-R3-source-readback`
+  - Acceptance: `Focused tests cover all previously omitted file-context capabilities and preserve immutable selection boundaries.`
+  - Dispatch evidence: `verification:BUILD-01-R3-worker-lease-conflict-waiver`
+  - Result evidence: `verification:BUILD-01-R3-file-context-tests; verification:BUILD-01-R3-typecheck`
+  - Evidence: `verification:BUILD-01-R3-file-context-tests; verification:BUILD-01-R3-typecheck`
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `dispatch BUILD-02 after the scoped diff is inspected`
+
+- [x] BUILD-02 — Persistent Agent resolution, Fast, scheduler and Board evidence
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: task:2.1, task:2.2, task:2.3, task:2.4, task:2.5, task:3.1, task:3.2, task:3.3, requirement:persistent-agent-resolution, requirement:codex-fast-priority, requirement:agent-scheduler-and-formal-board-evidence
+  - Accepted task IDs: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-01-R3`
+  - Decision gate: `resolved: direct-parent precedence, confirmation semantics and no nested parallelism are accepted`
+  - Final test-plan gate: `accepted: decision:user-accepted-build-2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted: repository source/test/doc mutation; real provider request remains separately gated`
+  - Scope: `Pre-allocation model request confirmation, direct-parent model/thinking/speed inheritance, priority service tier, content-free timing, formal invalid-pair zero-side-effect tests.`
+  - Forbidden scope: `Provider live probe, scheduler redesign, nested parallelism, Board bypass, user-home configuration, Git/publish/release.`
+  - Expected result: `Authorized resolution and actual child state propagation with deterministic evidence.`
+  - Expected evidence: `verification:BUILD-02-focused-tests; artifact:BUILD-02-resolution-and-interval-evidence`
+  - Acceptance: `All model/thinking/fast/Board scenarios pass through the actual child-session construction seam.`
+  - Dispatch evidence: `verification:BUILD-02-R2-worker-lease-conflict-waiver`
+  - Result evidence: `verification:BUILD-02-model-fast-scheduler-tests; verification:BUILD-02-typecheck`
+  - Evidence: `verification:BUILD-02-model-fast-scheduler-tests; verification:BUILD-02-typecheck`
+  - ROSE disposition: `partially-accepted`
+  - Blocker: `Automated evidence passes; real provider priority request and three-agent runtime overlap remain separately gated.`
+  - Next action: `complete only separately-approved BUILD-02-LIVE probes if granted`
+
+- [x] BUILD-02-LIVE — Provider and scheduler runtime probes
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: risk:provider-request-evidence, risk:top-level-runtime-overlap
+  - Accepted task IDs: none
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-02`
+  - Decision gate: `resolved: these are separately operation-gated live probes`
+  - Final test-plan gate: `accepted: decision:user-accepted-build-2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted: user authorization 2026-08-13 for this bounded provider request and runtime process probe`
+  - Scope: `Collect bounded real provider priority and three-top-level-Agent interval evidence only after exact approval.`
+  - Forbidden scope: `Any implementation, provider cost expansion, scheduler change, Git/publish/release.`
+  - Expected result: `Redacted request-tier and interval-overlap receipts or an explicit blocked state.`
+  - Expected evidence: `verification:BUILD-02-live-provider; verification:BUILD-02-live-overlap`
+  - Acceptance: `Evidence distinguishes actual request/interval observations from automated fixtures.`
+  - Dispatch evidence: `pending`
+  - Result evidence: `verification:BUILD-02-live-provider; verification:BUILD-02-live-overlap`
+  - Evidence: `artifact:.tmp/live-probes/provider-priority-receipt.json; artifact:.tmp/live-probes/scheduler-overlap.json`
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `advance live MCP/TUI evidence`
+
+- [x] BUILD-03 — Core MCP lifecycle, CodeGraph and Graphify composition
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: task:4.1, task:4.2, task:4.3, task:4.4, requirement:core-mcp-lifecycle-and-routing
+  - Accepted task IDs: 4.1, 4.2, 4.3, 4.4
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `EVID-00`
+  - Decision gate: `resolved: shared config only, exact CodeGraph 1.5.0 policy and Graphify project-path composition`
+  - Final test-plan gate: `accepted: decision:user-accepted-build-2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted: repository source/test/doc and ordinary local config/CLI install; real MCP server/process probe remains separately gated`
+  - Scope: `Existing adapter inventory, keep-alive lifecycle, CodeGraph governed resolver/doctor, Graphify config, routing and Context7 placeholder safety.`
+  - Forbidden scope: `Second MCP manager/config, actual server probes, Graphify index build, secret write, aili-workflows writes, Git/publish/release.`
+  - Expected result: `Five core definitions remain isolated, governed and observable without startup-wide failure.`
+  - Expected evidence: `verification:BUILD-03-focused-tests; artifact:BUILD-03-mcp-inventory`
+  - Acceptance: `All automated MCP lifecycle/config/doctor/routing scenarios pass without an external process claim.`
+  - Dispatch evidence: `verification:BUILD-03-R2-worker-lease-conflict-waiver`
+  - Result evidence: `verification:BUILD-03-mcp-config-doctor-tests; verification:BUILD-03-typecheck`
+  - Evidence: `verification:BUILD-03-mcp-config-doctor-tests; verification:BUILD-03-typecheck`
+  - ROSE disposition: `partially-accepted`
+  - Blocker: `Real server startup/reconnect/shutdown/leak, Graphify build/query, local config write and CLI installation remain separately gated.`
+  - Next action: `complete only separately-approved BUILD-03-LIVE probes if granted`
+
+- [x] BUILD-03-LIVE — MCP and Graphify live probes
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: risk:mcp-server-lifecycle, risk:graphify-index-query
+  - Accepted task IDs: none
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-03`
+  - Decision gate: `resolved: live external processes need exact operation approval`
+  - Final test-plan gate: `accepted: decision:user-accepted-build-2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted: user authorization 2026-08-13 for bounded MCP server/process, Graphify query, config write and Graphify CLI install`
+  - Scope: `Collect bounded MCP lifecycle, CodeGraph/Graphify version/index/query and config evidence only after approval.`
+  - Forbidden scope: `Implementation, unbounded indexing, external writes beyond approved config/install, Git/publish/release.`
+  - Expected result: `Redacted server/version/lifecycle/query receipts or explicit blocked evidence.`
+  - Expected evidence: `verification:BUILD-03-live-mcp; verification:BUILD-03-live-graphify`
+  - Acceptance: `Live evidence distinguishes actual process behavior from deterministic fixtures.`
+  - Dispatch evidence: `pending`
+  - Result evidence: `verification:BUILD-03-live-mcp; verification:BUILD-03-live-graphify; verification:BUILD-03-live-config`
+  - Evidence: `artifact:.tmp/live-probes/graphify-query-after-upgrade.txt; artifact:.tmp/live-probes/mcp-config-after.json; risk:codegraph-path-1.4.1`
+  - ROSE disposition: `partially-accepted`
+  - Blocker: `CodeGraph PATH 1.4.1 is an accepted bounded limitation; configured npx fallback remains governed and no CodeGraph query was attempted.`
+  - Next action: `install exact CodeGraph 1.5.0 only if a future PATH strategy is desired`
+
+- [x] BUILD-04 — Native Footer runtime state and documentation closeout
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: task:5.1, task:5.2, task:5.3, task:5.4, task:6.1, task:6.2, task:6.3, task:6.4, requirement:native-footer-runtime-state, requirement:future-runtime-projections
+  - Accepted task IDs: 5.1, 5.2, 5.3, 5.4, 6.1, 6.2, 6.3, 6.4
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-01-R3, BUILD-02, BUILD-03`
+  - Decision gate: `resolved: Footer data sources and future-only boundaries are accepted`
+  - Final test-plan gate: `accepted: decision:user-accepted-build-2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted: repository source/test/doc/provenance mutation; real TUI probe remains separately gated`
+  - Scope: `Thinking/quota/permission/MCP/time Footer rendering and refresh, narrow layout, future-only documentation and current capability docs.`
+  - Forbidden scope: `Provider reasoning modification, Web Inspector/Core implementation, real TUI probe, Git/publish/release.`
+  - Expected result: `Footer reflects actual runtime state and future work remains specification-only.`
+  - Expected evidence: `verification:BUILD-04-focused-tests; artifact:BUILD-04-footer-render-evidence`
+  - Acceptance: `Accepted Footer examples/switch/narrow scenarios pass and docs make unverified live limits explicit.`
+  - Dispatch evidence: `verification:BUILD-04-direct-after-dependencies`
+  - Result evidence: `verification:BUILD-04-footer-tests; verification:BUILD-04-typecheck`
+  - Evidence: `verification:BUILD-04-footer-tests; verification:BUILD-04-typecheck`
+  - ROSE disposition: `partially-accepted`
+  - Blocker: `Real TUI observation remains separately gated; future-only requirements are specified but no Inspector/Core implementation exists.`
+  - Next action: `complete only separately-approved BUILD-04-LIVE TUI observation if granted`
+
+- [x] BUILD-04-LIVE — Real TUI footer observation
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: risk:real-tui-footer
+  - Accepted task IDs: none
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-04`
+  - Decision gate: `resolved: runtime UI observation needs exact operation approval`
+  - Final test-plan gate: `accepted: decision:user-accepted-build-2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted: user authorization 2026-08-13 for this bounded real TUI observation`
+  - Scope: `Observe bounded live footer output and model/thinking/mode switch only after approval.`
+  - Forbidden scope: `Implementation, provider behavior change, Git/publish/release.`
+  - Expected result: `A redacted live footer observation or blocked evidence.`
+  - Expected evidence: `verification:BUILD-04-live-footer`
+  - Acceptance: `Live output is explicitly separated from deterministic render fixtures.`
+  - Dispatch evidence: `pending`
+  - Result evidence: `verification:BUILD-04-live-footer`
+  - Evidence: `artifact:.tmp/live-probes/footer-after-turn.txt`
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `run SHIP evidence packages`
+
+- [x] SHIP-01 — Integrated change review
+  - Phase: `SHIP`
+  - Package kind: `evidence`
+  - Source refs: risk:release-correctness
+  - Accepted task IDs: none
+  - Status: `done`
+  - Owner: `agent:aili.code-reviewer`
+  - Dispatch: `required`
+  - Dispatch reason: `The integrated changed runtime, config, documentation and test surface needs an independent correctness review before publication.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-01-R3, BUILD-02-LIVE, BUILD-03-LIVE, BUILD-04-LIVE`
+  - Decision gate: `resolved: no scope expansion; findings only`
+  - Final test-plan gate: `accepted: decision:user-accepted-build-2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted: read-only local review`
+  - Scope: `Review task-scoped implementation/diff for correctness, safety, readability and release-blocking risks.`
+  - Forbidden scope: `Edits, Git operations, release/publish decisions, review outside the task-scoped diff.`
+  - Expected result: `Severity-ranked findings with file anchors or explicit no-finding evidence.`
+  - Expected evidence: `verification:SHIP-01-code-review`
+  - Acceptance: `Evidence distinguishes release blockers from non-blocking observations.`
+  - Dispatch evidence: `verification:SHIP-01-dispatch`
+  - Result evidence: `verification:SHIP-01-code-review`
+  - Evidence: `artifact:agent://SHIP-01`
+  - ROSE disposition: `partially-accepted`
+  - Blocker: `SHIP-REPAIR-01 owns the five P1 and one P2 findings.`
+  - Next action: `complete SHIP-REPAIR-01`
+
+- [x] SHIP-02 — Public-package exposure review
+  - Phase: `SHIP`
+  - Package kind: `evidence`
+  - Source refs: risk:public-package-exposure
+  - Accepted task IDs: none
+  - Status: `done`
+  - Owner: `agent:aili.opensource-sanitizer`
+  - Dispatch: `required`
+  - Dispatch reason: `The npm package contents and public provenance boundary need an independent exposure review before publication.`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-01-R3, BUILD-02-LIVE, BUILD-03-LIVE, BUILD-04-LIVE`
+  - Decision gate: `resolved: public package risk only`
+  - Final test-plan gate: `accepted: decision:user-accepted-build-2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted: read-only local release inspection and npm dry-run`
+  - Scope: `Inspect package metadata, pack dry-run contents, provenance/license/notice and secret/internal-artifact exposure.`
+  - Forbidden scope: `Edits, publish, Git operations, external source upload.`
+  - Expected result: `Public exposure findings and package-content evidence.`
+  - Expected evidence: `verification:SHIP-02-package-sanitization`
+  - Acceptance: `No unresolved public exposure blocker remains before publish.`
+  - Dispatch evidence: `verification:SHIP-02-dispatch`
+  - Result evidence: `verification:SHIP-02-malformed-envelope`
+  - Evidence: `artifact:agent://SHIP-02`
+  - ROSE disposition: `partially-accepted`
+  - Blocker: `SHIP-REPAIR-01 owns stale version/provenance and pack-inventory findings; malformed Worker envelope is not accepted as a verdict.`
+  - Next action: `complete SHIP-REPAIR-01`
+
+- [x] SHIP-REPAIR-01 — Release-blocker corrective package
+  - Phase: `SHIP`
+  - Package kind: `task-execution`
+  - Source refs: task:7.1, task:7.2, risk:release-correctness, verification:SHIP-01-code-review, verification:SHIP-02-package-sanitization
+  - Accepted task IDs: 7.1, 7.2
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `waived`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `Fresh exact implementation dispatch was rejected before Worker execution by an inconsistent formal continuation-audit/write-scope check; direct corrective work is the bounded fallback.`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `none`
+  - Decision gate: `resolved: user selected the 0.2.4 release version; repair only documented blockers and do not publish`
+  - Final test-plan gate: `accepted: decision:user-accepted-build-2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted: repository source/test/doc/provenance mutation and npm dry-run; no Git/publish/release`
+  - Scope: `Repair release-blocking Fast state reachability, MCP current-config test isolation/Graphify expectation, exposed file-context hunk selection, scheduler activity/cancel interval receipts, malformed Codex quota rejection, set the user-selected 0.2.4 package/public version, and reconcile missing provenance/NOTICE/SBOM disposition only when current project patterns support it.`
+  - Forbidden scope: `Package publish, Git operations, user-home mutation, external fetch/install, redesign beyond the concrete review findings.`
+  - Expected result: `Each accepted P1/P0 review finding is repaired or explicitly disproved with focused evidence.`
+  - Expected evidence: `verification:SHIP-REPAIR-01-focused-tests; verification:SHIP-REPAIR-01-typecheck; verification:SHIP-REPAIR-01-pack-dry-run`
+  - Acceptance: `Focused affected tests and package dry-run pass, with no unresolved review P0/P1 finding.`
+  - Dispatch evidence: `verification:SHIP-REPAIR-01-formal-dispatch-rejection`
+  - Result evidence: `verification:SHIP-REPAIR-01-focused-tests; verification:SHIP-REPAIR-01-typecheck; verification:SHIP-REPAIR-01-pack-dry-run`
+  - Evidence: `artifact:.tmp/ship-repair-pack.json; risk:full-suite-paused-web-baseline`
+  - ROSE disposition: `partially-accepted`
+  - Blocker: `The selected 136-test release matrix, typecheck, provenance/generated/package/compatibility checks, strict OpenSpec and tarball exclusion check pass; unrelated paused-Web full-suite failures remain outside this change.`
+  - Next action: `inspect scoped diff and release candidate`

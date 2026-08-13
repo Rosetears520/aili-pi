@@ -301,7 +301,7 @@ export function applyCoordinatorEvent(current: CoordinatorState, event: Coordina
       const id = requireString(event.turnId, "turnId");
       const record = state.turns[id];
       if (!record || record.agentId !== event.agentId) throw new Error(`${id}: unknown or mismatched turn audit owner`);
-      if (record.state !== "running") throw new Error(`${id}: turn audit is accepted only while running`);
+      if (record.state !== "running" && record.state !== "queued") throw new Error(`${id}: turn audit is accepted only while queued or running`);
       record.metadata = { ...(record.metadata ?? {}), ...structuredClone(event.payload) };
       record.updatedAt = now;
       break;

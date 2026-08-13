@@ -1,10 +1,12 @@
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { contextTokenLabel, renderNativeFooter } from "../../extensions/footer/layout.js";
+import { contextTokenLabel, normalizeCodexQuota, permissionModeLabel, renderNativeFooter } from "../../extensions/footer/layout.js";
 import { describe, expect, it } from "vitest";
 
 const snapshot = {
   provider: "openai-codex",
   model: "gpt-5.6-sol",
+  thinking: "xhigh",
+  permissionMode: "YOLO (alt+m)  Network: open",
   retry: "retrying",
   quota: "Wk 72% resets Tue",
   clock: "19:48",
@@ -22,7 +24,7 @@ describe("Pi-native minimal footer layout", () => {
     const [primary, secondary] = renderNativeFooter(snapshot, width);
     const primaryRight = "17k/272k · Wk 72% resets Tue · retrying";
     const secondaryLeft = "aili-pi · feature/native-ui";
-    const secondaryRight = "MCP 0/4 · 19:48";
+    const secondaryRight = "YOLO · MCP 0/4 · 19:48";
 
     expect(visibleWidth(primary)).toBe(width);
     expect(primary.startsWith("openai-codex/gpt-5.6-sol")).toBe(true);
@@ -35,10 +37,11 @@ describe("Pi-native minimal footer layout", () => {
     expect(secondary.indexOf(secondaryRight)).toBe(width - visibleWidth(secondaryRight));
   });
 
-  it("orders context before quota/retry on line one and MCP before clock on line two", () => {
+  it("orders context before quota/retry and permission before MCP/time", () => {
     const [primary, secondary] = renderNativeFooter(snapshot, 100);
     expect(primary.indexOf("17k/272k")).toBeLessThan(primary.indexOf("Wk 72%"));
     expect(primary.indexOf("Wk 72%")).toBeLessThan(primary.indexOf("retrying"));
+    expect(secondary.indexOf("YOLO")).toBeLessThan(secondary.indexOf("MCP 0/4"));
     expect(secondary.indexOf("MCP 0/4")).toBeLessThan(secondary.indexOf("19:48"));
     expect(secondary).not.toContain("17k/272k");
   });
@@ -56,7 +59,7 @@ describe("Pi-native minimal footer layout", () => {
     expect(withoutBranch).toContain("MCP 0/4");
     expect(withoutBranch).toContain("19:48");
 
-    const rightOnly = renderNativeFooter(snapshot, 20)[1];
+    const rightOnly = renderNativeFooter(snapshot, 28)[1];
     expect(rightOnly).not.toContain("aili-pi");
     expect(rightOnly).not.toContain("feature/native-ui");
     expect(rightOnly).toContain("MCP 0/4");
@@ -79,8 +82,19 @@ describe("Pi-native minimal footer layout", () => {
 
   it("omits unavailable secondary data and normalizes multiline status text", () => {
     expect(renderNativeFooter({ provider: "openai-codex", model: "sol", quota: "quota\n72%\treset" }, 80)).toEqual([
-      expect.stringMatching(/^openai-codex\/sol\s+quota 72% reset$/),
+      expect.stringMatching(/^openai-codex\/sol off\s+quota 72% reset$/),
       "",
     ]);
+  });
+
+  it("renders actual thinking, normalized Codex quota and permission state", () => {
+    expect(renderNativeFooter({ provider: "openai-codex", model: "gpt-5.6-terra", thinking: "high", quota: "5h 75% 11:38AM (20/08)", permissionMode: "YOLO (alt+m)", mcpConnectedCount: 0, mcpEnabledCount: 4, clock: "18:31" }, 120)).toEqual([
+      expect.stringContaining("openai-codex/gpt-5.6-terra high"),
+      expect.stringContaining("YOLO · MCP 0/4 · 18:31"),
+    ]);
+    expect(normalizeCodexQuota("5h 75% 11:38AM (20/08)")).toBe("codex 75% 08/20 11:38");
+    expect(normalizeCodexQuota("Wk 75%")).toBeUndefined();
+    expect(normalizeCodexQuota("5h 101% 13:61PM (00/13)")).toBeUndefined();
+    expect(permissionModeLabel("Build (sandboxed)")).toBe("Build");
   });
 });

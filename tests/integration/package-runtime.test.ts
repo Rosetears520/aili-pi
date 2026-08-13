@@ -16,7 +16,7 @@ describe("offline packaged runtime discovery", () => {
     const tools = [...extension.tools.keys()];
     const shortcuts = [...extension.shortcuts.keys()];
     expect(commands).toEqual(expect.arrayContaining([
-      "aili-doctor", "aili-agent-model", "perm", "quota", "cache-optimizer",
+      "aili-doctor", "aili-agent-model", "aili-agent-fast", "perm", "quota", "cache-optimizer",
     ]));
     expect(commands).not.toContain("aili-install-global-resources");
     expect(commands.filter((name) => [

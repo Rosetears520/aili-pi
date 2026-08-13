@@ -17,6 +17,7 @@ import { nativeIntegrationDiagnostics } from "./native-integrations.js";
 import { validateRoleProfiles } from "./roles.js";
 import { loadWorkflowRuntimeBundle } from "./workflow-bundle/index.js";
 import { MCP_ADAPTER_VERSION, mcpConfigEvidencePath } from "./mcp.js";
+import { ACCEPTED_MCP_SERVER_VERSIONS, resolveCodeGraphSelection } from "./mcp-config.js";
 import { BILLION_CONTEXT_VERSION, CODEX_COMPACT_VERSION } from "./context-runtime.js";
 import { PROVIDER_RETRY_VERSION } from "./provider-retry.js";
 import { MEMPALACE_PATH, MEMPALACE_VERSION } from "./mempalace.js";
@@ -388,10 +389,16 @@ export async function runDoctor(
   results.push({ id: "rose.prompts", status: conflicts.length === 0 ? "PASS" : "ERROR", evidence: conflicts.length === 0 ? "Workflow prompts have one rose-aili global owner" : `conflicts=${conflicts.map((item) => item.name).join(",")}` });
   results.push(await inspectPiCompactionSettings(options.home));
   try {
+    const codegraph = resolveCodeGraphSelection();
     results.push({
       id: "mcp.runtime",
       status: "PASS",
-      evidence: `adapter=pi-mcp-adapter@${MCP_ADAPTER_VERSION}; config=${mcpConfigEvidencePath({ HOME: options.home })}; status=lazy-event-snapshot; transport_probe=not-run`,
+      evidence: `adapter=pi-mcp-adapter@${MCP_ADAPTER_VERSION}; config=${mcpConfigEvidencePath({ HOME: options.home })}; lifecycle=core-keep-alive; transport_probe=not-run`,
+    });
+    results.push({
+      id: "mcp.codegraph",
+      status: codegraph.status === "compatible" ? "PASS" : "WARN",
+      evidence: `strategy=${codegraph.strategy}; binary=${codegraph.binaryPath ?? "absent"}; actual=${codegraph.actualVersion ?? "unavailable"}; expected=${ACCEPTED_MCP_SERVER_VERSIONS.codegraph}; status=${codegraph.status}`,
     });
   } catch (error) {
     results.push({ id: "mcp.runtime", status: "ERROR", evidence: boundedError(error) });

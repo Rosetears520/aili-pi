@@ -7,6 +7,7 @@ import { plainDisplayText, renderNativeFooter } from "./layout.js";
 
 const QUOTA_STATUS_KEY = "pi-quota-status";
 const RETRY_STATUS_KEY = "aili-provider-retry";
+const PERMISSION_STATUS_KEY = "perm";
 
 function timeLabel(now = new Date()): string {
   return now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -66,7 +67,9 @@ export default function nativeFooter(pi: ExtensionAPI): void {
           const lines = renderNativeFooter({
             provider: ctx.model?.provider,
             model: ctx.model?.id,
+            thinking: ctx.thinkingLevel,
             quota,
+            permissionMode: plainDisplayText(statuses.get(PERMISSION_STATUS_KEY)),
             retry: plainDisplayText(statuses.get(RETRY_STATUS_KEY)),
             ...contextUsageSnapshot(ctx),
             mcpConnectedCount: mcp?.connectedCount ?? 0,
@@ -89,6 +92,9 @@ export default function nativeFooter(pi: ExtensionAPI): void {
     mcpStatus?.dispose();
   });
   pi.on("model_select", (_event, ctx) => {
+    if (activeContext === ctx) install(ctx);
+  });
+  pi.on("thinking_level_select", (_event, ctx) => {
     if (activeContext === ctx) install(ctx);
   });
 }
