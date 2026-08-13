@@ -342,7 +342,7 @@ export async function runDoctor(
     const resourceState = packageJson.pi?.prompts === undefined
       && resources.length === expectedResources.length
       && expectedResources.every((resource) => resources.includes(resource));
-    results.push({ id: "package.resources", status: resourceState ? "PASS" : "ERROR", evidence: `declared=${resources.length}; prompts=${packageJson.pi?.prompts === undefined ? "rose-aili-owned" : "duplicate"}; native_ui=${resourceState ? "minimal-footer" : "drift"}` });
+    results.push({ id: "package.resources", status: resourceState ? "PASS" : "ERROR", evidence: `declared=${resources.length}; prompts=${packageJson.pi?.prompts === undefined ? "rose-aili-owned" : "duplicate"}; native_ui=${resourceState ? "minimal-footer" : "drift"}; web_skill=${resourceState ? "pi-web-access@0.13.0" : "drift"}; foreground_web=excluded` });
   } catch (error) {
     results.push({ id: "package", status: "ERROR", evidence: boundedError(error) });
   }

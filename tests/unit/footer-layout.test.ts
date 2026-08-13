@@ -1,34 +1,86 @@
 import { visibleWidth } from "@earendil-works/pi-tui";
+import { contextTokenLabel, renderNativeFooter } from "../../extensions/footer/layout.js";
 import { describe, expect, it } from "vitest";
-import { renderNativeFooter } from "../../extensions/footer/layout.js";
 
 const snapshot = {
   provider: "openai-codex",
   model: "gpt-5.6-sol",
+  retry: "retrying",
   quota: "Wk 72% resets Tue",
-  updateAge: "updated 4m",
   clock: "19:48",
-  context: "ctx 24%",
+  contextTokens: 17_000,
+  contextWindow: 272_000,
+  mcpConnectedCount: 0,
+  mcpEnabledCount: 4,
   gitBranch: "feature/native-ui",
   cwd: "aili-pi",
 };
 
 describe("Pi-native minimal footer layout", () => {
-  it("prioritizes model and quota and drops optional fields deterministically", () => {
-    expect(renderNativeFooter(snapshot, 120)).toContain("openai-codex/gpt-5.6-sol · Wk 72%");
-    const narrow = renderNativeFooter(snapshot, 48);
-    expect(narrow).toContain("openai-codex/gpt-5.6-sol");
-    expect(narrow).not.toContain("aili-pi");
-    expect(renderNativeFooter(snapshot, 48)).toBe(narrow);
+  it("aligns both left/right field groups to the display-cell edges at a fixed width", () => {
+    const width = 100;
+    const [primary, secondary] = renderNativeFooter(snapshot, width);
+    const primaryRight = "17k/272k · Wk 72% resets Tue · retrying";
+    const secondaryLeft = "aili-pi · feature/native-ui";
+    const secondaryRight = "MCP 0/4 · 19:48";
+
+    expect(visibleWidth(primary)).toBe(width);
+    expect(primary.startsWith("openai-codex/gpt-5.6-sol")).toBe(true);
+    expect(primary.endsWith(primaryRight)).toBe(true);
+    expect(primary.indexOf(primaryRight)).toBe(width - visibleWidth(primaryRight));
+
+    expect(visibleWidth(secondary)).toBe(width);
+    expect(secondary.startsWith(secondaryLeft)).toBe(true);
+    expect(secondary.endsWith(secondaryRight)).toBe(true);
+    expect(secondary.indexOf(secondaryRight)).toBe(width - visibleWidth(secondaryRight));
   });
 
-  it.each([0, 1, 8, 24, 40, 80])("never exceeds %i display cells", (width) => {
-    expect(visibleWidth(renderNativeFooter({ ...snapshot, model: "模型-sol" }, width))).toBeLessThanOrEqual(Math.max(0, width));
+  it("orders context before quota/retry on line one and MCP before clock on line two", () => {
+    const [primary, secondary] = renderNativeFooter(snapshot, 100);
+    expect(primary.indexOf("17k/272k")).toBeLessThan(primary.indexOf("Wk 72%"));
+    expect(primary.indexOf("Wk 72%")).toBeLessThan(primary.indexOf("retrying"));
+    expect(secondary.indexOf("MCP 0/4")).toBeLessThan(secondary.indexOf("19:48"));
+    expect(secondary).not.toContain("17k/272k");
   });
 
-  it("omits unavailable optional data and normalizes multiline status text", () => {
-    const line = renderNativeFooter({ provider: "openai-codex", model: "sol", quota: "quota\n72%\treset" }, 80);
-    expect(line).toBe("openai-codex/sol · quota 72% reset");
-    expect(line).not.toContain("undefined");
+  it("drops retry, then branch and cwd as needed while retaining the essential groups", () => {
+    const narrowPrimary = renderNativeFooter(snapshot, 48)[0];
+    expect(narrowPrimary).toContain("openai-codex/gpt-5.6-sol");
+    expect(narrowPrimary).toContain("17k/272k");
+    expect(narrowPrimary).toContain("Wk 72%");
+    expect(narrowPrimary).not.toContain("retrying");
+
+    const withoutBranch = renderNativeFooter(snapshot, 36)[1];
+    expect(withoutBranch).toContain("aili-pi");
+    expect(withoutBranch).not.toContain("feature/native-ui");
+    expect(withoutBranch).toContain("MCP 0/4");
+    expect(withoutBranch).toContain("19:48");
+
+    const rightOnly = renderNativeFooter(snapshot, 20)[1];
+    expect(rightOnly).not.toContain("aili-pi");
+    expect(rightOnly).not.toContain("feature/native-ui");
+    expect(rightOnly).toContain("MCP 0/4");
+    expect(rightOnly).toContain("19:48");
+  });
+
+  it.each([0, 1, 8, 24, 40, 80])("never exceeds %i display cells per line", (width) => {
+    for (const line of renderNativeFooter({ ...snapshot, model: "模型-sol" }, width)) {
+      expect(visibleWidth(line)).toBeLessThanOrEqual(Math.max(0, width));
+    }
+  });
+
+  it("formats actual context tokens compactly and omits invalid numeric usage", () => {
+    expect(contextTokenLabel(17_000, 272_000)).toBe("17k/272k");
+    expect(contextTokenLabel(9_500, 272_000)).toBe("9.5k/272k");
+    expect(contextTokenLabel(undefined, 272_000)).toBeUndefined();
+    expect(contextTokenLabel(17_000, 0)).toBeUndefined();
+    expect(contextTokenLabel(Number.NaN, 272_000)).toBeUndefined();
+  });
+
+  it("omits unavailable secondary data and normalizes multiline status text", () => {
+    expect(renderNativeFooter({ provider: "openai-codex", model: "sol", quota: "quota\n72%\treset" }, 80)).toEqual([
+      expect.stringMatching(/^openai-codex\/sol\s+quota 72% reset$/),
+      "",
+    ]);
   });
 });

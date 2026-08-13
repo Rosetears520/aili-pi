@@ -1,0 +1,1783 @@
+# Formal Task Board
+
+- Protocol: `aili-task-board/v1`
+- Task kind: `formal`
+- Task identity: `integrate-pi-web-ui-and-upstream-extensions`
+- Goal: define an implementation-ready AILI Web UI based solely on `agegr/pi-web`, integrate four upstream Pi extension capabilities, and adopt the applicable AIcss catalog
+- Phase: `BUILD`
+- Board status: `active`
+- Accepted contract: `artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/proposal.md, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/design.md, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/specs, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/tasks.md`
+- Accepted verification: `artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/test-plan.md`
+- Decision owner: `ROSE`
+- Verification owner: `ROSE`
+
+## Packages
+
+- [x] DEFINE-E01 — Inspect local Web UI design and repository boundaries
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: artifact:AILI Web UI 详细设计与实施方案.md, artifact:AGENTS.md, artifact:package.json
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `agent:aili.doc-researcher`
+  - Dispatch: `required`
+  - Dispatch reason: `project-local rules and the complete design document require bounded documentation analysis`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `none`
+  - Decision gate: `N/A`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `N/A`
+  - Scope: `inspect the complete design, project rules, current package/runtime boundaries, and exact revision points`
+  - Forbidden scope: `edits, implementation, dependency changes, product decisions, acceptance, Board/progress writes`
+  - Expected result: `local evidence identifying current ownership language, constraints, conflicts, and required design revisions`
+  - Expected evidence: artifact:DEFINE-E01-local-document-evidence
+  - Acceptance: `ROSE can distinguish Pi Web code-base ownership from Codex/pi-gui reference-only language and identify all locally governed boundaries`
+  - Dispatch evidence: verification:DEFINE-E01-format-retry-2
+  - Result evidence: artifact:DEFINE-E01-local-document-evidence
+  - Evidence: verification:DEFINE-E01-ROSE-inspection
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `consume accepted local evidence in DEFINE-E03 after DEFINE-E02-R2 completes`
+
+- [ ] DEFINE-E02 — Verify upstream sources, licenses, and integration surfaces
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: risk:upstream-license-and-compatibility, decision:upstream-source-strategy, requirement:pi-web-base
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.web-researcher`
+  - Dispatch: `required`
+  - Dispatch reason: `current official public repository and release evidence is version-sensitive and decision-shaping`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `none`
+  - Decision gate: `N/A`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `N/A`
+  - Scope: `verify agegr/pi-web, pi-analytics, pi-btw, pi-stamp, pi-worktree, and AIcss current source, revision/version, license, dependencies, capabilities, and compatibility`
+  - Forbidden scope: `downloads into repository, edits, dependency changes, external writes, product decisions, acceptance, release actions`
+  - Expected result: `source-grounded upstream matrix separating source absorption, package dependency, and reference-only options`
+  - Expected evidence: artifact:DEFINE-E02-upstream-evidence
+  - Acceptance: `ROSE has current evidence for every upstream needed to disposition source strategy and architecture`
+  - Dispatch evidence: verification:DEFINE-E02-dispatch-1
+  - Result evidence: artifact:DEFINE-E02-web-capability-blocker
+  - Evidence: `pending`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the exact web-researcher execution profile exposes no public web-search or fetch tools`
+  - Next action: `continue the unchanged evidence goal through DEFINE-E02-R2 under a pre-recorded direct-work waiver`
+
+- [x] DEFINE-E02-R2 — Retrieve upstream evidence under capability waiver
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: risk:upstream-license-and-compatibility, decision:upstream-source-strategy, requirement:pi-web-base
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `agent:aili.web-researcher`
+  - Dispatch: `waived`
+  - Dispatch reason: `current official public repository and release evidence is version-sensitive and decision-shaping`
+  - No-dispatch reason: `the exact web-researcher execution profile returned a readable capability blocker because it exposes no public web-search or fetch tools; ROSE has equivalent read-only public Web capability for the unchanged evidence goal`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `none`
+  - Decision gate: `N/A`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `N/A`
+  - Scope: `verify agegr/pi-web, pi-analytics, pi-btw, pi-stamp, pi-worktree, and AIcss current source, revision/version, license, dependencies, capabilities, and compatibility`
+  - Forbidden scope: `downloads into repository, edits, dependency changes, external writes, product decisions, acceptance, release actions`
+  - Expected result: `source-grounded upstream matrix separating source absorption, package dependency, and reference-only options`
+  - Expected evidence: artifact:DEFINE-E02-R2-upstream-evidence
+  - Acceptance: `ROSE has current evidence for every upstream needed to disposition source strategy and architecture`
+  - Dispatch evidence: verification:DEFINE-E02-R2-web-capability-waiver
+  - Result evidence: artifact:DEFINE-E02-R2-upstream-evidence
+  - Evidence: verification:DEFINE-E02-R2-ROSE-inspection
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `consume accepted upstream evidence in DEFINE-E03 and resolve the AIcss licensed-component decision`
+
+- [x] DEFINE-E03 — Integrate evidence and resolve architecture decisions
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: decision:pi-web-owned-architecture, decision:upstream-source-strategy, risk:runtime-and-packaging-boundary
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `DEFINE-E01`, `DEFINE-E02-R2`
+  - Decision gate: `accepted consolidated shared understanding; final test-plan acceptance remains pending`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `granted for the completed repository-local DEFINE evidence, context, interview, Board, and progress writes only; all BUILD and risky operations remain absent`
+  - Scope: `reconcile local and upstream evidence, ask one focused material question when needed, and define the accepted architecture boundary`
+  - Forbidden scope: `implementation, dependencies, source copying, acceptance inference, release actions`
+  - Expected result: `resolved architecture/source strategy or explicit blocker`
+  - Expected evidence: artifact:DEFINE-E03-architecture-disposition
+  - Acceptance: `all implementation-shaping source, package, ownership, and deployment decisions are explicit`
+  - Dispatch evidence: `pending`
+  - Result evidence: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/interview.md
+  - Evidence: verification:DEFINE-E03-confirmed-shared-understanding
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `consume DEFINE-E04 candidate requirements before writing the formal proposal`
+
+- [x] DEFINE-E04 — Mine candidate capabilities, requirements, and scenarios
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/interview.md, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/context.md, artifact:AILI Web UI 详细设计与实施方案.md, decision:consolidated-shared-understanding-confirmed
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `agent:aili.spec-miner`
+  - Dispatch: `required`
+  - Dispatch reason: `the confirmed broad product contract needs bounded candidate capability, requirement, scenario, and traceability mining before ROSE writes OpenSpec artifacts`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `DEFINE-E03`
+  - Decision gate: `accepted consolidated shared understanding`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `N/A`
+  - Scope: `mine candidate capabilities, normative requirements, boundary and failure scenarios, and evidence anchors from the confirmed interview, context, local design, and current repository contract`
+  - Forbidden scope: `artifact edits, implementation, dependency or source import, product decisions, acceptance, Board/progress writes, test-plan approval`
+  - Expected result: `candidate OpenSpec capability set and traceable requirement/scenario inventory separating accepted facts from remaining Unverified implementation measurements`
+  - Expected evidence: artifact:DEFINE-E04-candidate-requirements
+  - Acceptance: `ROSE can write proposal capabilities and downstream specs without inventing behavior or losing any confirmed product boundary`
+  - Dispatch evidence: verification:DEFINE-E04-dispatch-1
+  - Result evidence: artifact:DEFINE-E04-candidate-requirements
+  - Evidence: verification:DEFINE-E04-ROSE-inspection
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `consume the accepted inventory in DEFINE-A01 proposal write-back`
+
+- [x] DEFINE-A01 — Write the formal proposal
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: decision:consolidated-shared-understanding-confirmed, artifact:DEFINE-E04-candidate-requirements, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/context.md
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `DEFINE-E04`
+  - Decision gate: `accepted consolidated shared understanding`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `granted for repository-local proposal.md write only`
+  - Scope: `write the concise OpenSpec proposal defining motivation, exact change scope, new capability set, and impacted systems`
+  - Forbidden scope: `implementation, dependency/source import, design details, task acceptance, test-plan acceptance, BUILD or release actions`
+  - Expected result: `dependency-valid proposal.md that unlocks design and specs without adding unconfirmed behavior`
+  - Expected evidence: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/proposal.md
+  - Acceptance: `proposal capabilities cover the confirmed package, runtime, Web, absorbed-extension, analytics, AI component, security, and provenance boundaries`
+  - Dispatch evidence: `pending`
+  - Result evidence: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/proposal.md
+  - Evidence: verification:DEFINE-A01-openspec-proposal-status
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `consume DEFINE-E05 architecture evidence before design write-back while specs remain independently ready`
+
+- [ ] DEFINE-E05 — Propose repository-grounded Web/runtime architecture
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/proposal.md, artifact:DEFINE-E04-candidate-requirements, decision:consolidated-shared-understanding-confirmed, risk:runtime-and-packaging-boundary
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.solution-architect`
+  - Dispatch: `required`
+  - Dispatch reason: `the accepted cross-cutting single-package Web, shared-session, security, data, and upstream-absorption boundaries need one repository-grounded architecture proposal before design write-back`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `DEFINE-A01`, `DEFINE-E04`
+  - Decision gate: `accepted consolidated shared understanding`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `N/A`
+  - Scope: `propose bounded technical structure, interfaces, data and call flow, source-import boundaries, impacts, trade-offs, and implementation package candidates grounded in the accepted proposal and current repository`
+  - Forbidden scope: `edits, implementation, dependency/source import, product decisions, acceptance, Board/progress writes, final verdict`
+  - Expected result: `architecture options and recommendation that preserve all accepted decisions and explicitly reconcile current package, runtime, MCP/Agent, media, provenance, and verification seams`
+  - Expected evidence: artifact:DEFINE-E05-architecture-proposal
+  - Acceptance: `ROSE can write design.md without inventing module ownership, process lifecycle, writer-lease, event/API, storage, security, or source-provenance boundaries`
+  - Dispatch evidence: verification:DEFINE-E05-dispatch-1
+  - Result evidence: artifact:DEFINE-E05-interrupted-no-result
+  - Evidence: `pending`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the synchronous architecture job was left unexecuted by graceful shutdown and no Worker output exists; automatic replay is forbidden`
+  - Next action: `continue the unchanged package through fresh DEFINE-E05-R2 after recording its identity`
+
+- [x] DEFINE-E05-R2 — Retry repository-grounded Web/runtime architecture proposal
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/proposal.md, artifact:DEFINE-E04-candidate-requirements, decision:consolidated-shared-understanding-confirmed, risk:runtime-and-packaging-boundary
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `agent:aili.solution-architect`
+  - Dispatch: `required`
+  - Dispatch reason: `the unchanged architecture evidence goal still requires the exact solution-architect owner after the first job became unexecuted during graceful shutdown`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `DEFINE-A01`, `DEFINE-E04`
+  - Decision gate: `accepted consolidated shared understanding`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `N/A`
+  - Scope: `propose bounded technical structure, interfaces, data and call flow, source-import boundaries, impacts, trade-offs, and implementation package candidates grounded in the accepted proposal and current repository`
+  - Forbidden scope: `edits, implementation, dependency/source import, product decisions, acceptance, Board/progress writes, final verdict`
+  - Expected result: `architecture options and recommendation that preserve all accepted decisions and explicitly reconcile current package, runtime, MCP/Agent, media, provenance, and verification seams`
+  - Expected evidence: artifact:DEFINE-E05-R2-architecture-proposal
+  - Acceptance: `ROSE can write design.md without inventing module ownership, process lifecycle, writer-lease, event/API, storage, security, or source-provenance boundaries`
+  - Dispatch evidence: verification:DEFINE-E05-R2-dispatch-1
+  - Result evidence: artifact:DEFINE-E05-R2-architecture-proposal
+  - Evidence: verification:DEFINE-E05-R2-ROSE-inspection
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `resolve the exact Pi 0.84.1 observer and mutation-interception feasibility before design write-back`
+
+- [x] DEFINE-E06 — Verify Pi observer and mutation-interception seams
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: artifact:DEFINE-E05-R2-architecture-proposal, decision:first-writer-session-lease, risk:pi-observer-mode-feasibility, requirement:shared-pi-session-web-runtime
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `agent:aili.code-scout`
+  - Dispatch: `required`
+  - Dispatch reason: `the recommended gateway architecture depends on exact current Pi 0.84.1 hooks for observing or blocking every TUI session mutation without private prototype patches`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `DEFINE-E05-R2`
+  - Decision gate: `accepted first-writer session ownership`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `N/A`
+  - Scope: `inspect official Pi 0.84.1 source, types, docs, and current AILI seams for message, steer, follow-up, compact, model, thinking, fork, branch, tree, session replacement, external JSONL observation, and cancellable lifecycle hooks`
+  - Forbidden scope: `edits, implementation, dependency/source import, product decisions, acceptance, Board/progress writes, runtime execution against user sessions`
+  - Expected result: `feasibility matrix naming public supported seams, uncovered mutations, safe architecture consequences, and owning tests/docs`
+  - Expected evidence: artifact:DEFINE-E06-pi-observer-feasibility
+  - Acceptance: `ROSE can specify a fail-closed single-writer design without claiming unsupported Pi interception or external-session synchronization`
+  - Dispatch evidence: verification:DEFINE-E06-dispatch-1
+  - Result evidence: artifact:DEFINE-E06-pi-observer-feasibility
+  - Evidence: verification:DEFINE-E06-ROSE-inspection
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `resolve the material TUI/Web ownership asymmetry exposed by Pi 0.84.1 before design write-back`
+
+- [x] DEFINE-D01 — Resolve Pi stock-TUI observer asymmetry
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: artifact:DEFINE-E06-pi-observer-feasibility, decision:first-writer-session-lease, risk:pi-observer-mode-feasibility, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/interview.md
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `DEFINE-E06`
+  - Decision gate: `accepted Q4-01 Option A`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `granted for repository-local interview, context, Board, and progress write-back only`
+  - Scope: `present the evidence-backed asymmetry options and record the exact supported TUI/Web ownership behavior`
+  - Forbidden scope: `implementation, dependency/source import, deciding for the user, acceptance inference, BUILD or release actions`
+  - Expected result: `one explicit disposition for stock-TUI attachment while Web owns a session`
+  - Expected evidence: decision:Q4-01-pi-stock-tui-observer-asymmetry
+  - Acceptance: `design and specs can state a behavior that Pi 0.84.1 can enforce without a fork, unsupported private patches, or silent lease weakening`
+  - Dispatch evidence: verification:DEFINE-D01-direct-owner
+  - Result evidence: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/interview.md
+  - Evidence: verification:DEFINE-D01-ROSE-inspection
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `inspect the locked agegr/pi-web source patterns before formal design write-back`
+
+- [x] DEFINE-E07 — Inspect locked pi-web source patterns
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: decision:Q4-01-pi-stock-tui-observer-asymmetry, artifact:DEFINE-E05-R2-architecture-proposal, requirement:pi-web-base, artifact:agegr-pi-web-source-5a53c18ca9328400a3dfb8c48c1e4f343b3e4903
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `agent:aili.web-researcher`
+  - Dispatch: `waived`
+  - Dispatch reason: `the user requested source-level inspection of the exact public pi-web baseline before design write-back`
+  - No-dispatch reason: `DEFINE-E02 established that the exact web-researcher execution profile exposes no public Web tools; ROSE has equivalent read-only public Web capability for this new bounded source-inspection package`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `DEFINE-D01`, `DEFINE-E05-R2`
+  - Decision gate: `accepted Q4-01 Option A and accepted pi-web sole-base boundary`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `granted for read-only inspection of the public pi-web project; repository source import, dependency changes, and external writes remain absent`
+  - Scope: `inspect the exact locked pi-web source for process startup, AgentSession ownership, session JSONL access, API/SSE/event flow, route security, file/path controls, UI composition, and reusable adaptation patterns`
+  - Forbidden scope: `repository source import, dependency or lockfile changes, implementation, external writes, accepting architecture, Board/progress writes outside ROSE, BUILD or release actions`
+  - Expected result: `source-anchored pattern inventory showing what AILI can reuse, what must be adapted, and what cannot satisfy the accepted writer-lease and security contract unchanged`
+  - Expected evidence: artifact:DEFINE-E07-pi-web-source-patterns
+  - Acceptance: `formal design can cite concrete pi-web patterns while preserving official Pi, fail-closed asymmetric attachment, one package, and AILI-owned runtime/API boundaries`
+  - Dispatch evidence: verification:DEFINE-E07-web-capability-waiver
+  - Result evidence: artifact:DEFINE-E07-pi-web-source-patterns
+  - Evidence: verification:DEFINE-E07-ROSE-inspection
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `write formal design and delta specs using the accepted pi-web adaptation pattern`
+
+- [x] DEFINE-A02 — Write formal architecture design
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: artifact:DEFINE-E05-R2-architecture-proposal, artifact:DEFINE-E06-pi-observer-feasibility, artifact:DEFINE-E07-pi-web-source-patterns, decision:Q4-01-pi-stock-tui-observer-asymmetry
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `DEFINE-E05-R2`, `DEFINE-D01`, `DEFINE-E07`
+  - Decision gate: `accepted consolidated understanding and Q4-01 Option A`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `granted for repository-local design.md write only`
+  - Scope: `write the architecture, ownership, data flow, process, lease, security, migration, risk, and source-adaptation decisions`
+  - Forbidden scope: `implementation, dependencies, source import into repository, final test-plan acceptance, BUILD or release actions`
+  - Expected result: `formal design grounded in current repository, exact Pi feasibility, and locked pi-web patterns`
+  - Expected evidence: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/design.md
+  - Acceptance: `design explains how every accepted material boundary is implemented without a Pi fork, daemon, duplicate runtime, or unsafe writer claim`
+  - Dispatch evidence: verification:DEFINE-A02-direct-owner
+  - Result evidence: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/design.md
+  - Evidence: verification:DEFINE-A02-strict-validation
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `use the design with accepted candidate requirements to write the eleven delta specs`
+
+- [x] DEFINE-A03 — Write formal delta capability specs
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/proposal.md, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/design.md, artifact:DEFINE-E04-candidate-requirements, decision:Q4-01-pi-stock-tui-observer-asymmetry
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `DEFINE-A02`, `DEFINE-E04`
+  - Decision gate: `accepted consolidated understanding and Q4-01 Option A`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `granted for repository-local delta spec writes only`
+  - Scope: `write one executable ADDED requirements spec for every proposal capability`
+  - Forbidden scope: `implementation, dependencies, source import, invented upstream command names, final test-plan acceptance, BUILD or release actions`
+  - Expected result: `eleven capability specs with normative requirements and boundary or failure scenarios`
+  - Expected evidence: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/specs
+  - Acceptance: `every proposal capability has a delta spec, every requirement has a scenario, and strict OpenSpec validation passes`
+  - Dispatch evidence: verification:DEFINE-A03-direct-owner
+  - Result evidence: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/specs
+  - Evidence: verification:DEFINE-A03-strict-validation
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `record the accepted repository-local browser and E2E placement, then write tasks and the final test-plan draft`
+
+- [x] DEFINE-D02 — Resolve browser and E2E artifact placement
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: artifact:AGENTS.md, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/interview.md, risk:browser-test-placement
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `DEFINE-A03`
+  - Decision gate: `accepted D-14 Option A`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `granted for repository-local AGENTS.md, interview, context, Board, and progress write-back only`
+  - Scope: `record one project-wide location for browser test source and durable browser evidence`
+  - Forbidden scope: `test implementation, dependency changes, browser install, server startup, BUILD, Git, or release actions`
+  - Expected result: `browser tests under tests/browser and durable browser evidence under artifacts/test-results/browser`
+  - Expected evidence: decision:D-14-browser-e2e-placement
+  - Acceptance: `project rules and formal artifacts name one unambiguous repository-local placement`
+  - Dispatch evidence: verification:DEFINE-D02-direct-owner
+  - Result evidence: artifact:AGENTS.md
+  - Evidence: verification:DEFINE-D02-ROSE-inspection
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `write dependency-ordered tasks and audit them before the final test-plan draft`
+
+- [ ] DEFINE-E08 — Audit the implementation plan
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/design.md, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/specs, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/tasks.md, decision:D-14-browser-e2e-placement
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.plan-auditor`
+  - Dispatch: `required`
+  - Dispatch reason: `the cross-cutting formal implementation plan needs one pre-BUILD gap and conflict audit before final test-plan drafting`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `DEFINE-A03`, `DEFINE-D02`
+  - Decision gate: `accepted consolidated understanding, Q4-01 Option A, and D-14 Option A`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `granted for read-only repository inspection only; no writes, external operations, dependency changes, or runtime execution`
+  - Scope: `audit proposal, design, eleven specs, tasks, context, interview, AGENTS.md, and package.json for conflicts, missing dependencies, acceptance gaps, operation gates, and verification gaps`
+  - Forbidden scope: `edits, implementation, product decisions, acceptance, Board/progress writes, test-plan approval, dependency/source import, Git or release actions`
+  - Expected result: `precise blockers, risks, missing verification, and proposed dispositions before BUILD`
+  - Expected evidence: artifact:DEFINE-E08-plan-audit
+  - Acceptance: `ROSE can repair every material plan gap before writing the final test plan`
+  - Dispatch evidence: verification:DEFINE-E08-dispatch-1
+  - Result evidence: artifact:DEFINE-E08-malformed-plan-audit
+  - Evidence: `pending`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the Worker returned useful readable findings but omitted the exact CANONICAL RESULT prefix, so formal result status is malformed and cannot satisfy the package`
+  - Next action: `dispatch a fresh DEFINE-E08-R2 package with the unchanged audit goal and explicit canonical-result formatting`
+
+- [x] DEFINE-E08-R2 — Retry the implementation plan audit
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/design.md, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/specs, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/tasks.md, artifact:DEFINE-E08-malformed-plan-audit
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `agent:aili.plan-auditor`
+  - Dispatch: `required`
+  - Dispatch reason: `the unchanged pre-BUILD audit goal still needs a formally consumable exact plan-auditor result after the first result was malformed`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `DEFINE-A03`, `DEFINE-D02`
+  - Decision gate: `accepted consolidated understanding, Q4-01 Option A, and D-14 Option A`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `granted for read-only repository inspection only; no writes, external operations, dependency changes, or runtime execution`
+  - Scope: `audit proposal, design, eleven specs, tasks, context, interview, AGENTS.md, and package.json for conflicts, missing dependencies, acceptance gaps, operation gates, and verification gaps`
+  - Forbidden scope: `edits, implementation, product decisions, acceptance, Board/progress writes, test-plan approval, dependency/source import, Git or release actions`
+  - Expected result: `precise blockers, risks, missing verification, and proposed dispositions before BUILD in the exact formal canonical result format`
+  - Expected evidence: artifact:DEFINE-E08-R2-plan-audit
+  - Acceptance: `ROSE can repair every material plan gap before writing the final test plan`
+  - Dispatch evidence: verification:DEFINE-E08-R2-dispatch-1
+  - Result evidence: artifact:DEFINE-E08-R2-plan-audit
+  - Evidence: verification:DEFINE-E08-R2-ROSE-inspection
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `write the final test-plan draft from the repaired formal contract`
+
+- [x] DEFINE-A04 — Write the final test-plan draft
+  - Phase: `DEFINE`
+  - Package kind: `evidence`
+  - Source refs: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/design.md, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/specs, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/tasks.md, artifact:DEFINE-E08-R2-plan-audit, decision:D-14-browser-e2e-placement
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `DEFINE-E08-R2`
+  - Decision gate: `accepted consolidated understanding, Q4-01 Option A, and D-14 Option A`
+  - Final test-plan gate: `N/A`
+  - Implementation authorization: `absent`
+  - Operation permissions: `granted for repository-local test-plan.md and formal Board/progress write-back only`
+  - Scope: `write the executable final test-plan draft with requirement, task, risk, command, artifact, and operation-gate traceability`
+  - Forbidden scope: `test execution, implementation, dependency/source import, inferring plan acceptance, BUILD, Git, publish, or release actions`
+  - Expected result: `one coherent final test-plan draft ready for exact user acceptance`
+  - Expected evidence: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/test-plan.md
+  - Acceptance: `the plan covers every normative capability and material audit risk, distinguishes automated from operation-gated evidence, and leaves acceptance and BUILD authorization explicit`
+  - Dispatch evidence: verification:DEFINE-A04-direct-owner
+  - Result evidence: artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/test-plan.md
+  - Evidence: verification:DEFINE-A04-final-plan-inspection
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `acceptance and BUILD authorization were later granted; execute the dependency-ordered BUILD packages below`
+
+- [ ] BUILD-P01 — Freeze and import exact upstream sources
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `requirement:upstream-source-provenance, verification:BUILD-P01-dispatch-1`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `one bounded source-import and inventory package can establish all five exact locked source boundaries before dependent adaptation`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `DEFINE-A04`
+  - Decision gate: `accepted architecture and source strategy`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted by the user's explicit BUILD instruction for exact repository-local imports from the five already locked public MIT sources; dependency/lockfile mutation, browser/server/package, Git, release, real HOME, and AIcss source copying remain absent`
+  - Scope: `import the exact Pi Web and four extension sources into AILI-owned upstream boundaries, record archive/source locks, preserve licenses, and produce the included/excluded behavior and TUI-entry inventory`
+  - Forbidden scope: `dependency or lockfile edits, AIcss source copying, product decisions, adaptation implementation, Board/progress writes, browser/server/package/Git/release/real-HOME operations`
+  - Expected result: `five exact source snapshots plus a reviewed behavior/source inventory usable by downstream implementation packages`
+  - Expected evidence: `artifact:BUILD-P01-source-import-and-inventory`
+  - Acceptance: `every imported file is traceable to a locked public MIT source and every relevant upstream behavior is dispositioned before adaptation`
+  - Dispatch evidence: `verification:BUILD-P01-dispatch-1`
+  - Result evidence: `artifact:BUILD-P01-malformed-blocked-source-result`
+  - Evidence: `verification:BUILD-P01-ROSE-source-identity-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the Worker returned a malformed formal result and lacked retrieval/hash capabilities; it also surfaced that the git source manifest at the npm gitHead says 0.8.8-beta.2 while the exact npm artifact is 0.8.8`
+  - Next action: `execute fresh BUILD-P01-R2 with the clarified two-artifact Pi Web identity and available exact retrieval/hash capability`
+
+- [x] BUILD-P01-R2 — Import exact sources with clarified Pi Web artifact identity
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:1.1, task:1.2, task:1.3, task:2.1, task:2.1a, task:7.1, task:8.1, task:9.1, task:10.1, verification:BUILD-P01-ROSE-source-identity-inspection`
+  - Accepted task IDs: `1.1, 1.2, 1.3, 2.1, 2.1a, 7.1, 8.1, 9.1, 10.1`
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `waived`
+  - Dispatch reason: `the unchanged exact source-import goal remains implementer-owned`
+  - No-dispatch reason: `the exact implementer lacked public retrieval, hashing, and directory capabilities while ROSE has the required capability; its malformed terminal result cannot be retried automatically`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `DEFINE-A04`
+  - Decision gate: `accepted architecture and clarified evidence that npm 0.8.8 names gitHead 5a53c18 while that source commit retains pre-publish manifest version 0.8.8-beta.2`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for exact read-only retrieval and repository-local import of the five locked public MIT sources; dependency/lockfile, browser/server/package, Git, release, real HOME, and AIcss copying remain absent`
+  - Scope: `retrieve, hash, import, and inventory the exact npm and git source identities; preserve licenses and produce behavior/TUI dispositions`
+  - Forbidden scope: `dependency or lockfile edits, AIcss source copying, adaptation implementation, browser/server/package/Git/release/real-HOME operations, unrelated dirty paths`
+  - Expected result: `five exact source snapshots with explicit npm-artifact versus git-source manifest identity and complete behavior/source inventory`
+  - Expected evidence: `artifact:BUILD-P01-R2-source-import-and-inventory`
+  - Acceptance: `every imported file is traceable to one exact public MIT artifact, the Pi Web version distinction is explicit rather than hidden, and every relevant behavior is dispositioned`
+  - Dispatch evidence: `verification:BUILD-P01-R2-capability-waiver`
+  - Result evidence: `artifact:BUILD-P01-R2-source-import-and-inventory`
+  - Evidence: `verification:validate-web-source-locks, artifact:upstream/web-source-locks.json, artifact:docs/upstream-web-behavior-inventory.md`
+  - ROSE disposition: `accepted`
+  - Blocker: `none`
+  - Next action: `start BUILD-P02 after recording the exact dependency and lockfile mutation authority`
+
+- [ ] BUILD-P02 — Implement Runtime Gateway, lease, security, and process lifecycle
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `verification:BUILD-P02-dispatch-1, risk:interrupted-implementation-worker`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the shared gateway, lease, access security, and foreground process form one dependency-coupled mutation boundary`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P01-R2`
+  - Decision gate: `accepted asymmetric first-writer architecture`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted by the user's explicit autonomous BUILD instruction for exact dependency and lockfile mutation required by locked Pi Web 0.8.8, targeting package.json/package-lock.json with npm install --ignore-scripts and deterministic validation; real server/process, browser, package, Git, release, and real-HOME probes remain absent`
+  - Scope: `add exact Web dependencies, build/package lifecycle, foreground CLI and /web, contracts, gateway, IPC, event/disposition layers, lease, asymmetric session admission, and Web access/path/secret controls`
+  - Forbidden scope: `absorbed service implementations, workbench UI, AI components, Board/progress writes, live server/browser/package/Git/release/real-HOME operations before exact gates`
+  - Expected result: `a package-owned secure foreground Web runtime foundation with deterministic unit/integration evidence`
+  - Expected evidence: `artifact:BUILD-P02-runtime-gateway`
+  - Acceptance: `tasks 2.2–5.4 satisfy their accepted behavior and focused deterministic checks`
+  - Dispatch evidence: `verification:BUILD-P02-dispatch-1`
+  - Result evidence: `artifact:BUILD-P02-aborted-partial-worktree`
+  - Evidence: `verification:BUILD-P02-agent-history-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the synchronous Worker was cancelled before returning a formal result after writing a partial implementation; its exact identity is terminal and cannot be resumed`
+  - Next action: `continue the unchanged accepted tasks through fresh BUILD-P02-R2 using the inherited Parent model`
+
+- [x] BUILD-P02-R2 — Integrate and verify the interrupted Runtime foundation
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:2.3, task:3.1, task:3.5, task:4.1, task:5.1, artifact:BUILD-P02-aborted-partial-worktree, artifact:BUILD-P02-R3-runtime-core, artifact:BUILD-P02-R3-lifecycle-security, artifact:BUILD-P02-R3-focused-tests-r2, verification:BUILD-P02-R2-typecheck, verification:BUILD-P02-R2-focused-matrix, artifact:BUILD-E09-foreground-composition-map`
+  - Accepted task IDs: `2.3, 3.1, 3.5, 4.1, 5.1`
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `waived`
+  - Dispatch reason: `the interrupted Runtime foundation requires ROSE integration after the user-requested parallel specialist split`
+  - No-dispatch reason: `two fresh inherited-model dispatch attempts produced no executable Worker result; ROSE retains the pre-recorded direct integration waiver while exact child packages execute`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-P01-R2`
+  - Decision gate: `accepted asymmetric first-writer architecture`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for exact dependency/lockfile mutation and repository-local deterministic implementation; real server/process, browser, package, Git, release, and real-HOME probes remain absent`
+  - Scope: `integrate the three non-overlapping BUILD-P02-R3 results, inspect all partial and returned files, and select the focused deterministic integration check`
+  - Forbidden scope: `duplicate child implementation, absorbed services, full workbench UI, AI components, live server/browser/package/Git/release/real-HOME operations`
+  - Expected result: `one inspected and verified package-owned secure foreground Web runtime foundation`
+  - Expected evidence: `artifact:BUILD-P02-R2-runtime-gateway`
+  - Acceptance: `the named parallel join is complete, retained primitive tasks 2.3, 3.1, 3.5, 4.1, and 5.1 satisfy accepted behavior, task 2.2 is dependency-linked through BUILD-P02-R4-DEPS, and no partial code is retained without focused inspection`
+  - Dispatch evidence: `verification:BUILD-P02-R2-execution-waiver`
+  - Result evidence: `artifact:BUILD-P02-R2-runtime-gateway`
+  - Evidence: `verification:BUILD-P02-R2-typecheck, verification:BUILD-P02-R2-focused-matrix, verification:BUILD-P02-R2-final-source-inspection`
+  - ROSE disposition: `accepted`
+  - Blocker: `none for retained primitives; BUILD-E09 later invalidated only the production-composition completion claims for tasks transferred to BUILD-P02-R6-COMPOSITION`
+  - Next action: `consume the retained primitives in BUILD-P02-R6-COMPOSITION without treating the earlier static test matrix as production composition evidence`
+
+- [x] BUILD-P02-R4-DEPS — Close the exact locked Pi Web UI dependency graph
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:2.2, artifact:upstream/pi-web-0.8.8/package-lock.json, risk:incomplete-web-build-dependency-graph`
+  - Accepted task IDs: `2.2`
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `waived`
+  - Dispatch reason: `the exact locked Pi Web UI dependency graph must be closed before the source baseline can build`
+  - No-dispatch reason: `the exact implementer profile repeatedly returned command execution unavailable, while this package requires npm install --ignore-scripts to deterministically mutate package-lock.json; ROSE has the exact command capability and existing task 2.2 operation authority`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-P01-R2`
+  - Decision gate: `accepted Pi Web sole-base and exact locked dependency graph`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted under existing task 2.2 authority only for package.json/package-lock.json and npm install --ignore-scripts using the exact versions in upstream/pi-web-0.8.8/package-lock.json; source import, browser/server/package/Git/release/real-HOME operations absent`
+  - Scope: `add the exact resolved UI build/runtime packages actually imported by the locked Pi Web source, update deterministic dependency validation, and regenerate the npm lock without scripts`
+  - Forbidden scope: `Web source adaptation, unrelated dependencies, upstream mutation, browser/server/package/Git/release/real-HOME operations, Board/progress writes outside ROSE`
+  - Expected result: `the root manifest and lock contain one exact Pi Web UI dependency graph sufficient for BUILD-P03`
+  - Expected evidence: `artifact:BUILD-P02-R4-exact-web-dependencies`
+  - Acceptance: `task 2.2 has exact root/lock assertions for all baseline UI imports and no absorbed upstream runtime package dependency`
+  - Dispatch evidence: `verification:BUILD-P02-R4-command-capability-waiver`
+  - Result evidence: `artifact:BUILD-P02-R4-exact-web-dependencies`
+  - Evidence: `verification:BUILD-P02-R4-locked-dependency-validator, verification:BUILD-P02-R4-typecheck, verification:BUILD-P02-R4-package-lifecycle-tests`
+  - ROSE disposition: `accepted`
+  - Blocker: `none; npm reported five audit findings that are not automatically remediated because audit fix would change the exact imported graph and requires a separate dependency/security disposition`
+  - Next action: `dispatch BUILD-P03 against the now-complete exact UI build graph`
+
+- [ ] BUILD-P02-R3-RUNTIME — Complete versioned Runtime contracts and writer core
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `task:3.1, task:3.2, task:3.3, task:3.4, task:3.5, task:4.1, task:4.2, task:4.3`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the runtime contracts, event/disposition journal, official session adapter, RuntimeHost/BFF, JSONL browser, and writer lease form one bounded production core`
+  - No-dispatch reason: `N/A`
+  - Execution: `async`
+  - Join: `J-BUILD-P02-R3`
+  - Depends on: `BUILD-P01-R2`
+  - Decision gate: `accepted asymmetric first-writer architecture`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local deterministic implementation and typecheck; live process/server/browser/package/Git/release/real-HOME operations absent`
+  - Scope: `repair and complete only src/runtime/web runtime-core modules for tasks 3.1–4.3`
+  - Forbidden scope: `access-policy, package/build/CLI/Extension, tests, services, UI, docs, Board/progress, live external operations`
+  - Expected result: `internally coherent versioned Runtime core with safe first-writer behavior`
+  - Expected evidence: `artifact:BUILD-P02-R3-runtime-core`
+  - Acceptance: `owned production files implement explicit epoch, cursor, generation, idempotency, lazy-session, replay/reset/backpressure, and recovery semantics and typecheck within scope`
+  - Dispatch evidence: `verification:BUILD-P02-R3-runtime-dispatch`
+  - Result evidence: `artifact:BUILD-P02-R3-malformed-runtime-core`
+  - Evidence: `verification:BUILD-P02-R3-runtime-source-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the Worker produced useful task-scoped source but its terminal result omitted the exact CANONICAL RESULT prefix; ROSE repaired, integrated, and verified the source under the pre-recorded BUILD-P02-R2 waiver`
+  - Next action: `none; task ownership and completion evidence reside in BUILD-P02-R2`
+
+- [ ] BUILD-P02-R3-LIFECYCLE — Complete foreground lifecycle and Web access security
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `task:2.2, task:2.3, task:2.4, task:2.5, task:4.4, task:5.1, task:5.2, task:5.3, task:5.4`
+  - Accepted task IDs: `none`
+  - Status: `returned`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the package build, foreground CLI, Pi child command, asymmetric startup admission, access policy, path boundary, and secret lifecycle form one non-overlapping process/security boundary`
+  - No-dispatch reason: `N/A`
+  - Execution: `async`
+  - Join: `J-BUILD-P02-R3`
+  - Depends on: `BUILD-P01-R2`
+  - Decision gate: `accepted foreground single-package and asymmetric attachment architecture`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for exact package/lockfile and repository-local implementation; real process/server/browser/package/Git/release/real-HOME operations absent`
+  - Scope: `complete only access-policy, package/build, foreground pi-web, Pi /web, and Extension startup-admission seams for tasks 2.2–5.4`
+  - Forbidden scope: `runtime core other than access-policy, tests, services, UI, docs, Board/progress, live external operations`
+  - Expected result: `deterministic fail-closed foreground lifecycle and access-security implementation`
+  - Expected evidence: `artifact:BUILD-P02-R3-lifecycle-security`
+  - Acceptance: `owned files are foreground/non-detached, fail closed before listen, keep bootstrap identity outside argv, enforce exact access/path/secret controls, and typecheck within scope`
+  - Dispatch evidence: `verification:BUILD-P02-R3-lifecycle-dispatch`
+  - Result evidence: `artifact:BUILD-P02-R3-lifecycle-security`
+  - Evidence: `verification:BUILD-P02-R3-lifecycle-source-inspection, verification:BUILD-P02-R2-typecheck, verification:BUILD-P02-R2-focused-matrix`
+  - ROSE disposition: `accepted`
+  - Blocker: `none; the Worker correctly reported its result partial because it could not execute commands, and ROSE supplied the missing fresh verification`
+  - Next action: `none; integrated by BUILD-P02-R2`
+
+- [ ] BUILD-P02-R3-TESTS — Add focused deterministic Runtime-foundation tests
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `verification:BUILD-P02-focused-test-contract, artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/test-plan.md`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.test-engineer`
+  - Dispatch: `required`
+  - Dispatch reason: `the user requested parallel completion and focused tests have a non-overlapping write scope from both production implementation packages`
+  - No-dispatch reason: `N/A`
+  - Execution: `async`
+  - Join: `J-BUILD-P02-R3`
+  - Depends on: `BUILD-P01-R2`
+  - Decision gate: `accepted BUILD-P02 verification contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local deterministic test files and focused Vitest execution; live process/server/browser/package/Git/release/real-HOME operations absent`
+  - Scope: `write focused unit/static tests for accepted tasks 2.2–5.4 using only owned tests/unit files`
+  - Forbidden scope: `production/package/integration/browser/docs/Board/progress edits and live external operations`
+  - Expected result: `focused deterministic coverage of runtime contracts, event/journal, lease, access, lazy session, host/BFF, JSONL, and static lifecycle seams`
+  - Expected evidence: `artifact:BUILD-P02-R3-focused-tests`
+  - Acceptance: `owned tests target observable accepted contracts without flakes and report any production mismatch precisely`
+  - Dispatch evidence: `verification:BUILD-P02-R3-tests-dispatch`
+  - Result evidence: `artifact:BUILD-P02-R3-tests-preflight-failure`
+  - Evidence: `verification:BUILD-P02-R3-tests-history-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `Agent preflight failed before execution because formal writeScope does not support the tests/unit/web-*.test.ts glob`
+  - Next action: `continue the unchanged test goal through fresh BUILD-P02-R3-TESTS-R2 with explicit file paths`
+
+- [ ] BUILD-P02-R3-TESTS-R2 — Retry focused tests with explicit write paths
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `verification:BUILD-P02-focused-test-contract, artifact:BUILD-P02-R3-tests-preflight-failure`
+  - Accepted task IDs: `none`
+  - Status: `returned`
+  - Owner: `agent:aili.test-engineer`
+  - Dispatch: `required`
+  - Dispatch reason: `the unchanged focused-test goal requires the exact test-engineer owner after the first Agent failed before execution on an unsupported writeScope glob`
+  - No-dispatch reason: `N/A`
+  - Execution: `async`
+  - Join: `J-BUILD-P02-R3`
+  - Depends on: `BUILD-P01-R2`
+  - Decision gate: `accepted BUILD-P02 verification contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for explicit repository-local unit-test paths and focused Vitest execution; live external operations absent`
+  - Scope: `write focused deterministic tests for tasks 2.2–5.4 in the two existing owned files and seven explicit new unit-test files`
+  - Forbidden scope: `production/package/integration/browser/docs/Board/progress edits and live external operations`
+  - Expected result: `focused deterministic Runtime-foundation coverage with explicit path ownership`
+  - Expected evidence: `artifact:BUILD-P02-R3-focused-tests-r2`
+  - Acceptance: `owned tests target observable accepted contracts without flakes and report any production mismatch precisely`
+  - Dispatch evidence: `verification:BUILD-P02-R3-tests-r2-dispatch`
+  - Result evidence: `artifact:BUILD-P02-R3-focused-tests-r2`
+  - Evidence: `verification:BUILD-P02-R2-focused-matrix`
+  - ROSE disposition: `accepted`
+  - Blocker: `none; the Worker correctly reported command execution unavailable and ROSE ran the exact matrix after final integration`
+  - Next action: `none; integrated by BUILD-P02-R2`
+
+- [x] BUILD-P03 — Adapt Pi Web workbench and runtime projections
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `requirement:aili-web-workbench, artifact:BUILD-P03-web-workbench`
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the Pi Web workbench, AILI layout, projections, and media share one Web application boundary`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P02-R2`
+  - Decision gate: `accepted Pi Web sole-base boundary`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local source edits; browser/server/WSL2 probes remain absent until exact task 13.2 or 13.3 gates`
+  - Scope: `adapt the locked Pi Web UI to gateway contracts and add AILI Timeline, layout, runtime/Agent/MCP projections, and Web media behavior`
+  - Forbidden scope: `absorbed Analytics/Stamp/BTW/Worktree services, AI component catalog, Board/progress writes, live browser/server/package/Git/release/real-HOME operations`
+  - Expected result: `gateway-backed Pi Web workbench with deterministic component/API coverage`
+  - Expected evidence: `artifact:BUILD-P03-web-workbench`
+  - Acceptance: `ROSE can integrate the returned scoped Web source and identify any exact repair or cross-boundary ownership gap`
+  - Dispatch evidence: `verification:BUILD-P03-dispatch-1`
+  - Result evidence: `artifact:BUILD-P03-web-workbench`
+  - Evidence: `verification:BUILD-P03-R2-final-source-inspection`
+  - ROSE disposition: `accepted`
+  - Blocker: `none; the same-package continuation ultimately converged both Next configs and added deterministic route-selection assertions, while foreground Runtime composition remains separately owned by BUILD-E09`
+  - Next action: `consume the accepted Worker evidence and fresh verification in BUILD-P03-R2`
+
+- [x] BUILD-P03-R2 — Integrate and converge the returned Web workbench
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:6.1, task:6.2, task:6.3, task:6.4, artifact:BUILD-P03-web-workbench, risk:next-route-config-shadowing`
+  - Accepted task IDs: `6.1, 6.2, 6.3, 6.4`
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `waived`
+  - Dispatch reason: `the unchanged workbench package requires one exact config and route-selection repair after ROSE inspection`
+  - No-dispatch reason: `the exact persistent implementer received two bounded executable same-package continuations but wrote no files and produced no updated result; ROSE has equivalent local edit and deterministic verification capability for the unchanged scope`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-P02-R2`, `BUILD-P02-R4-DEPS`
+  - Decision gate: `accepted Pi Web sole-base boundary`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local Web source/test integration and deterministic typecheck/Vitest; browser/server/WSL2/package/Git/release/real-HOME operations remain absent`
+  - Scope: `integrate the returned BUILD-P03 source, make the effective Next configuration select only TypeScript app routes while preserving accepted standalone/security/runtime settings, add focused deterministic assertions, and verify tasks 6.1–6.4`
+  - Forbidden scope: `foreground Runtime/BFF composition, absorbed services, AI components, dependency/lockfile changes, Board/progress writes outside ROSE, live browser/server/package/Git/release/real-HOME operations`
+  - Expected result: `one deterministically selected gateway-backed TypeScript Pi Web workbench with focused source and contract evidence`
+  - Expected evidence: `artifact:BUILD-P03-R2-web-workbench`
+  - Acceptance: `tasks 6.1–6.4 are source-converged, the placeholder JavaScript app routes cannot be selected, the effective config preserves standalone and no-store/security policy, and focused tests plus typecheck pass`
+  - Dispatch evidence: `verification:BUILD-P03-R2-persistent-agent-capability-waiver`
+  - Result evidence: `artifact:BUILD-P03-R2-web-workbench`
+  - Evidence: `verification:BUILD-P03-R2-typecheck, verification:BUILD-P03-R2-focused-web-matrix, verification:BUILD-P03-R2-final-source-inspection`
+  - ROSE disposition: `accepted`
+  - Blocker: `none for tasks 6.1–6.4; foreground Runtime composition remains separately owned and Unverified under BUILD-E09`
+  - Next action: `dispatch BUILD-E09, then unlock BUILD-P06 against BUILD-P03-R2 rather than the evidence-only predecessor`
+
+- [x] BUILD-E09 — Inspect foreground Runtime/BFF composition gaps
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `risk:foreground-runtime-composition-gap, artifact:BUILD-P02-R2-runtime-gateway, artifact:BUILD-P03-web-workbench, requirement:shared-pi-session-web-runtime`
+  - Accepted task IDs: `none`
+  - Status: `done`
+  - Owner: `agent:aili.code-scout`
+  - Dispatch: `required`
+  - Dispatch reason: `final source inspection exposed a cross-process composition gap spanning the launcher, Next route process, RuntimeHost, BFF, browser authentication, JSONL browsing, and TUI projection observer; exact files and incomplete accepted task ownership must be mapped before repair`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P03-R2`
+  - Decision gate: `accepted foreground gateway architecture and asymmetric writer contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `N/A`
+  - Operation permissions: `granted for read-only repository and installed official Pi/Next source inspection; no server/process/browser/package/Git/real-HOME operations`
+  - Scope: `map the actual foreground process topology, bridge installation reachability, browser session/bootstrap paths, RuntimeHost and read-only JSONL composition, official AgentSession factory seam, TUI projection observer path, readiness contract, owning tests, and exact accepted tasks whose current completion evidence is invalidated`
+  - Forbidden scope: `edits, implementation, product or architecture decisions, dependency changes, Board/progress writes, runtime execution, final verdict`
+  - Expected result: `one evidence-grounded minimal repair boundary with exact files, symbols, task transfers, call paths, tests, constraints, and unresolved material questions`
+  - Expected evidence: `artifact:BUILD-E09-foreground-composition-map`
+  - Acceptance: `ROSE can create one bounded implementation package without fabricating an in-process bridge across separate launcher and Next processes or overlooking authentication/readiness requirements`
+  - Dispatch evidence: `verification:BUILD-E09-dispatch-1`
+  - Result evidence: `artifact:BUILD-E09-foreground-composition-map`
+  - Evidence: `verification:BUILD-E09-ROSE-inspection`
+  - ROSE disposition: `accepted`
+  - Blocker: `none; static topology, unsupported assumptions, invalidated task claims, public Next/Pi seams, exact repair files, and owning tests are mapped`
+  - Next action: `dispatch BUILD-P02-R6-COMPOSITION to the exact implementer with an immediate join`
+
+- [ ] BUILD-P02-R6-COMPOSITION — Complete foreground Runtime and BFF composition
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-E09-foreground-composition-map, risk:shared-write-scope-conflict`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the foreground launcher, Next-process instrumentation, RuntimeHost/BFF composition, authentication, JSONL/session registry, official Pi adapter, projection observer, SSE, readiness, and cleanup form one dependency-coupled runtime boundary`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P02-R2`, `BUILD-P02-R4-DEPS`, `BUILD-P03-R2`, `BUILD-E09`
+  - Decision gate: `accepted foreground gateway architecture, asymmetric writer contract, inherited private channel or owner-only artifact bootstrap boundary, and loopback/non-loopback access policy`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local source and deterministic unit/integration test implementation and execution; dependency/lockfile, live server/process/browser/package/Git/release/real-HOME operations remain absent`
+  - Scope: `attempt the exact foreground composition dispatch after task transfer`
+  - Forbidden scope: `source work after preflight failure, Board/progress writes, live or external operations`
+  - Expected result: `one executable exact-owner implementation job or a precise preflight blocker`
+  - Expected evidence: `artifact:BUILD-P02-R6-dispatch-evidence`
+  - Acceptance: `ROSE knows whether the exact owner can acquire the transferred shared write scope without duplicate work`
+  - Dispatch evidence: `verification:BUILD-P02-R6-dispatch-1`
+  - Result evidence: `artifact:BUILD-P02-R6-shared-scope-conflict`
+  - Evidence: `verification:BUILD-P02-R6-preflight-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `shared-scope preflight failed before execution because terminal P02/P03 Agent identities retained overlapping write leases; no source work or result was produced`
+  - Next action: `continue the unchanged accepted tasks through fresh BUILD-P02-R6-R2 after releasing only terminal runtime leases`
+
+- [ ] BUILD-P02-R6-R2 — Retry foreground Runtime and BFF composition after lease release
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-E09-foreground-composition-map, artifact:BUILD-P02-R6-shared-scope-conflict, artifact:BUILD-P02-R2-runtime-gateway, artifact:BUILD-P03-R2-web-workbench`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the unchanged dependency-coupled foreground composition still requires the exact implementer after the first dispatch failed before execution on stale shared-scope leases`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P02-R2`, `BUILD-P02-R4-DEPS`, `BUILD-P03-R2`, `BUILD-E09`
+  - Decision gate: `accepted foreground gateway architecture, asymmetric writer contract, inherited private channel or owner-only artifact bootstrap boundary, and loopback/non-loopback access policy`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local source and deterministic unit/integration test implementation and execution; dependency/lockfile, live server/process/browser/package/Git/release/real-HOME operations remain absent`
+  - Scope: `compose the existing Runtime primitives inside the Next process through instrumentation; preserve the Pi→launcher→Next foreground topology; hand off one-use identity through inherited private fds; report ready only after listener and BFF/runtime readiness; provide loopback bootstrap and non-loopback password browser sessions; compose official JSONL browsing, RuntimeHost registry, lazy official Pi mutation runtime, allowlisted dispatcher and admission, TUI projection observation, cursor/SSE delivery, heartbeat/release, and deterministic cleanup`
+  - Forbidden scope: `P03 workbench redesign, absorbed Analytics/Stamp/BTW/Worktree services beyond generic capability-denial seams, AI components, dependency/lockfile changes, broad capability advertisement without an implemented dispatcher, Board/progress writes, live server/process/browser/package/Git/release/real-HOME operations`
+  - Expected result: `one reachable fail-closed foreground Runtime/BFF composition whose static and deterministic integration evidence matches the accepted three-process topology`
+  - Expected evidence: `artifact:BUILD-P02-R6-R2-foreground-composition`
+  - Acceptance: `the Next process installs exactly one production bridge before declaring runtime ready; protected routes have reachable browser session bootstrap/login/logout semantics; catalog and opaque handles map to JSONL/RuntimeHost/observer owners; mutation dispatch is exhaustive and deny-by-default; TUI-owned observation stays read-only; Web-owned mutation uses one official Pi runtime; readiness and cleanup cannot report false success; focused deterministic tests and typecheck are available for ROSE verification`
+  - Dispatch evidence: `verification:BUILD-P02-R6-R2-dispatch-1`
+  - Result evidence: `artifact:BUILD-P02-R6-R2-cancelled-no-worker-output`
+  - Evidence: `verification:BUILD-P02-R6-R2-source-and-history-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the exact implementer job was cancelled before a formal Worker result; protected history remains unavailable because the assignment included credential-like bootstrap material, and current source inspection found no usable package-owned result`
+  - Next action: `transfer the unchanged accepted tasks to fresh BUILD-P02-R6-R3 and dispatch the exact implementer once`
+
+- [ ] BUILD-P02-R6-R3 — Complete foreground Runtime and BFF composition after cancelled dispatch
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-E09-foreground-composition-map, artifact:BUILD-P02-R6-R2-cancelled-no-worker-output, artifact:BUILD-P02-R2-runtime-gateway, artifact:BUILD-P03-R2-web-workbench`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the unchanged dependency-coupled foreground composition requires the exact implementer after the prior terminal job was cancelled without a usable result`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P02-R2`, `BUILD-P02-R4-DEPS`, `BUILD-P03-R2`, `BUILD-E09`
+  - Decision gate: `accepted foreground gateway architecture, asymmetric writer contract, inherited private channel or owner-only artifact bootstrap boundary, and loopback/non-loopback access policy`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local source and deterministic unit/integration test implementation and execution; dependency/lockfile, live server/process/browser/package/Git/release/real-HOME operations remain absent`
+  - Scope: `compose the existing Runtime primitives inside the Next process through instrumentation; preserve the Pi→launcher→Next foreground topology; hand off one-use identity through inherited private fds; report ready only after listener and BFF/runtime readiness; provide loopback bootstrap and non-loopback password browser sessions; compose official JSONL browsing, RuntimeHost registry, lazy official Pi mutation runtime, allowlisted dispatcher and admission, TUI projection observation, cursor/SSE delivery, heartbeat/release, and deterministic cleanup`
+  - Forbidden scope: `P03 workbench redesign, absorbed Analytics/Stamp/BTW/Worktree services beyond generic capability-denial seams, AI components, dependency/lockfile changes, broad capability advertisement without an implemented dispatcher, Board/progress writes, live server/process/browser/package/Git/release/real-HOME operations`
+  - Expected result: `one reachable fail-closed foreground Runtime/BFF composition whose static and deterministic integration evidence matches the accepted three-process topology`
+  - Expected evidence: `artifact:BUILD-P02-R6-R3-foreground-composition`
+  - Acceptance: `the Next process installs exactly one production bridge before declaring runtime ready; protected routes have reachable browser session bootstrap/login/logout semantics; catalog and opaque handles map to JSONL/RuntimeHost/observer owners; mutation dispatch is exhaustive and deny-by-default; TUI-owned observation stays read-only; Web-owned mutation uses one official Pi runtime; readiness and cleanup cannot report false success; focused deterministic tests and typecheck are available for ROSE verification`
+  - Dispatch evidence: `verification:BUILD-P02-R6-R3-dispatch-1`
+  - Result evidence: `artifact:BUILD-P02-R6-R3-malformed-partial-result`
+  - Evidence: `verification:BUILD-P02-R6-R3-source-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the Worker wrote one inspectable read-admission repair but its formal result was malformed and command execution plus required regression-test creation were unavailable under the assigned write scope`
+  - Next action: `transfer the unchanged accepted tasks and the inspected partial repair to fresh BUILD-P02-R6-R4 with the explicit existing test path for focused verification`
+
+- [ ] BUILD-P02-R6-R4 — Verify and complete foreground Runtime and BFF composition after partial result
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:2.4, task:2.5, task:3.2, task:3.3, task:3.4, task:4.2, task:4.3, task:4.4, task:5.2, task:5.3, task:5.4, artifact:BUILD-P02-R6-R3-malformed-partial-result, artifact:BUILD-E09-foreground-composition-map, artifact:BUILD-P02-R2-runtime-gateway, artifact:BUILD-P03-R2-web-workbench`
+  - Accepted task IDs: `2.4, 2.5, 3.2, 3.3, 3.4, 4.2, 4.3, 4.4, 5.2, 5.3, 5.4`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the exact foreground composition owner must complete and verify the inspected partial repair with its deterministic regression test`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P02-R2`, `BUILD-P02-R4-DEPS`, `BUILD-P03-R2`, `BUILD-E09`
+  - Decision gate: `accepted foreground gateway architecture, asymmetric writer contract, inherited private channel or owner-only artifact bootstrap boundary, and loopback/non-loopback access policy`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local source and deterministic unit/integration test implementation and execution; dependency/lockfile, live server/process/browser/package/Git/release/real-HOME operations remain absent`
+  - Scope: `complete and verify the existing foreground composition, including its regression that authenticated read-only connect/event/SSE preparation does not acquire a Web writer lease; preserve all R3 scope and bounds`
+  - Forbidden scope: `P03 workbench redesign, absorbed Analytics/Stamp/BTW/Worktree services beyond generic capability-denial seams, AI components, dependency/lockfile changes, broad capability advertisement without an implemented dispatcher, Board/progress writes, live server/process/browser/package/Git/release/real-HOME operations`
+  - Expected result: `one reachable fail-closed foreground Runtime/BFF composition whose static and deterministic integration evidence matches the accepted three-process topology`
+  - Expected evidence: `artifact:BUILD-P02-R6-R4-foreground-composition`
+  - Acceptance: `the Next process installs exactly one production bridge before declaring runtime ready; protected routes have reachable browser session bootstrap/login/logout semantics; catalog and opaque handles map to JSONL/RuntimeHost/observer owners; mutation dispatch is exhaustive and deny-by-default; authenticated read-only paths do not acquire a Web writer lease; TUI-owned observation stays read-only; Web-owned mutation uses one official Pi runtime; readiness and cleanup cannot report false success; focused deterministic tests and typecheck are available for ROSE verification`
+  - Dispatch evidence: `pending`
+  - Result evidence: `pending`
+  - Evidence: `pending`
+  - ROSE disposition: `pending`
+  - Blocker: `the user reaffirmed that Pi Web is deferred; no foreground Pi Web composition or deferred Web parity work may resume without fresh explicit user approval`
+  - Next action: `hold until the user explicitly authorizes Pi Web resumption`
+
+- [ ] BUILD-P04 — Absorb Analytics and Stamp services
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P04-TUI-first-split, decision:D-15-TUI-first-plugin-delivery`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `Analytics and Stamp have independent service and TUI boundaries that should not contend for the sole extension entry`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P05-BTW-R6`
+  - Decision gate: `accepted privacy, retention, timing, and D-15 TUI-first delivery contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `repository-local implementation and deterministic fixtures granted; performance and browser probes remain absent`
+  - Scope: `transfer the original package into sequential Analytics-first and Stamp-second TUI task-execution packages; defer Runtime/API and Web surfaces`
+  - Forbidden scope: `implementation, BTW/Worktree, workbench core, AI components, Board/progress writes, live browser/performance/server/package/Git/release/real-HOME operations`
+  - Expected result: `a valid sequential TUI-first package queue without duplicate accepted-task ownership`
+  - Expected evidence: `artifact:BUILD-P04-TUI-first-split`
+  - Acceptance: `Analytics runs next, Stamp follows its source inspection, and all deferred release parity claims stay explicit`
+  - Dispatch evidence: `pending`
+  - Result evidence: `artifact:BUILD-P04-TUI-first-split`
+  - Evidence: `decision:D-15-TUI-first-plugin-delivery`
+  - ROSE disposition: `accepted`
+  - Blocker: `the original combined implementation package is superseded by the user-accepted TUI-first sequential delivery order`
+  - Next action: `dispatch BUILD-P04-ANALYTICS`
+
+- [ ] BUILD-P04-ANALYTICS — Inspect initial Analytics TUI implementation
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P04-ANALYTICS-worker-result, artifact:upstream/pi-extensions/pi-analytics-0.49.6, decision:D-15-TUI-first-plugin-delivery`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `Analytics is now the next independent user-approved TUI-first capability after BTW`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P05-BTW-R6`
+  - Decision gate: `accepted privacy, retention, and D-15 TUI-first delivery contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local source and deterministic fixtures; performance, browser, server, package, Git, release, and real-HOME operations remain absent`
+  - Scope: `inspect the initial content-free Analytics source, command, focused schema test, and operation/verification gaps`
+  - Forbidden scope: `additional implementation, Board/progress writes, and live or external operations`
+  - Expected result: `precise residual package boundary for the accepted Analytics task transfer`
+  - Expected evidence: `artifact:BUILD-P04-ANALYTICS-worker-result`
+  - Acceptance: `ROSE can transfer tasks 7.2–7.5 without duplicate ownership after identifying the exact persistence and fixture gap`
+  - Dispatch evidence: `verification:BUILD-P04-ANALYTICS-dispatch-1`
+  - Result evidence: `artifact:BUILD-P04-ANALYTICS-worker-result`
+  - Evidence: `verification:BUILD-P04-ANALYTICS-source-inspection, verification:BUILD-P04-ANALYTICS-focused-test, verification:BUILD-P04-ANALYTICS-typecheck-scope-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the Analytics source default writes durable data beneath the Pi agent directory in the user home; current authorization covers repository-local deterministic fixtures only. The schema test passes (15 tests), but append/query/cleanup/corruption/concurrency fixtures are still missing and typecheck is blocked by unrelated src/runtime/web/process-liveness.ts.`
+  - Next action: `D-17 transfers tasks 7.2–7.5 to BUILD-P09 with exact persistence authorization`
+
+- [ ] BUILD-P04-STAMP — Record isolated Stamp dispatch workspace blocker
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P04-STAMP-dispatch-workspace-blocker, decision:D-16-three-plugin-tui-release-preparation`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `Stamp has a bounded source/test integration seam requiring the exact implementer`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P05-BTW-R6`
+  - Decision gate: `accepted timing provenance plus D-15 and D-16 TUI-first delivery contracts`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `no source operation occurred; npm install, dependency/lockfile changes, browser, server, package, Git, release, and real-HOME operations remain absent`
+  - Scope: `record the exact implementer dispatch failure before any Stamp source/test work`
+  - Forbidden scope: `implementation after preflight failure, Board/progress writes, and all live or external operations`
+  - Expected result: `precise no-write workspace blocker for a fresh Stamp package`
+  - Expected evidence: `artifact:BUILD-P04-STAMP-dispatch-workspace-blocker`
+  - Acceptance: `ROSE can create one fresh package that uses the current workspace without an invalid absolute cwd`
+  - Dispatch evidence: `verification:BUILD-P04-STAMP-dispatch-1`
+  - Result evidence: `artifact:BUILD-P04-STAMP-dispatch-workspace-blocker`
+  - Evidence: `verification:BUILD-P04-STAMP-dispatch-workspace-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the exact implementer dispatch failed before execution because the explicit absolute cwd was rejected as outside the formal workspace root; no source or test write occurred`
+  - Next action: `dispatch fresh BUILD-P04-STAMP-R2 without an explicit cwd`
+
+- [ ] BUILD-P04-STAMP-R2 — Record shared-scope dispatch blocker
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P04-STAMP-R2-shared-scope-conflict, artifact:BUILD-P04-STAMP-dispatch-workspace-blocker, decision:D-16-three-plugin-tui-release-preparation`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the exact Stamp owner was retried after the cwd-only failure`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P05-BTW-R6`
+  - Decision gate: `accepted timing provenance plus D-15 and D-16 TUI-first delivery contracts`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `no source operation occurred; npm install, dependency/lockfile changes, browser, server, package, Git, release, and real-HOME operations remain absent`
+  - Scope: `record the shared-workspace preflight failure before any Stamp source/test work`
+  - Forbidden scope: `implementation after preflight failure, Board/progress writes, and all live or external operations`
+  - Expected result: `precise no-write scope blocker for a fresh Stamp package`
+  - Expected evidence: `artifact:BUILD-P04-STAMP-R2-shared-scope-conflict`
+  - Acceptance: `ROSE can retry the unchanged source/test package after releasing only the stale Analytics write lease`
+  - Dispatch evidence: `verification:BUILD-P04-STAMP-R2-dispatch-1`
+  - Result evidence: `artifact:BUILD-P04-STAMP-R2-shared-scope-conflict`
+  - Evidence: `verification:BUILD-P04-STAMP-R2-preflight-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the shared workspace preflight rejected extensions/index.ts because the terminal Analytics implementer retained an overlapping write lease; no Stamp source or test write occurred`
+  - Next action: `release only the terminal Analytics lease and dispatch fresh BUILD-P04-STAMP-R3`
+
+- [ ] BUILD-P04-STAMP-R3 — Inspect returned Stamp TUI source and compile blocker
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P04-STAMP-R3-worker-result, artifact:BUILD-P04-STAMP-R2-shared-scope-conflict, decision:D-16-three-plugin-tui-release-preparation`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the exact Stamp owner completed the source/test attempt after the stale Analytics lease was released`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P05-BTW-R6`
+  - Decision gate: `accepted timing provenance plus D-15 and D-16 TUI-first delivery contracts`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `repository-local source and focused test execution occurred; npm install, dependency/lockfile changes, browser, server, package, Git, release, and real-HOME operations remain absent`
+  - Scope: `inspect the returned Stamp source, unit matrix, and exact compile diagnostics`
+  - Forbidden scope: `additional implementation, Board/progress writes, and all live or external operations`
+  - Expected result: `precise narrow compile-repair boundary`
+  - Expected evidence: `artifact:BUILD-P04-STAMP-R3-worker-result`
+  - Acceptance: `ROSE can transfer only the two Stamp type errors into a fresh exact implementer package while preserving passing focused tests`
+  - Dispatch evidence: `verification:BUILD-P04-STAMP-R3-dispatch-1`
+  - Result evidence: `artifact:BUILD-P04-STAMP-R3-worker-result`
+  - Evidence: `verification:BUILD-P04-STAMP-R3-source-inspection, verification:BUILD-P04-STAMP-R3-focused-test, verification:BUILD-P04-STAMP-R3-typecheck-scope-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the focused Stamp matrix passes (3 tests), but typecheck has two Stamp errors: an unknown completedAt comparison at extensions/stamp/index.ts:80 and a possible undefined entry append at extensions/stamp/index.ts:135; src/runtime/web/process-liveness.ts remains unrelated`
+  - Next action: `dispatch fresh BUILD-P04-STAMP-R4 to repair only those two Stamp type errors`
+
+- [ ] BUILD-P04-STAMP-R4 — Record compile-repair dispatch lease blocker
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P04-STAMP-R4-shared-scope-conflict, verification:BUILD-P04-STAMP-R3-focused-test-and-typecheck, decision:D-16-three-plugin-tui-release-preparation`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `one exact owner was assigned the two bounded Stamp compilation repairs`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P05-BTW-R6`
+  - Decision gate: `accepted timing provenance plus D-15 and D-16 TUI-first delivery contracts`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `no source operation occurred; npm install, dependency/lockfile changes, browser, server, package, Git, release, and real-HOME operations remain absent`
+  - Scope: `record the shared-workspace preflight failure before compile repair source work`
+  - Forbidden scope: `implementation after preflight failure, Board/progress writes, and all live or external operations`
+  - Expected result: `precise no-write scope blocker for direct integration`
+  - Expected evidence: `artifact:BUILD-P04-STAMP-R4-shared-scope-conflict`
+  - Acceptance: `ROSE can use the pre-recorded direct-work waiver for the same two-line repair after the terminal Stamp lease is released`
+  - Dispatch evidence: `verification:BUILD-P04-STAMP-R4-dispatch-1`
+  - Result evidence: `artifact:BUILD-P04-STAMP-R4-shared-scope-conflict`
+  - Evidence: `verification:BUILD-P04-STAMP-R4-preflight-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the terminal Stamp implementer retained both requested write paths, so the fresh exact-owner compile repair preflight failed before source execution`
+  - Next action: `release the terminal Stamp lease and perform the identical two-line repair through pre-waived BUILD-P04-STAMP-R5`
+
+- [x] BUILD-P04-STAMP-R5 — Integrate bounded Stamp compile repair
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:8.2, task:8.3, task:8.4, artifact:BUILD-P04-STAMP-R4-shared-scope-conflict, verification:BUILD-P04-STAMP-R3-focused-test-and-typecheck, decision:D-16-three-plugin-tui-release-preparation`
+  - Accepted task IDs: `8.2, 8.3, 8.4`
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `waived`
+  - Dispatch reason: `the exact implementer owns the accepted Stamp task execution`
+  - No-dispatch reason: `the fresh exact owner retry failed before execution only because the prior terminal Stamp Worker retained the same two write paths; ROSE has a pre-recorded waiver for the identical two-line compile repair and deterministic verification after releasing that terminal lease`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-P05-BTW-R6`
+  - Decision gate: `accepted timing provenance plus D-15 and D-16 TUI-first delivery contracts`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for the two repository-local source fixes and deterministic tests/typecheck; npm install, dependency/lockfile changes, browser, server, package, Git, release, and real-HOME operations remain absent`
+  - Scope: `repair only the unknown completedAt comparison and the possible undefined entry append in extensions/stamp/index.ts; run focused Stamp tests and typecheck; integrate no new feature work`
+  - Forbidden scope: `behavior changes, Analytics/BTW/Worktree, foreground Pi Web, npm install, dependency/lockfile changes, Board/progress writes, Git/release/real-HOME or other live external operations`
+  - Expected result: `accepted retained Stamp Pi TUI behavior with no Stamp-owned typecheck error and fresh focused evidence`
+  - Expected evidence: `artifact:BUILD-P04-STAMP-R5-tui-first`
+  - Acceptance: `tasks 8.2–8.4 retain safe versioned out-of-context timing/provenance and /stamp TUI behavior; focused Stamp tests pass; any remaining typecheck failure is outside Stamp scope`
+  - Dispatch evidence: `verification:BUILD-P04-STAMP-R5-execution-waiver`
+  - Result evidence: `artifact:BUILD-P04-STAMP-R5-tui-first`
+  - Evidence: `verification:BUILD-P04-STAMP-R5-focused-test, verification:BUILD-P04-STAMP-R5-typecheck-scope-inspection`
+  - ROSE disposition: `accepted`
+  - Blocker: `none for the TUI-first Stamp milestone; the focused Stamp matrix passes (3 tests), its two type errors are repaired, and the remaining typecheck failure was the separately authorized D-17 process-liveness repair`
+  - Next action: `mark tasks 8.2–8.4 done and continue D-17 Analytics plus TUI-only package boundary work`
+
+- [ ] BUILD-P09 — Inspect partial D-17 package implementation
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P09-implementer-13-partial-result, decision:D-17-tui-only-package-boundary, verification:BUILD-P04-ANALYTICS-source-inspection`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `D-17 joins the remaining Analytics durable-store verification, the one typecheck repair, and TUI-only package/lock boundary into one dependency-coupled repository-local package`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P04-STAMP-R5`, `BUILD-P05-BTW-R6`
+  - Decision gate: `accepted D-16 three-plugin focus and D-17 persistence/typecheck/TUI-only package boundary`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `repository-local package/source changes occurred; npm install --ignore-scripts and focused command execution remain authorized but were unavailable to the Worker; Web build/runtime, dependency additions, Git, publication, release, and all other user-home operations remain absent`
+  - Scope: `inspect the partial returned source and exact residual implementation/verification boundary`
+  - Forbidden scope: `additional implementation, Board/progress writes, and all live or external operations`
+  - Expected result: `one exact continuation boundary with no task ownership duplication`
+  - Expected evidence: `artifact:BUILD-P09-implementer-13-partial-result`
+  - Acceptance: `ROSE can transfer tasks 2.6, 2.7, and 7.2–7.5 to one fresh implementation package`
+  - Dispatch evidence: `verification:BUILD-P09-dispatch-1`
+  - Result evidence: `artifact:BUILD-P09-implementer-13-partial-result`
+  - Evidence: `verification:BUILD-P09-source-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the Worker removed initial Web package registration and fixed the authorized type narrowing, but command execution and needed Analytics store fixture coverage were unavailable; the package lock is not regenerated and the current package still includes repository-only src/runtime/web plus unneeded Web-origin dependencies`
+  - Next action: `release the terminal worker lease and dispatch BUILD-P09-R2 with explicit fixture/package paths and npm install --ignore-scripts resource`
+
+- [ ] BUILD-P09-R2 — Inspect partial D-17 test/package boundary result
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P09-R2-implementer-14-partial-result, artifact:BUILD-P09-implementer-13-partial-result, decision:D-17-tui-only-package-boundary`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the complete D-17 package required one fresh exact owner after the prior terminal Worker supplied a partial result`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P04-STAMP-R5`, `BUILD-P05-BTW-R6`
+  - Decision gate: `accepted D-16 three-plugin focus and D-17 persistence/typecheck/TUI-only package boundary`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `repository-local test/package edits occurred; npm install --ignore-scripts and focused command execution remain authorized but were unavailable to the Worker; Web build/runtime, dependency additions, Git, publication, release, and all other user-home operations remain absent`
+  - Scope: `inspect the returned Analytics fixture and package boundary tests plus exact residual command/package work`
+  - Forbidden scope: `additional implementation, Board/progress writes, and all live or external operations`
+  - Expected result: `one exact final continuation boundary without task ownership duplication`
+  - Expected evidence: `artifact:BUILD-P09-R2-implementer-14-partial-result`
+  - Acceptance: `ROSE can transfer tasks 2.6, 2.7, and 7.2–7.5 to one command-capable final implementation package`
+  - Dispatch evidence: `verification:BUILD-P09-R2-dispatch-1`
+  - Result evidence: `artifact:BUILD-P09-R2-implementer-14-partial-result`
+  - Evidence: `verification:BUILD-P09-R2-source-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the Worker added the required repository-local Analytics store fixtures and explicit src/runtime/web package exclusion but could not run npm install --ignore-scripts, focused tests, or typecheck; package.json still retains js-yaml, proper-lockfile, remark-frontmatter, and related type packages used only by excluded Web source`
+  - Next action: `dispatch BUILD-P09-R3 to remove the residual Web-only packages, regenerate lock, and run exact verification`
+
+- [x] BUILD-P09-R3 — Finalize D-17 TUI-only package and Analytics verification
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:2.6, task:7.2, task:7.3, task:7.4, task:7.5, artifact:BUILD-P09-R2-implementer-14-partial-result, decision:D-17-tui-only-package-boundary, decision:D-18-retain-pi-web-access`
+  - Accepted task IDs: `2.6, 7.2, 7.3, 7.4, 7.5`
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `waived`
+  - Dispatch reason: `the exact implementation package requires direct command capability to remove residual dependencies, regenerate the lock, and execute its selected verification`
+  - No-dispatch reason: `two successive exact implementers supplied all source/test changes but exposed no command execution; ROSE has the exact D-17 local command capability and will perform only the remaining manifest/lock verification scope`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-P04-STAMP-R5`, `BUILD-P05-BTW-R6`
+  - Decision gate: `accepted D-16 three-plugin focus, D-17 persistence/typecheck/TUI-only package boundary, and D-18 retained Pi TUI web-retrieval capability`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted exactly for package.json/package-lock.json edits, restoring pi-web-access@0.13.0, npm install --ignore-scripts, and focused deterministic tests/typecheck; foreground Web build/runtime, other dependency additions, Git, publication, release, and all user-home operations remain absent`
+  - Scope: `retain exactly pi-web-access@0.13.0 plus its Pi-owned skill resource while removing foreground-Pi-Web-only residual packages from package.json; run exactly npm install --ignore-scripts; inspect the lock; run native integration, package, AnalyticsStore/schema, BTW, Stamp tests and typecheck; make no foreground Web source edits`
+  - Forbidden scope: `Web source deletion or development, foreground Web build/runtime execution, Worktree/AI components, changing non-Web runtime dependencies other than pi-web-access@0.13.0, Git, publication, release, Board/progress writes, and user-home writes`
+  - Expected result: `three TUI capabilities with fresh focused evidence plus an installable foreground-Web-free package; task 2.7 dependency restoration transfers to BUILD-P10 under D-18`
+  - Expected evidence: `artifact:BUILD-P09-R3-tui-only-package-and-analytics`
+  - Acceptance: `tasks 7.2–7.5 and 2.6 are complete; Analytics persists only allowed metadata; no published package foreground Web command/build/Next-React residue remains; global typecheck and focused tests pass`
+  - Dispatch evidence: `verification:BUILD-P09-R3-execution-waiver`
+  - Result evidence: `artifact:BUILD-P09-R3-tui-only-package-and-analytics`
+  - Evidence: `verification:BUILD-P09-R3-npm-install-ignore-scripts, verification:BUILD-P09-R3-focused-plugin-matrix, verification:BUILD-P09-R3-typecheck, verification:BUILD-P09-R3-pack-dry-run`
+  - ROSE disposition: `accepted`
+  - Blocker: `D-18 reopens this completed package only to restore the accidentally removed independent Pi web-retrieval dependency; runtime/API/Web parity and Analytics performance profiling remain deferred`
+  - Next action: `record the D-18 terminal-scope correction in a fresh BUILD-P10 package and restore pi-web-access without restoring foreground Pi Web`
+
+- [ ] BUILD-P10 — Inspect malformed Pi web-retrieval restoration result
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P10-implementer-15-malformed-result, decision:D-18-retain-pi-web-access, artifact:BUILD-P09-R3-tui-only-package-and-analytics`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the exact D-18 package/lock/runtime registration correction is a bounded implementation package with a matching implementer owner`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P09-R3`
+  - Decision gate: `accepted D-18 retained Pi TUI web-retrieval capability`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted exactly for read-only inspection of the malformed result; all subsequent implementation and commands transfer to BUILD-P10-R2`
+  - Scope: `inspect the returned source/test/doc changes and the exact no-command capability blocker without accepting task completion`
+  - Forbidden scope: `additional implementation, package/lock mutation, foreground Pi Web source/build/runtime, Next/React restoration, /web or pi-web command, Worktree/AI components, Git, publication, release, Board/progress writes, and user-home writes`
+  - Expected result: `a precise package transfer boundary after the terminal malformed worker result`
+  - Expected evidence: `artifact:BUILD-P10-implementer-15-malformed-result`
+  - Acceptance: `ROSE can assign task 2.7 only once to a fresh command-capable integration package`
+  - Dispatch evidence: `verification:BUILD-P10-dispatch-1`
+  - Result evidence: `artifact:BUILD-P10-implementer-15-malformed-result`
+  - Evidence: `verification:BUILD-P10-source-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the terminal Worker lacks command execution and returned malformed formal output; package task completion cannot be accepted`
+  - Next action: `transfer task 2.7 to fresh BUILD-P10-R2 under a pre-recorded direct command-capability waiver`
+
+- [x] BUILD-P10-R2 — Finalize retained Pi web-retrieval capability
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:2.7, artifact:BUILD-P10-implementer-15-malformed-result, decision:D-18-retain-pi-web-access`
+  - Accepted task IDs: `2.7`
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `waived`
+  - Dispatch reason: `the exact D-18 package/lock/runtime registration correction is a bounded implementation package with a matching implementer owner`
+  - No-dispatch reason: `the exact implementer returned partial source but no command capability and malformed formal output; ROSE has the D-18 exact local command capability for the unchanged command-dependent remainder`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-P09-R3`
+  - Decision gate: `accepted D-18 retained Pi TUI web-retrieval capability`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted exactly for restoring pi-web-access@0.13.0 in package.json/package-lock.json through npm install --ignore-scripts and repository-local source/test/docs/provenance changes required to truthfully retain the capability; foreground Web build/runtime, other dependency changes, Git, publication, release, and user-home operations remain absent`
+  - Scope: `complete only the installed pi-web-access@0.13.0 package/lock closure, inspect the returned registered integration/docs/tests, generate required provenance, and run selected deterministic verification while preserving the foreground Pi Web exclusion`
+  - Forbidden scope: `foreground Pi Web source/build/runtime, Next/React restoration, /web or pi-web command, Worktree/AI components, unrelated dependency changes, Git, publication, release, Board/progress writes, and user-home writes`
+  - Expected result: `the npm artifact loads the retained Pi web-retrieval integration and skill while remaining foreground-Web-free`
+  - Expected evidence: `artifact:BUILD-P10-R2-retained-web-retrieval`
+  - Acceptance: `pi-web-access@0.13.0 is exact in manifest/lock; extension discovery succeeds; Pi skill registration is present; package tests/provenance/typecheck pass; tarball has no foreground Pi Web paths or commands`
+  - Dispatch evidence: `verification:BUILD-P10-R2-command-capability-waiver`
+  - Result evidence: `artifact:BUILD-P10-R2-retained-web-retrieval`
+  - Evidence: `verification:BUILD-P10-R2-npm-install-ignore-scripts, verification:BUILD-P10-R2-focused-matrix, verification:BUILD-P10-R2-typecheck, verification:BUILD-P10-R2-provenance, verification:BUILD-P10-R2-pack-dry-run`
+  - ROSE disposition: `accepted`
+  - Blocker: `none; foreground Pi Web remains excluded and all unapproved publish/Git/release operations remain absent`
+  - Next action: `inspect release-readiness residuals without publication`
+
+- [ ] SHIP-P11 — Record package-publication workspace conflict
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:SHIP-P11-shared-scope-conflict, decision:D-18-retain-pi-web-access, artifact:BUILD-P10-R2-retained-web-retrieval`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the exact public package version, generated provenance, final package inspection, and npm publication form one bounded release implementation package`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P10-R2`
+  - Decision gate: `accepted user confirmation to publish TUI-only @rosetears/aili-pi@0.2.4`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `read-only inspection of the no-write preflight conflict only; publication task transfers to SHIP-P11-R2`
+  - Scope: `record the no-write shared workspace conflict after the exact implementer dispatch preflight`
+  - Forbidden scope: `version/package/lock/provenance edits, publication, Git/release actions, foreground Pi Web work, Board/progress writes`
+  - Expected result: `a precise no-write blocker for a fresh publication package`
+  - Expected evidence: `artifact:SHIP-P11-shared-scope-conflict`
+  - Acceptance: `ROSE can create a fresh exact package after terminal overlapping leases are released`
+  - Dispatch evidence: `verification:SHIP-P11-dispatch-1`
+  - Result evidence: `artifact:SHIP-P11-shared-scope-conflict`
+  - Evidence: `verification:SHIP-P11-preflight-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the exact Worker preflight failed before work because terminal BUILD-P10 workspace leases overlapped package/provenance paths and deterministic command resources`
+  - Next action: `dispatch fresh SHIP-P11-R2 after releasing terminal leases`
+
+- [ ] SHIP-P11-R2 — Inspect publication-runtime capability blocker
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:SHIP-P11-R2-command-capability-blocker, artifact:SHIP-P11-shared-scope-conflict, decision:D-18-retain-pi-web-access, artifact:BUILD-P10-R2-retained-web-retrieval`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the unchanged exact public package version, generated provenance, final package inspection, and npm publication form one bounded release implementation package`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P10-R2`
+  - Decision gate: `accepted user confirmation to publish TUI-only @rosetears/aili-pi@0.2.4`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `read-only inspection of the no-command capability blocker only; publication task transfers to SHIP-P11-R3`
+  - Scope: `inspect the returned no-write capability blocker without mutating package or registry state`
+  - Forbidden scope: `version/package/lock/provenance edits, publication, Git/release actions, foreground Pi Web work, Board/progress writes`
+  - Expected result: `a precise no-command blocker for direct capability-waived release execution`
+  - Expected evidence: `artifact:SHIP-P11-R2-command-capability-blocker`
+  - Acceptance: `ROSE can perform the unchanged authorized release package directly only after a recorded capability waiver`
+  - Dispatch evidence: `verification:SHIP-P11-R2-dispatch-1`
+  - Result evidence: `artifact:SHIP-P11-R2-command-capability-blocker`
+  - Evidence: `verification:SHIP-P11-R2-source-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the exact implementer lacks shell/npm capability and returned malformed output; no source write or package action occurred`
+  - Next action: `create SHIP-P11-R3 with the same authorized scope and a command-capability waiver`
+
+- [ ] SHIP-P11-R3 — Inspect release-readiness version-fixture blocker
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:SHIP-P11-R3-version-fixture-blocker, artifact:SHIP-P11-R2-command-capability-blocker, decision:D-18-retain-pi-web-access, artifact:BUILD-P10-R2-retained-web-retrieval`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `waived`
+  - Dispatch reason: `the unchanged exact public package version, generated provenance, final package inspection, and npm publication form one bounded release implementation package`
+  - No-dispatch reason: `the exact implementer has no shell/npm capability while ROSE has the exact authorized local command and npm registry capability for the unchanged package`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-P10-R2`
+  - Decision gate: `accepted user confirmation to publish TUI-only @rosetears/aili-pi@0.2.4`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted exactly for the package version/provenance generation and selected non-publishing readiness commands already run; no publication occurred`
+  - Scope: `inspect the failed selected test output after version/provenance preparation and identify the minimum test-fixture repair`
+  - Forbidden scope: `publication, Git/release actions, foreground Pi Web work, other dependency changes, Board/progress writes`
+  - Expected result: `a precise version-fixture repair boundary before any publication`
+  - Expected evidence: `artifact:SHIP-P11-R3-version-fixture-blocker`
+  - Acceptance: `ROSE can transfer task 14.3 to a new package after the stale 0.2.2 expectations are localized`
+  - Dispatch evidence: `verification:SHIP-P11-R3-command-capability-waiver`
+  - Result evidence: `artifact:SHIP-P11-R3-version-fixture-blocker`
+  - Evidence: `verification:SHIP-P11-R3-readiness-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the version preparation and provenance generation succeeded, but three selected assertions still hard-code 0.2.2 in package/provenance tests; no publish command ran`
+  - Next action: `transfer task 14.3 to SHIP-P11-R4 for only the expected-version fixture repair and full readiness retry`
+
+- [ ] SHIP-P11-R4 — Record superseded 0.2.4 release preparation
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:SHIP-P11-R3-version-fixture-blocker, decision:D-18-retain-pi-web-access, artifact:BUILD-P10-R2-retained-web-retrieval`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `waived`
+  - Dispatch reason: `the unchanged release package requires a small deterministic fixture repair plus npm command capability`
+  - No-dispatch reason: `the exact implementer lacks shell/npm capability; ROSE has exact local command capability and the minimal fixture repair is directly necessary to verify the same authorized version`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-P10-R2`
+  - Decision gate: `accepted user confirmation to publish TUI-only @rosetears/aili-pi@0.2.4`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `N/A`
+  - Scope: `record the user correction that supersedes the unexecuted 0.2.4 release preparation`
+  - Forbidden scope: `version/package/lock/provenance edits, publication, Git/release actions, foreground Pi Web work, Board/progress writes`
+  - Expected result: `clear evidence that 0.2.4 was not published and task ownership transfers to 0.2.3`
+  - Expected evidence: `artifact:SHIP-P11-R4-superseded-0.2.4`
+  - Acceptance: `no 0.2.4 publication or release operation is claimed and task 14.3 has one current owner`
+  - Dispatch evidence: `verification:SHIP-P11-R4-execution-waiver`
+  - Result evidence: `artifact:SHIP-P11-R4-superseded-0.2.4`
+  - Evidence: `decision:D-19-publish-0.2.3-and-push-main`
+  - ROSE disposition: `superseded`
+  - Blocker: `the user corrected the requested public version to 0.2.3 and required a main push before publication; 0.2.4 was never published`
+  - Next action: `transfer task 14.3 to SHIP-P11-R5`
+
+- [ ] SHIP-P11-R5 — Commit and push the authorized TUI-only 0.2.3 release to main
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:14.3, decision:D-19-publish-0.2.3-and-push-main, artifact:BUILD-P10-R2-retained-web-retrieval, artifact:SHIP-P11-R4-readiness`
+  - Accepted task IDs: `14.3`
+  - Status: `ready`
+  - Owner: `ROSE`
+  - Dispatch: `forbidden`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `N/A`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `BUILD-P10-R2`
+  - Decision gate: `accepted user correction: use 0.2.3 and push the verified release commit to main before publication`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted exactly for version correction from 0.2.4 to 0.2.3, selected fixture expectation correction, merging origin/main into the current release branch, committing the reviewed release scope, pushing the resulting commit to origin/main, and later publishing @rosetears/aili-pi@0.2.3; tag and Git release remain absent`
+  - Scope: `integrate origin/main with the current TUI-only release tree, retain only the reviewed release scope, commit it, and push to main before npm publication`
+  - Forbidden scope: `tagging, GitHub release creation, foreground Pi Web build/runtime, Next/React restoration, /web or pi-web, Worktree/AI components, unrelated dirty/untracked files, user-home installation`
+  - Expected result: `one verified TUI-only 0.2.3 release commit pushed to main without a tag or release-host mutation`
+  - Expected evidence: `artifact:SHIP-P11-R5-main-push-0.2.3`
+  - Acceptance: `main contains the committed release scope, target remote ref is verified, and unrelated scratch/archive paths are not staged or pushed`
+  - Dispatch evidence: `verification:SHIP-P11-R5-ROSE-git-owner`
+  - Result evidence: `pending`
+  - Evidence: `pending`
+  - ROSE disposition: `pending`
+  - Blocker: `the prior 0.2.4 publication task is superseded by the user's explicit 0.2.3/main correction; publication remains a follow-on exact operation`
+  - Next action: `reconcile version references and merge origin/main into the release branch`
+
+- [ ] BUILD-P05 — Absorb BTW and safe Worktree services
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P05-TUI-first-split`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `BTW and Worktree are independently implementable from Analytics/Stamp and share writer-gated mutation/admission integration`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `none`
+  - Decision gate: `accepted ephemeral-thread, safe Worktree, and D-15 TUI-first delivery contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `repository-local implementation and fake/disposable fixture source granted; real disposable-Git and browser probes remain absent until exact gates`
+  - Scope: `split the original package into BTW-first and optional Worktree TUI-first task-execution packages; defer Runtime/API and Web layers`
+  - Forbidden scope: `implementation, Analytics/Stamp, workbench core, AI components, Board/progress writes, real browser/server/disposable-Git/package/Git/release/real-HOME operations`
+  - Expected result: `a valid D-15 task transfer with one exact BTW owner package followed by an optional Worktree package`
+  - Expected evidence: `artifact:BUILD-P05-TUI-first-split`
+  - Acceptance: `no task has duplicate ownership and the new queue makes Pi Web last without weakening safety or release claims`
+  - Dispatch evidence: `pending`
+  - Result evidence: `artifact:BUILD-P05-TUI-first-split`
+  - Evidence: `decision:D-15-TUI-first-plugin-delivery`
+  - ROSE disposition: `accepted`
+  - Blocker: `the original BTW/Worktree three-layer package is superseded by accepted D-15 TUI-first delivery sequence; task ownership transfers to BTW-first and optional Worktree TUI packages without changing safety boundaries`
+  - Next action: `dispatch BUILD-P05-BTW`
+
+- [ ] BUILD-P05-BTW — Implement retained BTW Pi TUI capability first
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P05-BTW-write-scope-blocker, decision:D-15-TUI-first-plugin-delivery`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `BTW is the user-selected first bounded TUI-first capability and has a clear exact upstream source plus local extension integration seam`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `none`
+  - Decision gate: `accepted ephemeral-thread and D-15 TUI-first delivery contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local source and deterministic tests; provider, server, browser, package, Git, release, and real-HOME operations remain absent`
+  - Scope: `inspect the exact write-path preflight result for the first BTW TUI implementation attempt`
+  - Forbidden scope: `implementation after the write-scope preflight failure, Board/progress writes, live external operations`
+  - Expected result: `precise no-write scope blocker for a fresh exact-owner retry`
+  - Expected evidence: `artifact:BUILD-P05-BTW-write-scope-blocker`
+  - Acceptance: `ROSE can create a fresh exact package with the actual new implementation path`
+  - Dispatch evidence: `verification:BUILD-P05-BTW-dispatch-1`
+  - Result evidence: `artifact:BUILD-P05-BTW-write-scope-blocker`
+  - Evidence: `verification:BUILD-P05-BTW-preflight-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the exact Worker preflight rejected its needed extensions/btw/runtime.ts path before any source or test write occurred`
+  - Next action: `dispatch BUILD-P05-BTW-R2 with extensions/btw/runtime.ts explicitly authorized`
+
+- [ ] BUILD-P05-BTW-R2 — Implement retained BTW Pi TUI capability with exact paths
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P05-BTW-R2-malformed-partial-result, artifact:BUILD-P05-BTW-write-scope-blocker, decision:D-15-TUI-first-plugin-delivery`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the unchanged BTW package requires an exact fresh implementer after the prior write-scope preflight failed with no source execution`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `none`
+  - Decision gate: `accepted ephemeral-thread and D-15 TUI-first delivery contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local source and deterministic tests; provider, server, browser, package, Git, release, and real-HOME operations remain absent`
+  - Scope: `inspect the malformed partial BTW source/test result and establish the remaining bounded implementation gap`
+  - Forbidden scope: `additional implementation, Board/progress writes, live external operations`
+  - Expected result: `precise implementation and verification continuation boundary`
+  - Expected evidence: `artifact:BUILD-P05-BTW-R2-malformed-partial-result`
+  - Acceptance: `ROSE can preserve the inspectable in-memory source while assigning missing actual side-turn execution and command coverage to a fresh exact package`
+  - Dispatch evidence: `verification:BUILD-P05-BTW-R2-dispatch-1`
+  - Result evidence: `artifact:BUILD-P05-BTW-R2-malformed-partial-result`
+  - Evidence: `verification:BUILD-P05-BTW-R2-source-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the Worker wrote inspectable BTW source and unit tests but omitted the required formal canonical prefix; its runtime does not yet execute a selected side model turn`
+  - Next action: `dispatch BUILD-P05-BTW-R3 to complete actual provider-backed side turns and command coverage with a fresh exact owner`
+
+- [ ] BUILD-P05-BTW-R3 — Complete actual BTW side turns and TUI coverage
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P05-BTW-R3-partial-result, artifact:BUILD-P05-BTW-R2-malformed-partial-result, decision:D-15-TUI-first-plugin-delivery`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the user-selected BTW TUI milestone remains incomplete until an independent selected side model can produce a side-thread answer without a main-session mutation`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `none`
+  - Decision gate: `accepted ephemeral-thread and D-15 TUI-first delivery contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local source and deterministic mocked tests; live provider, server, browser, package, Git, release, and real-HOME operations remain absent`
+  - Scope: `inspect partial injected runner source and establish the missing production embedding seam`
+  - Forbidden scope: `additional implementation, Board/progress writes, live external operations`
+  - Expected result: `precise continuation boundary for an actual selected-model TUI runner`
+  - Expected evidence: `artifact:BUILD-P05-BTW-R3-partial-result`
+  - Acceptance: `ROSE can preserve source that is locally testable while transferring missing model-registry execution to a fresh exact package`
+  - Dispatch evidence: `verification:BUILD-P05-BTW-R3-dispatch-1`
+  - Result evidence: `artifact:BUILD-P05-BTW-R3-partial-result`
+  - Evidence: `verification:BUILD-P05-BTW-R3-source-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the injected runner exists only for embeddings; the registered /btw command does not build it from Pi ModelRegistry, so it cannot answer a side question in production`
+  - Next action: `dispatch BUILD-P05-BTW-R4 to bind the selected Pi model to ModelRegistry.complete without altering the main session`
+
+- [ ] BUILD-P05-BTW-R4 — Bind selected Pi model to the actual BTW side-turn runner
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P05-BTW-R4-partial-result, artifact:BUILD-P05-BTW-R3-partial-result, decision:D-15-TUI-first-plugin-delivery`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the actual Pi TUI BTW command must bind the selected model to one independent ModelRegistry completion request while keeping its side state isolated`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `none`
+  - Decision gate: `accepted ephemeral-thread and D-15 TUI-first delivery contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local source and deterministic mocked tests; live provider, server, browser, package, Git, release, and real-HOME operations remain absent`
+  - Scope: `inspect the R4 production runner binding and its focused verification result`
+  - Forbidden scope: `additional implementation, Board/progress writes, live external operations`
+  - Expected result: `precise compilation repair boundary`
+  - Expected evidence: `artifact:BUILD-P05-BTW-R4-partial-result`
+  - Acceptance: `ROSE can transfer only the new compile errors into a fresh exact package while keeping the passing BTW unit matrix`
+  - Dispatch evidence: `verification:BUILD-P05-BTW-R4-dispatch-1`
+  - Result evidence: `artifact:BUILD-P05-BTW-R4-partial-result`
+  - Evidence: `verification:BUILD-P05-BTW-R4-focused-test-and-typecheck`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `focused BTW tests pass, but the R4 source omitted a BtwSideTurnRequest type import and introduced two implicit-any callbacks; typecheck also retains one unrelated pre-existing process-liveness error`
+  - Next action: `dispatch BUILD-P05-BTW-R5 to repair only the three BTW compile errors and rerun focused verification`
+
+- [ ] BUILD-P05-BTW-R5 — Repair BTW production runner compilation
+  - Phase: `BUILD`
+  - Package kind: `evidence`
+  - Source refs: `artifact:BUILD-P05-BTW-R5-malformed-result, artifact:BUILD-P05-BTW-R4-partial-result, decision:D-15-TUI-first-plugin-delivery`
+  - Accepted task IDs: `none`
+  - Status: `blocked`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the accepted BTW TUI implementation requires one narrow exact-owner compile repair before source can be accepted`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `none`
+  - Decision gate: `accepted ephemeral-thread and D-15 TUI-first delivery contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local source and deterministic mocked tests; live provider, server, browser, package, Git, release, and real-HOME operations remain absent`
+  - Scope: `inspect the narrowly repaired BTW source and formal-result defect`
+  - Forbidden scope: `additional implementation, Board/progress writes, live external operations`
+  - Expected result: `a precise integration boundary for task-owner transfer`
+  - Expected evidence: `artifact:BUILD-P05-BTW-R5-malformed-result`
+  - Acceptance: `ROSE can transfer task ownership without discarding the fresh focused test and exact unrelated typecheck evidence`
+  - Dispatch evidence: `verification:BUILD-P05-BTW-R5-dispatch-1`
+  - Result evidence: `artifact:BUILD-P05-BTW-R5-malformed-result`
+  - Evidence: `verification:BUILD-P05-BTW-R5-source-inspection`
+  - ROSE disposition: `needs-follow-up`
+  - Blocker: `the Worker performed the requested narrow repair but again omitted the required formal canonical prefix; the focused BTW matrix passes and typecheck now fails only at unrelated src/runtime/web/process-liveness.ts`
+  - Next action: `transfer accepted BTW task IDs to pre-waived BUILD-P05-BTW-R6 integration`
+
+- [x] BUILD-P05-BTW-R6 — Integrate inspected BTW TUI-first implementation
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:9.2, task:9.3, task:9.4, artifact:BUILD-P05-BTW-R5-malformed-result, verification:BUILD-P05-BTW-R5-focused-test-and-typecheck, decision:D-15-TUI-first-plugin-delivery`
+  - Accepted task IDs: `9.2, 9.3, 9.4`
+  - Status: `done`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `waived`
+  - Dispatch reason: `the exact implementer owns the accepted BTW task execution`
+  - No-dispatch reason: `three successive exact implementation results supplied inspectable source but failed formal result hygiene, while ROSE can perform bounded no-new-source integration and fresh deterministic verification`
+  - Execution: `direct`
+  - Join: `N/A`
+  - Depends on: `none`
+  - Decision gate: `accepted ephemeral-thread and D-15 TUI-first delivery contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `granted for repository-local deterministic inspection and tests; provider, server, browser, package, Git, release, and real-HOME operations remain absent`
+  - Scope: `inspect and integrate the existing BTW TUI-first source, run only focused deterministic verification, and disposition the TUI milestone without new feature work`
+  - Forbidden scope: `new BTW behavior, Runtime/API or Web UI parity, foreground Pi Web work, Analytics/Stamp/Worktree implementation, dependency changes, Board/progress writes outside ROSE, live external operations`
+  - Expected result: `accepted retained BTW Pi TUI capability with fresh focused evidence and explicit typecheck limitation`
+  - Expected evidence: `artifact:BUILD-P05-BTW-R6-tui-first`
+  - Acceptance: `tasks 9.2–9.4 deliver explicit selected-model isolated side answers, isolated steering, explicit previewed editor-only bring-to-main, and process-local cleanup; focused BTW tests pass; any remaining typecheck failure is outside BTW scope`
+  - Dispatch evidence: `verification:BUILD-P05-BTW-R6-execution-waiver`
+  - Result evidence: `artifact:BUILD-P05-BTW-R6-tui-first`
+  - Evidence: `verification:BUILD-P05-BTW-R6-focused-test, verification:BUILD-P05-BTW-R6-typecheck-scope-inspection`
+  - ROSE disposition: `accepted`
+  - Blocker: `none for the TUI-first BTW milestone; Runtime/API/Web parity and live provider behavior remain deferred or unverified`
+  - Next action: `mark tasks 9.2–9.4 done and dispatch BUILD-P04 for Analytics and Stamp TUI-first work`
+
+- [ ] BUILD-P05-WORKTREE — Implement retained Worktree Pi TUI capability when ready
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:10.2, task:10.3, task:10.4, decision:D-15-TUI-first-plugin-delivery, artifact:upstream/pi-extensions/pi-worktree-0.50.0`
+  - Accepted task IDs: `10.2, 10.3, 10.4`
+  - Status: `pending`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `Worktree may follow the user-selected TUI-first capabilities only when it does not delay BTW, Analytics, or Stamp`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P05-BTW`
+  - Decision gate: `accepted safe Worktree and D-15 TUI-first delivery contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `repository-local source and deterministic policy tests granted; real disposable-Git and browser probes remain absent`
+  - Scope: `adapt retained safe Worktree Pi TUI entry points and deterministic policy/preflight behavior without force removal or branch deletion; defer Runtime/API/Web layers`
+  - Forbidden scope: `Analytics/Stamp/BTW, foreground Pi Web, real Git mutations, dependency changes, Board/progress writes, live external operations`
+  - Expected result: `usable safe Worktree Pi TUI behavior with focused deterministic evidence and explicit deferred Runtime/API/Web parity`
+  - Expected evidence: `artifact:BUILD-P05-WORKTREE-tui-first`
+  - Acceptance: `tasks 10.2–10.4 retain safe TUI behavior and no force/branch deletion path; no Web or first-release parity claim is made`
+  - Dispatch evidence: `pending`
+  - Result evidence: `pending`
+  - Evidence: `pending`
+  - ROSE disposition: `pending`
+  - Blocker: `deferred until BTW is inspected and only proceed when it does not delay Analytics or Stamp`
+  - Next action: `reassess after BUILD-P05-BTW`
+
+- [ ] BUILD-P06 — Implement fourteen AI process components
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:11.1, task:11.2, task:11.3, task:11.4, task:11.5, requirement:ai-process-components`
+  - Accepted task IDs: `11.1, 11.2, 11.3, 11.4, 11.5`
+  - Status: `pending`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `the fourteen-category semantic component catalog is a bounded independent Web package after the gateway and workbench exist`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P03-R2`
+  - Decision gate: `accepted no-copy fallback for unclear AIcss redistribution rights`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `repository-local independent implementation granted; AIcss source copying absent; live browser/performance probes absent`
+  - Scope: `independently implement all fourteen semantic categories, one Orb, reduced motion, visibility pausing, bounded scheduling, and private-data redaction`
+  - Forbidden scope: `copying AIcss source, service implementations, gateway changes beyond required event projections, Board/progress writes, live browser/performance/package/Git/release/real-HOME operations`
+  - Expected result: `complete accessible independent AI-process component catalog`
+  - Expected evidence: `artifact:BUILD-P06-ai-components`
+  - Acceptance: `tasks 11.1–11.4 pass focused semantic/privacy/accessibility checks; task 11.5 remains gated until BUILD-P08`
+  - Dispatch evidence: `pending`
+  - Result evidence: `pending`
+  - Evidence: `pending`
+  - ROSE disposition: `pending`
+  - Blocker: `none after BUILD-P03`
+  - Next action: `dispatch after BUILD-P03 inspection, potentially parallel with documentation`
+
+- [ ] BUILD-P07 — Complete provenance and documentation
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:12.1, task:12.2, task:12.3, task:12.4`
+  - Accepted task IDs: `12.1, 12.2, 12.3, 12.4`
+  - Status: `pending`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `required`
+  - Dispatch reason: `provenance generators, package docs, operator guidance, and the detailed design form one bounded post-integration documentation package`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P01-R2`, `BUILD-P03-R2`, `BUILD-P04`, `BUILD-P05`
+  - Decision gate: `accepted source, ownership, security, and migration contract`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `repository-local canonical source/generator and documentation edits granted; package/Git/release/real-HOME operations absent`
+  - Scope: `generalize provenance/SBOM validation and update metadata, notices, licenses, README, doctor, operator guidance, migration/rollback, and the detailed Web UI design`
+  - Forbidden scope: `feature implementation outside evidence-linked fixes, Board/progress writes, package/Git/publish/release/real-HOME operations`
+  - Expected result: `consistent provenance, package metadata, documentation, and migration guidance`
+  - Expected evidence: `artifact:BUILD-P07-provenance-docs`
+  - Acceptance: `tasks 12.1–12.4 satisfy generated validation and no formal/human documentation contradiction remains`
+  - Dispatch evidence: `pending`
+  - Result evidence: `pending`
+  - Evidence: `pending`
+  - ROSE disposition: `pending`
+  - Blocker: `none after service/workbench package inspection`
+  - Next action: `dispatch with BUILD-P06 when dependencies are ready`
+
+- [ ] BUILD-P08 — Verify integrated package and complete BUILD boundary
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `task:13.1, task:13.2, task:13.3, task:13.4, task:13.5, task:13.6, task:14.1, task:14.2`
+  - Accepted task IDs: `13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 14.1, 14.2`
+  - Status: `pending`
+  - Owner: `agent:aili.test-engineer`
+  - Dispatch: `required`
+  - Dispatch reason: `the accepted browser, process, package, convergence, and completion evidence is one final QA package after all implementation joins`
+  - No-dispatch reason: `N/A`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P04`, `BUILD-P05`, `BUILD-P06`, `BUILD-P07`
+  - Decision gate: `accepted completion criteria`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `browser install/run, real process/server, performance, disposable-Git, tarball/install probes pending exact recorded authorization; Git/publish/release/real-HOME remain absent`
+  - Scope: `implement and run focused verification, exact browser/process/package probes when authorized, full automated suite after focused checks, convergence matrix, and task-scoped final evidence collection`
+  - Forbidden scope: `unrelated feature work, Board/progress writes, commit/push/tag/publish/release/real-HOME installation`
+  - Expected result: `fresh traceability-backed evidence for BUILD completion or exact blockers/Unverified limits`
+  - Expected evidence: `artifact:BUILD-P08-verification`
+  - Acceptance: `tasks 13.1–14.2 have fresh evidence, every accepted task is dispositioned, and no release action is inferred`
+  - Dispatch evidence: `pending`
+  - Result evidence: `pending`
+  - Evidence: `pending`
+  - ROSE disposition: `pending`
+  - Blocker: `operation-specific probes require exact authorization before execution`
+  - Next action: `join implementation packages, record operation gates, then dispatch exact aili.test-engineer owner`

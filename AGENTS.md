@@ -17,8 +17,8 @@ Do not copy broad global operating rules into this file unless this project inte
 - Package manager: npm with a committed `package-lock.json` once commit approval is granted.
 - Main application entry points: `extensions/index.ts` is the single Pi Extension entry; `install.sh` and `scripts/bootstrap.sh` implement the thin Linux-only bootstrap.
 - Main test framework: Vitest `4.1.9`; the accepted verification interfaces are recorded in `openspec/changes/create-aili-pi-distribution/test-plan.md`.
-- Important directories: `openspec/changes/create-aili-pi-distribution/` owns the active change contract; `.opencode/` contains local OpenSpec integration state.
-- Generated/build output directories: Not established.
+- Important directories: `openspec/changes/integrate-pi-web-ui-and-upstream-extensions/` owns the current DEFINE contract; previously accepted change-local contracts remain evidence for their own scope. `.opencode/` contains local OpenSpec integration state.
+- Generated/build output directories: Existing package-generated outputs remain governed by their generators; the planned Web build output location will be established by the accepted current change during authorized BUILD.
 - Deployment/runtime environment: Official Pi on Linux. macOS and native Windows are explicitly outside the current change.
 
 ## Setup Commands
@@ -46,11 +46,11 @@ Do not copy broad global operating rules into this file unless this project inte
 
 ## Project-Specific Rules
 
-- Treat `openspec/changes/create-aili-pi-distribution/` as the accepted contract for the current BUILD.
+- Treat `openspec/changes/integrate-pi-web-ui-and-upstream-extensions/` as the current DEFINE contract. It does not become a BUILD contract until its final `test-plan.md` is explicitly accepted and implementation is separately authorized.
 - Do not add a replacement `pi`, `aili`, or `omp` agent CLI, a Pi fork, theme implementation, native Windows support, or an OS-sandbox claim in this change.
 - Shared skill bodies are owned only by `aili-workflows`; this repository may contain only an exact pinned snapshot and Pi-owned adapters, manifests, and evidence.
 - Dependency/lockfile changes, `aili-workflows` attachment or writes, commit, push, publish, and release require separate exact approval.
-- Keep BUILD progress in `openspec/changes/create-aili-pi-distribution/progress.txt`; use `drift-log.md` only for actual spec drift, trade-offs, unresolved assumptions, or required DEFINE write-back.
+- Keep formal progress in the active change's `progress.txt`; use that change's `drift-log.md` only for actual spec drift, trade-offs, unresolved assumptions, or required DEFINE write-back.
 
 ## Project-Specific Testing and Artifact Placement
 
@@ -58,10 +58,10 @@ Do not copy broad global operating rules into this file unless this project inte
 - Integration tests: Place under `tests/integration/`.
 - CLI tests: Place bootstrap and Pi command fixtures under `tests/bootstrap/`.
 - API / contract tests: Place Pi Extension/runtime contract tests under `tests/integration/`.
-- GUI / browser / Playwright tests: Not part of the current accepted change.
+- GUI / browser / Playwright tests: Place under `tests/browser/`.
 - Test fixtures: Place under `tests/fixtures/`, including disposable HOME and fault-injection fixtures.
 - Snapshots / golden files: Place under `tests/fixtures/snapshots/` only when a focused test requires stable human/JSON output evidence.
-- Test reports / traces / screenshots: Place durable reports under `artifacts/test-results/`; do not commit secrets or raw credential-bearing logs.
+- Test reports / traces / screenshots: Place durable browser reports, traces, and screenshots under `artifacts/test-results/browser/`; place other durable reports under `artifacts/test-results/`; do not commit secrets or raw credential-bearing logs.
 - Temporary test output: Use ignored repository-local `.tmp/` and remove only task-owned scratch output.
 
 Rules:

@@ -1,0 +1,1457 @@
+[2026-08-12T17:10:52Z] BOARD BOARD_CREATED
+evidence=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/formal-task-board.md
+disposition=pending
+blocker=upstream and local evidence, material architecture decisions, formal artifacts, and final test-plan acceptance remain pending
+next_action=dispatch DEFINE-E01 and DEFINE-E02 to their exact read-only owners
+
+[2026-08-12T17:10:53Z] DEFINE-E01 READY
+evidence=artifact:AILI Web UI 详细设计与实施方案.md
+disposition=pending
+blocker=clear-for-read-only-dispatch
+next_action=dispatch exact aili.doc-researcher owner
+
+[2026-08-12T17:10:54Z] DEFINE-E02 READY
+evidence=risk:upstream-license-and-compatibility
+disposition=pending
+blocker=clear-for-public-read-only-dispatch
+next_action=dispatch exact aili.web-researcher owner
+
+[2026-08-12T17:13:01Z] DEFINE-E02 DISPATCHED
+evidence=verification:DEFINE-E02-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the immediate web-researcher result
+
+[2026-08-12T17:14:01Z] DEFINE-E02 RETURNED
+evidence=artifact:DEFINE-E02-web-capability-blocker
+disposition=needs-follow-up
+blocker=the exact web-researcher execution profile exposes no public web-search or fetch tools
+next_action=record a new bounded continuation package and its direct-work waiver before duplicate evidence collection
+
+[2026-08-12T17:14:02Z] DEFINE-E02 BLOCKED
+evidence=artifact:DEFINE-E02-web-capability-blocker
+disposition=needs-follow-up
+blocker=the exact web-researcher execution profile exposes no public web-search or fetch tools
+next_action=continue the unchanged evidence goal through DEFINE-E02-R2 under a pre-recorded waiver
+
+[2026-08-12T17:14:03Z] DEFINE-E02-R2 READY
+evidence=artifact:DEFINE-E02-web-capability-blocker
+disposition=pending
+blocker=exact Agent capability is unavailable and ROSE has equivalent bounded public Web tools
+next_action=record the waiver before ROSE begins direct evidence collection
+
+[2026-08-12T17:14:04Z] DEFINE-E02-R2 WAIVED
+evidence=verification:DEFINE-E02-R2-web-capability-waiver
+disposition=pending
+blocker=the exact web-researcher profile lacks Web tools and ROSE has equivalent read-only public Web capability for the unchanged evidence goal
+next_action=ROSE retrieves bounded official upstream evidence without repository writes or installs
+
+[2026-08-12T17:14:05Z] DEFINE-E01 READY
+evidence=artifact:AILI Web UI 详细设计与实施方案.md
+disposition=pending
+blocker=clear-for-one-fresh-unchanged-format-retry
+next_action=dispatch exact aili.doc-researcher owner once more
+
+[2026-08-12T17:14:06Z] DEFINE-E01 DISPATCHED
+evidence=verification:DEFINE-E01-format-retry-2
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the immediate documentation-researcher format retry
+
+[2026-08-12T17:15:00Z] DEFINE-E01 RETURNED
+evidence=artifact:DEFINE-E01-local-document-evidence
+disposition=pending
+blocker=clear-readable-canonical-result
+next_action=ROSE inspects local ownership and boundary evidence
+
+[2026-08-12T17:15:01Z] DEFINE-E01 INSPECTED
+evidence=verification:DEFINE-E01-ROSE-inspection
+disposition=accepted
+blocker=local evidence is complete and its upstream limits remain delegated to DEFINE-E02-R2
+next_action=mark DEFINE-E01 done
+
+[2026-08-12T17:15:02Z] DEFINE-E01 DONE
+verification=artifact:DEFINE-E01-local-document-evidence
+disposition=accepted
+blocker=local ownership, current-runtime boundary, conflict, and revision-point evidence is complete
+next_action=consume it in DEFINE-E03 after upstream evidence completes
+
+[2026-08-12T17:18:00Z] DEFINE-E02-R2 INSPECTED
+evidence=verification:DEFINE-E02-R2-ROSE-inspection
+disposition=accepted
+blocker=official GitHub, raw source, npm registry, and AIcss evidence is complete for architecture disposition
+next_action=mark DEFINE-E02-R2 done
+
+[2026-08-12T17:18:01Z] DEFINE-E02-R2 DONE
+verification=artifact:DEFINE-E02-R2-upstream-evidence
+disposition=accepted
+blocker=upstream identity, license, version, capability, and integration evidence is complete
+next_action=resolve the AIcss licensed-component decision before revising the accepted architecture
+
+[2026-08-12T17:40:00Z] DEFINE-E03 READY
+evidence=artifact:DEFINE-EVIDENCE-JOIN
+verification=verification:DEFINE-E01-ROSE-inspection, verification:DEFINE-E02-R2-ROSE-inspection
+disposition=pending
+blocker=clear-for-ROSE-evidence-integration-and-requirements-grilling
+next_action=record the user-selected AIcss strategy and identify the next dependency-ready architecture decision
+
+[2026-08-12T17:40:01Z] DEFINE-E03 BLOCKED
+evidence=decision:D-01-AIcss-source-strategy-conditional
+verification=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/interview.md
+disposition=needs-follow-up
+blocker=requirements-grilling is BLOCKED_FOR_CLARIFICATION on the Web UI package/release boundary
+next_action=ask and persist one dependency-ordered package-boundary decision
+
+[2026-08-12T17:55:00Z] DEFINE-E03 UNBLOCKED
+verification=decision:D-02-single-package-boundary-accepted
+disposition=needs-follow-up
+blocker=the prior Web UI package/release boundary blocker is resolved by selecting the existing @rosetears/aili-pi package
+next_action=recompute the user-invoked Frontier Batch Round 1
+
+[2026-08-12T17:55:01Z] DEFINE-E03 BLOCKED
+evidence=decision:D-02-single-package-boundary-accepted
+verification=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/interview.md
+disposition=needs-follow-up
+blocker=requirements-grilling Frontier Batch Round 1 awaits absorption, startup, retention, and upstream-source-strategy answers
+next_action=collect and persist Frontier Batch Round 1 answers, then recompute the next decision frontier
+
+[2026-08-12T18:10:00Z] DEFINE-E03 UNBLOCKED
+verification=decision:D-03-D-04-D-06-accepted
+disposition=needs-follow-up
+blocker=the prior Frontier Batch Round 1 blocker is partially resolved; analytics retention moved to awaiting-confirmation after explanation
+next_action=recompute Frontier Batch Round 2 from accepted absorption and startup boundaries
+
+[2026-08-12T18:10:01Z] DEFINE-E03 BLOCKED
+evidence=decision:D-03-D-04-D-06-accepted
+verification=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/interview.md
+disposition=needs-follow-up
+blocker=requirements-grilling Frontier Batch Round 2 awaits analytics-retention confirmation plus session-concurrency, remote-access, and first-release-completeness answers
+next_action=collect and persist Frontier Batch Round 2 answers, then recompute the next decision frontier
+
+[2026-08-12T18:25:00Z] DEFINE-E03 UNBLOCKED
+verification=decision:D-05-D-07-D-08-D-09-accepted
+disposition=needs-follow-up
+blocker=the prior Frontier Batch Round 2 blocker is resolved by accepted retention, writer ownership, remote access, and first-release completeness decisions
+next_action=recompute Frontier Batch Round 3 from the newly accepted boundaries
+
+[2026-08-12T18:25:01Z] DEFINE-E03 BLOCKED
+evidence=decision:D-05-D-07-D-08-D-09-accepted
+verification=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/interview.md
+disposition=needs-follow-up
+blocker=requirements-grilling Frontier Batch Round 3 awaits lease-recovery, Web-server-lifetime, analytics-attribution, and AIcss-fallback answers
+next_action=collect and persist Frontier Batch Round 3 answers, then recompute the next decision frontier
+
+[2026-08-12T18:40:00Z] DEFINE-E03 UNBLOCKED
+verification=decision:D-10-D-11-D-12-D-13-accepted
+disposition=needs-follow-up
+blocker=the prior Frontier Batch Round 3 decisions are resolved and D-11 Option A supersedes the immediately prior Option B response
+next_action=present the consolidated shared understanding for explicit confirmation
+
+[2026-08-12T18:40:01Z] DEFINE-E03 BLOCKED
+evidence=decision:D-10-D-11-D-12-D-13-accepted
+verification=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/interview.md
+disposition=needs-follow-up
+blocker=requirements-grilling awaits explicit user confirmation of the consolidated shared understanding before DEFINE write-back
+next_action=obtain shared-understanding confirmation, mark requirements-grilling READY, and write accepted decisions into owning DEFINE artifacts
+
+[2026-08-12T18:41:00Z] DEFINE-E03 UNBLOCKED
+verification=decision:consolidated-shared-understanding-confirmed
+disposition=accepted
+blocker=the user explicitly confirmed the complete current product understanding
+next_action=inspect and persist the requirements-grilling READY state
+
+[2026-08-12T18:41:01Z] DEFINE-E03 INSPECTED
+evidence=verification:DEFINE-E03-confirmed-shared-understanding
+disposition=accepted
+blocker=all current material product decisions are coherent and no product frontier remains open
+next_action=mark DEFINE-E03 done and continue formal DEFINE artifact creation
+
+[2026-08-12T18:41:02Z] DEFINE-E03 DONE
+verification=verification:DEFINE-E03-confirmed-shared-understanding
+disposition=accepted
+blocker=requirements-grilling is READY while final test-plan acceptance and implementation authorization remain pending
+next_action=create the formal proposal, design, delta specs, tasks, revised local design, and final test plan
+
+[2026-08-12T18:42:00Z] DEFINE-E04 READY
+evidence=verification:DEFINE-E04-dependencies-and-decisions-current
+disposition=pending
+blocker=clear-for-read-only-spec-miner-dispatch
+next_action=dispatch the exact aili.spec-miner owner with an immediate join
+
+[2026-08-12T18:43:00Z] DEFINE-E04 DISPATCHED
+evidence=verification:DEFINE-E04-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the immediate aili.spec-miner result
+
+[2026-08-12T18:43:01Z] DEFINE-E04 RETURNED
+evidence=artifact:DEFINE-E04-candidate-requirements
+disposition=pending
+blocker=clear-readable-canonical-result
+next_action=ROSE inspects candidate capabilities, requirements, conflicts, and traceability anchors
+
+[2026-08-12T18:43:02Z] DEFINE-E04 INSPECTED
+evidence=verification:DEFINE-E04-ROSE-inspection
+disposition=accepted
+blocker=candidate requirements preserve D-01 through D-13 and correctly keep Analytics profiling, exact lease timing, media overlap, AIcss rights, and final API schemas outside current fact claims
+next_action=mark DEFINE-E04 done
+
+[2026-08-12T18:43:03Z] DEFINE-E04 DONE
+verification=artifact:DEFINE-E04-candidate-requirements
+disposition=accepted
+blocker=the candidate capability and requirement inventory is sufficient for proposal and spec drafting
+next_action=ROSE writes the formal proposal using accepted decisions and the mined capability inventory
+
+[2026-08-12T18:44:00Z] DEFINE-A01 READY
+evidence=verification:DEFINE-A01-dependencies-and-decisions-current
+disposition=pending
+blocker=clear-for-ROSE-proposal-write
+next_action=write proposal.md and inspect it against the confirmed interview and candidate inventory
+
+[2026-08-12T18:44:01Z] DEFINE-A01 INSPECTED
+evidence=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/proposal.md
+disposition=accepted
+blocker=the proposal matches confirmed scope and OpenSpec reports proposal done; strict validation correctly remains non-pass until delta specs exist
+next_action=mark DEFINE-A01 done
+
+[2026-08-12T18:44:02Z] DEFINE-A01 DONE
+verification=verification:DEFINE-A01-openspec-proposal-status
+disposition=accepted
+blocker=proposal is dependency-valid and design/specs are unlocked
+next_action=use the accepted proposal to begin independent design and specs work
+
+[2026-08-12T18:45:00Z] DEFINE-E05 READY
+evidence=verification:DEFINE-E05-dependencies-and-decisions-current
+disposition=pending
+blocker=clear-for-read-only-solution-architect-dispatch
+next_action=dispatch the exact aili.solution-architect owner with an immediate join
+
+[2026-08-12T23:31:00Z] DEFINE-E05 DISPATCHED
+evidence=verification:DEFINE-E05-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the immediate solution-architect result
+
+[2026-08-12T23:31:01Z] DEFINE-E05 BLOCKED
+evidence=artifact:DEFINE-E05-interrupted-no-result
+disposition=needs-follow-up
+blocker=the synchronous architecture job was left unexecuted by graceful shutdown and no Worker output exists; automatic replay is forbidden
+next_action=continue the unchanged package through fresh DEFINE-E05-R2 after recording its identity
+
+[2026-08-12T23:31:02Z] DEFINE-E05-R2 READY
+evidence=verification:DEFINE-E05-R2-dependencies-and-decisions-current
+disposition=pending
+blocker=clear-for-fresh-read-only-solution-architect-dispatch
+next_action=dispatch a fresh exact aili.solution-architect job with an immediate join
+
+[2026-08-12T23:32:00Z] DEFINE-E05-R2 DISPATCHED
+evidence=verification:DEFINE-E05-R2-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the immediate solution-architect result
+
+[2026-08-12T23:32:01Z] DEFINE-E05-R2 RETURNED
+evidence=artifact:DEFINE-E05-R2-architecture-proposal
+disposition=pending
+blocker=clear-readable-canonical-result
+next_action=ROSE inspects architecture options, recommendation, impacts, risks, and unclear items
+
+[2026-08-12T23:32:02Z] DEFINE-E05-R2 INSPECTED
+evidence=verification:DEFINE-E05-R2-ROSE-inspection
+disposition=accepted
+blocker=Option 2 is repository-grounded and preserves accepted boundaries, but exact Pi observer and mutation-interception support remains a dependency for design claims
+next_action=mark DEFINE-E05-R2 done and dispatch DEFINE-E06
+
+[2026-08-12T23:32:03Z] DEFINE-E05-R2 DONE
+verification=artifact:DEFINE-E05-R2-architecture-proposal
+disposition=accepted
+blocker=architecture evidence is sufficient except for the explicitly separated Pi observer feasibility dependency
+next_action=resolve the exact Pi 0.84.1 observer and mutation-interception feasibility before design write-back
+
+[2026-08-12T23:32:04Z] DEFINE-E06 READY
+evidence=verification:DEFINE-E06-dependencies-and-decisions-current
+disposition=pending
+blocker=clear-for-read-only-code-scout-dispatch
+next_action=dispatch the exact aili.code-scout owner with an immediate join
+
+[2026-08-12T23:33:00Z] DEFINE-E06 DISPATCHED
+evidence=verification:DEFINE-E06-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the immediate code-scout result
+
+[2026-08-12T23:33:01Z] DEFINE-E06 RETURNED
+evidence=artifact:DEFINE-E06-pi-observer-feasibility
+disposition=pending
+blocker=clear-readable-canonical-result
+next_action=ROSE inspects the mutation feasibility matrix and architecture consequences
+
+[2026-08-12T23:33:02Z] DEFINE-E06 INSPECTED
+evidence=verification:DEFINE-E06-ROSE-inspection
+disposition=accepted
+blocker=stock Pi TUI has no universal public mutation gate or live external-JSONL observer seam; safe first-writer behavior requires one gateway-owned AgentSession or fail-closed exclusion of ungated observers
+next_action=mark DEFINE-E06 done
+
+[2026-08-12T23:33:03Z] DEFINE-E06 DONE
+verification=artifact:DEFINE-E06-pi-observer-feasibility
+disposition=accepted
+blocker=feasibility is resolved for design by making gateway ownership and stock-TUI exclusion an explicit fail-closed precondition
+next_action=write design.md with a fail-closed gateway feasibility gate that excludes ungated stock-TUI observer mode
+
+[2026-08-12T23:34:00Z] DEFINE-D01 READY
+evidence=artifact:DEFINE-E06-pi-observer-feasibility
+disposition=pending
+blocker=clear-for-ROSE-material-decision-presentation
+next_action=record the material evidence delta and ask Q4-01
+
+[2026-08-12T23:34:01Z] DEFINE-D01 BLOCKED
+evidence=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/interview.md
+disposition=needs-follow-up
+blocker=the user must choose fail-closed asymmetric attachment, a replacement TUI scope expansion, or an upstream Pi capability gate
+next_action=ask Q4-01 and wait for the user's decision
+
+[2026-08-13T00:05:00Z] DEFINE-D01 UNBLOCKED
+verification=decision:Q4-01-option-A-user-answer
+disposition=accepted
+blocker=the user selected the fail-closed asymmetric attachment contract while retaining official Pi
+next_action=persist and inspect Q4-01 in interview and context
+
+[2026-08-13T00:05:01Z] DEFINE-D01 INSPECTED
+evidence=verification:DEFINE-D01-ROSE-inspection
+disposition=accepted
+blocker=Q4-01 now defines enforceable TUI-writer/Web-observer behavior and fail-closed stock-TUI rejection while Web owns
+next_action=mark DEFINE-D01 done
+
+[2026-08-13T00:05:02Z] DEFINE-D01 DONE
+verification=decision:Q4-01-pi-stock-tui-observer-asymmetry
+disposition=accepted
+blocker=the material observer asymmetry is resolved
+next_action=inspect the exact locked pi-web source patterns before design write-back
+
+[2026-08-13T00:05:03Z] DEFINE-E07 READY
+evidence=decision:Q4-01-pi-stock-tui-observer-asymmetry
+disposition=pending
+blocker=the exact web-researcher profile previously established that it exposes no public Web tools; a direct-work waiver is required before source inspection
+next_action=record the unchanged capability-based waiver
+
+[2026-08-13T00:05:04Z] DEFINE-E07 WAIVED
+evidence=verification:DEFINE-E07-web-capability-waiver
+disposition=pending
+blocker=the exact web-researcher profile lacks Web tools and ROSE has equivalent read-only public Web capability for the bounded pi-web source inspection
+next_action=ROSE inspects the exact locked public source without repository import or dependency changes
+
+[2026-08-13T00:12:00Z] DEFINE-E07 RETURNED
+evidence=artifact:DEFINE-E07-pi-web-source-patterns
+disposition=pending
+blocker=the exact locked source and published tarball are readable in temporary evidence storage
+next_action=ROSE inspects reusable and incompatible baseline patterns
+
+[2026-08-13T00:12:01Z] DEFINE-E07 INSPECTED
+evidence=verification:DEFINE-E07-ROSE-inspection
+disposition=accepted
+blocker=pi-web supplies a strong Next foreground process, lazy AgentSession, JSONL reader, SSE, UI, route-security, and allowed-root baseline, but requires AILI lease, fail-closed startup, BFF contracts, safer Worktree rules, and versioned event reconciliation
+next_action=mark DEFINE-E07 done
+
+[2026-08-13T00:12:02Z] DEFINE-E07 DONE
+verification=artifact:DEFINE-E07-pi-web-source-patterns
+disposition=accepted
+blocker=the source-pattern evidence is sufficient for formal design write-back
+next_action=write design.md and the eleven delta capability specs
+
+[2026-08-13T00:30:00Z] DEFINE-A02 READY
+evidence=verification:DEFINE-A02-dependencies-current
+disposition=pending
+blocker=clear-for-ROSE-design-write
+next_action=write and inspect design.md against accepted decisions and source evidence
+
+[2026-08-13T00:30:01Z] DEFINE-A02 INSPECTED
+evidence=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/design.md
+disposition=accepted
+blocker=the design preserves the pi-web base, official Pi asymmetry, one runtime, one package, four absorbed services, security, AIcss fallback, and provenance boundaries
+next_action=mark DEFINE-A02 done
+
+[2026-08-13T00:30:02Z] DEFINE-A02 DONE
+verification=verification:DEFINE-A02-strict-validation
+disposition=accepted
+blocker=the formal design is dependency-valid
+next_action=write one delta spec for each proposal capability
+
+[2026-08-13T00:30:03Z] DEFINE-A03 READY
+evidence=verification:DEFINE-A03-dependencies-current
+disposition=pending
+blocker=clear-for-ROSE-delta-spec-write
+next_action=write eleven capability specs with executable scenarios
+
+[2026-08-13T00:30:04Z] DEFINE-A03 INSPECTED
+evidence=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/specs
+disposition=accepted
+blocker=all eleven proposal capabilities have ADDED requirements and every requirement has at least one four-hash scenario
+next_action=run strict OpenSpec validation
+
+[2026-08-13T00:30:05Z] DEFINE-A03 DONE
+verification=verification:DEFINE-A03-strict-validation
+disposition=accepted
+blocker=strict OpenSpec validation passes and tasks are unlocked
+next_action=resolve the required repository-local browser and E2E test artifact placement before tasks and final test-plan write-back
+
+[2026-08-13T00:42:00Z] DEFINE-D02 READY
+verification=decision:D-14-browser-e2e-placement
+disposition=accepted
+blocker=the user selected tests/browser and artifacts/test-results/browser
+next_action=persist the placement in project rules and formal context
+
+[2026-08-13T00:42:01Z] DEFINE-D02 INSPECTED
+evidence=verification:DEFINE-D02-ROSE-inspection
+disposition=accepted
+blocker=AGENTS.md, interview, context, and design now agree on the browser artifact convention
+next_action=mark DEFINE-D02 done
+
+[2026-08-13T00:42:02Z] DEFINE-D02 DONE
+verification=artifact:AGENTS.md
+disposition=accepted
+blocker=the repository-local browser and E2E placement is resolved
+next_action=write tasks.md and the final test-plan draft
+
+[2026-08-13T00:55:00Z] DEFINE-E08 READY
+evidence=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/tasks.md
+disposition=pending
+blocker=clear-for-read-only-plan-auditor-dispatch
+next_action=dispatch exact aili.plan-auditor with an immediate join
+
+[2026-08-13T01:02:00Z] DEFINE-E08 DISPATCHED
+evidence=verification:DEFINE-E08-dispatch-1
+disposition=pending
+blocker=clear at dispatch
+next_action=join the immediate plan-auditor result
+
+[2026-08-13T01:02:01Z] DEFINE-E08 RETURNED
+evidence=artifact:DEFINE-E08-malformed-plan-audit
+disposition=needs-follow-up
+blocker=the Worker output is readable but malformed because it does not start with exact CANONICAL RESULT
+next_action=record the malformed terminal result and create a fresh bounded retry package
+
+[2026-08-13T01:02:02Z] DEFINE-E08 BLOCKED
+evidence=artifact:DEFINE-E08-malformed-plan-audit
+disposition=needs-follow-up
+blocker=the Worker returned useful readable findings but omitted the exact CANONICAL RESULT prefix, so formal result status is malformed and cannot satisfy the package
+next_action=continue the unchanged audit goal through fresh DEFINE-E08-R2
+
+[2026-08-13T01:02:03Z] DEFINE-E08-R2 READY
+evidence=artifact:DEFINE-E08-malformed-plan-audit
+disposition=pending
+blocker=clear-for-fresh-read-only-plan-auditor-dispatch
+next_action=dispatch a fresh exact aili.plan-auditor Agent with explicit canonical-result formatting
+
+[2026-08-13T01:08:00Z] DEFINE-E08-R2 DISPATCHED
+evidence=verification:DEFINE-E08-R2-dispatch-1
+disposition=pending
+blocker=clear at dispatch
+next_action=join the immediate plan-auditor result
+
+[2026-08-13T01:08:01Z] DEFINE-E08-R2 RETURNED
+evidence=artifact:DEFINE-E08-R2-plan-audit
+disposition=pending
+blocker=clear-readable-canonical-result
+next_action=ROSE inspects the prioritized findings and proposed dispositions
+
+[2026-08-13T01:08:02Z] DEFINE-E08-R2 INSPECTED
+evidence=verification:DEFINE-E08-R2-ROSE-inspection
+disposition=accepted
+blocker=ROSE repaired governance, TUI IPC and startup admission, general idempotency, raw-path policy, fourteen-category inventory, upstream inventory gate, operation mapping, security lifecycle, process failures, Analytics and Stamp integrity, and package compatibility gaps
+next_action=mark DEFINE-E08-R2 done
+
+[2026-08-13T01:08:03Z] DEFINE-E08-R2 DONE
+verification=artifact:DEFINE-E08-R2-plan-audit
+disposition=accepted
+blocker=the pre-BUILD plan audit is dispositioned and the formal contract is ready for final test-plan drafting
+next_action=write the final test-plan draft and obtain its exact user acceptance
+
+[2026-08-13T01:12:00Z] DEFINE-A04 READY
+evidence=verification:DEFINE-A04-dependencies-current
+disposition=pending
+blocker=clear-for-ROSE-final-test-plan-write
+next_action=write and inspect the final test-plan draft
+
+[2026-08-13T01:30:00Z] DEFINE-A04 INSPECTED
+evidence=verification:DEFINE-A04-final-plan-inspection
+disposition=accepted
+blocker=the final candidate plan covers all eleven capabilities, plan-audit dispositions, browser placement, command order, operation gates, acceptance criteria, and remaining Unverified measurements
+next_action=mark DEFINE-A04 done
+
+[2026-08-13T01:30:01Z] DEFINE-A04 DONE
+verification=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/test-plan.md
+disposition=accepted
+blocker=the final test-plan draft is coherent and strict validation passes; user acceptance remains pending
+next_action=obtain exact user acceptance of test-plan.md; BUILD authorization remains separate and absent
+
+[2026-08-13T01:31:00Z] BOARD RECONCILED
+evidence=artifact:openspec/changes/integrate-pi-web-ui-and-upstream-extensions/test-plan.md
+disposition=accepted
+blocker=all accepted lifecycle gates are satisfied while risky operations remain separately gated
+next_action=enter BUILD with the accepted test plan, explicit implementation authorization, and separately gated risky operations
+
+[2026-08-13T01:31:01Z] BUILD-P01 READY
+evidence=verification:BUILD-P01-gates-current
+disposition=pending
+blocker=the five locked source identities are current and repository-local import authority is recorded
+next_action=dispatch the exact aili.implementer owner for the five locked source imports and inventory
+
+[2026-08-13T01:32:00Z] BUILD-P01 DISPATCHED
+evidence=verification:BUILD-P01-dispatch-1
+disposition=pending
+blocker=clear at dispatch
+next_action=join the immediate implementer result and inspect source locks, snapshots, licenses, and behavior inventory
+
+[2026-08-13T01:36:00Z] BUILD-P01 RETURNED
+evidence=artifact:BUILD-P01-malformed-blocked-source-result
+disposition=needs-follow-up
+blocker=the implementer returned a readable blocked result without the exact canonical prefix and lacked retrieval/hash capabilities
+next_action=ROSE inspects the reported Pi Web source-version discrepancy and exact npm/git evidence
+
+[2026-08-13T01:36:01Z] BUILD-P01 INSPECTED
+evidence=verification:BUILD-P01-ROSE-source-identity-inspection
+disposition=needs-follow-up
+blocker=npm confirms the package artifact uses gitHead 5a53c18 while that git source manifest retains pre-publish version 0.8.8-beta.2, so provenance must record both identities
+next_action=block the malformed package and continue through a fresh capability-waived package
+
+[2026-08-13T01:36:02Z] BUILD-P01 BLOCKED
+evidence=artifact:BUILD-P01-malformed-blocked-source-result
+disposition=needs-follow-up
+blocker=the Worker returned a malformed formal result and lacked retrieval/hash capabilities; it also surfaced that the git source manifest at the npm gitHead says 0.8.8-beta.2 while the exact npm artifact is 0.8.8
+next_action=execute BUILD-P01-R2 under the pre-recorded capability waiver after transferring the unchanged accepted task ownership
+
+[2026-08-13T01:36:03Z] BUILD-P01-R2 READY
+evidence=verification:BUILD-P01-ROSE-source-identity-inspection
+disposition=pending
+blocker=the identity distinction is resolved and ROSE has exact retrieval/hash capability
+next_action=record the capability waiver before direct import
+
+[2026-08-13T01:36:04Z] BUILD-P01-R2 WAIVED
+evidence=verification:BUILD-P01-R2-capability-waiver
+disposition=pending
+blocker=the exact implementer lacks retrieval/hash capability and ROSE has equivalent capability for the unchanged source-import goal
+next_action=ROSE imports exact public MIT artifacts and produces the source/behavior inventories
+
+[2026-08-13T01:48:00Z] BUILD-P01-R2 INSPECTED
+evidence=artifact:BUILD-P01-R2-source-import-and-inventory
+disposition=accepted
+blocker=all five exact MIT source identities, imported tree hashes, notices, and behavior dispositions are present; AIcss source remains absent
+next_action=run the focused source-lock validator and mark the package done
+
+[2026-08-13T01:48:01Z] BUILD-P01-R2 DONE
+verification=verification:validate-web-source-locks
+disposition=accepted
+blocker=the source-lock validator passes and the Pi Web npm/git manifest distinction is explicit
+next_action=start BUILD-P02 after recording the exact dependency and lockfile mutation authority
+
+[2026-08-13T01:52:00Z] BUILD-P02 READY
+evidence=verification:BUILD-P02-dependency-operation-record
+disposition=pending
+blocker=the exact locked dependency graph and npm install --ignore-scripts mutation target are recorded while live probes remain gated
+next_action=dispatch the exact aili.implementer with an immediate join
+
+[2026-08-13T01:53:00Z] BUILD-P02 DISPATCHED
+evidence=verification:BUILD-P02-dispatch-1
+disposition=pending
+blocker=clear at dispatch
+next_action=join the immediate implementer result and inspect gateway, lease, security, lifecycle, dependency, and focused verification evidence
+
+[2026-08-13T01:55:00Z] BUILD-P02 RETURNED
+evidence=artifact:BUILD-P02-aborted-partial-worktree
+disposition=needs-follow-up
+blocker=the synchronous implementer job was cancelled without a formal result after partial repository writes
+next_action=ROSE inspects Agent history and current task-scoped writes before any continuation
+
+[2026-08-13T01:55:01Z] BUILD-P02 INSPECTED
+evidence=verification:BUILD-P02-agent-history-inspection
+disposition=needs-follow-up
+blocker=history confirms partial contracts, lease, disposition, event, access, CLI, dependency and test writes, but no focused checks or completion evidence
+next_action=block the terminal Worker identity and create fresh BUILD-P02-R2 with inherited Parent model
+
+[2026-08-13T01:55:02Z] BUILD-P02 BLOCKED
+evidence=artifact:BUILD-P02-aborted-partial-worktree
+disposition=needs-follow-up
+blocker=the synchronous Worker was cancelled before returning a formal result after writing a partial implementation; its exact identity is terminal and cannot be resumed
+next_action=dispatch fresh BUILD-P02-R2 without a model override
+
+[2026-08-13T01:55:03Z] BUILD-P02-R2 READY
+evidence=verification:BUILD-P02-R2-gates-current
+disposition=pending
+blocker=the accepted tasks, operation authority, partial-write inventory, and exact inherited-model rule are current
+next_action=dispatch the exact aili.implementer without specifying model
+
+[2026-08-13T01:56:00Z] BUILD-P02-R2 BLOCKED
+evidence=artifact:BUILD-P02-R2-shared-scope-conflict
+disposition=needs-follow-up
+blocker=the fresh inherited-model dispatch performed no work because the terminal prior Agent still held overlapping shared write-scope leases
+next_action=release the terminal prior Agent lease and return the unchanged package to ready
+
+[2026-08-13T01:56:01Z] BUILD-P02-R2 UNBLOCKED
+evidence=verification:BUILD-P02-R2-conflict-inspection
+disposition=needs-follow-up
+blocker=ROSE released the terminal prior Agent identity and preserved its transcript while the task-scoped partial writes remain on the shared tree
+next_action=dispatch the unchanged package again with inherited Parent model
+
+[2026-08-13T01:56:02Z] BUILD-P02-R2 READY
+evidence=verification:BUILD-P02-R2-shared-lease-released
+disposition=pending
+blocker=the shared write scope is available and no duplicate implementation ran during the conflict
+next_action=dispatch the exact implementer again without specifying model
+
+[2026-08-13T01:57:00Z] BUILD-P02-R2 BLOCKED
+evidence=artifact:BUILD-P02-R2-inherited-terminal-identity
+disposition=needs-follow-up
+blocker=the second inherited-model attempt reused the terminal conflict Agent identity and produced no execution result
+next_action=release the terminal identity and disposition whether an exact pre-recorded direct-work waiver is now valid
+
+[2026-08-13T01:57:01Z] BUILD-P02-R2 WAIVED
+evidence=verification:BUILD-P02-R2-execution-waiver
+disposition=needs-follow-up
+blocker=two fresh inherited-model attempts produced no executable Worker result and ROSE has equivalent implementation and verification capability for the unchanged package
+next_action=ROSE completes the partial Runtime foundation directly and records focused evidence
+
+[2026-08-13T01:59:48Z] BUILD-P02-R2 BLOCKED
+evidence=verification:BUILD-P02-R3-split-recorded
+disposition=needs-follow-up
+blocker=waiting for the user-requested parallel J-BUILD-P02-R3 child packages
+next_action=join BUILD-P02-R3-RUNTIME, BUILD-P02-R3-LIFECYCLE, and BUILD-P02-R3-TESTS before ROSE integration
+
+[2026-08-13T01:59:49Z] BUILD-P02-R3-RUNTIME READY
+evidence=verification:BUILD-P02-R3-runtime-ready
+disposition=pending
+blocker=clear-for-exact-implementer-async-dispatch
+next_action=dispatch into J-BUILD-P02-R3
+
+[2026-08-13T01:59:50Z] BUILD-P02-R3-LIFECYCLE READY
+evidence=verification:BUILD-P02-R3-lifecycle-ready
+disposition=pending
+blocker=clear-for-exact-implementer-async-dispatch
+next_action=dispatch into J-BUILD-P02-R3
+
+[2026-08-13T01:59:51Z] BUILD-P02-R3-TESTS READY
+evidence=verification:BUILD-P02-R3-tests-ready
+disposition=pending
+blocker=clear-for-exact-test-engineer-async-dispatch
+next_action=dispatch into J-BUILD-P02-R3
+
+[2026-08-13T02:00:00Z] BUILD-P02-R3-RUNTIME DISPATCHED
+evidence=verification:BUILD-P02-R3-runtime-dispatch
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join J-BUILD-P02-R3 and inspect Runtime core output
+
+[2026-08-13T02:00:01Z] BUILD-P02-R3-LIFECYCLE DISPATCHED
+evidence=verification:BUILD-P02-R3-lifecycle-dispatch
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join J-BUILD-P02-R3 and inspect lifecycle/security output
+
+[2026-08-13T02:00:02Z] BUILD-P02-R3-TESTS DISPATCHED
+evidence=verification:BUILD-P02-R3-tests-dispatch
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join J-BUILD-P02-R3 and inspect focused-test output
+
+[2026-08-13T02:13:00Z] BUILD-P02-R3-TESTS RETURNED
+evidence=artifact:BUILD-P02-R3-tests-preflight-failure
+disposition=needs-follow-up
+blocker=Agent preflight failed before execution because formal writeScope does not support path globs
+next_action=inspect history and create a fresh explicit-path package
+
+[2026-08-13T02:13:01Z] BUILD-P02-R3-TESTS INSPECTED
+evidence=verification:BUILD-P02-R3-tests-history-inspection
+disposition=needs-follow-up
+blocker=no Worker execution or repository write occurred; only the unsupported writeScope glob failed
+next_action=block the terminal package and prepare BUILD-P02-R3-TESTS-R2
+
+[2026-08-13T02:13:02Z] BUILD-P02-R3-TESTS BLOCKED
+evidence=artifact:BUILD-P02-R3-tests-preflight-failure
+disposition=needs-follow-up
+blocker=Agent preflight failed before execution because formal writeScope does not support the tests/unit/web-*.test.ts glob
+next_action=continue the unchanged test goal through fresh BUILD-P02-R3-TESTS-R2 with explicit file paths
+
+[2026-08-13T02:13:03Z] BUILD-P02-R3-TESTS-R2 READY
+evidence=verification:BUILD-P02-R3-tests-r2-ready
+disposition=pending
+blocker=clear-for-explicit-path-async-dispatch
+next_action=dispatch into J-BUILD-P02-R3
+
+[2026-08-13T02:13:04Z] BUILD-P02-R3-TESTS-R2 DISPATCHED
+evidence=verification:BUILD-P02-R3-tests-r2-dispatch
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join J-BUILD-P02-R3 and inspect focused-test output
+
+[2026-08-13T03:07:35Z] BUILD-P02-R3-RUNTIME BLOCKED
+evidence=artifact:BUILD-P02-R3-malformed-runtime-core
+disposition=needs-follow-up
+blocker=the Worker produced useful task-scoped source but its terminal result omitted the exact CANONICAL RESULT prefix; ROSE repaired, integrated, and verified the source under the pre-recorded BUILD-P02-R2 waiver
+next_action=transfer task ownership to the pre-waived BUILD-P02-R2 integration package
+
+[2026-08-13T03:07:36Z] BUILD-P02-R3-LIFECYCLE RETURNED
+evidence=artifact:BUILD-P02-R3-lifecycle-security
+disposition=accepted
+blocker=the Worker returned task-scoped implementation evidence but reported command verification unavailable
+next_action=ROSE inspects and verifies the implementation in BUILD-P02-R2
+
+[2026-08-13T03:07:37Z] BUILD-P02-R3-LIFECYCLE INSPECTED
+evidence=verification:BUILD-P02-R3-lifecycle-source-inspection
+disposition=accepted
+blocker=the task-scoped lifecycle implementation is usable as evidence and task completion remains owned by BUILD-P02-R2
+next_action=consume the evidence in the BUILD-P02-R2 integration
+
+[2026-08-13T03:07:38Z] BUILD-P02-R3-TESTS-R2 RETURNED
+evidence=artifact:BUILD-P02-R3-focused-tests-r2
+disposition=accepted
+blocker=the Worker returned focused tests but reported command execution unavailable
+next_action=ROSE inspects and executes the tests in BUILD-P02-R2
+
+[2026-08-13T03:07:39Z] BUILD-P02-R3-TESTS-R2 INSPECTED
+evidence=verification:BUILD-P02-R2-focused-matrix
+disposition=accepted
+blocker=the tests are task-scoped and execute successfully in the integrated matrix while task completion remains owned by BUILD-P02-R2
+next_action=consume the evidence in the BUILD-P02-R2 integration
+
+[2026-08-13T03:07:40Z] BUILD-P02-R2 JOINED
+evidence=artifact:BUILD-P02-R3-malformed-runtime-core, artifact:BUILD-P02-R3-lifecycle-security, artifact:BUILD-P02-R3-focused-tests-r2
+disposition=needs-follow-up
+blocker=the Runtime result was malformed and both canonical results were partial because their tool profiles could not run commands; current source also lacked the accepted authenticated TUI projection transport
+next_action=integrate under the pre-recorded BUILD-P02-R2 waiver, repair the missing projection boundary and lease serialization, then run the smallest focused checks
+
+[2026-08-13T03:07:41Z] BUILD-P02-R2 INSPECTED
+evidence=verification:BUILD-P02-R2-final-source-inspection
+disposition=accepted
+blocker=ROSE confirmed the three reported code defects were repaired, added the owner-only one-use Unix-socket projection protocol, wired supported Pi lifecycle events and active-turn state, and serialized lease acquire/heartbeat/recovery with the locked proper-lockfile dependency
+next_action=run typecheck and the complete focused Runtime-foundation matrix
+
+[2026-08-13T03:07:42Z] BUILD-P02-R2 INSPECTED
+verification=verification:BUILD-P02-R2-typecheck, verification:BUILD-P02-R2-focused-matrix
+disposition=accepted
+blocker=npm run typecheck passed; ten focused Runtime-foundation Vitest files passed with 50 tests; real Unix-socket/two-process, server, browser, package and real-HOME evidence remains independently gated and unclaimed
+next_action=mark tasks 2.2 through 5.4 and BUILD-P02-R2 done
+
+[2026-08-13T03:07:43Z] BUILD-P02-R2 DONE
+verification=artifact:BUILD-P02-R2-runtime-gateway
+disposition=accepted
+blocker=the deterministic Runtime Gateway, writer lease, access/path security, foreground lifecycle, official-Pi asymmetric startup admission and authenticated read-only projection foundation are complete
+next_action=dispatch BUILD-P03, then use its inspected workbench boundary to unlock BUILD-P04 and BUILD-P05 integration
+
+[2026-08-13T03:07:44Z] BUILD-P02-R2 RECONCILED
+verification=artifact:upstream/pi-web-0.8.8/package-lock.json
+disposition=partially-accepted
+blocker=P03 pre-dispatch inspection found that task 2.2 still lacks the exact UI build dependencies imported by the locked Pi Web source; the verified Runtime tasks remain done while task 2.2 transfers to BUILD-P02-R4-DEPS
+next_action=record the command-capability waiver and close only the exact locked dependency graph
+
+[2026-08-13T03:07:45Z] BUILD-P02-R4-DEPS READY
+evidence=verification:BUILD-P02-R4-exact-upstream-lock-inspection
+disposition=pending
+blocker=the exact upstream lock records every missing UI package version and existing task 2.2 authority covers package.json/package-lock.json plus npm install --ignore-scripts
+next_action=execute the pre-recorded command-capability waiver
+
+[2026-08-13T03:07:46Z] BUILD-P02-R4-DEPS WAIVED
+evidence=verification:BUILD-P02-R4-command-capability-waiver
+disposition=pending
+blocker=the exact implementer profile has repeatedly lacked command execution while this package requires lockfile regeneration; ROSE has the exact bounded command capability and no source/UI work is included
+next_action=add only exact locked Pi Web UI dependencies and regenerate package-lock.json without scripts
+
+[2026-08-13T03:14:00Z] BUILD-P02-R4-DEPS INSPECTED
+verification=verification:BUILD-P02-R4-locked-dependency-validator, verification:BUILD-P02-R4-typecheck, verification:BUILD-P02-R4-package-lifecycle-tests
+disposition=accepted
+blocker=the root and resolved lock exactly match the imported Pi Web UI package versions; npm run typecheck passed and two focused package/lifecycle files passed 11 tests; five npm audit findings remain undispositioned and no audit fix ran
+next_action=mark task 2.2 done and unlock BUILD-P03
+
+[2026-08-13T03:14:01Z] BUILD-P02-R4-DEPS DONE
+verification=artifact:BUILD-P02-R4-exact-web-dependencies
+disposition=accepted
+blocker=the exact locked dependency graph is complete; the reported audit findings remain a later explicit security/dependency disposition rather than an automatic lock change
+next_action=dispatch BUILD-P03 to the exact implementer owner
+
+[2026-08-13T03:14:02Z] BUILD-P03 READY
+evidence=verification:BUILD-P03-dependencies-current
+disposition=pending
+blocker=the Pi Web source, complete exact dependency graph, Runtime Gateway, accepted tasks and bounded Web source/test paths are current
+next_action=dispatch exact aili.implementer with an immediate join
+
+[2026-08-13T03:14:03Z] BUILD-P03 BLOCKED
+evidence=artifact:BUILD-P03-board-preflight-failure
+disposition=needs-follow-up
+blocker=formal dispatch preflight rejected the existing Board because transferred packages used non-canonical Accepted task IDs text; no Agent was created and no P03 source work ran
+next_action=repair only the invalid Board protocol fields, return BUILD-P03 to READY, and dispatch once
+
+[2026-08-13T03:14:04Z] BUILD-P03 READY
+evidence=verification:BUILD-P03-board-preflight-repair
+disposition=pending
+blocker=the transferred packages now use canonical Accepted task IDs none and the P03 scope remains unchanged
+next_action=dispatch exact aili.implementer with an immediate join
+
+[2026-08-13T03:16:00Z] BUILD-P03 DISPATCHED
+evidence=verification:BUILD-P03-dispatch-1
+disposition=pending
+blocker=the Board/progress pair is now proven valid by the repository v1 validator
+next_action=join the immediate implementer result and inspect source-base retention, BFF boundaries, AILI layout/projections, media and focused tests
+
+[2026-08-13T03:35:00Z] BUILD-P03 RETURNED
+evidence=artifact:BUILD-P03-web-workbench
+disposition=pending
+blocker=the Worker returned complete scoped source and tests but had no command capability; foreground PrivateWebBffBridge composition is explicitly Unverified
+next_action=ROSE runs the three focused test files and typecheck, then inspects final source and bridge consumption before disposition
+
+[2026-08-13T03:56:00Z] BUILD-P03 INSPECTED
+verification=verification:BUILD-P03-typecheck, verification:BUILD-P03-focused-web-matrix, verification:BUILD-P03-final-source-inspection
+disposition=needs-follow-up
+blocker=npm run typecheck and the three focused Web files passed 20 tests, but stale JavaScript app routes and next.config.js can shadow the TypeScript workbench/config, and no foreground composition owner installs the private BFF bridge in the Next process
+next_action=continue the unchanged Web repair through BUILD-P03-R2 and inspect cross-boundary composition through BUILD-E09
+
+[2026-08-13T03:56:01Z] BUILD-P03 BLOCKED
+evidence=artifact:BUILD-P03-persistent-continuation-no-execution
+disposition=needs-follow-up
+blocker=two exact same-package continuation messages were delivered to the persistent implementer but produced no file edit or updated result; task completion cannot be accepted from the first partial result
+next_action=transfer tasks 6.1 through 6.4 to pre-waived BUILD-P03-R2
+
+[2026-08-13T03:56:02Z] BUILD-P03-R2 READY
+evidence=verification:BUILD-P03-final-source-inspection
+disposition=pending
+blocker=the exact config/route-selection defect and existing passing focused matrix are bounded; foreground composition is separated from this package
+next_action=record the persistent-Agent capability waiver before direct repair
+
+[2026-08-13T03:56:03Z] BUILD-P03-R2 WAIVED
+evidence=verification:BUILD-P03-R2-persistent-agent-capability-waiver
+disposition=pending
+blocker=the exact persistent implementer twice accepted bounded executable continuations without editing or returning new evidence, while ROSE has equivalent local edit and deterministic verification capability for the unchanged scope
+next_action=ROSE performs only the effective Next config convergence and focused source assertion repair
+
+[2026-08-13T04:05:00Z] BUILD-P03 RECONCILED
+evidence=artifact:BUILD-P03-next-config-repair-01
+disposition=accepted
+blocker=the previously delivered exact continuation completed after a delay and wrote the requested config/test repair before any ROSE source edit succeeded; the Worker returned a new canonical result
+next_action=inspect the delayed continuation and consume it through BUILD-P03-R2 integration
+
+[2026-08-13T04:05:01Z] BUILD-P03 INSPECTED
+evidence=verification:BUILD-P03-R2-final-source-inspection
+disposition=accepted
+blocker=both Next configs now select only tsx/ts routes and align standalone, external-package, no-store, security, service-worker, and manifest behavior; the focused test proves retained JavaScript placeholders are ineligible
+next_action=mark the Worker evidence package done and run fresh P03-R2 verification
+
+[2026-08-13T04:05:02Z] BUILD-P03 DONE
+verification=artifact:BUILD-P03-next-config-repair-01
+disposition=accepted
+blocker=the scoped workbench implementation and delayed exact continuation are integrated; completion of accepted tasks remains owned by BUILD-P03-R2
+next_action=verify BUILD-P03-R2 and then dispatch foreground composition scouting
+
+[2026-08-13T04:05:03Z] BUILD-P03-R2 INSPECTED
+verification=verification:BUILD-P03-R2-typecheck, verification:BUILD-P03-R2-focused-web-matrix, verification:BUILD-P03-R2-final-source-inspection
+disposition=accepted
+blocker=npm run typecheck passed and the three focused Web files passed 21 tests; route/config convergence and tasks 6.1 through 6.4 have deterministic evidence
+next_action=mark BUILD-P03-R2 done while keeping foreground Runtime composition separately Unverified
+
+[2026-08-13T04:05:04Z] BUILD-P03-R2 DONE
+verification=artifact:BUILD-P03-R2-web-workbench
+disposition=accepted
+blocker=tasks 6.1 through 6.4 have no remaining package blocker; browser runtime execution remains gated and foreground Runtime composition is separated into BUILD-E09
+next_action=dispatch exact aili.code-scout for BUILD-E09 before any cross-boundary repair
+
+[2026-08-13T04:05:05Z] BUILD-E09 READY
+evidence=verification:BUILD-E09-dependencies-current
+disposition=pending
+blocker=the Web source boundary is converged and the foreground bridge gap is bounded for read-only mapping
+next_action=dispatch exact aili.code-scout with an immediate join
+
+[2026-08-13T04:06:00Z] BUILD-E09 DISPATCHED
+evidence=verification:BUILD-E09-dispatch-1
+disposition=pending
+blocker=clear at dispatch
+next_action=join the immediate code-scout result and inspect exact process topology, call paths, invalidated task claims, and repair boundaries
+
+[2026-08-13T04:07:00Z] BUILD-E09 RETURNED
+evidence=artifact:BUILD-E09-foreground-composition-map
+disposition=pending
+blocker=the Worker returned a complete canonical static map and did not claim runtime evidence
+next_action=ROSE inspects the process topology, official seams, task transfers, and bootstrap constraint
+
+[2026-08-13T04:07:01Z] BUILD-E09 INSPECTED
+evidence=verification:BUILD-E09-ROSE-inspection
+disposition=accepted
+blocker=the three-process topology proves a launcher/global bridge cannot satisfy Next routes; Next instrumentation, private fd handoff, browser sessions, RuntimeHost/JSONL/observer composition, exhaustive dispatch, SSE, readiness, and cleanup all need one bounded production repair
+next_action=mark BUILD-E09 done and transfer only composition-dependent task ownership
+
+[2026-08-13T04:07:02Z] BUILD-E09 DONE
+verification=artifact:BUILD-E09-foreground-composition-map
+disposition=accepted
+blocker=none; static source evidence is complete and runtime claims remain correctly unverified
+next_action=dispatch BUILD-P02-R6-COMPOSITION after Board task transfer validates
+
+[2026-08-13T04:07:03Z] BUILD-P02-R2 RECONCILED
+evidence=artifact:BUILD-E09-foreground-composition-map
+disposition=partially-accepted
+blocker=retained primitives for tasks 2.3, 3.1, 3.5, 4.1, and 5.1 remain accepted; composition-dependent tasks 2.4, 2.5, 3.2 through 3.4, 4.2 through 4.4, and 5.2 through 5.4 transfer to BUILD-P02-R6-COMPOSITION
+next_action=preserve the primitive implementation and verify the missing production composition in R6
+
+[2026-08-13T04:07:04Z] BUILD-P02-R6-COMPOSITION READY
+evidence=artifact:BUILD-E09-foreground-composition-map
+disposition=pending
+blocker=the accepted architecture already permits inherited private channels or owner-only artifacts, and the exact official Next/Pi seams and file/test boundaries are current
+next_action=dispatch exact aili.implementer with an immediate join
+
+[2026-08-13T04:08:00Z] BUILD-P02-R6-COMPOSITION DISPATCHED
+evidence=verification:BUILD-P02-R6-dispatch-1
+disposition=pending
+blocker=clear at dispatch
+next_action=join the immediate exact-owner implementation result
+
+[2026-08-13T04:08:01Z] BUILD-P02-R6-COMPOSITION BLOCKED
+evidence=artifact:BUILD-P02-R6-shared-scope-conflict
+disposition=needs-follow-up
+blocker=shared-scope preflight failed before execution because terminal P02/P03 Agent identities retained overlapping write leases; no source work or result was produced
+next_action=continue the unchanged accepted tasks through fresh BUILD-P02-R6-R2 after releasing only terminal runtime leases
+
+[2026-08-13T04:08:02Z] BUILD-P02-R6-R2 READY
+evidence=verification:BUILD-P02-R6-terminal-lease-release
+disposition=pending
+blocker=the stale overlapping Agent leases are released, no duplicate source work occurred, and the unchanged accepted task scope is available
+next_action=dispatch the exact aili.implementer once with an immediate join
+
+[2026-08-19T00:00:00Z] BUILD-P02-R6-R2 DISPATCHED
+evidence=verification:BUILD-P02-R6-R2-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the exact implementer result and inspect all task-scoped source before verification
+
+[2026-08-19T00:00:01Z] BUILD-P02-R6-R2 BLOCKED
+evidence=artifact:BUILD-P02-R6-R2-cancelled-no-worker-output
+disposition=needs-follow-up
+blocker=the exact implementer job was cancelled before a formal Worker result; protected history remains unavailable because the assignment included credential-like bootstrap material, and current source inspection found no usable package-owned result
+next_action=create fresh BUILD-P02-R6-R3 for the unchanged accepted tasks; automatic replay is forbidden
+
+[2026-08-19T00:00:02Z] BUILD-P02-R6-R3 READY
+evidence=verification:BUILD-P02-R6-R2-source-and-history-inspection
+disposition=pending
+blocker=the terminal R2 job cannot be resumed or replayed; no duplicate source execution was found, and all existing source remains unaccepted input for fresh exact-owner implementation
+next_action=dispatch exact aili.implementer with an immediate join
+
+[2026-08-19T00:00:03Z] BUILD-P02-R6-R3 DISPATCHED
+evidence=verification:BUILD-P02-R6-R3-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the exact implementer result and inspect all task-scoped source before verification
+
+[2026-08-19T00:00:04Z] BUILD-P02-R6-R3 BLOCKED
+evidence=artifact:BUILD-P02-R6-R3-malformed-partial-result
+disposition=needs-follow-up
+blocker=the Worker wrote one inspectable read-admission repair but its formal result was malformed and command execution plus required regression-test creation were unavailable under the assigned write scope
+next_action=create fresh BUILD-P02-R6-R4 with the explicit existing foreground-composition test path; automatic replay is forbidden
+
+[2026-08-19T00:00:05Z] BUILD-P02-R6-R4 READY
+evidence=verification:BUILD-P02-R6-R3-source-inspection
+disposition=pending
+blocker=the partial source repair remains unaccepted until fresh exact-owner regression and typecheck evidence; the R3 terminal job cannot be resumed
+next_action=dispatch exact aili.implementer with an immediate join
+
+[2026-08-19T00:10:00Z] BUILD-P02-R6-R4 BLOCKED
+evidence=decision:D-15-TUI-first-plugin-delivery
+disposition=accepted
+blocker=deferred by accepted D-15 TUI-first plugin delivery sequence; no foreground composition work runs in this milestone
+next_action=resume only after BTW, Analytics, Stamp, and eligible Worktree TUI packages are inspected
+
+[2026-08-19T00:10:01Z] BUILD-P05 BLOCKED
+evidence=artifact:BUILD-P05-TUI-first-split
+disposition=accepted
+blocker=the original BTW/Worktree three-layer package is superseded by accepted D-15 TUI-first delivery sequence; task ownership transfers to BTW-first and optional Worktree TUI packages without changing safety boundaries
+next_action=dispatch BUILD-P05-BTW
+
+[2026-08-19T00:10:02Z] BUILD-P05 RECONCILED
+evidence=artifact:BUILD-P05-TUI-first-split
+disposition=accepted
+blocker=the original BTW/Worktree three-layer package is superseded by D-15; task ownership transfers to BTW-first and optional Worktree TUI packages without changing safety boundaries
+next_action=dispatch BUILD-P05-BTW
+
+[2026-08-19T00:10:02Z] BUILD-P05-BTW READY
+evidence=decision:D-15-TUI-first-plugin-delivery
+disposition=pending
+blocker=the locked BTW source and the existing extension entry are current, and this package has no runtime dependency on deferred Pi Web work
+next_action=dispatch exact aili.implementer with an immediate join
+
+[2026-08-19T00:10:03Z] BUILD-P05-BTW DISPATCHED
+evidence=verification:BUILD-P05-BTW-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the exact implementer result and inspect its source/test changes
+
+[2026-08-19T00:10:04Z] BUILD-P05-BTW BLOCKED
+evidence=artifact:BUILD-P05-BTW-write-scope-blocker
+disposition=needs-follow-up
+blocker=the exact Worker preflight rejected its needed extensions/btw/runtime.ts path before any source or test write occurred
+next_action=create fresh BUILD-P05-BTW-R2 with extensions/btw/runtime.ts explicitly authorized; automatic replay is forbidden
+
+[2026-08-19T00:10:05Z] BUILD-P05-BTW-R2 READY
+evidence=verification:BUILD-P05-BTW-preflight-inspection
+disposition=pending
+blocker=the prior terminal job made no source or test write, and the exact new BTW implementation path is now declared
+next_action=dispatch exact aili.implementer with immediate join
+
+[2026-08-19T00:10:06Z] BUILD-P05-BTW-R2 DISPATCHED
+evidence=verification:BUILD-P05-BTW-R2-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the exact implementer result and inspect its source/test changes
+
+[2026-08-19T00:10:07Z] BUILD-P05-BTW-R2 BLOCKED
+evidence=artifact:BUILD-P05-BTW-R2-malformed-partial-result
+disposition=needs-follow-up
+blocker=the Worker wrote inspectable BTW source and unit tests but omitted the required formal canonical prefix; its runtime does not yet execute a selected side model turn
+next_action=create fresh BUILD-P05-BTW-R3 for injected/mocked side-turn execution and command coverage; automatic replay is forbidden
+
+[2026-08-19T00:10:08Z] BUILD-P05-BTW-R3 READY
+evidence=verification:BUILD-P05-BTW-R2-source-inspection
+disposition=pending
+blocker=R2 source is usable input but unaccepted until an actual selected-model side-turn path and deterministic command/runtime evidence exist
+next_action=dispatch exact aili.implementer with immediate join
+
+[2026-08-19T00:10:09Z] BUILD-P05-BTW-R3 DISPATCHED
+evidence=verification:BUILD-P05-BTW-R3-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the exact implementer result and inspect its source/test changes
+
+[2026-08-19T00:10:10Z] BUILD-P05-BTW-R3 BLOCKED
+evidence=artifact:BUILD-P05-BTW-R3-partial-result
+disposition=needs-follow-up
+blocker=the injected runner exists only for embeddings; the registered /btw command does not build it from Pi ModelRegistry, so it cannot answer a side question in production
+next_action=create fresh BUILD-P05-BTW-R4 to bind the selected Pi model to ModelRegistry.complete without altering the main session
+
+[2026-08-19T00:10:11Z] BUILD-P05-BTW-R4 READY
+evidence=verification:BUILD-P05-BTW-R3-source-inspection
+disposition=pending
+blocker=the current source and local Pi 0.84.1 ModelRegistry type establish the bounded production embedding seam
+next_action=dispatch exact aili.implementer with immediate join
+
+[2026-08-19T00:10:12Z] BUILD-P05-BTW-R4 DISPATCHED
+evidence=verification:BUILD-P05-BTW-R4-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the exact implementer result and inspect its source/test changes
+
+[2026-08-19T00:10:13Z] BUILD-P05-BTW-R4 BLOCKED
+evidence=artifact:BUILD-P05-BTW-R4-partial-result
+disposition=needs-follow-up
+blocker=focused BTW tests pass, but the R4 source omitted a BtwSideTurnRequest type import and introduced two implicit-any callbacks; typecheck also retains one unrelated pre-existing process-liveness error
+next_action=create fresh BUILD-P05-BTW-R5 to repair only the three BTW compile errors and rerun focused verification
+
+[2026-08-19T00:10:14Z] BUILD-P05-BTW-R5 READY
+evidence=verification:BUILD-P05-BTW-R4-focused-test-and-typecheck
+disposition=pending
+blocker=the exact R4 compile diagnostics and passing BTW focused test evidence are current
+next_action=dispatch exact aili.implementer with immediate join
+
+[2026-08-19T00:10:15Z] BUILD-P05-BTW-R5 DISPATCHED
+evidence=verification:BUILD-P05-BTW-R5-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=join the exact implementer result and inspect its source/test changes
+
+[2026-08-19T00:10:16Z] BUILD-P05-BTW-R5 BLOCKED
+evidence=artifact:BUILD-P05-BTW-R5-malformed-result
+disposition=needs-follow-up
+blocker=the Worker performed the requested narrow repair but again omitted the required formal canonical prefix; the focused BTW matrix passes and typecheck now fails only at unrelated src/runtime/web/process-liveness.ts
+next_action=transfer accepted BTW task IDs to pre-waived BUILD-P05-BTW-R6 integration
+
+[2026-08-19T00:10:17Z] BUILD-P05-BTW-R6 READY
+evidence=verification:BUILD-P05-BTW-R5-source-inspection
+disposition=pending
+blocker=the inspectable BTW source and focused test evidence are ready for pre-waived ROSE integration
+next_action=record and execute the exact bounded integration waiver
+
+[2026-08-19T00:10:18Z] BUILD-P05-BTW-R6 WAIVED
+evidence=verification:BUILD-P05-BTW-R6-execution-waiver
+disposition=pending
+blocker=three successive exact implementation results supplied inspectable source but failed formal result hygiene, while ROSE can perform bounded no-new-source integration and fresh deterministic verification
+next_action=ROSE inspects source, runs focused BTW tests and typecheck, then dispositions the TUI milestone
+
+[2026-08-19T00:10:18Z] BUILD-P05-BTW-R6 INSPECTED
+evidence=verification:BUILD-P05-BTW-R6-focused-test, verification:BUILD-P05-BTW-R6-typecheck-scope-inspection
+disposition=accepted
+blocker=the focused BTW matrix passed with seven tests; typecheck fails only at pre-existing src/runtime/web/process-liveness.ts outside the BTW source paths
+next_action=mark BUILD-P05-BTW-R6 done and check tasks 9.2 through 9.4
+
+[2026-08-19T00:10:19Z] BUILD-P05-BTW-R6 DONE
+verification=artifact:BUILD-P05-BTW-R6-tui-first
+disposition=accepted
+blocker=retained Pi TUI BTW is available with isolated selected-model completion, isolated steering, explicit editor-only bring-to-main, and process-local cleanup; Runtime/API/Web parity and live-provider behavior remain deferred or unverified
+next_action=dispatch BUILD-P04 for Analytics and Stamp TUI-first work
+
+[2026-08-19T00:10:20Z] BUILD-P04 BLOCKED
+evidence=artifact:BUILD-P04-TUI-first-split
+disposition=accepted
+blocker=the original combined implementation package is superseded by the user-accepted TUI-first sequential delivery order
+next_action=dispatch BUILD-P04-ANALYTICS
+
+[2026-08-19T00:10:21Z] BUILD-P04 RECONCILED
+evidence=artifact:BUILD-P04-TUI-first-split
+disposition=accepted
+blocker=Analytics task ownership transfers to BUILD-P04-ANALYTICS and Stamp task ownership transfers to BUILD-P04-STAMP; Runtime/API and Web parity remain deferred
+next_action=dispatch BUILD-P04-ANALYTICS
+
+[2026-08-19T00:10:22Z] BUILD-P04-ANALYTICS READY
+evidence=decision:D-15-TUI-first-plugin-delivery
+disposition=pending
+blocker=the locked Analytics source and D-15 sequence are current after the BTW TUI milestone
+next_action=dispatch exact aili.implementer with immediate join
+
+[2026-08-19T00:10:23Z] BUILD-P04-ANALYTICS DISPATCHED
+evidence=verification:BUILD-P04-ANALYTICS-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=inspect the exact implementer source and run the focused deterministic matrix
+
+[2026-08-19T00:10:24Z] BUILD-P04-ANALYTICS RETURNED
+evidence=artifact:BUILD-P04-ANALYTICS-worker-result
+disposition=needs-follow-up
+blocker=the Worker returned inspectable Analytics source but lacked command execution and did not provide the required complete storage/TUI verification matrix
+next_action=ROSE inspects the returned source and selects the smallest verification and authorization boundary
+
+[2026-08-19T00:10:25Z] BUILD-P04-ANALYTICS INSPECTED
+evidence=verification:BUILD-P04-ANALYTICS-source-inspection, verification:BUILD-P04-ANALYTICS-focused-test, verification:BUILD-P04-ANALYTICS-typecheck-scope-inspection
+disposition=needs-follow-up
+blocker=the Analytics source default writes durable data beneath the Pi agent directory in the user home; current authorization covers repository-local deterministic fixtures only. The schema test passes (15 tests), but append/query/cleanup/corruption/concurrency fixtures are still missing and typecheck is blocked by unrelated src/runtime/web/process-liveness.ts.
+next_action=obtain exact user-home local Analytics storage authorization, then dispatch a fresh bounded continuation for storage/TUI tests
+
+[2026-08-19T00:10:25Z] BUILD-P04-ANALYTICS BLOCKED
+evidence=verification:BUILD-P04-ANALYTICS-source-inspection, verification:BUILD-P04-ANALYTICS-focused-test, verification:BUILD-P04-ANALYTICS-typecheck-scope-inspection
+disposition=needs-follow-up
+blocker=the Analytics source default writes durable data beneath the Pi agent directory in the user home; current authorization covers repository-local deterministic fixtures only. The schema test passes (15 tests), but append/query/cleanup/corruption/concurrency fixtures are still missing and typecheck is blocked by unrelated src/runtime/web/process-liveness.ts.
+next_action=obtain exact user-home local Analytics storage authorization, then dispatch a fresh bounded continuation for storage/TUI tests
+
+[2026-08-19T00:10:26Z] BUILD-P02-R6-R4 BLOCKED
+evidence=decision:D-15-TUI-first-plugin-delivery
+disposition=accepted
+blocker=the user reaffirmed that Pi Web is deferred; no foreground Pi Web composition or deferred Web parity work may resume without fresh explicit user approval
+next_action=hold Pi Web packages and continue only the retained TUI-first capability queue
+
+[2026-08-19T00:10:27Z] BUILD-P04-STAMP READY
+evidence=decision:D-16-three-plugin-tui-release-preparation
+disposition=pending
+blocker=D-16 allows Stamp to proceed independently while Analytics awaits separate exact user-home persistence approval; no npm install or Web work is authorized
+next_action=dispatch exact aili.implementer with immediate join
+
+[2026-08-19T00:10:28Z] BUILD-P04-STAMP BLOCKED
+evidence=artifact:BUILD-P04-STAMP-dispatch-workspace-blocker
+disposition=needs-follow-up
+blocker=the exact implementer dispatch failed before execution because the explicit absolute cwd was rejected as outside the formal workspace root; no source or test write occurred
+next_action=dispatch fresh BUILD-P04-STAMP-R2 without an explicit cwd
+
+[2026-08-19T00:10:29Z] BUILD-P04-STAMP-R2 READY
+evidence=artifact:BUILD-P04-STAMP-dispatch-workspace-blocker
+disposition=pending
+blocker=the prior package made no source change and D-16 keeps Stamp independent of held Analytics user-home persistence
+next_action=dispatch exact aili.implementer without an explicit cwd
+
+[2026-08-19T00:10:30Z] BUILD-P04-STAMP-R2 BLOCKED
+evidence=artifact:BUILD-P04-STAMP-R2-shared-scope-conflict
+disposition=needs-follow-up
+blocker=the shared workspace preflight rejected extensions/index.ts because the terminal Analytics implementer retained an overlapping write lease; no Stamp source or test write occurred
+next_action=release only the terminal Analytics lease and dispatch fresh BUILD-P04-STAMP-R3
+
+[2026-08-19T00:10:31Z] BUILD-P04-STAMP-R3 READY
+evidence=artifact:BUILD-P04-STAMP-R2-shared-scope-conflict
+disposition=pending
+blocker=only the stale Analytics lease blocked R2, and it is released before this retry
+next_action=dispatch exact aili.implementer in the shared workspace
+
+[2026-08-19T00:10:32Z] BUILD-P04-STAMP-R3 DISPATCHED
+evidence=verification:BUILD-P04-STAMP-R3-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=inspect returned source and run focused deterministic verification
+
+[2026-08-19T00:10:33Z] BUILD-P04-STAMP-R3 RETURNED
+evidence=artifact:BUILD-P04-STAMP-R3-worker-result
+disposition=needs-follow-up
+blocker=the Worker supplied inspectable Stamp source/test changes but could not run commands, so its formal result remains unverified
+next_action=ROSE inspects source and executes the focused verification boundary
+
+[2026-08-19T00:10:34Z] BUILD-P04-STAMP-R3 INSPECTED
+evidence=verification:BUILD-P04-STAMP-R3-source-inspection, verification:BUILD-P04-STAMP-R3-focused-test, verification:BUILD-P04-STAMP-R3-typecheck-scope-inspection
+disposition=needs-follow-up
+blocker=the focused Stamp matrix passes (3 tests), but typecheck has two Stamp errors: an unknown completedAt comparison at extensions/stamp/index.ts:80 and a possible undefined entry append at extensions/stamp/index.ts:135; src/runtime/web/process-liveness.ts remains unrelated
+next_action=dispatch fresh BUILD-P04-STAMP-R4 to repair only those two Stamp type errors
+
+[2026-08-19T00:10:35Z] BUILD-P04-STAMP-R3 BLOCKED
+evidence=verification:BUILD-P04-STAMP-R3-source-inspection, verification:BUILD-P04-STAMP-R3-focused-test, verification:BUILD-P04-STAMP-R3-typecheck-scope-inspection
+disposition=needs-follow-up
+blocker=the focused Stamp matrix passes (3 tests), but typecheck has two Stamp errors: an unknown completedAt comparison at extensions/stamp/index.ts:80 and a possible undefined entry append at extensions/stamp/index.ts:135; src/runtime/web/process-liveness.ts remains unrelated
+next_action=dispatch fresh BUILD-P04-STAMP-R4 to repair only those two Stamp type errors
+
+[2026-08-19T00:10:36Z] BUILD-P04-STAMP-R4 READY
+evidence=verification:BUILD-P04-STAMP-R3-focused-test-and-typecheck
+disposition=pending
+blocker=the R3 source is inspectable and only the two exact Stamp diagnostics remain
+next_action=dispatch exact aili.implementer
+
+[2026-08-19T00:10:37Z] BUILD-P04-STAMP-R4 BLOCKED
+evidence=artifact:BUILD-P04-STAMP-R4-shared-scope-conflict
+disposition=needs-follow-up
+blocker=the terminal Stamp implementer retained both requested write paths, so the fresh exact-owner compile repair preflight failed before source execution
+next_action=release the terminal Stamp lease and perform the identical two-line repair through pre-waived BUILD-P04-STAMP-R5
+
+[2026-08-19T00:10:38Z] BUILD-P04-STAMP-R5 READY
+evidence=artifact:BUILD-P04-STAMP-R4-shared-scope-conflict
+disposition=pending
+blocker=the pre-recorded direct-work waiver is limited to the two R3 Stamp diagnostics after the terminal Stamp lease is released
+next_action=record waiver, apply only the two fixes, and run focused verification
+
+[2026-08-19T00:10:39Z] BUILD-P04-STAMP-R5 WAIVED
+evidence=verification:BUILD-P04-STAMP-R5-execution-waiver
+disposition=pending
+blocker=the terminal Stamp implementer held the exact paths after its completed source/test attempt, and the next exact-owner retry failed preflight without execution; ROSE can perform only the identical two-line type repair and fresh deterministic verification
+next_action=apply only the two identified Stamp compile repairs and inspect the focused results
+
+[2026-08-19T00:10:40Z] BUILD-P04-STAMP-R5 INSPECTED
+evidence=verification:BUILD-P04-STAMP-R5-focused-test, verification:BUILD-P04-STAMP-R5-typecheck-scope-inspection
+disposition=accepted
+blocker=the focused Stamp matrix passes (3 tests); the two Stamp diagnostics are repaired and only the separately authorized process-liveness type error remains
+next_action=mark Stamp TUI-first package done
+
+[2026-08-19T00:10:41Z] BUILD-P04-STAMP-R5 DONE
+verification=artifact:BUILD-P04-STAMP-R5-tui-first
+disposition=accepted
+blocker=retained Stamp Pi TUI lifecycle entries, bounded timing, and report-only provenance are complete; Runtime/API/Web parity remains deferred
+next_action=mark tasks 8.2 through 8.4 done and continue D-17 work
+
+[2026-08-19T00:10:42Z] BUILD-P09 READY
+evidence=decision:D-17-tui-only-package-boundary
+disposition=pending
+blocker=D-17 grants exact Analytics content-free local persistence, the typecheck-only Web repair, TUI-only package/lock changes, and npm install --ignore-scripts
+next_action=dispatch exact aili.implementer with immediate join
+
+[2026-08-19T00:10:43Z] BUILD-P09 DISPATCHED
+evidence=verification:BUILD-P09-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=inspect the exact implementer result
+
+[2026-08-19T00:10:44Z] BUILD-P09 RETURNED
+evidence=artifact:BUILD-P09-implementer-13-partial-result
+disposition=needs-follow-up
+blocker=the Worker returned a canonical partial result because it could not execute the authorized lock regeneration or focused commands
+next_action=ROSE inspects source and records the bounded continuation
+
+[2026-08-19T00:10:45Z] BUILD-P09 INSPECTED
+evidence=verification:BUILD-P09-source-inspection
+disposition=needs-follow-up
+blocker=the Worker removed initial Web package registration and repaired the authorized type narrowing, but Analytics storage fixtures, lock regeneration, focused commands, and residual package exclusion remain incomplete
+next_action=transfer exact tasks to BUILD-P09-R2
+
+[2026-08-19T00:10:46Z] BUILD-P09 BLOCKED
+evidence=artifact:BUILD-P09-implementer-13-partial-result
+disposition=needs-follow-up
+blocker=the Worker removed initial Web package registration and fixed the authorized type narrowing, but command execution and needed Analytics store fixture coverage were unavailable; the package lock is not regenerated and the current package still includes repository-only src/runtime/web plus unneeded Web-origin dependencies
+next_action=release the terminal worker lease and dispatch BUILD-P09-R2 with explicit fixture/package paths and npm install --ignore-scripts resource
+
+[2026-08-19T00:10:47Z] BUILD-P09-R2 READY
+evidence=artifact:BUILD-P09-implementer-13-partial-result
+disposition=pending
+blocker=the partial worker left a fully bounded continuation and D-17 grants its exact operations
+next_action=dispatch exact aili.implementer with immediate join
+
+[2026-08-19T00:10:48Z] BUILD-P09-R2 DISPATCHED
+evidence=verification:BUILD-P09-R2-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=inspect the exact implementer result
+
+[2026-08-19T00:10:49Z] BUILD-P09-R2 RETURNED
+evidence=artifact:BUILD-P09-R2-implementer-14-partial-result
+disposition=needs-follow-up
+blocker=the Worker returned a canonical partial result because it could not execute the authorized lock regeneration or focused commands
+next_action=ROSE inspects the fixture/package source and records the exact remaining command boundary
+
+[2026-08-19T00:10:50Z] BUILD-P09-R2 INSPECTED
+evidence=verification:BUILD-P09-R2-source-inspection
+disposition=needs-follow-up
+blocker=the Worker added repository-local Analytics append/query/cleanup/quarantine/serialization fixtures and explicit src/runtime/web package exclusion, but residual Web-only packages, lock regeneration, and command evidence remain
+next_action=transfer exact tasks to command-capable BUILD-P09-R3
+
+[2026-08-19T00:10:51Z] BUILD-P09-R2 BLOCKED
+evidence=artifact:BUILD-P09-R2-implementer-14-partial-result
+disposition=needs-follow-up
+blocker=the Worker added the required repository-local Analytics store fixtures and explicit src/runtime/web package exclusion but could not run npm install --ignore-scripts, focused tests, or typecheck; package.json still retains js-yaml, proper-lockfile, remark-frontmatter, and related type packages used only by excluded Web source
+next_action=dispatch BUILD-P09-R3 to remove the residual Web-only packages, regenerate lock, and run exact verification
+
+[2026-08-19T00:10:52Z] BUILD-P09-R3 READY
+evidence=artifact:BUILD-P09-R2-implementer-14-partial-result
+disposition=pending
+blocker=only residual Web-only dependency removal, lock regeneration, and deterministic verification remain
+next_action=record waiver, remove packages, regenerate lock, and run focused verification
+
+[2026-08-19T00:10:53Z] BUILD-P09-R3 WAIVED
+evidence=verification:BUILD-P09-R3-execution-waiver
+disposition=pending
+blocker=two successive exact implementers supplied all source/test changes but exposed no command execution; ROSE has the exact D-17 local command capability for the remaining manifest/lock and verification scope
+next_action=remove only the residual Web-only packages, run npm install --ignore-scripts, then inspect focused evidence
+
+[2026-08-19T00:10:54Z] BUILD-P09-R3 INSPECTED
+evidence=verification:BUILD-P09-R3-npm-install-ignore-scripts, verification:BUILD-P09-R3-focused-plugin-matrix, verification:BUILD-P09-R3-typecheck, verification:BUILD-P09-R3-pack-dry-run
+disposition=accepted
+blocker=exact npm install --ignore-scripts removed 658 packages and reported zero vulnerabilities; five focused plugin/package test files passed 36 tests; typecheck and diff check passed; pack dry-run showed no Web paths, command, build hook, or direct Web dependency residue
+next_action=mark D-17 package done and check tasks 2.6, 2.7, and 7.2 through 7.5
+
+[2026-08-19T00:10:55Z] BUILD-P09-R3 DONE
+verification=artifact:BUILD-P09-R3-tui-only-package-and-analytics
+disposition=accepted
+blocker=the npm artifact is TUI-only while Web source remains repository-only; BTW, Analytics, and Stamp focused deterministic evidence passes; Runtime/API/Web parity, Analytics performance profiling, real TUI/provider exercise, publication, and release remain unverified or unauthorized
+next_action=hold Pi Web repository source and Worktree; begin release-readiness work only after explicit scope and operation authorization
+
+[2026-08-19T00:10:56Z] BUILD-P09-R3 RECONCILED
+evidence=decision:D-18-retain-pi-web-access
+disposition=partially-accepted
+blocker=release-readiness inspection established that pi-web-access was an independent retained Pi TUI web-retrieval capability, so its D-17 removal created extension-load and package-resource failures
+next_action=preserve the foreground Pi Web exclusion and transfer only task 2.7 correction to fresh BUILD-P10
+
+[2026-08-19T00:10:57Z] BUILD-P10 READY
+evidence=decision:D-18-retain-pi-web-access
+disposition=pending
+blocker=the exact retained dependency, lockfile, native integration, resource, provenance, documentation, and deterministic verification scope is authorized without restoring foreground Pi Web
+next_action=dispatch exact aili.implementer with immediate join
+
+[2026-08-19T00:10:58Z] BUILD-P10 DISPATCHED
+evidence=verification:BUILD-P10-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=inspect the exact implementer result
+
+[2026-08-19T00:10:59Z] BUILD-P10 RETURNED
+evidence=artifact:BUILD-P10-implementer-15-malformed-result
+disposition=needs-follow-up
+blocker=the Worker made partial manifest/docs/test changes but had no command execution and its result omitted the required canonical prefix
+next_action=ROSE inspects source and creates a fresh command-capable continuation
+
+[2026-08-19T00:11:00Z] BUILD-P10 INSPECTED
+evidence=verification:BUILD-P10-source-inspection
+disposition=needs-follow-up
+blocker=package.json restores the intended dependency and skill declaration, but lock/install, generated provenance, and deterministic verification remain absent
+next_action=transfer task 2.7 to pre-waived BUILD-P10-R2
+
+[2026-08-19T00:11:01Z] BUILD-P10 BLOCKED
+evidence=artifact:BUILD-P10-implementer-15-malformed-result
+disposition=needs-follow-up
+blocker=the terminal Worker lacks command execution and returned malformed formal output; package task completion cannot be accepted
+next_action=use the exact command-capability waiver for BUILD-P10-R2
+
+[2026-08-19T00:11:02Z] BUILD-P10-R2 READY
+evidence=artifact:BUILD-P10-implementer-15-malformed-result
+disposition=pending
+blocker=the unchanged command-dependent remainder is authorized and ROSE has exact local command capability
+next_action=record waiver, run npm install --ignore-scripts, and inspect selected verification
+
+[2026-08-19T00:11:03Z] BUILD-P10-R2 WAIVED
+evidence=verification:BUILD-P10-R2-command-capability-waiver
+disposition=pending
+blocker=the exact implementer returned partial source but no command capability and malformed formal output; ROSE has the D-18 exact local command capability for the unchanged command-dependent remainder
+next_action=run the exact authorized install and selected deterministic evidence
+
+[2026-08-19T00:11:04Z] BUILD-P10-R2 INSPECTED
+evidence=verification:BUILD-P10-R2-npm-install-ignore-scripts, verification:BUILD-P10-R2-focused-matrix, verification:BUILD-P10-R2-typecheck, verification:BUILD-P10-R2-provenance, verification:BUILD-P10-R2-pack-dry-run
+disposition=accepted
+blocker=exact npm install --ignore-scripts added 21 packages and reported zero vulnerabilities; five focused package/doctor/provenance/extension-load files passed 30 tests; typecheck and provenance validation passed; dry pack found no foreground Pi Web paths
+next_action=mark task 2.7 and BUILD-P10-R2 done
+
+[2026-08-19T00:11:05Z] BUILD-P10-R2 DONE
+verification=artifact:BUILD-P10-R2-retained-web-retrieval
+disposition=accepted
+blocker=pi-web-access@0.13.0 and its Pi-owned skill are restored in the foreground-Web-free package; no publication, Git, release, or Web runtime action occurred
+next_action=inspect remaining release-readiness gaps without publication
+
+[2026-08-19T00:11:06Z] SHIP-P11 READY
+evidence=task:14.3
+disposition=pending
+blocker=the user exactly authorized version 0.2.4, non-destructive readiness inspection, and npm publication while excluding commit, tag, push, and foreground Pi Web work
+next_action=dispatch exact aili.implementer with immediate join
+
+[2026-08-19T00:11:07Z] SHIP-P11 DISPATCHED
+evidence=verification:SHIP-P11-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=inspect the exact implementer result
+
+[2026-08-19T00:11:08Z] SHIP-P11 BLOCKED
+evidence=artifact:SHIP-P11-shared-scope-conflict
+disposition=needs-follow-up
+blocker=the exact Worker preflight failed before work because terminal BUILD-P10 workspace leases overlapped package/provenance paths and deterministic command resources
+next_action=release terminal leases and dispatch fresh SHIP-P11-R2
+
+[2026-08-19T00:11:09Z] SHIP-P11-R2 READY
+evidence=artifact:SHIP-P11-shared-scope-conflict
+disposition=pending
+blocker=the no-write preflight failure is resolved by releasing terminal leases; the unchanged authorization remains current
+next_action=dispatch exact aili.implementer with immediate join
+
+[2026-08-19T00:11:10Z] SHIP-P11-R2 DISPATCHED
+evidence=verification:SHIP-P11-R2-dispatch-1
+disposition=pending
+blocker=clear-at-dispatch
+next_action=inspect exact implementer result
+
+[2026-08-19T00:11:11Z] SHIP-P11-R2 RETURNED
+evidence=artifact:SHIP-P11-R2-command-capability-blocker
+disposition=needs-follow-up
+blocker=the Worker had no shell/npm capability and returned malformed output without source or package actions
+next_action=inspect source and create a direct command-capability continuation
+
+[2026-08-19T00:11:12Z] SHIP-P11-R2 INSPECTED
+evidence=verification:SHIP-P11-R2-source-inspection
+disposition=needs-follow-up
+blocker=the Worker correctly identified that version/provenance/tarball/publish evidence requires npm commands unavailable to its profile; no partial release mutation exists
+next_action=transfer task 14.3 to pre-waived SHIP-P11-R3
+
+[2026-08-19T00:11:13Z] SHIP-P11-R2 BLOCKED
+evidence=artifact:SHIP-P11-R2-command-capability-blocker
+disposition=needs-follow-up
+blocker=the exact implementer lacks shell/npm capability and returned malformed output; no source write or package action occurred
+next_action=run unchanged release scope under SHIP-P11-R3 direct command-capability waiver
+
+[2026-08-19T00:11:14Z] SHIP-P11-R3 READY
+evidence=artifact:SHIP-P11-R2-command-capability-blocker
+disposition=pending
+blocker=the unchanged exact release scope is authorized and ROSE has shell/npm registry capability
+next_action=record waiver and run exact readiness/publish commands
+
+[2026-08-19T00:11:15Z] SHIP-P11-R3 WAIVED
+evidence=verification:SHIP-P11-R3-command-capability-waiver
+disposition=pending
+blocker=the exact implementer lacks shell/npm capability; ROSE has equivalent exact command and npm registry capability for the unchanged authorized release package
+next_action=change only version/provenance, run selected checks, publish 0.2.4, and verify registry receipt
+
+[2026-08-19T00:11:16Z] SHIP-P11-R3 INSPECTED
+evidence=verification:SHIP-P11-R3-readiness-inspection
+disposition=needs-follow-up
+blocker=npm version 0.2.4 --no-git-tag-version and provenance generation succeeded, but three selected assertions still hard-code 0.2.2; no publish command ran
+next_action=transfer task 14.3 to fresh SHIP-P11-R4 after recording the fixture-repair direct waiver
+
+[2026-08-19T00:11:17Z] SHIP-P11-R3 BLOCKED
+evidence=artifact:SHIP-P11-R3-version-fixture-blocker
+disposition=needs-follow-up
+blocker=the version preparation and provenance generation succeeded, but three selected assertions still hard-code 0.2.2 in package/provenance tests; no publish command ran
+next_action=apply only the exact assertion repair through SHIP-P11-R4
+
+[2026-08-19T00:11:18Z] SHIP-P11-R4 READY
+evidence=artifact:SHIP-P11-R3-version-fixture-blocker
+disposition=pending
+blocker=the only failed readiness boundary is three stale expected-version assertions and user authorization remains exact
+next_action=record waiver, repair the three assertions, rerun readiness, and publish
+
+[2026-08-19T00:11:19Z] SHIP-P11-R4 WAIVED
+evidence=verification:SHIP-P11-R4-execution-waiver
+disposition=pending
+blocker=the exact implementer lacks shell/npm capability and ROSE has the exact local commands; the only source repair is the three stale 0.2.2 expectations required for same-scope verification
+next_action=repair only stale fixture version strings, rerun selected checks, then publish
+
+[2026-08-19T00:11:20Z] SHIP-P11-R4 BLOCKED
+evidence=artifact:SHIP-P11-R4-superseded-0.2.4
+disposition=superseded
+blocker=the user corrected the requested public version to 0.2.3 and required a main push before publication; 0.2.4 was never published
+next_action=transfer task 14.3 to SHIP-P11-R5
+
+[2026-08-19T00:11:21Z] SHIP-P11-R5 READY
+evidence=decision:D-19-publish-0.2.3-and-push-main
+disposition=pending
+blocker=the user explicitly authorized 0.2.3 correction, merge origin/main, commit, push main, and publication after main push
+next_action=reconcile exact version references, merge origin/main, then inspect the scoped commit

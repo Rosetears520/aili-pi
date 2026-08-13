@@ -2,10 +2,10 @@
   "spdxVersion": "SPDX-2.3",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "name": "@rosetears/aili-pi-0.2.2",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/194f53dbb03d1f31aa08443e9528d970",
+  "name": "@rosetears/aili-pi-0.2.3",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/4f7460a77244288ea69d3b4f99597d60",
   "creationInfo": {
-    "created": "2026-08-12T16:21:30.644Z",
+    "created": "2026-08-13T10:17:52.801Z",
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
     ]
@@ -14,7 +14,7 @@
     {
       "SPDXID": "SPDXRef-Package-aili-pi",
       "name": "@rosetears/aili-pi",
-      "versionInfo": "0.2.2",
+      "versionInfo": "0.2.3",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -5572,15 +5572,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-nanoid-ef6c34dd10",
       "name": "nanoid",
-      "versionInfo": "3.3.16",
-      "downloadLocation": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.16.tgz",
+      "versionInfo": "3.3.18",
+      "downloadLocation": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.18.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "bzlKTyNJ7+LdGIIwy8ijFpIqEQIvafahV7eYykJ8Cvh42EdJeODoJ6gUJXpQJvej1BddH8OqTXZNE/KfbWAu8Q=="
+          "checksumValue": "DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -6435,23 +6435,6 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/@pondwader/socks5-server; development=false; optional=false"
-    },
-    {
-      "SPDXID": "SPDXRef-node-modules-postcss-0830b7c0be",
-      "name": "postcss",
-      "versionInfo": "8.5.22",
-      "downloadLocation": "https://registry.npmjs.org/postcss/-/postcss-8.5.22.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "KBDEIpLrvpv16pp3K0Fw+UCoZfopFjjgeB+0tA/aaThfEE74kKDLrgg603YvOWJyg3+WYtyq3xYsQWsIyZlPqQ=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/postcss; development=true; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-protobufjs-aspromise-031d8ef74e",
@@ -8547,15 +8530,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-unpdf-db4e0819a2",
       "name": "unpdf",
-      "versionInfo": "1.6.2",
-      "downloadLocation": "https://registry.npmjs.org/unpdf/-/unpdf-1.6.2.tgz",
+      "versionInfo": "1.8.0",
+      "downloadLocation": "https://registry.npmjs.org/unpdf/-/unpdf-1.8.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "zQ80ySoPuPHOsvIoRp/nJyQt8TOUoTh1+WBCGcBvlddQNgKDLRwm0AY3x8Q35I7+kIiRSgqMx+Ma2pl9McIp7A=="
+          "checksumValue": "jQlkckbe5nKxRHQdbvo9IKHlU6Cjq00UlxxB8lrCIxvS2o5IbAL1wM+4a1Yc3+BIohg9p5AsoaftwO+G4Aq/qQ=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8611,6 +8594,23 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/vite; development=true; optional=false"
+    },
+    {
+      "SPDXID": "SPDXRef-node-modules-vite-node-modules-postcss-54266466c4",
+      "name": "postcss",
+      "versionInfo": "8.5.26",
+      "downloadLocation": "https://registry.npmjs.org/postcss/-/postcss-8.5.26.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/vite/node_modules/postcss; development=true; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-vitest-ea239ee496",
@@ -10850,11 +10850,6 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-postcss-0830b7c0be"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-protobufjs-aspromise-031d8ef74e"
     },
     {
@@ -11486,6 +11481,11 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-vite-bae5313630"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-vite-node-modules-postcss-54266466c4"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",

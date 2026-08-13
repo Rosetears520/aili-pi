@@ -329,7 +329,7 @@ describe("doctor", () => {
     expect(report.status).toBe("NON_PASS");
     expect(report.results).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "skill.snapshot", status: "PASS" }),
-      expect.objectContaining({ id: "package.resources", status: "PASS", evidence: expect.stringContaining("prompts=rose-aili-owned") }),
+      expect.objectContaining({ id: "package.resources", status: "PASS", evidence: expect.stringMatching(/prompts=rose-aili-owned; native_ui=minimal-footer; web_skill=pi-web-access@0\.13\.0; foreground_web=excluded/) }),
       expect.objectContaining({ id: "rose.prompts", status: "PASS", evidence: expect.stringContaining("one rose-aili global owner") }),
       expect.objectContaining({ id: "capability.registry", status: "PASS" }),
       expect.objectContaining({ id: "optional.packs", status: "SKIP" }),

@@ -1,0 +1,36 @@
+import { resolve } from "node:path";
+
+// Keep this effective .js config aligned with next.config.ts. Restricting page
+// extensions makes the retained placeholder page.js/layout.js files ineligible.
+/** @type {import("next").NextConfig} */
+const config = {
+  pageExtensions: ["tsx", "ts"],
+  output: "standalone",
+  poweredByHeader: false,
+  outputFileTracingRoot: resolve(process.cwd()),
+  serverExternalPackages: ["undici", "@earendil-works/pi-coding-agent", "@earendil-works/pi-agent-core", "@earendil-works/pi-ai", "@earendil-works/pi-tui"],
+  env: { NEXT_PUBLIC_APP_VERSION: "0.2.2", NEXT_PUBLIC_PI_VERSION: "0.84.1" },
+  async headers() { return [
+    {
+      source: "/:path*",
+      headers: [
+        { key: "Cache-Control", value: "private, no-store, max-age=0" },
+        { key: "Referrer-Policy", value: "no-referrer" },
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+      ],
+    },
+    {
+      source: "/sw.js",
+      headers: [
+        { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+        { key: "Service-Worker-Allowed", value: "/" },
+      ],
+    },
+    {
+      source: "/manifest.webmanifest",
+      headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
+    },
+  ]; },
+};
+export default config;

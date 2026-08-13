@@ -5,11 +5,13 @@ export interface NativeFooterSnapshot {
   model?: string;
   quota?: string;
   retry?: string;
-  updateAge?: string;
   clock?: string;
   cwd?: string;
   gitBranch?: string;
-  context?: string;
+  contextTokens?: number | null;
+  contextWindow?: number | null;
+  mcpConnectedCount?: number | null;
+  mcpEnabledCount?: number | null;
 }
 
 export function plainDisplayText(value: unknown): string | undefined {
@@ -28,23 +30,172 @@ function modelLabel(snapshot: NativeFooterSnapshot): string {
   return provider ? `${provider}/${model}` : model;
 }
 
-function compose(segments: readonly string[], width: number): string {
-  return truncateToWidth(segments.filter(Boolean).join(" · "), width, width > 1 ? "…" : "");
+function truncateCell(value: string, width: number): string {
+  if (width <= 0) return "";
+  return truncateToWidth(value, width, width > 1 ? "…" : "");
 }
 
-export function renderNativeFooter(snapshot: NativeFooterSnapshot, width: number): string {
-  if (!Number.isFinite(width) || width <= 0) return "";
-  const safeWidth = Math.floor(width);
-  const required = [modelLabel(snapshot), plainDisplayText(snapshot.retry), plainDisplayText(snapshot.quota)].filter((value): value is string => Boolean(value));
-  const optional = [
-    plainDisplayText(snapshot.cwd),
-    plainDisplayText(snapshot.gitBranch),
-    plainDisplayText(snapshot.context),
-    plainDisplayText(snapshot.updateAge),
+function joinSegments(values: readonly string[], separator = " · "): string {
+  return values.join(separator);
+}
+
+/**
+ * Fit required peer fields without dropping one merely because a neighboring
+ * field is long. Short fields are completed first (for example context usage
+ * or the clock), then the remaining field receives the available cells.
+ */
+function fitSegments(values: readonly string[], width: number, preferEnd = false): string {
+  if (width <= 0 || values.length === 0) return "";
+  const complete = joinSegments(values);
+  if (visibleWidth(complete) <= width) return complete;
+  if (values.length === 1) return truncateCell(values[0], width);
+
+  let separator = " · ";
+  let separatorWidth = visibleWidth(separator);
+  if (separatorWidth * (values.length - 1) + values.length > width) {
+    separator = "·";
+    separatorWidth = visibleWidth(separator);
+  }
+  if (separatorWidth * (values.length - 1) + values.length > width) {
+    const value = preferEnd ? values.at(-1)! : values[0];
+    return truncateCell(value, width);
+  }
+
+  const widths = values.map(() => 1);
+  let remaining = width - separatorWidth * (values.length - 1) - values.length;
+  const directionalOrder = values.map((_value, index) => index);
+  if (preferEnd) directionalOrder.reverse();
+
+  // Give every field up to three cells before spending the rest on completion.
+  for (let target = 2; target <= 3 && remaining > 0; target++) {
+    for (const index of directionalOrder) {
+      if (remaining <= 0) break;
+      if (visibleWidth(values[index]) < target) continue;
+      widths[index]++;
+      remaining--;
+    }
+  }
+
+  while (remaining > 0) {
+    const candidates = directionalOrder
+      .filter((index) => widths[index] < visibleWidth(values[index]))
+      .sort((left, right) => {
+        const leftNeed = visibleWidth(values[left]) - widths[left];
+        const rightNeed = visibleWidth(values[right]) - widths[right];
+        return leftNeed - rightNeed || directionalOrder.indexOf(left) - directionalOrder.indexOf(right);
+      });
+    if (candidates.length === 0) break;
+    const index = candidates[0];
+    const addition = Math.min(remaining, visibleWidth(values[index]) - widths[index]);
+    widths[index] += addition;
+    remaining -= addition;
+  }
+
+  return joinSegments(values.map((value, index) => truncateCell(value, widths[index])), separator);
+}
+
+function alignSides(left: string, right: string, width: number): string {
+  if (!right) return truncateCell(left, width);
+  if (!left) {
+    const fitted = truncateCell(right, width);
+    return `${" ".repeat(Math.max(0, width - visibleWidth(fitted)))}${fitted}`;
+  }
+  const gap = Math.max(0, width - visibleWidth(left) - visibleWidth(right));
+  return `${left}${" ".repeat(gap)}${right}`;
+}
+
+function fitsAligned(left: string, right: string, width: number): boolean {
+  if (!left || !right) return visibleWidth(left || right) <= width;
+  return visibleWidth(left) + 1 + visibleWidth(right) <= width;
+}
+
+function isTokenCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function isContextWindow(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function isCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+/** Format a token count compactly while retaining a useful fractional value below 10k. */
+export function formatTokenCount(value: number): string {
+  if (value < 1_000) return `${Math.round(value)}`;
+  if (value < 10_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
+  if (value < 1_000_000) return `${Math.round(value / 1_000)}k`;
+  if (value < 10_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
+  return `${Math.round(value / 1_000_000)}m`;
+}
+
+export function contextTokenLabel(tokens: unknown, contextWindow: unknown): string | undefined {
+  if (!isTokenCount(tokens) || !isContextWindow(contextWindow)) return undefined;
+  return `${formatTokenCount(tokens)}/${formatTokenCount(contextWindow)}`;
+}
+
+function mcpLabel(connected: unknown, enabled: unknown): string | undefined {
+  if (!isCount(connected) || !isCount(enabled)) return undefined;
+  return `MCP ${connected}/${enabled}`;
+}
+
+function renderPrimary(snapshot: NativeFooterSnapshot, width: number): string {
+  const left = modelLabel(snapshot);
+  const requiredRight = [
+    contextTokenLabel(snapshot.contextTokens, snapshot.contextWindow),
+    plainDisplayText(snapshot.quota),
+  ].filter((value): value is string => Boolean(value));
+  const retry = plainDisplayText(snapshot.retry);
+  const withRetry = retry ? [...requiredRight, retry] : requiredRight;
+  const completeRight = joinSegments(withRetry);
+
+  // Retry is the first field sacrificed. It is never allowed to force a
+  // required model, context, or quota field to truncate.
+  if (retry && fitsAligned(left, completeRight, width)) return alignSides(left, completeRight, width);
+
+  const required = joinSegments(requiredRight);
+  if (!required) return truncateCell(left, width);
+  if (fitsAligned(left, required, width)) return alignSides(left, required, width);
+  if (width < 3) return truncateCell(left, width);
+
+  const naturalRightBudget = width - visibleWidth(left) - 1;
+  const rightBudget = Math.min(
+    visibleWidth(required),
+    width - 2,
+    Math.max(1, naturalRightBudget, Math.floor(width * 0.45)),
+  );
+  const fittedRight = fitSegments(requiredRight, rightBudget);
+  const leftBudget = Math.max(1, width - visibleWidth(fittedRight) - 1);
+  const fittedLeft = truncateCell(left, leftBudget);
+  return alignSides(fittedLeft, fittedRight, width);
+}
+
+function renderSecondary(snapshot: NativeFooterSnapshot, width: number): string {
+  const cwd = plainDisplayText(snapshot.cwd);
+  const branch = plainDisplayText(snapshot.gitBranch);
+  const rightSegments = [
+    mcpLabel(snapshot.mcpConnectedCount, snapshot.mcpEnabledCount),
     plainDisplayText(snapshot.clock),
   ].filter((value): value is string => Boolean(value));
+  const right = joinSegments(rightSegments);
+  const leftSegments = [cwd, branch].filter((value): value is string => Boolean(value));
 
-  const segments = [...required, ...optional];
-  while (segments.length > required.length && visibleWidth(compose(segments, safeWidth)) > safeWidth) segments.splice(required.length, 1);
-  return compose(segments, safeWidth);
+  // Branch is less important than cwd. Both are dropped before MCP/clock are
+  // truncated so the live state remains visible at narrow terminal widths.
+  while (right && leftSegments.length > 0 && !fitsAligned(joinSegments(leftSegments), right, width)) {
+    if (branch) leftSegments.pop();
+    else leftSegments.shift();
+  }
+
+  const left = joinSegments(leftSegments);
+  if (fitsAligned(left, right, width)) return alignSides(left, right, width);
+  if (!right) return truncateCell(left, width);
+  return alignSides("", fitSegments(rightSegments, width, true), width);
+}
+
+export function renderNativeFooter(snapshot: NativeFooterSnapshot, width: number): [string, string] {
+  if (!Number.isFinite(width) || width <= 0) return ["", ""];
+  const safeWidth = Math.floor(width);
+  return [renderPrimary(snapshot, safeWidth), renderSecondary(snapshot, safeWidth)];
 }

@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-13T01:42:00Z",
+  "policy": {
+    "webCodeBase": "pi-web-only",
+    "referenceOnlySources": [
+      "Codex UI",
+      "minghinmatthewlam/pi-gui",
+      "OpenCode"
+    ],
+    "aicssSourceCopied": false,
+    "aicssDisposition": "Independently implement all fourteen accepted semantic categories because public npm/MIT source redistribution rights were not established."
+  },
+  "sources": [
+    {
+      "id": "pi-web",
+      "package": "@agegr/pi-web",
+      "version": "0.8.8",
+      "sourceUrl": "https://github.com/agegr/pi-web.git",
+      "npmTarballUrl": "https://registry.npmjs.org/@agegr/pi-web/-/pi-web-0.8.8.tgz",
+      "npmTarballSha256": "c26849652028fd7aabf06ee215b2c3eb9a461161a0ca8de32a2d5a3f27dba470",
+      "npmIntegrity": "sha512-CB7XMJnXX4YWhAbYbtS0wFJuE3s0BFsezI/Pj8GKssCCVTlsa2Rhtzwn+rTT3lJOVLFNRUQi+td0E3jqIC1SzQ==",
+      "gitRevision": "5a53c18ca9328400a3dfb8c48c1e4f343b3e4903",
+      "gitSourceArchiveSha256": "9276b8fc9950293219a40dffe23b49f0f86ba5f2d1fc5d429869f30e2da12dc6",
+      "sourceManifestVersion": "0.8.8-beta.2",
+      "identityNote": "npm 0.8.8 declares gitHead 5a53c18; that exact pre-publish source commit still declares 0.8.8-beta.2. The repository snapshot is identified by git revision, while the distributable baseline is identified by npm version, tarball hash, and integrity.",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2026 agegr",
+      "importPath": "upstream/pi-web-0.8.8",
+      "importKind": "exact-git-source-snapshot",
+      "importedFileCount": 361,
+      "importedTreeSha256": "f85d7bbc5a918c9727ad51588b9801b9d2d1d64d12104bc3a22113fb95b92661",
+      "excludedSourceFiles": [
+        ".git/**",
+        ".gitignore",
+        "AGENTS.md",
+        "bun.lock",
+        "node_modules/**",
+        ".next/**"
+      ],
+      "adaptationBoundary": "Sole Web code/function base. AILI must add gateway, lease, versioned event/disposition, fail-closed bind policy, and safe Worktree behavior rather than use the source unchanged."
+    },
+    {
+      "id": "pi-analytics",
+      "package": "@narumitw/pi-analytics",
+      "version": "0.49.6",
+      "sourceUrl": "https://github.com/narumiruna/pi-extensions.git",
+      "npmTarballUrl": "https://registry.npmjs.org/@narumitw/pi-analytics/-/pi-analytics-0.49.6.tgz",
+      "npmTarballSha256": "b42b93cdfc50004cc3ffdd50ab0f63d49106894d2a2362429f8ac979f6efd223",
+      "npmIntegrity": "sha512-gMEvVakR7zUo6nS4PJeB8wFhE0xdjx69GDaudggynNGITpXzwc36xfQ7wbHDZFTiuSDagfP++/DumR/37I6rMg==",
+      "gitRevision": "1156ee787d7bbf04a2a67f25ace61ef50355cb8d",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2026 narumiruna",
+      "importPath": "upstream/pi-extensions/pi-analytics-0.49.6",
+      "importKind": "exact-npm-source-package",
+      "importedFileCount": 14,
+      "importedTreeSha256": "7b3b2afba63ce1468c505ca7148e44a70fef952acbd2376415da6f2ccbc8e64c",
+      "adaptationBoundary": "Absorbed into AILI-owned content-free Analytics storage, Runtime/API, TUI, and Web layers with stricter schema/cardinality/migration requirements."
+    },
+    {
+      "id": "pi-btw",
+      "package": "@narumitw/pi-btw",
+      "version": "0.50.0",
+      "sourceUrl": "https://github.com/narumiruna/pi-extensions.git",
+      "npmTarballUrl": "https://registry.npmjs.org/@narumitw/pi-btw/-/pi-btw-0.50.0.tgz",
+      "npmTarballSha256": "22841fcd29e585e7a2ef9cbd2f617708446002244bf8152e9e9afe67a33b43c0",
+      "npmIntegrity": "sha512-KIjT9eEiElhZ+qjj0IiVFRWzzCwSk8sEdYtrGAWXgSEFb5NaNcCt1YFkJzG2z5fFv2IUJKhpU7hn5y4GAOJWgQ==",
+      "gitRevision": "e7d9112f4f3418216a14343c00f6f637e7a3d390",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2026 narumiruna",
+      "importPath": "upstream/pi-extensions/pi-btw-0.50.0",
+      "importKind": "exact-npm-source-package",
+      "importedFileCount": 12,
+      "importedTreeSha256": "ca51025e806bd534f59557d9399a34394d8e3a6aa22f03c71f97822e8f2fc898",
+      "adaptationBoundary": "Absorbed as ephemeral AILI-owned side threads with gateway-gated preview and bring-to-main."
+    },
+    {
+      "id": "pi-stamp",
+      "package": "@narumitw/pi-stamp",
+      "version": "0.49.3",
+      "sourceUrl": "https://github.com/narumiruna/pi-extensions.git",
+      "npmTarballUrl": "https://registry.npmjs.org/@narumitw/pi-stamp/-/pi-stamp-0.49.3.tgz",
+      "npmTarballSha256": "1e580323f1f95c9cffdc467380b5c7f889979cbd06acb7b34edb5667f4e953d4",
+      "npmIntegrity": "sha512-dZB+AxmljkzKrifBHczoHFcmvWMq5O88KfsE4R9lCpNfQsaVrp9o9ZvereENBwA2byW2++kjFNJu17P4GSopbQ==",
+      "gitRevision": "4c2c2e8c4b6c3d21659110ea1966810b1d15e045",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2026 narumiruna",
+      "importPath": "upstream/pi-extensions/pi-stamp-0.49.3",
+      "importKind": "exact-npm-source-package",
+      "importedFileCount": 9,
+      "importedTreeSha256": "57b001bf289202126185ed31063b52cd7dfbb28d28c75b426c125c2fe93a0479",
+      "adaptationBoundary": "Absorbed through the owning serialized Pi session mutation path with versioned out-of-context entries and AILI TUI/Web projections."
+    },
+    {
+      "id": "pi-worktree",
+      "package": "@narumitw/pi-worktree",
+      "version": "0.50.0",
+      "sourceUrl": "https://github.com/narumiruna/pi-extensions.git",
+      "npmTarballUrl": "https://registry.npmjs.org/@narumitw/pi-worktree/-/pi-worktree-0.50.0.tgz",
+      "npmTarballSha256": "9d5546d62ed5b5837eef7ffdf04fa4a748d0f5e33b89e1e7aed4546e57efec68",
+      "npmIntegrity": "sha512-ugm0tPm2XgxN1RGjvf2kMMTM6bEPIjkiOJjF/9jmE/W5Q9zmkkDGiQ8dNN+hYqho0E2Gq+BrLqYYBM6CA9wnGQ==",
+      "gitRevision": "492cc9cef225f20b98b70158156229b1f44a8778",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2026 narumiruna",
+      "importPath": "upstream/pi-extensions/pi-worktree-0.50.0",
+      "importKind": "exact-npm-source-package",
+      "importedFileCount": 10,
+      "importedTreeSha256": "7dc30f84bb6fbd6e32bf5a25cf32ccb30d394ead78499c4e64ef973207a20f0b",
+      "adaptationBoundary": "Absorbed behind one AILI-owned safe Worktree service; no force removal, branch deletion, or shell-interpolated Git."
+    }
+  ]
+}
