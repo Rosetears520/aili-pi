@@ -2,10 +2,10 @@
   "spdxVersion": "SPDX-2.3",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "name": "@rosetears/aili-pi-0.2.6",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/4032c40be20020d249247202909e1c71",
+  "name": "@rosetears/aili-pi-0.2.7",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/49bfa16b2cf7593ad2241a8db6c012f6",
   "creationInfo": {
-    "created": "2026-08-13T14:42:12.205Z",
+    "created": "2026-08-13T15:07:26.901Z",
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
     ]
@@ -14,7 +14,7 @@
     {
       "SPDXID": "SPDXRef-Package-aili-pi",
       "name": "@rosetears/aili-pi",
-      "versionInfo": "0.2.6",
+      "versionInfo": "0.2.7",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",

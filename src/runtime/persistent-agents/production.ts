@@ -1027,11 +1027,11 @@ export class PersistentAgentProduction {
   }
 
   private async directFast(args: string, context: ExtensionContext): Promise<string> {
-    const tier = args.trim();
-    if (tier !== "standard" && tier !== "priority") throw new Error("usage: /aili-agent-fast <standard|priority>");
+    const enabled = args.trim();
+    if (enabled !== "true" && enabled !== "false") throw new Error("usage: /codex-fast <true|false>");
     const state = await this.parent(context);
-    state.speedTier = tier;
-    return `Persistent Agent Fast tier set to ${tier} for this Parent session`;
+    state.speedTier = enabled === "true" ? "priority" : "standard";
+    return `Persistent Agent Codex Fast ${enabled === "true" ? "enabled" : "disabled"} for this Parent session`;
   }
 
   private async directModel(args: string, context: ExtensionContext): Promise<string> {

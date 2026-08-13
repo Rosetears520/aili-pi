@@ -231,8 +231,9 @@ function leftAligned(lines: () => readonly string[]): Component { return { rende
 function isMeaningfulUpdate(value: unknown): boolean { return isRecord(value) && ((["text_delta", "thinking_delta", "toolcall_delta"].includes(value.type as string) && typeof value.delta === "string" && value.delta.length > 0) || (["text_end", "thinking_end"].includes(value.type as string) && typeof value.content === "string" && value.content.length > 0) || (value.type === "toolcall_end" && isRecord(value.toolCall))); }
 /** A stamp reports this response's generated tokens, never its input/context or request total. */
 function formatOutputTokens(tokens: number): string {
-  if (tokens < 100) return String(tokens);
-  return `${(tokens / 1_000).toFixed(1)}k`;
+  if (tokens < 1_000) return String(tokens);
+  const thousands = tokens / 1_000;
+  return `${Number.isInteger(thousands) ? thousands : thousands.toFixed(1)}k`;
 }
 function formatElapsed(milliseconds: number): string { return `${(Math.max(0, milliseconds) / 1_000).toFixed(1)}s`; }
 function isTimestamp(value: unknown): value is number { return typeof value === "number" && Number.isSafeInteger(value) && value >= 0; }

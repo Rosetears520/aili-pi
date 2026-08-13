@@ -496,8 +496,8 @@ export function registerPersistentAgentTools(pi: ExtensionAPI, options: Internal
     },
   });
   if (options.directFastCommand) {
-    pi.registerCommand("aili-agent-fast", {
-      description: "Direct user operation to select the Persistent Agent Fast service tier",
+    pi.registerCommand("codex-fast", {
+      description: "Enable or disable the Persistent Agent Codex priority tier",
       handler: async (args, context) => {
         try {
           context.ui.notify(await options.directFastCommand!(args, context), "info");

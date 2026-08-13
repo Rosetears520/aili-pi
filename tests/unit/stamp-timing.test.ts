@@ -60,9 +60,12 @@ describe("AILI Stamp retained timing and provenance", () => {
       version: 3, kind: "assistant", timestamp, firstContentAt: timestamp + 7_200, completedAt: timestamp + 8_000,
       thinking: "high",
       provenance: { api: "responses", provider: "openai", requestedModel: "gpt-5.6-terra", usage: { inputTokens: 1_000, outputTokens: 234 } },
-    })).toBe("22:24:23 · first 7.2s · total 8.0s · gpt-5.6-terra high · out 0.2k");
+    })).toBe("22:24:23 · first 7.2s · total 8.0s · gpt-5.6-terra high · out 234");
     expect(formatStampEntry({
-      version: 3, kind: "assistant", timestamp, provenance: { api: "responses", provider: "openai", requestedModel: "gpt-5.6-terra", usage: { inputTokens: 82_000, outputTokens: 72 } },
-    })).toBe("22:24:23 · gpt-5.6-terra · out 72");
+      version: 3, kind: "assistant", timestamp, provenance: { api: "responses", provider: "openai", requestedModel: "gpt-5.6-terra", usage: { inputTokens: 82_000, outputTokens: 823 } },
+    })).toBe("22:24:23 · gpt-5.6-terra · out 823");
+    expect(formatStampEntry({
+      version: 3, kind: "assistant", timestamp, provenance: { api: "responses", provider: "openai", requestedModel: "gpt-5.6-terra", usage: { outputTokens: 2_300 } },
+    })).toBe("22:24:23 · gpt-5.6-terra · out 2.3k");
   });
 });

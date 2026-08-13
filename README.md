@@ -14,7 +14,7 @@ macOS and native Windows are not supported by this bootstrap and fail before ins
 
 ## Install
 
-### Stable 0.2.6
+### Stable 0.2.7
 
 Install the current stable package through Pi:
 
