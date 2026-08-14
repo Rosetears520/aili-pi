@@ -1,4 +1,4 @@
-# License disposition for `@rosetears/aili-pi@0.2.7`
+# License disposition for `@rosetears/aili-pi@0.2.8`
 
 This repository-owner-authorized disposition supports the project primary license change to MIT. It does not rewrite third-party terms.
 

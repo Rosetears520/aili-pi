@@ -2,7 +2,7 @@
 
 > **Availability:** The AILI-owned local runtime is the public orchestration surface. The package registers `task` and `hub` and does not register a legacy `subagent` alias. Deterministic tests and bounded local probes are recorded in `manifests/live-verification.json`; they do not establish preview publication, installed-package behavior, or real-provider behavior as PASS.
 
-> **Release status:** Persistent Agents are part of `@rosetears/aili-pi@0.2.7`. Provider/model behavior still depends on the configured Pi environment.
+> **Release status:** Persistent Agents are part of `@rosetears/aili-pi@0.2.8`. Provider/model behavior still depends on the configured Pi environment.
 
 ## Agent selectors
 
