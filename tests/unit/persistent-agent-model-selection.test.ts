@@ -171,6 +171,7 @@ describe("model-facing task confirmation", () => {
     await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "dismiss" })).resolves.toBeUndefined();
     await expect(confirmTaskModelRequest({ model: "provider/one" }, undefined, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
     await expect(confirmTaskModelRequest({ model: "provider/parent" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
+    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, bypassConfirmation: true, confirm: async () => "deny" })).resolves.toEqual({ model: "provider/one" });
     await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toEqual({ model: "provider/one" });
   });
 });

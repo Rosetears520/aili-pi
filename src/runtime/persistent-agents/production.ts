@@ -643,8 +643,12 @@ export class PersistentAgentProduction {
           persistent: false,
           oneShot: false,
         } : undefined);
+        const modeConfig = loadModeConfig(context.cwd, getAgentDir(), (message) => context.ui.notify(message, "warning"));
+        const mode = currentMode(modeConfig, context);
+        const yolo = mode.label === "YOLO" && !mode.sandbox.enabled && mode.bypassProtectedPaths === true;
         const oneShot = await confirmTaskModelRequest(parseOverride(item.model), parent, {
           hasUI: context.hasUI,
+          bypassConfirmation: yolo,
           confirm: async ({ parent: from, requested }) => {
             if (!context.hasUI) return "dismiss";
             const selected = await context.ui.select(`Worker model override: ${from} → ${requested}`, ["Allow once", "Deny"], { signal: context.signal });

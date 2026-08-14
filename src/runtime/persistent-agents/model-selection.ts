@@ -371,6 +371,8 @@ export interface ModelChangeConfirmation {
 
 export interface TaskModelRequestConfirmation {
   hasUI: boolean;
+  /** YOLO is an explicit user choice to skip interactive permission prompts. */
+  bypassConfirmation?: boolean;
   confirm(packet: { parent: string; requested: string }): Promise<"confirm" | "deny" | "dismiss">;
 }
 
@@ -385,6 +387,7 @@ export async function confirmTaskModelRequest(
   // identity is available to present/compare.
   if (!parent) return undefined;
   if (requested.model === parent.canonical) return undefined;
+  if (confirmation.bypassConfirmation) return requested;
   if (!confirmation.hasUI) return undefined;
   return await confirmation.confirm({ parent: parent.canonical, requested: requested.model }) === "confirm"
     ? requested
