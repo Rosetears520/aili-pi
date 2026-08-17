@@ -31,7 +31,7 @@ describe("Pi Web static lifecycle seams", () => {
     expect(buildCheck).toBeGreaterThan(prelisten);
     expect(runtimeCheck).toBeGreaterThan(buildCheck);
     expect(spawn).toBeGreaterThan(runtimeCheck);
-    expect(cli).toContain('stdio: ["inherit", "pipe", "inherit"]');
+    expect(cli).toContain('stdio: ["inherit", "pipe", "inherit", "pipe", "pipe", "pipe"]');
     expect(cli).toContain("shell: false");
     expect(cli).not.toContain("detached: true");
     expect(cli).toContain('detached: false');
@@ -59,7 +59,7 @@ describe("Pi Web static lifecycle seams", () => {
       scripts?: Record<string, string>;
     };
 
-    expect(manifest.bin).toEqual({ "pi-web": "./bin/pi-web.js" });
+    expect(manifest.bin).toEqual({ "pi-web": "./bin/pi-web.js", "aili-pi": "./bin/aili-pi.js" });
     expect(manifest.files).toEqual(expect.arrayContaining(["bin/", "dist/web/", "extensions/web/", "src/"]));
     expect(manifest.dependencies).toMatchObject({ next: "16.2.12", react: "19.2.4", "react-dom": "19.2.4" });
     expect(manifest.dependencies).not.toHaveProperty("@agegr/pi-web");

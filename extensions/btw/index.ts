@@ -185,7 +185,7 @@ function threadLabel(thread: BtwThreadSnapshot): string {
   return `${thread.id} — ${thread.selection.provider}/${thread.selection.model} (${thread.selection.thinking}, ${thread.state}, messages=${thread.messages.length}, steering=${thread.steeringQueue.length})`;
 }
 
-function assistantText(message: AssistantMessage): string {
+export function assistantText(message: AssistantMessage): string {
   const text = message.content
     .filter((content): content is Extract<AssistantMessage["content"][number], { type: "text" }> => content.type === "text")
     .map((content) => content.text)

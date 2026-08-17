@@ -196,6 +196,26 @@ describe("durable Agent output and exactly-once parent delivery", () => {
     expect(Object.keys(journal.getState().deliveries)).toEqual(["delivery-job-1"]);
   });
 
+  it("delivers an async queued cancellation without a child session path", async () => {
+    const now = "2026-07-25T03:00:00.000Z";
+    await journal.append({
+      kind: "agent.created",
+      agentId: "Cancelled",
+      payload: { record: { id: "Cancelled", name: "Cancelled", selector: "general", state: "queued", createdAt: now, updatedAt: now } },
+    });
+    await journal.append({ kind: "agent.state", agentId: "Cancelled", payload: { from: "queued", to: "aborted" } });
+    const sent: ParentResultMessage[] = [];
+    const service = new AsyncDeliveryService(layout, journal, {
+      scanDeliveryIds: async () => new Set(),
+      send: async (message) => { sent.push(message); return "sent"; },
+    });
+    await expect(service.complete(settlement("Cancelled", {
+      status: "aborted",
+      lifecycle: { agent: "aborted", job: "aborted", turn: "aborted" },
+    }), "")).resolves.toMatchObject({ status: "delivered" });
+    expect(sent[0]?.details.status).toBe("aborted");
+  });
+
   it("refuses pending delivery when the registered child JSONL is missing", async () => {
     const now = "2026-07-25T03:00:00.000Z";
     await journal.append({

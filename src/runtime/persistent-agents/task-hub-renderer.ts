@@ -27,6 +27,7 @@ export interface TaskCallItem {
   name?: string;
   agent?: string;
   model?: string;
+  thinking?: string;
   async?: boolean;
   formalContext?: { changeId?: string };
 }
@@ -97,6 +98,7 @@ function taskStatus(value: Record<string, unknown>): string {
   if (formal === "malformed") return "malformed";
   if (formal === "blocked" || formal === "unverified") return "blocked";
   const status = exactString(value.status);
+  if (status === "allocated" || status === "running") return status;
   if (status === "aborted") return "cancelled";
   if (status === "accepted") {
     const lifecycle = record(value.lifecycle);
@@ -111,38 +113,164 @@ function taskStatus(value: Record<string, unknown>): string {
   throw new Error("malformed task renderer result status");
 }
 
-function taskModel(value: Record<string, unknown>): string | undefined {
+interface TaskIdentity {
+  name?: string;
+  selector?: string;
+  requestedModel?: string;
+  requestedThinking?: string;
+  effectiveModel?: string;
+  provider?: string;
+  model?: string;
+  layer?: string;
+  thinking?: string;
+  modelSource?: string;
+  thinkingSource?: string;
+  source?: string;
+  parent?: string;
+  parentModel?: string;
+  parentThinking?: string;
+  parentSource?: string;
+  effectiveProvenance?: string;
+  speedTier?: string;
+  service?: string;
+  mode?: string;
+  modeReason?: string;
+}
+
+function firstString(...values: unknown[]): string | undefined {
+  return values.map(exactString).find((value): value is string => value !== undefined);
+}
+
+function canonicalModel(provider: unknown, model: unknown): string | undefined {
+  const providerValue = exactString(provider);
+  const modelValue = exactString(model);
+  return providerValue && modelValue ? `${providerValue}/${modelValue}` : undefined;
+}
+
+function taskIdentity(value: Record<string, unknown>): TaskIdentity {
   const model = record(value.model);
-  const provider = exactString(model?.provider);
-  const id = exactString(model?.model);
-  return provider && id ? `${provider}/${id}` : undefined;
+  const parent = record(value.parent);
+  const provenance = record(value.provenance);
+  const parentResolution = record(value.parentResolution);
+  const directModel = firstString(typeof value.model === "string" ? value.model : undefined);
+  const directCanonical = directModel?.includes("/") ? directModel : undefined;
+  const directProvider = directCanonical ? directCanonical.slice(0, directCanonical.indexOf("/")) : undefined;
+  const provider = firstString(value.provider, model?.provider, directProvider);
+  const modelId = firstString(
+    directCanonical ? directCanonical.slice(directCanonical.indexOf("/") + 1) : directModel,
+    model?.model,
+  );
+  const effectiveModel = firstString(
+    value.effectiveModel,
+    value.effective,
+    value.canonical,
+    model?.effectiveModel,
+    model?.effective,
+    model?.canonical,
+    directCanonical,
+    canonicalModel(provider, modelId),
+  );
+  const parentModel = firstString(
+    value.parentModel,
+    value.parentEffectiveModel,
+    value.parentCanonicalModel,
+    typeof value.parent === "string" ? value.parent : undefined,
+    model?.parentModel,
+    model?.parentEffectiveModel,
+    model?.parentCanonicalModel,
+    provenance?.parentModel,
+    provenance?.parentEffectiveModel,
+    provenance?.parentCanonicalModel,
+    parent?.effectiveModel,
+    parent?.effective,
+    parent?.canonical,
+    parentResolution?.effectiveModel,
+    parentResolution?.canonical,
+    canonicalModel(parent?.provider, parent?.model),
+    canonicalModel(parentResolution?.provider, parentResolution?.model),
+  );
+  const parentThinking = firstString(value.parentThinking, model?.parentThinking, provenance?.parentThinking, parent?.thinking, parentResolution?.thinking);
+  const parentSource = firstString(value.parentSource, model?.parentSource, provenance?.parentSource, parent?.modelSource, parent?.source, parentResolution?.modelSource, parentResolution?.source);
+  return {
+    name: firstString(value.name, value.agentName),
+    selector: firstString(value.selector),
+    requestedModel: firstString(value.requestedModel, value.requested, model?.requested),
+    requestedThinking: firstString(value.requestedThinking, model?.requestedThinking),
+    effectiveModel,
+    provider,
+    model: modelId,
+    layer: firstString(value.modelLayer, value.layer, model?.modelLayer, model?.layer),
+    thinking: firstString(value.thinking, model?.thinking),
+    modelSource: firstString(value.modelSource, model?.modelSource),
+    thinkingSource: firstString(value.thinkingSource, model?.thinkingSource),
+    source: firstString(value.source, model?.source),
+    parent: parentModel
+      ? `${parentModel}${parentThinking ? ` (thinking=${parentThinking})` : ""}`
+      : firstString(value.parentAgentId),
+    parentModel,
+    parentThinking,
+    parentSource,
+    effectiveProvenance: firstString(
+      value.effectiveProvenance,
+      value.effectiveSource,
+      model?.effectiveProvenance,
+      model?.effectiveSource,
+      model?.provenance,
+      value.provenance,
+      provenance?.effective,
+      provenance?.effectiveSource,
+    ),
+    speedTier: firstString(value.speedTier, model?.speedTier),
+    service: firstString(value.service, value.serviceMode, model?.service, model?.serviceMode),
+    mode: firstString(value.effectiveMode, value.mode, model?.effectiveMode),
+    modeReason: firstString(value.effectiveModeReason, model?.effectiveModeReason),
+  };
 }
 
 function taskResultLines(value: Record<string, unknown>, expanded: boolean): string[] {
   const status = taskStatus(value);
-  const selector = exactString(value.selector);
+  const identity = taskIdentity(value);
+  const selector = identity.selector;
   if (!selector) throw new Error("malformed task renderer identity");
-  const identity = [selector, taskModel(value), status].filter(Boolean).join(" · ");
-  const lines = [identity];
+  const compactRaw = [identity.name, selector, identity.effectiveModel, identity.thinking, status]
+    .filter((item): item is string => Boolean(item))
+    .map((item) => boundedDisplayText(item, 160))
+    .join(" · ");
+  const lines = [boundedDisplayText(compactRaw, SUMMARY_COLUMNS)];
   if (!expanded) return lines;
-  const model = record(value.model);
   const lifecycle = record(value.lifecycle);
-  const detail = [
-    ["requested", exactString(model?.requested)],
-    ["effective", taskModel(value)],
-    ["layer", exactString(model?.layer)],
-    ["thinking", exactString(model?.thinking)],
-    ["mode", exactString(value.effectiveMode)],
-    ["agent", exactString(value.agentId)],
-    ["job", exactString(value.jobId)],
-    ["turn", exactString(value.turnId)],
-    ["agent state", exactString(lifecycle?.agent)],
-    ["job state", exactString(lifecycle?.job)],
-    ["turn state", exactString(lifecycle?.turn)],
-    ["output", exactString(value.outputRef)],
-    ["history", exactString(value.historyRef)],
-  ].filter((entry): entry is [string, string] => Boolean(entry[1]));
-  for (const [label, item] of detail) lines.push(`  ${label}: ${boundedDisplayText(item, DETAIL_COLUMNS)}`);
+  const detail: Array<[string, string | undefined]> = [
+    // `requested` is retained as the compact compatibility label for the
+    // requested model; thinking is always shown as a separate field.
+    ["requested", identity.requestedModel],
+    ["requested thinking", identity.requestedThinking],
+    ["effective", identity.effectiveModel],
+    ["source", identity.source],
+    ["model source", identity.modelSource],
+    ["thinking source", identity.thinkingSource],
+    ["layer", identity.layer],
+    ["thinking", identity.thinking],
+    ["parent", identity.parent],
+    ["parent model", identity.parentModel],
+    ["parent thinking", identity.parentThinking],
+    ["parent source", identity.parentSource],
+    ["effective provenance", identity.effectiveProvenance],
+    ["speed tier", identity.speedTier],
+    ["service", identity.service],
+    ["mode", identity.mode],
+    ["mode reason", identity.modeReason],
+    ["agent", firstString(value.agentId)],
+    ["job", firstString(value.jobId)],
+    ["turn", firstString(value.turnId)],
+    ["agent state", firstString(lifecycle?.agent)],
+    ["job state", firstString(lifecycle?.job)],
+    ["turn state", firstString(lifecycle?.turn)],
+    ["output", firstString(value.outputRef)],
+    ["history", firstString(value.historyRef)],
+  ];
+  for (const [label, item] of detail) {
+    if (item !== undefined) lines.push(`  ${label}: ${boundedDisplayText(item, DETAIL_COLUMNS)}`);
+  }
   return lines;
 }
 
@@ -155,11 +283,12 @@ export function renderTaskCall(
   const first = items[0]!;
   const selector = exactString(first.agent);
   const requestedModel = exactString(first.model);
+  const requestedThinking = exactString(first.thinking);
   const name = exactString(first.name);
   const status = context.executionStarted ? "running" : "preparing";
   const identity = items.length > 1
     ? [`batch ${items.length}`, status]
-    : [name, selector, requestedModel, status].filter(Boolean);
+    : [name, selector, requestedModel, requestedThinking, status].filter(Boolean);
   const title = theme.fg("toolTitle", theme.bold("TASK · ")) + theme.fg("accent", identity.join(" · "));
   const summaries = items.slice(0, 3).map((item, index) => `${items.length > 1 ? `${index + 1}. ` : ""}${boundedDisplayText(item.task)}`);
   if (items.length > 3) summaries.push(`… ${items.length - 3} more`);
@@ -172,7 +301,25 @@ export function renderTaskResult(
   theme: RendererTheme,
   context: ToolRenderContext<TaskCallArgs>,
 ): Text {
-  if (options.isPartial) return textComponent(theme.fg("warning", "TASK · running"), context);
+  if (options.isPartial) {
+    const snapshot = record(result.details);
+    // TaskCoordinator emits a bounded allocation snapshot for live updates.
+    // Never reconstruct this identity from the original call arguments: the
+    // effective provider/model/thinking only exist in the structured snapshot.
+    if (snapshot?.batch === true && Array.isArray(snapshot.results) && snapshot.results.length > 0) {
+      const rows = snapshot.results.map((item) => record(item)).filter((item): item is Record<string, unknown> => item !== undefined);
+      if (rows.length !== snapshot.results.length) throw new Error("malformed task renderer live batch");
+      const lines = rows.flatMap((row, index) => taskResultLines(row, options.expanded).map((line, lineIndex) => lineIndex === 0 ? `${index + 1}. ${line}` : line));
+      return textComponent(theme.fg("warning", [`TASK · batch ${rows.length} · ${exactString(snapshot.status) ?? "allocated"}`, ...lines.map((line) => `\n${line}`)].join("")), context);
+    }
+    if (snapshot && (exactString(snapshot.status) === "allocated" || exactString(snapshot.status) === "running")) {
+      const lines = taskResultLines(snapshot, options.expanded);
+      return textComponent(theme.fg("warning", ["TASK · ", lines[0], ...lines.slice(1).map((line) => `\n${line}`)].join("")), context);
+    }
+    // Older Pi callers sent an empty partial result. Keep the old bounded
+    // fallback while allowing the canonical snapshot path above to converge.
+    return textComponent(theme.fg("warning", "TASK · running"), context);
+  }
   const details = record(result.details);
   if (!details || typeof details.batch !== "boolean" || !Array.isArray(details.results) || details.results.length === 0) {
     throw new Error("malformed task renderer details");
@@ -224,6 +371,31 @@ export function renderHubCall(
   return textComponent(text, context);
 }
 
+function hubDisplayIdentity(value: Record<string, unknown>): string | undefined {
+  const display = record(value.display) ?? value;
+  const name = firstString(display.name, value.name);
+  const selector = firstString(display.selector, value.selector);
+  const effectiveModel = firstString(display.effectiveModel, display.effective)
+    ?? canonicalModel(display.provider, display.model);
+  const thinking = firstString(display.thinking);
+  const status = firstString(display.status, value.status, value.state);
+  const requestedModel = firstString(display.requestedModel, display.requested);
+  const requestedThinking = firstString(display.requestedThinking);
+  const source = firstString(display.source);
+  const modelSource = firstString(display.modelSource);
+  const thinkingSource = firstString(display.thinkingSource);
+  const identity = [name, selector, effectiveModel, thinking, status].filter(Boolean).join(" · ");
+  if (!identity) return undefined;
+  const details = [
+    requestedModel ? `requestedModel=${requestedModel}` : undefined,
+    requestedThinking ? `requestedThinking=${requestedThinking}` : undefined,
+    source ? `source=${source}` : undefined,
+    modelSource ? `modelSource=${modelSource}` : undefined,
+    thinkingSource ? `thinkingSource=${thinkingSource}` : undefined,
+  ].filter(Boolean).join(" · ");
+  return boundedDisplayText(details ? `${identity} · ${details}` : identity, DETAIL_COLUMNS);
+}
+
 function summarizeHubDetails(value: Record<string, unknown>, expanded: boolean): string[] {
   const status = exactString(value.status)
     ?? (value.completed === true ? "completed" : value.timedOut === true ? "timed-out" : value.result ? String(value.result) : "completed");
@@ -233,11 +405,23 @@ function summarizeHubDetails(value: Record<string, unknown>, expanded: boolean):
     if (item) identities.push(`${key}=${boundedDisplayText(item, 72)}`);
   }
   for (const key of ["agents", "jobs", "messages", "released"] as const) {
-    if (Array.isArray(value[key])) identities.push(`${key}=${value[key].length}`);
+    const items = value[key];
+    if (Array.isArray(items)) {
+      identities.push(`${key}=${items.length}`);
+      for (const [index, item] of items.slice(0, 20).entries()) {
+        const identity = record(item) ? hubDisplayIdentity(item as Record<string, unknown>) : undefined;
+        if (identity) identities.push(`${key}[${index + 1}]=${boundedDisplayText(identity, DETAIL_COLUMNS)}`);
+      }
+    }
   }
+  const directIdentity = hubDisplayIdentity(value);
+  if (directIdentity && !identities.some((item) => item.includes(directIdentity))) identities.push(directIdentity);
   const lines = [[status, ...identities].join(" · ")];
   if (expanded) {
-    const bounded = JSON.stringify(value, (_key, item) => {
+    const bounded = JSON.stringify(value, (key, item) => {
+      // Hub results may contain durable message bodies. They are not identity
+      // evidence and must not be copied into the renderer projection.
+      if (["content", "context", "prompt", "task"].includes(key)) return "[omitted]";
       if (typeof item === "string") return boundedDisplayText(item, DETAIL_COLUMNS);
       return item;
     }, 2);

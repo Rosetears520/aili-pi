@@ -11,17 +11,23 @@ import { brokeredChildPermission, ChildPermissionResolver, ParentApprovalBroker 
 import {
   ModelConfigStore,
   ModelConfigurationService,
+  ModelSelectionError,
   defaultGlobalModelConfigPath,
   defaultProjectModelConfigPath,
   confirmTaskModelRequest,
   revalidateResolvedModelChoice,
   resolveAgentModel,
   type CatalogModel,
+  type CurrentTurnModelAuthority,
   type ModelCatalog,
   type ModelOverride,
+  type ModelSource,
   type ModelThinking,
+  MODEL_THINKING_LEVELS,
   type ResolvedModelChoice,
   type SpeedTier,
+  validateCurrentTurnModelRequest,
+  validateModelIdentifier,
 } from "./model-selection.js";
 import {
   GitIsolationAdapter,
@@ -44,6 +50,8 @@ import {
   type FormalTaskProtection,
   type FormalWorkspaceRequest,
   type TaskExecutorInput,
+  type TaskPreflightResult,
+  type TaskUpdateCallback,
 } from "./task-coordinator.js";
 import { normalizeFormalContinuationAudit, type FormalContinuationAudit } from "./task-schema.js";
 import { loadRoleProfiles, type RoleProfile } from "../roles.js";
@@ -72,6 +80,8 @@ interface ParentState {
   controllers: Map<string, ProductionAgentController>;
   parkTimers: Map<string, NodeJS.Timeout>;
   speedTier: SpeedTier;
+  /** User-owned, turn-local authority captured from the latest Parent prompt. */
+  currentTurnModelAuthority: CurrentTurnModelAuthority;
 }
 
 export interface PersistentAgentProductionOptions {
@@ -186,8 +196,53 @@ function currentMode(config: PermissionModeConfig, context: ExtensionContext): M
   return config.modes[selected ?? config.defaultMode] ?? config.modes[config.defaultMode]!;
 }
 
-class ContextModelCatalog implements ModelCatalog {
+export interface CurrentTurnModelCatalogEntry extends CatalogModel {
+  canonical?: string;
+  /** Deterministic user-facing aliases advertised by the Pi model catalog. */
+  aliases?: readonly string[];
+}
+
+export interface CurrentTurnModelCatalog {
+  enumerate(): readonly CurrentTurnModelCatalogEntry[];
+}
+
+function modelCatalogAliases(model: Record<string, unknown>): string[] {
+  const values: unknown[] = [model.id, model.name, model.displayName, model.label, model.alias];
+  if (Array.isArray(model.aliases)) values.push(...model.aliases);
+  const aliases = new Set<string>();
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const alias = value.trim();
+    if (alias.length < 2 || /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(alias)) continue;
+    if (/^(?:model|default|unknown|none)$/i.test(alias)) continue;
+    aliases.add(alias);
+    for (const part of alias.split(/[\s/._:-]+/)) {
+      if (part.length >= 3 && !/^(?:model|default|unknown|none|gpt|claude|sonnet|opus|haiku|agent|agents|worker|workers|child|children|task|tasks|persistent|controlled|fixture|test)$/i.test(part)) aliases.add(part);
+    }
+  }
+  return [...aliases];
+}
+
+export class ContextModelCatalog implements ModelCatalog, CurrentTurnModelCatalog {
   constructor(private readonly context: ExtensionContext) {}
+
+  private isAvailable(provider: string, modelId: string): boolean {
+    return this.context.modelRegistry.getAvailable().some((candidate) => candidate.provider === provider && candidate.id === modelId);
+  }
+
+  private describe(model: { provider: string; id: string; reasoning?: boolean; thinkingLevelMap?: Partial<Record<ModelThinking, string | null>>; name?: string; displayName?: string; label?: string; alias?: string; aliases?: readonly string[] }): CurrentTurnModelCatalogEntry {
+    const available = this.isAvailable(model.provider, model.id);
+    const authenticated = this.context.modelRegistry.hasConfiguredAuth(model as never);
+    return {
+      provider: model.provider,
+      model: model.id,
+      canonical: `${model.provider}/${model.id}`,
+      available,
+      authenticated,
+      thinkingLevels: supportedThinkingLevels(model),
+      aliases: modelCatalogAliases(model as unknown as Record<string, unknown>),
+    };
+  }
 
   async resolve(canonical: string): Promise<CatalogModel | undefined> {
     const slash = canonical.indexOf("/");
@@ -195,14 +250,7 @@ class ContextModelCatalog implements ModelCatalog {
     const provider = canonical.slice(0, slash);
     const modelId = canonical.slice(slash + 1);
     const model = this.context.modelRegistry.find(provider, modelId);
-    if (!model) return undefined;
-    return {
-      provider: model.provider,
-      model: model.id,
-      available: this.context.modelRegistry.getAvailable().some((candidate) => candidate.provider === model.provider && candidate.id === model.id),
-      authenticated: this.context.modelRegistry.hasConfiguredAuth(model),
-      thinkingLevels: supportedThinkingLevels(model),
-    };
+    return model ? this.describe(model) : undefined;
   }
 
   async resolveParentFallback(): Promise<CatalogModel | undefined> {
@@ -210,21 +258,320 @@ class ContextModelCatalog implements ModelCatalog {
     return model ? await this.resolve(`${model.provider}/${model.id}`) : undefined;
   }
 
+  async resolveRuntimeFallback(): Promise<CatalogModel | undefined> {
+    const candidates = [...this.context.modelRegistry.getAvailable()]
+      .sort((left, right) => `${left.provider}/${left.id}`.localeCompare(`${right.provider}/${right.id}`));
+    for (const candidate of candidates) {
+      const resolved = await this.resolve(`${candidate.provider}/${candidate.id}`);
+      if (resolved?.available && resolved.authenticated) return resolved;
+    }
+    return undefined;
+  }
+
   async resolveBare(modelId: string): Promise<CatalogModel[]> {
     return this.context.modelRegistry.getAll()
       .filter((model) => model.id === modelId)
-      .map((model) => ({
-        provider: model.provider,
-        model: model.id,
-        available: this.context.modelRegistry.getAvailable().some((candidate) => candidate.provider === model.provider && candidate.id === model.id),
-        authenticated: this.context.modelRegistry.hasConfiguredAuth(model),
-        thinkingLevels: supportedThinkingLevels(model),
-      }));
+      .map((model) => this.describe(model));
   }
+
+  enumerate(): readonly CurrentTurnModelCatalogEntry[] {
+    return this.context.modelRegistry.getAll()
+      .map((model) => this.describe(model))
+      .filter((model) => model.available && model.authenticated);
+  }
+}
+
+const MODEL_DIRECTIVE_ACTIONS = /\b(?:use|choose|pick|select|run|assign|set|delegate|delegat(?:e|ed|ing)|route|prefer|switch|with|on|at|is|should|must|will)\b|[:=]/i;
+const MODEL_DIRECTIVE_CJK_ACTIONS = /(?:用|使用|选择|指定|切换|换成|根据|开一个|开个|让)/i;
+const MODEL_DIRECTIVE_TARGETS = /\b(?:model|worker|workers|subagent|subagents|sub-agent|sub-agents|child|children|agent|agents|delegat(?:e|ion))\b/i;
+const MODEL_DIRECTIVE_CJK_TARGETS = /(?:模型|子代理|子\s*agent|子任务|工作者)/i;
+const MODEL_REFERENCE = /\b[A-Za-z][A-Za-z0-9._:-]*(?:\/[A-Za-z0-9._:-]+)?\b/g;
+const MODEL_STOP_WORDS = new Set(["a", "an", "the", "model", "worker", "workers", "subagent", "subagents", "agent", "agents", "child", "children", "for", "to", "on", "with", "and", "or", "off", "minimal", "low", "medium", "high", "xhigh", "max", "thinking", "reasoning"]);
+
+const DELEGATED_MODEL_PATTERNS: readonly RegExp[] = [
+  /\bsub[- ]?agents?\s+model\s+(?:that\s+)?you\s+choose\b/i,
+  /\bchoose\s+(?:the\s+)?(?:worker|sub[- ]?agent|child|persistent\s+agent)\s+model\b/i,
+  /\b(?:you|the\s+system)\s+(?:may|can|should|will)?\s*choose\s+(?:the\s+)?(?:worker|sub[- ]?agent|child|persistent\s+agent)?\s*model\b/i,
+  /\b(?:let|allow)\s+(?:you|the\s+system|the\s+runtime)\s+choose\s+(?:the\s+)?(?:worker|sub[- ]?agent|child|persistent\s+agent)?\s*model\b/i,
+  /\b(?:delegate|leave)\s+(?:the\s+)?(?:worker|sub[- ]?agent|child|persistent\s+agent)?\s*model(?:\s+(?:choice|selection))?(?:\s+to\s+(?:you|the\s+system|the\s+runtime))?\b/i,
+  /(?:子\s*agent|子代理|sub[- ]?agent)[^\n]{0,20}模型[^\n]{0,20}(?:你自己|自己|你)[^\n]{0,8}(?:选|决定)/i,
+  /模型[^\n]{0,12}(?:你自己选|你决定|自己决定)[^\n]{0,12}(?:子\s*agent|子代理|worker|agent)?/i,
+];
+
+export function defaultCurrentTurnModelAuthority(): CurrentTurnModelAuthority {
+  return { mode: "inherit-only" };
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function authorityCatalogEntries(catalog: CurrentTurnModelCatalog | readonly CurrentTurnModelCatalogEntry[]): CurrentTurnModelCatalogEntry[] {
+  const entries = Array.isArray(catalog) ? [...catalog] : [...(catalog as CurrentTurnModelCatalog).enumerate()];
+  return entries.filter((entry) => entry.available && entry.authenticated).map((entry) => ({
+    ...entry,
+    canonical: entry.canonical || `${entry.provider}/${entry.model}`,
+    aliases: [...new Set([entry.canonical || `${entry.provider}/${entry.model}`, entry.model, ...(entry.aliases ?? [])])],
+  }));
+}
+
+function aliasOccurrences(prompt: string, alias: string): Array<{ index: number; length: number }> {
+  const pattern = new RegExp(`(^|[^A-Za-z0-9])(${escapeRegExp(alias)})(?=$|[^A-Za-z0-9])`, "gi");
+  const occurrences: Array<{ index: number; length: number }> = [];
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(prompt)) !== null) {
+    const prefixLength = match[1]?.length ?? 0;
+    occurrences.push({ index: match.index + prefixLength, length: match[2]?.length ?? alias.length });
+    if (match[0].length === 0) pattern.lastIndex += 1;
+  }
+  return occurrences;
+}
+
+function isNegatedModelDirective(prompt: string, index: number): boolean {
+  const prefix = prompt.slice(Math.max(0, index - 48), index);
+  return /(?:\b(?:do\s+not|don't|never|without|avoid)\s+(?:use|choose|pick|select|run|assign|set|delegate|route|prefer)\s*|(?:不要|别|禁止|勿)\s*(?:用|使用|选择|指定|切换)?\s*)$/i.test(prefix);
+}
+
+function isModelDirectiveOccurrence(prompt: string, index: number, length: number): boolean {
+  if (isNegatedModelDirective(prompt, index)) return false;
+  const window = prompt.slice(Math.max(0, index - 120), Math.min(prompt.length, index + length + 120));
+  const action = MODEL_DIRECTIVE_ACTIONS.test(window) || MODEL_DIRECTIVE_CJK_ACTIONS.test(window);
+  const target = MODEL_DIRECTIVE_TARGETS.test(window) || MODEL_DIRECTIVE_CJK_TARGETS.test(window);
+  return target ? action : /\b(?:use|set|choose|pick|select|assign|delegate|route|prefer)\b/i.test(window) || MODEL_DIRECTIVE_CJK_ACTIONS.test(window);
+}
+
+function isNegatedDelegatedDirective(prompt: string): boolean {
+  return /\b(?:do\s+not|don't|never|avoid)\s+(?:let|allow)\s+(?:you|the\s+system|the\s+runtime)\s+choose\s+(?:the\s+)?(?:worker|sub[- ]?agent|child|persistent\s+agent)?\s*model/i.test(prompt)
+    || /(?:不要|别|禁止|勿)\s*(?:让|允许)\s*(?:你|系统|运行时)?\s*(?:选择|决定)\s*(?:子代理|子\s*agent|worker|agent)?\s*模型/i.test(prompt);
+}
+
+function maskDelegatedPhrases(prompt: string): { text: string; delegated: boolean } {
+  let text = prompt;
+  let delegated = false;
+  for (const pattern of DELEGATED_MODEL_PATTERNS) {
+    pattern.lastIndex = 0;
+    if (pattern.test(prompt)) delegated = true;
+    text = text.replace(pattern, (match) => " ".repeat(match.length));
+  }
+  return { text, delegated };
+}
+
+function explicitModelReferences(prompt: string): { values: string[]; present: boolean } {
+  const values: string[] = [];
+  let present = false;
+  for (const match of prompt.matchAll(MODEL_REFERENCE)) {
+    const value = match[0]!;
+    if (!value.includes("/")) continue;
+    if (!isModelDirectiveOccurrence(prompt, match.index ?? 0, value.length)) continue;
+    values.push(value);
+    present = true;
+  }
+  const explicitPattern = /\b(?:use|choose|pick|select|run|assign|set|delegate|route|prefer)\s+(?:the\s+)?(?:(?:worker|workers|sub[- ]?agent|sub[- ]?agents|child|children|persistent\s+agent|agent|agents)\s+)?(?:model\s+)?(?:to\s+|on\s+|with\s+|for\s+)?([A-Za-z][A-Za-z0-9._:-]*(?:\/[A-Za-z0-9._:-]+)?)\b/gi;
+  for (const match of prompt.matchAll(explicitPattern)) {
+    const value = match[1]?.trim();
+    const valueIndex = (match.index ?? 0) + (value ? match[0]!.indexOf(value) : 0);
+    if (!value || MODEL_STOP_WORDS.has(value.toLowerCase()) || isNegatedModelDirective(prompt, valueIndex)) continue;
+    values.push(value);
+    present = true;
+  }
+  const alternatives = /\b(?:use|choose|pick|select|run|assign|set|delegate|route|prefer)\s+(?:the\s+)?([A-Za-z][A-Za-z0-9._:-]*(?:\/[A-Za-z0-9._:-]+)?)\s+(?:and|or|,)\s+([A-Za-z][A-Za-z0-9._:-]*(?:\/[A-Za-z0-9._:-]+)?)\b/gi;
+  for (const match of prompt.matchAll(alternatives)) {
+    for (const value of [match[1], match[2]]) {
+      const valueIndex = (match.index ?? 0) + (value ? match[0]!.indexOf(value) : 0);
+      if (!value || MODEL_STOP_WORDS.has(value.toLowerCase()) || isNegatedModelDirective(prompt, valueIndex)) continue;
+      values.push(value);
+      present = true;
+    }
+  }
+  return { values, present };
+}
+
+function explicitThinking(prompt: string): { values: ModelThinking[]; present: boolean } {
+  const values: ModelThinking[] = [];
+  let present = false;
+  const thinkingWord = /\b(?:thinking|reasoning)(?:\s+(?:level|mode))?\b/i;
+  const levelPattern = /\b(?:off|minimal|low|medium|high|xhigh|max)\b/gi;
+  for (const match of prompt.matchAll(levelPattern)) {
+    const index = match.index ?? 0;
+    const level = match[0]!.toLowerCase() as ModelThinking;
+    const window = prompt.slice(Math.max(0, index - 80), Math.min(prompt.length, index + match[0]!.length + 80));
+    const workerTarget = /\b(?:worker|workers|sub[- ]?agent|sub[- ]?agents|child|children|agent|agents)\b/i.test(window) || MODEL_DIRECTIVE_CJK_TARGETS.test(window);
+    const modelDirective = MODEL_DIRECTIVE_ACTIONS.test(window) || MODEL_DIRECTIVE_CJK_ACTIONS.test(window);
+    if (!thinkingWord.test(window) && !modelDirective) continue;
+    if (!MODEL_DIRECTIVE_ACTIONS.test(window) && !workerTarget && !modelDirective) continue;
+    values.push(level);
+    present = true;
+  }
+  const thinkingMention = /\b(?:worker|workers|sub[- ]?agent|sub[- ]?agents|child|children|agent|agents|model)\b[\s\S]{0,60}\b(?:thinking|reasoning)(?:\s+(?:level|mode))?\b|\b(?:thinking|reasoning)(?:\s+(?:level|mode))?\b[\s\S]{0,60}\b(?:worker|workers|sub[- ]?agent|sub[- ]?agents|child|children|agent|agents|model)\b/i.test(prompt);
+  return { values, present: present || thinkingMention };
+}
+
+/**
+ * Capture only direct, deterministic model authority from a Parent prompt.
+ * No provider/model call is made here: the catalog is an authenticated and
+ * available snapshot, and every accepted model is an exact catalog identity.
+ */
+export function parseCurrentTurnModelAuthority(
+  prompt: string,
+  catalog: CurrentTurnModelCatalog | readonly CurrentTurnModelCatalogEntry[],
+): CurrentTurnModelAuthority {
+  if (typeof prompt !== "string" || prompt.trim().length === 0) return defaultCurrentTurnModelAuthority();
+  if (isNegatedDelegatedDirective(prompt)) return defaultCurrentTurnModelAuthority();
+  const entries = authorityCatalogEntries(catalog);
+  const masked = maskDelegatedPhrases(prompt);
+  const modelReferences = explicitModelReferences(masked.text);
+  const thinking = explicitThinking(masked.text);
+  const matchedModels = new Set<string>();
+  for (const entry of entries) {
+    for (const alias of entry.aliases ?? []) {
+      for (const occurrence of aliasOccurrences(masked.text, alias)) {
+        if (isModelDirectiveOccurrence(masked.text, occurrence.index, occurrence.length)) matchedModels.add(entry.canonical!);
+      }
+    }
+  }
+  const distinctThinking = [...new Set(thinking.values)];
+  const modelDirectivePresent = modelReferences.present || matchedModels.size > 0;
+  const thinkingDirectivePresent = thinking.present;
+
+  // A delegated-choice phrase is authority to choose, not a model identity.
+  // Mixing it with an explicit model or an ambiguous thinking directive fails
+  // closed instead of guessing which part of the prompt should win.
+  if (masked.delegated) {
+    if (modelDirectivePresent || (thinkingDirectivePresent && distinctThinking.length !== 1)) return defaultCurrentTurnModelAuthority();
+    return {
+      mode: "delegated-choice",
+      thinkingMode: "inherit",
+      ...(distinctThinking.length === 1 ? { allowedThinking: distinctThinking, thinkingMode: "available" as const } : {}),
+    };
+  }
+  if (modelDirectivePresent && (matchedModels.size !== 1 || modelReferences.values.some((value) => !entries.some((entry) => {
+    const canonical = entry.canonical!;
+    return [canonical, entry.model, ...(entry.aliases ?? [])].some((alias) => {
+      const normalizedAlias = alias.toLowerCase();
+      const normalizedValue = value.toLowerCase();
+      return normalizedAlias === normalizedValue || normalizedAlias.startsWith(`${normalizedValue} `);
+    });
+  })))) return defaultCurrentTurnModelAuthority();
+  if (thinkingDirectivePresent && distinctThinking.length !== 1) return defaultCurrentTurnModelAuthority();
+  if (!modelDirectivePresent && !thinkingDirectivePresent) return defaultCurrentTurnModelAuthority();
+  return {
+    mode: "explicit",
+    ...(matchedModels.size === 1 ? { allowedModels: [...matchedModels] } : {}),
+    ...(distinctThinking.length === 1 ? { allowedThinking: distinctThinking } : {}),
+  };
+}
+
+/** Compatibility names for callers that describe the operation as capture/resolve. */
+export const captureCurrentTurnModelAuthority = parseCurrentTurnModelAuthority;
+export const resolveCurrentTurnModelAuthority = parseCurrentTurnModelAuthority;
+export const determineCurrentTurnModelAuthority = parseCurrentTurnModelAuthority;
+
+function authorityModelList(authority: CurrentTurnModelAuthority): string[] {
+  const values = authority.allowedModels ?? authority.allowedCanonicalModels ?? authority.models;
+  if (values === undefined || values === "available") return [];
+  return typeof values === "string" ? [values] : [...values];
+}
+
+function normalizeTaskModelReference(
+  model: string,
+  authority: CurrentTurnModelAuthority,
+  catalog: CurrentTurnModelCatalog,
+): string {
+  if (authority.mode === "inherit-only" || authority.mode === "delegated-choice" || model.includes("/")) return model;
+  const normalized = model.trim().toLowerCase();
+  const allowed = new Set(authorityModelList(authority).map((value) => value.toLowerCase()));
+  const matches = catalog.enumerate().filter((entry) => {
+    const canonical = entry.canonical ?? `${entry.provider}/${entry.model}`;
+    if (authority.mode === "explicit" && allowed.size > 0 && !allowed.has(canonical.toLowerCase())) return false;
+    return [entry.model, canonical, ...(entry.aliases ?? [])].some((alias) => alias.toLowerCase() === normalized);
+  });
+  if (matches.length > 1) {
+    throw new Error(`current-turn model request is ambiguous for '${model}': ${matches.map((entry) => entry.canonical).join(", ")}`);
+  }
+  return matches[0]?.canonical ?? model;
+}
+
+function captureTaskModelRequest(
+  item: TaskExecutorInput["item"],
+  authority: CurrentTurnModelAuthority,
+  catalog: CurrentTurnModelCatalog,
+): { model?: string; thinking?: ModelThinking } | undefined {
+  if (item.model === undefined && item.thinking === undefined) return undefined;
+  try {
+    if (authority.mode === "inherit-only") {
+      // This is only a syntactic/untrusted request. It is not authority and
+      // still needs a fresh Parent confirmation before it can become one-shot.
+      const model = item.model === undefined
+        ? undefined
+        : item.model.includes("/")
+          ? validateModelIdentifier(item.model).canonical
+          : validateBareModel(item.model);
+      return {
+        ...(model === undefined ? {} : { model }),
+        ...(item.thinking === undefined ? {} : { thinking: item.thinking }),
+      };
+    }
+    const requested = {
+      ...(item.model === undefined ? {} : { model: normalizeTaskModelReference(item.model, authority, catalog) }),
+      ...(item.thinking === undefined ? {} : { thinking: item.thinking }),
+    };
+    return validateCurrentTurnModelRequest(requested, authority) as { model?: string; thinking?: ModelThinking } | undefined;
+  } catch {
+    // Malformed or unauthorized model-facing values are discarded; normal
+    // configured/parent resolution remains available below.
+    return undefined;
+  }
+}
+
+function validateBareModel(model: string): string {
+  const normalized = model.trim();
+  if (!normalized || normalized.includes("/") || /[\s\0\r\n]/.test(normalized)) {
+    throw new Error("bare model must be one exact model id");
+  }
+  return normalized;
 }
 
 function parseOverride(model: string | undefined): ModelOverride | undefined {
   return model ? { model } : undefined;
+}
+
+function persistedParentResolution(agent: { metadata?: Record<string, unknown>; parentAgentId?: string }, fallback?: ResolvedModelChoice): ResolvedModelChoice | undefined {
+  const metadata = agent.metadata ?? {};
+  if (metadata.parentResolutionPresent === false) return undefined;
+  const canonical = typeof metadata.parentModel === "string" ? metadata.parentModel : undefined;
+  if (!canonical) {
+    if (metadata.parentResolutionPresent === true || agent.parentAgentId) {
+      throw new Error("persisted nested Agent is missing its frozen direct-parent model identity");
+    }
+    return fallback;
+  }
+  const separator = canonical.indexOf("/");
+  const thinking = metadata.parentThinking;
+  const speedTier = metadata.parentSpeedTier;
+  const parentSource = metadata.parentSource;
+  const validParentSources = ["confirmed-one-shot", "user-one-shot", "instance-override", "project-role-override", "user-role-override", "inherited-parent", "profile-fallback", "runtime-fallback"];
+  if (separator <= 0 || separator === canonical.length - 1
+    || typeof thinking !== "string"
+    || !(MODEL_THINKING_LEVELS as readonly string[]).includes(thinking)
+    || (speedTier !== "standard" && speedTier !== "priority")
+    || (parentSource !== undefined && (typeof parentSource !== "string" || !validParentSources.includes(parentSource)))) {
+    throw new Error("persisted direct-parent model identity is incomplete");
+  }
+  const directParentSource: ModelSource = typeof parentSource === "string" ? parentSource as ModelSource : "inherited-parent";
+  const directParentModelSource = directParentSource === "confirmed-one-shot" ? "user-one-shot" : directParentSource;
+  return {
+    provider: canonical.slice(0, separator),
+    model: canonical.slice(separator + 1),
+    canonical,
+    layer: "parent-fallback",
+    source: directParentSource,
+    modelSource: directParentModelSource,
+    thinkingSource: directParentModelSource,
+    thinking: thinking as ModelThinking,
+    speedTier,
+    persistent: false,
+    oneShot: false,
+  };
 }
 
 function supportedThinkingLevels(model: { reasoning?: boolean; thinkingLevelMap?: Partial<Record<ModelThinking, string | null>> }): ModelThinking[] {
@@ -296,9 +643,10 @@ class ProductionAgentController implements LiveAgentAdapter {
   }
 
   private async runHubTurn(message: string): Promise<void> {
-    const prepared = this.session
-      ? { session: this.session, initialMessage: "" }
-      : await this.prepare();
+    // Each hub continuation is a fresh turn boundary: re-resolve current
+    // user-owned policy against the frozen direct-parent snapshot instead of
+    // retaining the prior turn's one-shot/session model.
+    const prepared = await this.prepare();
     let status: "completed" | "failed" = "completed";
     let error: string | undefined;
     try {
@@ -335,6 +683,7 @@ class ProductionAgentController implements LiveAgentAdapter {
 
 export class PersistentAgentProduction {
   private readonly parents = new Map<string, Promise<ParentState>>();
+  private readonly pendingTurnAuthorities = new Map<string, CurrentTurnModelAuthority>();
   private activeParentPath?: string;
 
   constructor(
@@ -356,6 +705,25 @@ export class PersistentAgentProduction {
     this.pi.on("session_start", (_event, context) => {
       this.activeParentPath = context.sessionManager.getSessionFile();
     });
+    this.pi.on("before_agent_start", async (event, context) => {
+      const sessionManager = context.sessionManager as SessionManager & { getSessionFile?: () => string | undefined };
+      if (typeof sessionManager.getSessionFile !== "function") return;
+      const parentPath = sessionManager.getSessionFile();
+      if (!parentPath) return;
+      // The first before_agent_start can precede durable parent-session-file
+      // creation. Capture only the authority now and apply it when the runtime
+      // is first created by the task tool; do not initialize sidecar state in
+      // this pre-prompt hook.
+      const authority = parseCurrentTurnModelAuthority(event.prompt, new ContextModelCatalog(context));
+      const existing = this.parents.get(parentPath);
+      if (!existing) {
+        this.pendingTurnAuthorities.set(parentPath, authority);
+        return;
+      }
+      const state = await existing;
+      state.context = context;
+      state.currentTurnModelAuthority = authority;
+    });
     this.pi.on("session_shutdown", async () => {
       for (const pending of this.parents.values()) {
         const state = await pending.catch(() => undefined);
@@ -366,6 +734,7 @@ export class PersistentAgentProduction {
         await state.runtime.shutdown();
       }
       this.parents.clear();
+      this.pendingTurnAuthorities.clear();
     });
   }
 
@@ -443,6 +812,24 @@ export class PersistentAgentProduction {
       currentDepth: input?.depth ?? Number(agent.metadata?.depth ?? 0),
     });
     const catalog = new ContextModelCatalog(context);
+    const contextParent: ResolvedModelChoice | undefined = context.model ? {
+      provider: context.model.provider,
+      model: context.model.id,
+      canonical: `${context.model.provider}/${context.model.id}`,
+      layer: "parent-fallback",
+      source: "inherited-parent",
+      modelSource: "inherited-parent",
+      thinkingSource: "inherited-parent",
+      thinking: context.thinkingLevel as ModelThinking,
+      speedTier: state.speedTier,
+      persistent: false,
+      oneShot: false,
+    } : undefined;
+    // Nested turns use the frozen direct-parent snapshot captured with the
+    // accepted task. Hub/revive turns re-resolve current policy against the
+    // Agent's persisted direct-parent snapshot and never reuse a one-shot.
+    const parentResolution = input?.parentResolution ?? persistedParentResolution(agent, contextParent);
+    if (input && input.depth > 0 && !parentResolution) throw new Error(`${controller.agentId}: nested turn is missing its frozen direct-parent model identity`);
     let choice = input?.modelChoice;
     if (choice) {
       await revalidateResolvedModelChoice(choice, catalog);
@@ -457,6 +844,7 @@ export class PersistentAgentProduction {
           agentId: controller.agentId,
           projectTrusted: context.isProjectTrusted(),
           profile: parseOverride(role.model),
+          parent: parentResolution,
           parentThinking: context.thinkingLevel as ModelThinking,
         },
         journal: state.runtime.journal,
@@ -475,6 +863,8 @@ export class PersistentAgentProduction {
         turnId,
         payload: {
           selector: role.selector,
+          requestedModel: input?.item.model ?? null,
+          requestedThinking: input?.item.thinking ?? null,
           profileHash: role.profileHash,
           sourceHash: role.sourceHash,
           profileVersion: role.profileVersion,
@@ -485,7 +875,12 @@ export class PersistentAgentProduction {
           model: choice.model,
           effectiveModel: choice.canonical,
           modelLayer: choice.layer,
-          modelSource: choice.source,
+          source: choice.source,
+          modelSource: choice.modelSource ?? choice.source,
+          thinkingSource: choice.thinkingSource ?? (choice.layer === "parent-fallback" ? "inherited-parent" : choice.layer === "one-shot" ? "user-one-shot" : "model-default"),
+          ...(parentResolution?.canonical ? { parentModel: parentResolution.canonical } : {}),
+          ...(parentResolution?.thinking ? { parentThinking: parentResolution.thinking } : {}),
+          ...(parentResolution?.source ? { parentSource: parentResolution.source } : {}),
           thinking: choice.thinking,
           speedTier: choice.speedTier ?? "standard",
           effectiveMode: input ? (state.runtime.journal.getState().turns[turnId]?.metadata?.effectiveMode ?? "sync") : "hub",
@@ -607,6 +1002,11 @@ export class PersistentAgentProduction {
     }
     const state = await pending;
     state.context = context;
+    const pendingAuthority = this.pendingTurnAuthorities.get(parentPath);
+    if (pendingAuthority) {
+      state.currentTurnModelAuthority = pendingAuthority;
+      this.pendingTurnAuthorities.delete(parentPath);
+    }
     return state;
   }
 
@@ -628,50 +1028,88 @@ export class PersistentAgentProduction {
       parentId,
       cwd: context.cwd,
       preallocate: async ({ item, role, ancestry }) => {
-        const configs = await new ModelConfigStore({
-          globalPath: defaultGlobalModelConfigPath(),
-          projectPath: defaultProjectModelConfigPath(context.cwd),
-        }).load(context.isProjectTrusted());
-        const parent: ResolvedModelChoice | undefined = ancestry?.parentResolution ?? (context.model ? {
-          provider: context.model.provider,
-          model: context.model.id,
-          canonical: `${context.model.provider}/${context.model.id}`,
+        // This callback runs after validation but before the first durable
+        // Agent/job/turn append. Always read the mutable ParentState snapshot;
+        // the create-time `context` is stale after a session/model turn change.
+        const parentContext = state.context;
+        const catalog = new ContextModelCatalog(parentContext);
+        const authority = ancestry?.currentTurnModelAuthority
+          ?? ancestry?.currentTurnAuthority
+          ?? ancestry?.authority
+          ?? state.currentTurnModelAuthority;
+        const requestedModel = captureTaskModelRequest(item, authority, catalog);
+        if (ancestry && !ancestry.parentResolution) {
+          throw new Error(`${role.selector}: nested task is missing the frozen direct-parent model identity`);
+        }
+        const parent: ResolvedModelChoice | undefined = ancestry?.parentResolution ?? (parentContext.model ? {
+          provider: parentContext.model.provider,
+          model: parentContext.model.id,
+          canonical: `${parentContext.model.provider}/${parentContext.model.id}`,
           layer: "parent-fallback",
           source: "inherited-parent",
-          thinking: context.thinkingLevel as ModelThinking,
+          modelSource: "inherited-parent",
+          thinkingSource: "inherited-parent",
+          thinking: parentContext.thinkingLevel as ModelThinking,
           speedTier: state.speedTier,
           persistent: false,
           oneShot: false,
         } : undefined);
-        const modeConfig = loadModeConfig(context.cwd, getAgentDir(), (message) => context.ui.notify(message, "warning"));
-        const mode = currentMode(modeConfig, context);
-        const yolo = mode.label === "YOLO" && !mode.sandbox.enabled && mode.bypassProtectedPaths === true;
-        const oneShot = await confirmTaskModelRequest(parseOverride(item.model), parent, {
-          hasUI: context.hasUI,
-          bypassConfirmation: yolo,
-          confirm: async ({ parent: from, requested }) => {
-            if (!context.hasUI) return "dismiss";
-            const selected = await context.ui.select(`Worker model override: ${from} → ${requested}`, ["Allow once", "Deny"], { signal: context.signal });
-            return selected === "Allow once" ? "confirm" : selected === "Deny" ? "deny" : "dismiss";
-          },
-        });
-        return await resolveAgentModel({
-          input: {
-            selector: role.selector,
-            // Before allocation there cannot be a durable instance override for
-            // this new Agent identity. Model-facing task.model only becomes a
-            // one-shot after the direct Parent UI confirms it.
-            agentId: `preflight:${role.selector}`,
-            oneShot,
-            projectTrusted: context.isProjectTrusted(),
-            profile: parseOverride(role.model),
+        let oneShot: ModelOverride | undefined;
+        let oneShotThinking: ModelThinking | undefined;
+        if (item.model !== undefined && requestedModel?.model !== undefined) {
+          oneShot = await confirmTaskModelRequest(
+            {
+              model: requestedModel.model,
+              ...(requestedModel.thinking === undefined ? {} : { thinking: requestedModel.thinking }),
+            },
             parent,
-            parentThinking: context.thinkingLevel as ModelThinking,
-          },
-          journal: state.runtime.journal,
-          configs,
-          catalog: new ContextModelCatalog(context),
-        });
+            {
+              hasUI: parentContext.hasUI,
+              confirm: async ({ parent: from, requested }) => {
+                if (!parentContext.hasUI) return "dismiss";
+                const selected = await parentContext.ui.select(`Worker model override: ${from} → ${requested}`, ["Allow once", "Deny"], { signal: parentContext.signal });
+                return selected === "Allow once" ? "confirm" : selected === "Deny" ? "deny" : "dismiss";
+              },
+            },
+          );
+        } else if (item.model === undefined && authority.mode !== "inherit-only") {
+          oneShotThinking = requestedModel?.thinking;
+        }
+        const configs = await new ModelConfigStore({
+          globalPath: defaultGlobalModelConfigPath(),
+          projectPath: defaultProjectModelConfigPath(parentContext.cwd),
+        }).load(parentContext.isProjectTrusted());
+        const resolutionInput = {
+          selector: role.selector,
+          // Authorized task.model/task.thinking values are turn-local. They
+          // never create durable state and never replace user-owned
+          // instance/project/global overrides selected by the resolver.
+          agentId: `preflight:${role.selector}`,
+          oneShot,
+          oneShotThinking,
+          authority: oneShot?.model === undefined ? authority : undefined,
+          projectTrusted: parentContext.isProjectTrusted(),
+          profile: parseOverride(role.model),
+          parent,
+          parentThinking: parentContext.thinkingLevel as ModelThinking,
+        } as const;
+        let choice: ResolvedModelChoice;
+        try {
+          choice = await resolveAgentModel({ input: resolutionInput, journal: state.runtime.journal, configs, catalog });
+        } catch (error) {
+          // An unusable model-facing request must not prevent the ordinary
+          // configured/parent resolution from proceeding. Persistent user
+          // configuration errors still propagate because their layer is not
+          // one-shot.
+          if (!(oneShot?.model !== undefined && error instanceof ModelSelectionError && error.layer === "one-shot")) throw error;
+          choice = await resolveAgentModel({
+            input: { ...resolutionInput, oneShot: undefined, oneShotThinking: undefined, authority: undefined },
+            journal: state.runtime.journal,
+            configs,
+            catalog,
+          });
+        }
+        return { choice, parentResolution: parent, currentTurnModelAuthority: authority } satisfies TaskPreflightResult;
       },
       preflight: async (input) => {
         if (!input.formalProtection) return;
@@ -738,6 +1176,7 @@ export class PersistentAgentProduction {
       controllers: new Map(),
       parkTimers: new Map(),
       speedTier: "standard",
+      currentTurnModelAuthority: this.pendingTurnAuthorities.get(parentPath) ?? defaultCurrentTurnModelAuthority(),
     };
     return state;
   }
@@ -754,7 +1193,7 @@ export class PersistentAgentProduction {
       description: "Create a nested persistent Agent synchronously within the explicit spawn/depth policy. Use the public async field if supplied; never send profile-only blocking metadata.",
       parameters: TASK_TOOL_SCHEMA,
       ...TASK_RENDERERS,
-      execute: async (_id, params) => {
+      execute: async (_id, params, signal, onUpdate) => {
         if (!input) throw new Error("nested task is unavailable outside an inherited scheduled turn");
         const result = await state.runtime.task.submit(params, {
           parentAgentId: input.agentId,
@@ -762,8 +1201,10 @@ export class PersistentAgentProduction {
           parentDepth: input.depth,
           inheritedPermit: input.context.permit,
           ...(input.modelChoice ? { parentResolution: input.modelChoice } : {}),
+          currentTurnModelAuthority: input.currentTurnModelAuthority ?? defaultCurrentTurnModelAuthority(),
+          authority: input.currentTurnModelAuthority ?? defaultCurrentTurnModelAuthority(),
           ...(input.item.formalContext ? { formalChangeId: input.item.formalContext.changeId } : {}),
-        });
+        }, signal, onUpdate as unknown as TaskUpdateCallback | undefined);
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
       },
     };

@@ -1,32 +1,19 @@
-import { getAgentDir, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { randomBytes } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { isIP } from "node:net";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import type { Readable, Writable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { redactedWebDiagnostic } from "../../src/runtime/web/access-policy.js";
-import type { JsonValue, RuntimeSnapshotV1 } from "../../src/runtime/web/contracts.js";
-import { OwnerOnlyProjectionServer } from "../../src/runtime/web/projection-channel.js";
-import {
-  OwnerOnlyProcessLivenessServer,
-  currentProcessIdentity,
-  isExactProcessAlive,
-  markLeaseInterrupted,
-  probeOwnerProcessLiveness,
-} from "../../src/runtime/web/process-liveness.js";
-import { RuntimeHost } from "../../src/runtime/web/runtime-host.js";
-import { acquireSessionWriterLease, type SessionWriterLease } from "../../src/runtime/web/session-writer-lease.js";
 
 export const WEB_COMMAND_NAME = "web" as const;
 export const SUPPORTED_PI_VERSION = "0.84.1" as const;
 export const WEB_CHILD_READY_TIMEOUT_MS = 30_000;
 export const WEB_CHILD_STOP_TIMEOUT_MS = 5_000;
-const WEB_LEASE_TTL_MS = 30_000;
-const WEB_LEASE_RENEW_MS = 10_000;
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PI_PACKAGES = [
   "@earendil-works/pi-agent-core",
@@ -61,12 +48,12 @@ interface ActiveWebChild {
 }
 
 let activeWebChild: ActiveWebChild | undefined;
-let tuiLease: SessionWriterLease | undefined;
-let tuiLeaseTimer: NodeJS.Timeout | undefined;
-let tuiLeaseContext: ExtensionContext | undefined;
-let tuiRuntimeHost: RuntimeHost | undefined;
-let tuiProjectionServer: OwnerOnlyProjectionServer | undefined;
-let tuiLivenessServer: OwnerOnlyProcessLivenessServer | undefined;
+
+/**
+ * The web application owns its own in-process official SDK sessions (the
+ * upstream pi-web model); it never shares or observes the TUI session, so no
+ * writer lease or projection admission applies here.
+ */
 
 /** Pure exact-version seam for runtime-host mismatch fixtures. */
 export function validatePiCompatibilityManifest(manifest: PiCompatibilityManifest): void {
@@ -98,14 +85,12 @@ export async function assertCompatiblePiHost(
 
 /** Register inert handlers. No process is spawned until /web is invoked. */
 export function registerWebCommand(pi: ExtensionAPI): void {
-  registerTuiStartupAdmission(pi);
-  registerTuiProjectionEvents(pi);
   pi.registerCommand(WEB_COMMAND_NAME, {
     description: "Start or report the Pi-owned AILI Web foreground child",
     handler: async (args, context) => {
       try {
         await assertCompatiblePiHost();
-        const address = await ensureWebChild(parseWebLaunchOptions(args));
+        const address = await ensureWebChild(parseWebLaunchOptions(args), canonicalSessionRoot(context));
         context.ui.notify(`AILI Web is ready at ${address}`, "info");
       } catch (error) {
         context.ui.notify(`AILI Web did not start: ${redactedWebDiagnostic(error)}`, "error");
@@ -113,13 +98,12 @@ export function registerWebCommand(pi: ExtensionAPI): void {
     },
   });
   pi.on("session_shutdown", async (event) => {
-    await releaseTuiRuntime();
     if (event.reason === "quit" || event.reason === "reload") await stopWebChild();
   });
 }
 
 /** Start exactly one packaged child or reuse its private-channel ready address. */
-export async function ensureWebChild(options: WebLaunchOptions): Promise<string> {
+export async function ensureWebChild(options: WebLaunchOptions, seededAllowedRoot?: string): Promise<string> {
   const current = activeWebChild;
   if (current && current.controlOpen && current.livenessOpen && current.child.exitCode === null && current.child.signalCode === null) return current.ready;
   if (current) await stopWebChild();
@@ -130,7 +114,7 @@ export async function ensureWebChild(options: WebLaunchOptions): Promise<string>
     detached: false,
     shell: false,
     stdio: ["ignore", "pipe", "pipe", "pipe", "pipe", "pipe"],
-    env: inheritedWebEnvironment(options),
+    env: inheritedWebEnvironment(options, seededAllowedRoot),
   });
   let identityPipe: Writable;
   let controlPipe: Readable;
@@ -269,163 +253,6 @@ export function parseWebLaunchOptions(argumentsText: string): WebLaunchOptions {
   });
 }
 
-function registerTuiStartupAdmission(pi: ExtensionAPI): void {
-  pi.on("session_start", async (_event, context) => {
-    if (context.mode !== "tui") return;
-    try { await assertCompatiblePiHost(); }
-    catch (error) {
-      context.ui.notify(redactedWebDiagnostic(error), "error");
-      context.shutdown();
-      return;
-    }
-    await releaseTuiRuntime();
-    const root = join(resolve(getAgentDir()), ".aili-runtime");
-    let result: Awaited<ReturnType<typeof acquireSessionWriterLease>>;
-    try {
-      tuiLivenessServer = new OwnerOnlyProcessLivenessServer(root, (generation) => tuiLease?.generation === generation);
-      await tuiLivenessServer.start();
-      result = await acquireSessionWriterLease(root, context.sessionManager.getSessionId(), "tui", {
-        ttlMs: WEB_LEASE_TTL_MS,
-        processIdentity: currentProcessIdentity(),
-        livenessEndpointId: tuiLivenessServer.endpointId,
-        isProcessAlive: isExactProcessAlive,
-        probeLiveness: (endpointId, generation) => probeOwnerProcessLiveness(root, endpointId, generation),
-        markInterrupted: (record) => markLeaseInterrupted(root, record),
-      });
-    } catch {
-      context.ui.notify("This session is not available in stock Pi: writer admission could not be verified", "error");
-      await releaseTuiRuntime();
-      context.shutdown();
-      return;
-    }
-    if (!result.acquired) {
-      const owner = result.holder?.owner ?? "unverified";
-      context.ui.notify(`This session is not available in stock Pi: writer=${owner}; reason=${result.reason}`, "error");
-      await releaseTuiRuntime();
-      context.shutdown();
-      return;
-    }
-    tuiLease = result.lease;
-    tuiLeaseContext = context;
-    try {
-      tuiRuntimeHost = new RuntimeHost(context.sessionManager.getSessionId(), {
-        piVersion: SUPPORTED_PI_VERSION,
-        runtimeDirectory: root,
-        writerLease: result.lease,
-        initialSnapshot: {
-          state: "idle",
-          capabilities: { "session.observe": true },
-          projection: tuiProjection(context, "idle"),
-        },
-      });
-      await tuiRuntimeHost.initialize();
-      tuiProjectionServer = new OwnerOnlyProjectionServer({
-        runtimeDirectory: root,
-        privateSessionIdentity: context.sessionManager.getSessionId(),
-        source: tuiRuntimeHost,
-        onError: (error) => context.ui.notify(`AILI projection channel: ${redactedWebDiagnostic(error)}`, "error"),
-      });
-      await tuiProjectionServer.start();
-    } catch (error) {
-      context.ui.notify(`This session is not available in stock Pi: private projection startup failed (${redactedWebDiagnostic(error)})`, "error");
-      await releaseTuiRuntime();
-      context.shutdown();
-      return;
-    }
-    tuiLeaseTimer = setInterval(() => {
-      const host = tuiRuntimeHost;
-      const activeContext = tuiLeaseContext;
-      if (!host || !activeContext) return;
-      host.heartbeatWriter().then((renewed) => {
-        if (renewed) return;
-        activeContext.ui.notify("AILI writer admission was lost; stock Pi is shutting down before another mutation", "error");
-        activeContext.shutdown();
-      }).catch(() => {
-        activeContext.ui.notify("AILI writer admission could not be verified; stock Pi is shutting down before another mutation", "error");
-        activeContext.shutdown();
-      });
-    }, WEB_LEASE_RENEW_MS);
-    tuiLeaseTimer.unref();
-  });
-}
-
-function registerTuiProjectionEvents(pi: ExtensionAPI): void {
-  pi.on("agent_start", async (_event, context) => {
-    if (!await setTuiActiveTurn(context, true)) return;
-    projectTui(context, "running", { agentState: "running" });
-  });
-  pi.on("agent_end", (_event, context) => projectTui(context, context.isIdle() ? "idle" : "running", { agentState: "ended" }));
-  pi.on("agent_settled", async (_event, context) => {
-    if (!await setTuiActiveTurn(context, false)) return;
-    projectTui(context, "idle", { agentState: "settled" });
-  });
-  pi.on("turn_start", (event, context) => projectTui(context, "running", { turnIndex: event.turnIndex, turnState: "running" }));
-  pi.on("turn_end", (event, context) => projectTui(context, context.isIdle() ? "idle" : "running", { turnIndex: event.turnIndex, turnState: "ended" }));
-  pi.on("message_start", (event, context) => projectTui(context, "running", { messageRole: event.message.role, messageState: "started" }));
-  pi.on("message_update", (event, context) => projectTui(context, "running", { messageRole: event.message.role, messageState: "streaming" }));
-  pi.on("message_end", (event, context) => projectTui(context, context.isIdle() ? "idle" : "running", { messageRole: event.message.role, messageState: "ended" }));
-  pi.on("tool_execution_start", (event, context) => projectTui(context, "running", { toolName: event.toolName, toolState: "running" }));
-  pi.on("tool_execution_end", (event, context) => projectTui(context, context.isIdle() ? "idle" : "running", { toolName: event.toolName, toolState: event.isError ? "failed" : "completed" }));
-  pi.on("model_select", (event, context) => projectTui(context, context.isIdle() ? "idle" : "running", { provider: event.model.provider, model: event.model.id }));
-  pi.on("thinking_level_select", (event, context) => projectTui(context, context.isIdle() ? "idle" : "running", { thinkingLevel: event.level }));
-  pi.on("session_info_changed", (event, context) => projectTui(context, context.isIdle() ? "idle" : "running", { sessionName: event.name ?? null }));
-  pi.on("session_compact", (event, context) => projectTui(context, context.isIdle() ? "idle" : "running", { compactionState: event.reason }));
-  pi.on("session_tree", (_event, context) => projectTui(context, context.isIdle() ? "idle" : "running", { treeState: "changed" }));
-}
-
-async function setTuiActiveTurn(context: ExtensionContext, active: boolean): Promise<boolean> {
-  if (context !== tuiLeaseContext || !tuiRuntimeHost) return false;
-  try {
-    const updated = await tuiRuntimeHost.heartbeatWriter(active);
-    if (updated) return true;
-  } catch { /* fall through to one fail-closed shutdown path */ }
-  context.ui.notify("AILI writer active-turn state could not be verified; stock Pi is shutting down", "error");
-  context.shutdown();
-  return false;
-}
-
-function projectTui(context: ExtensionContext, state: RuntimeSnapshotV1["state"], patch: Readonly<Record<string, JsonValue>>): void {
-  if (context !== tuiLeaseContext || !tuiRuntimeHost) return;
-  try { tuiRuntimeHost.project("tui", state, { ...tuiProjection(context, state), ...patch }); }
-  catch (error) {
-    context.ui.notify(`AILI projection update failed: ${redactedWebDiagnostic(error)}`, "error");
-    context.shutdown();
-  }
-}
-
-function tuiProjection(context: ExtensionContext, state: RuntimeSnapshotV1["state"]): Readonly<Record<string, JsonValue>> {
-  const usage = context.getContextUsage();
-  return Object.freeze({
-    surface: "tui",
-    readOnlyObserver: true,
-    state,
-    idle: context.isIdle(),
-    provider: context.model?.provider ?? null,
-    model: context.model?.id ?? null,
-    thinkingLevel: context.thinkingLevel ?? null,
-    leafId: context.sessionManager.getLeafId() ?? null,
-    ...(usage ? { contextTokens: usage.tokens, contextWindow: usage.contextWindow } : {}),
-  });
-}
-
-async function releaseTuiRuntime(): Promise<void> {
-  if (tuiLeaseTimer) clearInterval(tuiLeaseTimer);
-  tuiLeaseTimer = undefined;
-  tuiLeaseContext = undefined;
-  const server = tuiProjectionServer;
-  const host = tuiRuntimeHost;
-  const lease = tuiLease;
-  const liveness = tuiLivenessServer;
-  tuiProjectionServer = undefined;
-  tuiLivenessServer = undefined;
-  tuiRuntimeHost = undefined;
-  tuiLease = undefined;
-  await server?.close().catch(() => undefined);
-  await host?.dispose().catch(() => undefined);
-  if (lease && !host) await lease.release().catch(() => false);
-  await liveness?.close().catch(() => undefined);
-}
-
 function requiredReadablePipe(child: ChildProcess, index: number): Readable {
   const pipe = child.stdio[index];
   if (!pipe || typeof (pipe as Readable).read !== "function") throw new Error("Web child private read pipe is unavailable");
@@ -438,7 +265,7 @@ function requiredWritablePipe(child: ChildProcess, index: number): Writable {
   return pipe as Writable;
 }
 
-function inheritedWebEnvironment(options: WebLaunchOptions): NodeJS.ProcessEnv {
+function inheritedWebEnvironment(options: WebLaunchOptions, seededAllowedRoot?: string): NodeJS.ProcessEnv {
   const environment: NodeJS.ProcessEnv = {
     PI_WEB_EXPECTED_HOST: formatHost(options.hostname, options.port),
     PI_WEB_EXPECTED_ORIGIN: options.expectedAddress,
@@ -450,7 +277,25 @@ function inheritedWebEnvironment(options: WebLaunchOptions): NodeJS.ProcessEnv {
     const value = process.env[key];
     if (value !== undefined) environment[key] = value;
   }
+  // An operator-configured root policy always wins; otherwise the validated
+  // session directory is the only mutation root this Web child exposes.
+  if (environment.PI_WEB_ALLOWED_ROOTS === undefined && seededAllowedRoot) {
+    environment.PI_WEB_ALLOWED_ROOTS = JSON.stringify([seededAllowedRoot]);
+  }
   return environment;
+}
+
+/** A session-derived root is admitted only as one canonical existing directory. */
+export function canonicalSessionRoot(context: ExtensionContext): string | undefined {
+  const recorded = context.sessionManager.getCwd?.();
+  if (!recorded || !isAbsolute(recorded)) return undefined;
+  try {
+    const canonical = realpathSync(recorded);
+    if (!statSync(canonical).isDirectory()) return undefined;
+    return canonical;
+  } catch {
+    return undefined;
+  }
 }
 
 function requiredOptionValue(tokens: readonly string[], index: number, option: string): string {
@@ -486,13 +331,30 @@ function isSupportedNodeVersion(value: string): boolean {
 
 function defaultPackageResolver(packageName: string): string {
   const require = createRequire(import.meta.url);
-  let directory = dirname(require.resolve(packageName));
+  let directory: string;
+  try { directory = dirname(require.resolve(packageName)); }
+  catch { directory = manualNodeModulesPackageDir(packageName); }
   for (let depth = 0; depth < 6; depth += 1) {
     const candidate = resolve(directory, "package.json");
     try {
       const value = JSON.parse(readFileSync(candidate, "utf8")) as { name?: unknown };
       if (value.name === packageName) return candidate;
     } catch { /* ascend to the owning package root */ }
+    const parent = dirname(directory);
+    if (parent === directory) break;
+    directory = parent;
+  }
+  throw new Error("installed Pi package manifest is missing");
+}
+
+// ESM-only packages without a require export still own a readable manifest on
+// disk; resolve it by walking node_modules upward from this extension.
+function manualNodeModulesPackageDir(packageName: string): string {
+  const segments = packageName.split("/");
+  let directory = dirname(fileURLToPath(import.meta.url));
+  for (let depth = 0; depth < 8; depth += 1) {
+    const candidate = resolve(directory, "node_modules", ...segments);
+    if (existsSync(resolve(candidate, "package.json"))) return candidate;
     const parent = dirname(directory);
     if (parent === directory) break;
     directory = parent;

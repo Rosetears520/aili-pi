@@ -138,6 +138,8 @@ describe("task schema and coordinator", () => {
       batch: false,
       items: [{ task: "focused", agent: "general", workspace: "auto", writeScope: { paths: [], resources: [] } }],
     });
+    expect(validateTaskRequest({ task: "thinking", thinking: "high" }, profiles).items[0]).toMatchObject({ thinking: "high" });
+    expect(() => validateTaskRequest({ task: "thinking", thinking: "turbo" }, profiles)).toThrow(/off, minimal, low, medium, high, xhigh, max/);
     expect(validateTaskRequest({ context: "shared", tasks: [{ task: "one" }, { task: "two", context: "local" }] }, profiles).items[1]?.context).toBe("shared\n\nlocal");
     expect(validateTaskRequest({ task: "formal", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit() }, profiles).items[0]).toMatchObject({
       agent: "aili.implementer",
@@ -163,6 +165,9 @@ describe("task schema and coordinator", () => {
     expect(publicSchema).toContain("Do not send blocking");
     expect(publicSchema).toContain("Choose an exact Specialized selector from the active task catalog");
     expect(publicSchema).toContain("Omit only for ordinary general compatibility");
+    expect(publicSchema).toContain("Optional one-shot provider/model request");
+    expect(publicSchema).toContain("thinking");
+    expect(publicSchema).not.toContain("gpt-5.6-terra");
     expect(publicSchema).toContain("formalContext");
     expect(publicSchema).toContain("changeId");
     expect(publicSchema).toContain("continuationAudit");
@@ -184,8 +189,8 @@ describe("task schema and coordinator", () => {
 
   it("resolves every model choice before allocation and rejects one invalid batch member atomically", async () => {
     const choices: ResolvedModelChoice[] = [
-      { provider: "provider", model: "one", canonical: "provider/one", layer: "one-shot", thinking: "high", persistent: false, oneShot: true },
-      { provider: "provider", model: "two", canonical: "provider/two", layer: "parent-fallback", thinking: "medium", persistent: false, oneShot: false },
+      { provider: "provider", model: "one", canonical: "provider/one", layer: "one-shot", thinking: "high", source: "confirmed-one-shot", modelSource: "user-one-shot", thinkingSource: "user-one-shot", persistent: false, oneShot: true },
+      { provider: "provider", model: "two", canonical: "provider/two", layer: "parent-fallback", thinking: "medium", source: "inherited-parent", modelSource: "inherited-parent", thinkingSource: "inherited-parent", persistent: false, oneShot: false },
     ];
     const preflight = vi.fn(async ({ item }: { item: { task: string } }) => {
       if (item.task === "invalid model") throw new Error("one-shot model is unauthenticated");
@@ -208,7 +213,7 @@ describe("task schema and coordinator", () => {
         { task: "second", async: true },
       ],
     });
-    expect(accepted.results[0]).toMatchObject({ status: "accepted", model: { provider: "provider", model: "one", layer: "one-shot", thinking: "high" } });
+    expect(accepted.results[0]).toMatchObject({ status: "accepted", name: "general", requestedModel: "provider/one", effectiveModel: "provider/one", modelLayer: "one-shot", thinking: "high", source: "confirmed-one-shot", model: { provider: "provider", model: "one", layer: "one-shot", thinking: "high" } });
     expect(accepted.results[1]).toMatchObject({ status: "accepted", model: { provider: "provider", model: "two", layer: "parent-fallback", thinking: "medium" } });
     expect(acceptedFixture.journal.getState().turns["turn-1"].metadata).toMatchObject({ effectiveModel: "provider/one", modelLayer: "one-shot", thinking: "high" });
     expect(acceptedFixture.journal.getState().turns["turn-2"].metadata).toMatchObject({ effectiveModel: "provider/two", modelLayer: "parent-fallback", thinking: "medium" });
@@ -299,6 +304,36 @@ describe("task schema and coordinator", () => {
       expect(() => assertCurrentFormalRoleProfile(changed, role)).toThrow(/create a new Agent/);
     }
     expect(() => assertCurrentFormalRoleProfile({ ...agent, metadata: { profileHash: "ordinary drift" } }, role)).not.toThrow();
+  });
+
+  it("emits a structured live allocation snapshot with the effective identity", async () => {
+    const updates: Array<{ details: Record<string, unknown> }> = [];
+    const choice: ResolvedModelChoice = {
+      provider: "provider",
+      model: "effective",
+      canonical: "provider/effective",
+      layer: "parent-fallback",
+      thinking: "high",
+      speedTier: "priority",
+      source: "inherited-parent",
+      modelSource: "inherited-parent",
+      thinkingSource: "inherited-parent",
+      persistent: false,
+      oneShot: false,
+    };
+    const { coordinator } = await fixtureCoordinator({ preflight: async () => choice });
+    await coordinator.submit({ task: "live", name: "Live worker", model: "provider/requested", thinking: "high", async: false }, undefined, undefined, (update) => {
+      updates.push(update as unknown as { details: Record<string, unknown> });
+    });
+    expect(updates).toHaveLength(1);
+    expect(updates[0]?.details).toMatchObject({
+      requestedModel: "provider/requested",
+      effectiveModel: "provider/effective",
+      thinking: "high",
+      speedTier: "priority",
+      modelSource: "inherited-parent",
+      thinkingSource: "inherited-parent",
+    });
   });
 
   it("creates a new stable Agent for every sync item and never requests async delivery", async () => {

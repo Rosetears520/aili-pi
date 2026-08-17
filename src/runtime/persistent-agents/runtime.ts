@@ -3,7 +3,7 @@ import {
   type ExtensionAPI,
   type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import type { TaskExecutionOutput, TaskExecutorInput } from "./task-coordinator.js";
+import type { TaskExecutionOutput, TaskExecutorInput, TaskPreflightResult, TaskUpdateCallback } from "./task-coordinator.js";
 import type { ResolvedModelChoice } from "./model-selection.js";
 import { TaskCoordinator } from "./task-coordinator.js";
 import { HUB_TOOL_SCHEMA, HubService, type HubCaller, type LiveAgentAdapter } from "./hub.js";
@@ -54,7 +54,7 @@ export interface PersistentAgentRuntimeOptions {
   parentId: string;
   cwd: string;
   execute: (input: PersistentRuntimeExecutorInput) => Promise<TaskExecutionOutput>;
-  preallocate?: (input: { item: TaskExecutorInput["item"]; role: TaskExecutorInput["role"]; ancestry?: import("./task-coordinator.js").TaskAncestry }) => ResolvedModelChoice | Promise<ResolvedModelChoice>;
+  preallocate?: (input: { item: TaskExecutorInput["item"]; role: TaskExecutorInput["role"]; ancestry?: import("./task-coordinator.js").TaskAncestry }) => ResolvedModelChoice | TaskPreflightResult | undefined | Promise<ResolvedModelChoice | TaskPreflightResult | undefined>;
   preflight?: (input: TaskExecutorInput) => void | Promise<void>;
   preflightContinuation?: (agentId: string) => void | Promise<void>;
   parentDelivery: ParentDeliveryAdapter;
@@ -477,9 +477,9 @@ export function registerPersistentAgentTools(pi: ExtensionAPI, options: Internal
     promptGuidelines: [...TASK_PROMPT_GUIDELINES, compactCatalog.value],
     parameters: TASK_TOOL_SCHEMA,
     ...TASK_RENDERERS,
-    async execute(_toolCallId, params, signal, _onUpdate, context) {
+    async execute(_toolCallId, params, signal, onUpdate, context) {
       const runtime = await options.runtimeForContext(context);
-      const result = await runtime.task.submit(params, undefined, signal);
+      const result = await runtime.task.submit(params, undefined, signal, onUpdate as unknown as TaskUpdateCallback | undefined);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
     },
   });

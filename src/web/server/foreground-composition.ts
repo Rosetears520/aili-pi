@@ -3,6 +3,7 @@ import { getAgentDir, createAgentSession, AgentSession, SessionManager } from "@
 import type { ImageContent } from "@earendil-works/pi-ai/compat";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { readdir } from "node:fs/promises";
 import {
   CanonicalAllowedRootPolicy,
   WebAccessLifecycle,
@@ -24,7 +25,7 @@ import {
 } from "../../runtime/web/process-liveness.js";
 import { RuntimeHost, RuntimeHostRegistry } from "../../runtime/web/runtime-host.js";
 import type { LeaseAcquireResult } from "../../runtime/web/session-writer-lease.js";
-import type { WorkbenchCatalogV1, WorkbenchProjectV1, WorkbenchSessionV1 } from "../contracts.js";
+import type { WorkbenchCatalogV1, WorkbenchHistoryV1, WorkbenchProjectV1, WorkbenchSessionV1 } from "../contracts.js";
 import {
   PrivateWebBffBridge,
   type AiliBffHttpRequest,
@@ -32,6 +33,8 @@ import {
 } from "./private-bff-bridge.js";
 
 const OFFICIAL_PI_VERSION = "0.84.1" as const;
+/** Most recent JSONL entries served by the per-session history route. */
+const HISTORY_ENTRY_LIMIT = 500;
 const PRIVATE_HEADERS = Object.freeze({
   "Cache-Control": "private, no-store, max-age=0",
   "X-Content-Type-Options": "nosniff",
@@ -145,6 +148,7 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     if (options.policy.loopback) this.bff.armLoopbackBootstrap();
     this.inner = new PrivateWebBffBridge(this.bff, {
       catalog: (identity) => this.catalog(identity),
+      history: (identity, sessionHandle) => this.history(identity, sessionHandle),
       execute: (session, envelope) => this.executeMutation(session, envelope),
     });
   }
@@ -182,7 +186,7 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     if (this.disposed) return failure(503, "runtime-composition-closed");
     if (request.method === "GET" && request.segments.length === 3 && request.segments[0] === "sessions"
       && request.segments[2] === "events" && safeHandle(request.segments[1])) {
-      const authorized = this.lifecycle.authorize(identityOf(request));
+      const authorized = this.lifecycle.authorizeLoopbackRead(identityOf(request));
       if (!authorized.ok) return failure(401, authorized.reason);
       const prepared = await this.prepareSession(request.segments[1], false);
       if (!prepared.ok) return prepared.response;
@@ -200,7 +204,7 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     }
     const handle = sessionHandleFrom(request, "connect");
     if (handle) {
-      const authorized = this.lifecycle.authorize(identityOf(request));
+      const authorized = this.lifecycle.authorizeLoopbackRead(identityOf(request));
       if (!authorized.ok) return failure(401, authorized.reason);
       const prepared = await this.prepareSession(handle, false);
       if (!prepared.ok) return prepared.response;
@@ -218,7 +222,7 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     if (this.disposed) return failure(503, "runtime-composition-closed");
     const handle = sessionHandleFrom(request, "stream");
     if (!handle) return failure(404, "runtime-stream-not-found");
-    const authorized = this.lifecycle.authorize(identityOf(request));
+    const authorized = this.lifecycle.authorizeLoopbackRead(identityOf(request));
     if (!authorized.ok) return failure(401, authorized.reason);
     const prepared = await this.prepareSession(handle, false);
     if (!prepared.ok) return prepared.response;
@@ -278,7 +282,7 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
   }
 
   private async catalog(identity: WebRequestIdentity): Promise<GatewayResponse<WorkbenchCatalogV1 | { readonly error: string }>> {
-    const access = this.lifecycle.authorize(identity);
+    const access = this.lifecycle.authorizeLoopbackRead(identity);
     if (!access.ok) return failure(401, access.reason);
     let descriptors: readonly JsonlSessionDescriptorV1[];
     try { descriptors = await this.browser.list(); }
@@ -286,19 +290,36 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") descriptors = [];
       else return failure(503, "session-catalog-unavailable");
     }
+    // Official streaming metadata scan (the pi-web pattern): the catalog stays
+    // metadata-only; message bodies load per session through the history route.
+    // SessionManager.listAll(dir) reads only files directly inside dir, so the
+    // scan walks the sessions root plus each of its project subdirectories.
+    const infos = new Map<string, { cwd?: string; messageCount?: number }>();
+    for (const root of this.options.sessionRoots) {
+      const scanTargets = [root];
+      try {
+        const entries = await readdir(root, { withFileTypes: true });
+        for (const entry of entries) if (entry.isDirectory() && !entry.isSymbolicLink()) scanTargets.push(join(root, entry.name));
+      } catch { /* the root scan below stays best-effort */ }
+      for (const target of scanTargets) {
+        try {
+          const scanned = await SessionManager.listAll(target);
+          for (const info of scanned) infos.set(info.path, { cwd: info.cwd, messageCount: info.messageCount });
+        } catch { /* metadata stays best-effort; browsing still lists descriptors */ }
+      }
+    }
     const byProject = new Map<string, { label: string; sessions: WorkbenchSessionV1[] }>();
     for (const descriptor of descriptors.slice(0, 1_024)) {
-      let records: readonly JsonlProjectionRecordV1[];
-      try { records = await this.browser.read(descriptor.sessionHandle); }
-      catch { continue; }
-      const catalogIdentity = this.catalogIdentity(descriptor.sessionHandle);
-      if (!catalogIdentity) continue;
-      const projectIdentity = catalogIdentity.cwd || `session:${descriptor.sessionHandle}`;
+      const privatePath = this.browser.privatePathForHandle(descriptor.sessionHandle);
+      if (!privatePath) continue;
+      const info = infos.get(privatePath);
+      const cwd = info?.cwd && isAbsolute(info.cwd) ? resolve(info.cwd) : "";
+      const projectIdentity = cwd || `session:${descriptor.sessionHandle}`;
       const projectHandle = opaqueHandle("project", this.options.privateSalt, projectIdentity);
       const project = byProject.get(projectHandle) ?? { label: `Pi project ${projectHandle.slice(-8)}`, sessions: [] };
-      const canWrite = catalogIdentity.rootAllowed;
+      const canWrite = Boolean(cwd) && this.rootPolicy.roots.some((root) => pathContained(root, cwd));
       const activeHost = this.sessions.get(descriptor.sessionHandle)?.host;
-      project.sessions.push(sessionCatalogEntry(descriptor, records, projectHandle, canWrite, activeHost?.snapshot.writer.activeTurn === true));
+      project.sessions.push(sessionCatalogEntry(descriptor, info?.messageCount, projectHandle, canWrite, activeHost?.snapshot.writer.activeTurn === true));
       byProject.set(projectHandle, project);
     }
     const projects: WorkbenchProjectV1[] = [...byProject.entries()].map(([handle, project]) => Object.freeze({
@@ -325,20 +346,30 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
         plugins: Object.freeze([]),
         files: Object.freeze([]),
         worktrees: Object.freeze([]),
-        locales: Object.freeze(["en", "zh-CN"]),
+        locales: Object.freeze(["en", "zh-CN"] as const),
       }),
     };
   }
 
-  private catalogIdentity(handle: string): { readonly cwd: string; readonly rootAllowed: boolean } | undefined {
-    const privatePath = this.browser.privatePathForHandle(handle);
-    if (!privatePath) return undefined;
-    let manager: SessionManager;
-    try { manager = this.managerOpen(privatePath); } catch { return undefined; }
-    const recordedCwd = manager.getCwd();
-    const cwd = recordedCwd && isAbsolute(recordedCwd) ? resolve(recordedCwd) : "";
-    const rootAllowed = Boolean(cwd) && this.rootPolicy.roots.some((root) => pathContained(root, cwd));
-    return { cwd, rootAllowed };
+  /** pi-web pattern: one session's bounded history loads only on explicit request. */
+  public async history(identity: WebRequestIdentity, sessionHandle: string): Promise<GatewayResponse<WorkbenchHistoryV1 | { readonly error: string }>> {
+    const access = this.lifecycle.authorizeLoopbackRead(identity);
+    if (!access.ok) return failure(401, access.reason);
+    if (!safeHandle(sessionHandle)) return failure(404, "session-not-found");
+    let records: readonly JsonlProjectionRecordV1[];
+    try { records = await this.browser.read(sessionHandle); }
+    catch { return failure(404, "session-not-found"); }
+    const recent = records.slice(-HISTORY_ENTRY_LIMIT);
+    const timeline = Object.freeze(recent.map((record) => Object.freeze({
+      id: `${sessionHandle}:entry-${record.index}`,
+      kind: record.role === "user" ? "user" : record.role === "assistant" ? "assistant" : record.role === "tool" ? "tool" : "event",
+      status: "complete",
+      title: record.role ?? record.type,
+      // \r and NUL would fail the public timeline-body contract; keep newlines.
+      ...(record.content ? { body: record.content.replace(/[\r\0]+/g, " ").slice(0, 32_768) } : {}),
+      ...(record.timestamp ? { at: record.timestamp } : {}),
+    })) as WorkbenchHistoryV1["timeline"]);
+    return { status: 200, headers: PRIVATE_HEADERS, body: Object.freeze({ schemaVersion: 1, sessionHandle, timeline }) };
   }
 
   private ensureHost(handle: string): Promise<SessionRuntimeMetadata | undefined> {
@@ -451,7 +482,7 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     // A lease is a mutation admission resource, not a browse-side effect.
     // This preserves TUI first-writer eligibility until a Web mutation arrives.
     if (!requireWebWriter || !metadata.rootGrant) return { ok: true };
-    const ownership = await metadata.host.acquireWriter("web").catch(() => ({ acquired: false, reason: "unverified" } as const));
+    const ownership: LeaseAcquireResult = await metadata.host.acquireWriter("web").catch((): LeaseAcquireResult => ({ acquired: false, reason: "unverified" }));
     if (ownership.acquired) return { ok: true };
     if (ownership.holder?.owner === "tui") {
       const observed = await this.attachObserver(metadata, ownership);
@@ -656,23 +687,17 @@ export async function createProductionForegroundComposition(identity: Uint8Array
   });
 }
 
-function sessionCatalogEntry(descriptor: JsonlSessionDescriptorV1, records: readonly JsonlProjectionRecordV1[], projectHandle: string, canWrite: boolean, running: boolean): WorkbenchSessionV1 {
+
+function sessionCatalogEntry(descriptor: JsonlSessionDescriptorV1, messageCount: number | undefined, projectHandle: string, canWrite: boolean, running: boolean): WorkbenchSessionV1 {
   return Object.freeze({
     handle: descriptor.sessionHandle,
     projectHandle,
     name: descriptor.label,
     modifiedAt: descriptor.modifiedAt,
-    messageCount: records.filter((record) => record.role === "user" || record.role === "assistant").length,
+    messageCount: messageCount ?? 0,
     running,
     actions: Object.freeze({ resume: true, rename: canWrite, export: false, safeDelete: false, branch: false, fork: false }),
-    timeline: Object.freeze(records.map((record) => Object.freeze({
-      id: `${descriptor.sessionHandle}:entry-${record.index}`,
-      kind: record.role === "user" ? "user" : record.role === "assistant" ? "assistant" : record.role === "tool" ? "tool" : "event",
-      status: "complete",
-      title: record.role ?? record.type,
-      ...(record.content ? { body: record.content } : {}),
-      ...(record.timestamp ? { at: record.timestamp } : {}),
-    }))),
+    timeline: Object.freeze([]),
   });
 }
 
@@ -709,7 +734,11 @@ function sessionHandleFrom(request: AiliBffHttpRequest, terminal: "connect" | "s
     && request.segments[2] === terminal && safeHandle(request.segments[1]) ? request.segments[1] : undefined;
 }
 function safeHandle(value: string | undefined): value is string { return typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value); }
-function publicRecord(value: JsonValue | undefined): Readonly<Record<string, JsonValue>> | undefined { return value !== null && typeof value === "object" && !Array.isArray(value) ? value : undefined; }
+function publicRecord(value: JsonValue | undefined): Readonly<Record<string, JsonValue>> | undefined {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Readonly<Record<string, JsonValue>>)
+    : undefined;
+}
 function unknownRecord(value: unknown): Readonly<Record<string, unknown>> | undefined { return value !== null && typeof value === "object" && !Array.isArray(value) ? value as Readonly<Record<string, unknown>> : undefined; }
 function failure(status: number, error: string): GatewayResponse<{ readonly error: string }> { return { status, body: { error }, headers: PRIVATE_HEADERS }; }
 function opaqueHandle(kind: string, salt: string, value: string): string { return `${kind}-${createHash("sha256").update(salt).update("\0").update(value).digest("base64url").slice(0, 32)}`; }

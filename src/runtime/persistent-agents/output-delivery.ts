@@ -9,7 +9,7 @@ import {
   sidecarLayoutForParent,
   validateExactChildSessionPath,
 } from "./storage.js";
-import type { AgentRecord, FormalResultEvidenceRecord, SidecarLayout } from "./types.js";
+import type { AgentRecord, FormalResultEvidenceRecord, ModelIdentityProjection, SidecarLayout } from "./types.js";
 import type { NormalizedTaskSettlement } from "./task-coordinator.js";
 import { parseCanonicalFormalResult } from "./task-coordinator.js";
 import { assertNoCredentialMaterial } from "./permission.js";
@@ -292,11 +292,25 @@ export interface ParentResultMessage {
     turnId: string;
     status: string;
     selector: string;
+    name?: string;
     effectiveMode: "async";
+    effectiveModeReason?: string;
     requestedModel?: string;
+    requestedThinking?: string;
     effectiveModel?: string;
+    provider?: string;
+    model?: string;
     modelLayer?: string;
     thinking?: string;
+    speedTier?: string;
+    parentModel?: string;
+    parentThinking?: string;
+    parentSpeedTier?: string;
+    parentSource?: string;
+    modelSource?: string;
+    thinkingSource?: string;
+    /** Legacy source alias retained for parent consumers. */
+    source?: string;
     outputRef: string;
     historyRef: string;
     previewTruncated: boolean;
@@ -328,6 +342,110 @@ function preview(fullOutput: string): { content: string; truncated: boolean } {
   return { content: fullOutput.slice(-PARENT_PREVIEW_CHAR_LIMIT), truncated: true };
 }
 
+function projectionRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+}
+
+function projectionString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function firstProjectionString(
+  keys: string | readonly string[],
+  ...sources: Array<Record<string, unknown> | undefined>
+): string | undefined {
+  const candidates = typeof keys === "string" ? [keys] : keys;
+  for (const source of sources) {
+    for (const key of candidates) {
+      const value = projectionString(source?.[key]);
+      if (value !== undefined) return value;
+      const nested = source?.model;
+      if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+        const nestedValue = projectionString((nested as Record<string, unknown>)[key]);
+        if (nestedValue !== undefined) return nestedValue;
+      }
+    }
+  }
+  return undefined;
+}
+
+function canonicalProjectionModel(provider: string | undefined, model: string | undefined): string | undefined {
+  return provider && model ? `${provider}/${model}` : undefined;
+}
+
+interface DeliveryIdentity extends ModelIdentityProjection {
+  name?: string;
+}
+
+/**
+ * Merge execution-reported identity with the durable Agent/job/turn
+ * allocation.  Undefined execution fields are deliberately skipped: a
+ * partial provider report must not erase an already-resolved durable identity.
+ */
+function deliveryIdentity(
+  settlement: NormalizedTaskSettlement,
+  state: ReturnType<CoordinatorJournal["getState"]>,
+): DeliveryIdentity {
+  const settlementRecord = projectionRecord(settlement as unknown);
+  const settlementModel = projectionRecord(settlement.model);
+  const agent = state.agents[settlement.agentId] ?? state.releasedAgents[settlement.agentId];
+  const job = state.jobs[settlement.jobId];
+  const turn = state.turns[settlement.turnId];
+  const durable = [
+    turn?.metadata,
+    turn as unknown as Record<string, unknown> | undefined,
+    job?.metadata,
+    job as unknown as Record<string, unknown> | undefined,
+    agent?.metadata,
+    agent as unknown as Record<string, unknown> | undefined,
+  ];
+  const sources = [settlementModel, settlementRecord, ...durable];
+  const rawModel = firstProjectionString("model", ...sources);
+  const modelProvider = rawModel?.includes("/") ? rawModel.slice(0, rawModel.indexOf("/")) : undefined;
+  const model = rawModel?.includes("/") ? rawModel.slice(rawModel.indexOf("/") + 1) : rawModel;
+  const provider = firstProjectionString("provider", ...sources) ?? modelProvider;
+  const effectiveModel = firstProjectionString(["effectiveModel", "effective", "canonical"], ...sources)
+    ?? (rawModel?.includes("/") ? rawModel : undefined)
+    ?? canonicalProjectionModel(provider, model);
+  const requestedModel = firstProjectionString("requestedModel", ...sources)
+    ?? firstProjectionString("requested", ...sources);
+  const requestedThinking = firstProjectionString("requestedThinking", ...sources);
+  const modelLayer = firstProjectionString(["modelLayer", "layer"], ...sources);
+  const rawSource = firstProjectionString("source", ...sources);
+  const source = rawSource && !rawSource.startsWith("hub.") ? rawSource : undefined;
+  const modelSource = firstProjectionString("modelSource", ...sources)
+    ?? source;
+  const thinkingSource = firstProjectionString("thinkingSource", ...sources);
+  const thinking = firstProjectionString("thinking", ...sources);
+  const speedTier = firstProjectionString("speedTier", ...sources);
+  const parentModel = firstProjectionString("parentModel", ...sources);
+  const parentThinking = firstProjectionString("parentThinking", ...sources);
+  const parentSpeedTier = firstProjectionString("parentSpeedTier", ...sources);
+  const parentSource = firstProjectionString("parentSource", ...sources);
+  const effectiveMode = firstProjectionString("effectiveMode", ...sources);
+  const effectiveModeReason = firstProjectionString("effectiveModeReason", ...sources);
+  return {
+    ...(agent?.name ? { name: agent.name } : {}),
+    ...(requestedModel ? { requestedModel } : {}),
+    ...(requestedThinking ? { requestedThinking } : {}),
+    ...(effectiveModel ? { effectiveModel } : {}),
+    ...(provider ? { provider } : {}),
+    ...(model ? { model } : {}),
+    ...(modelLayer ? { modelLayer } : {}),
+    ...(thinking ? { thinking } : {}),
+    ...(speedTier ? { speedTier } : {}),
+    ...(parentModel ? { parentModel } : {}),
+    ...(parentThinking ? { parentThinking } : {}),
+    ...(parentSpeedTier ? { parentSpeedTier } : {}),
+    ...(parentSource ? { parentSource } : {}),
+    ...(modelSource ? { modelSource } : {}),
+    ...(thinkingSource ? { thinkingSource } : {}),
+    ...(source ? { source } : {}),
+    ...(effectiveMode ? { effectiveMode } : {}),
+    ...(effectiveModeReason ? { effectiveModeReason } : {}),
+  };
+}
+
 export class AsyncDeliveryService {
   private readonly deliveryTails = new Map<string, Promise<void>>();
 
@@ -350,39 +468,53 @@ export class AsyncDeliveryService {
     if (existing) {
       if (existing.agentId !== settlement.agentId || existing.jobId !== settlement.jobId) throw new Error(`${deliveryId}: conflicting retry ownership`);
       if (existing.status === "delivered") return { deliveryId, status: "delivered", deduplicated: true };
-      return await this.deliver(deliveryId);
+      return await this.deliver(deliveryId, settlement);
     }
-    if (!agent.sessionPath) throw new Error(`${settlement.agentId}: child session path must exist before async delivery`);
+    if (!agent.sessionPath && settlement.status !== "aborted") {
+      throw new Error(`${settlement.agentId}: child session path must exist before async delivery`);
+    }
     await persistFullAgentOutput(this.layout, settlement.agentId, fullOutput);
-    await validateExactChildSessionPath(this.layout, agent.sessionPath);
+    if (agent.sessionPath) await validateExactChildSessionPath(this.layout, agent.sessionPath);
     const outputPreview = preview(fullOutput);
+    const identity = deliveryIdentity(settlement, state);
     await this.journal.append({
-        kind: "delivery.put",
+      kind: "delivery.put",
+      agentId: settlement.agentId,
+      jobId: settlement.jobId,
+      turnId: settlement.turnId,
+      deliveryId,
+      payload: {
+        status: "pending",
+        deliveryId,
         agentId: settlement.agentId,
         jobId: settlement.jobId,
         turnId: settlement.turnId,
-        deliveryId,
-        payload: {
-          status: "pending",
-          deliveryId,
-          agentId: settlement.agentId,
-          jobId: settlement.jobId,
-          turnId: settlement.turnId,
-          resultStatus: settlement.status,
-          selector: settlement.selector,
-          effectiveMode: settlement.effectiveMode,
-          requestedModel: settlement.model.requested,
-          effectiveModel: settlement.model.provider && settlement.model.model
-            ? `${settlement.model.provider}/${settlement.model.model}`
-            : undefined,
-          modelLayer: settlement.model.layer,
-          thinking: settlement.model.thinking,
-          outputRef: settlement.outputRef,
-          historyRef: settlement.historyRef,
-          preview: outputPreview.content,
-          previewTruncated: outputPreview.truncated,
-        },
-      });
+        resultStatus: settlement.status,
+        selector: settlement.selector,
+        ...(identity.name ? { name: identity.name } : {}),
+        effectiveMode: settlement.effectiveMode,
+        ...(identity.effectiveModeReason ? { effectiveModeReason: identity.effectiveModeReason } : {}),
+        ...(identity.requestedModel ? { requestedModel: identity.requestedModel } : {}),
+        ...(identity.requestedThinking ? { requestedThinking: identity.requestedThinking } : {}),
+        ...(identity.effectiveModel ? { effectiveModel: identity.effectiveModel } : {}),
+        ...(identity.provider ? { provider: identity.provider } : {}),
+        ...(identity.model ? { model: identity.model } : {}),
+        ...(identity.modelLayer ? { modelLayer: identity.modelLayer } : {}),
+        ...(identity.thinking ? { thinking: identity.thinking } : {}),
+        ...(identity.speedTier ? { speedTier: identity.speedTier } : {}),
+        ...(identity.parentModel ? { parentModel: identity.parentModel } : {}),
+        ...(identity.parentThinking ? { parentThinking: identity.parentThinking } : {}),
+        ...(identity.parentSpeedTier ? { parentSpeedTier: identity.parentSpeedTier } : {}),
+        ...(identity.parentSource ? { parentSource: identity.parentSource } : {}),
+        ...(identity.modelSource ? { modelSource: identity.modelSource } : {}),
+        ...(identity.thinkingSource ? { thinkingSource: identity.thinkingSource } : {}),
+        ...(identity.source ? { source: identity.source } : {}),
+        outputRef: settlement.outputRef,
+        historyRef: settlement.historyRef,
+        preview: outputPreview.content,
+        previewTruncated: outputPreview.truncated,
+      },
+    });
     return await this.deliver(deliveryId);
   }
 
@@ -407,22 +539,43 @@ export class AsyncDeliveryService {
     }
   }
 
-  private async deliver(deliveryId: string): Promise<{ deliveryId: string; status: "pending" | "delivered"; deduplicated?: boolean }> {
-    const delivery = this.journal.getState().deliveries[deliveryId];
-    if (!delivery) throw new Error(`${deliveryId}: unknown delivery`);
-    if (delivery.status === "delivered") return { deliveryId, status: "delivered", deduplicated: true };
+  private async deliver(deliveryId: string, settlement?: NormalizedTaskSettlement): Promise<{ deliveryId: string; status: "pending" | "delivered"; deduplicated?: boolean }> {
+    const state = this.journal.getState();
+    const durableDelivery = state.deliveries[deliveryId];
+    if (!durableDelivery) throw new Error(`${deliveryId}: unknown delivery`);
+    if (durableDelivery.status === "delivered") return { deliveryId, status: "delivered", deduplicated: true };
+    const identity: Partial<DeliveryIdentity> = settlement ? deliveryIdentity(settlement, state) : {};
+    const delivery: Record<string, unknown> = { ...durableDelivery };
+    for (const field of [
+      "name", "requestedModel", "requestedThinking", "effectiveModel", "provider", "model",
+      "modelLayer", "thinking", "speedTier", "parentModel", "parentThinking", "parentSpeedTier", "parentSource", "modelSource", "thinkingSource", "source", "effectiveModeReason",
+    ] as const) {
+      if (delivery[field] === undefined && identity[field] !== undefined) delivery[field] = identity[field];
+    }
     const existing = await this.parent.scanDeliveryIds();
     if (existing.has(deliveryId)) {
       await this.ack(deliveryId, delivery);
       return { deliveryId, status: "delivered", deduplicated: true };
     }
     const truncated = delivery.previewTruncated === true;
+    const compactIdentity = [
+      typeof delivery.name === "string" ? delivery.name : undefined,
+      typeof delivery.selector === "string" ? delivery.selector : undefined,
+      typeof delivery.effectiveModel === "string" ? delivery.effectiveModel : undefined,
+      typeof delivery.thinking === "string" ? `thinking=${delivery.thinking}` : undefined,
+      String(delivery.resultStatus),
+    ].filter(Boolean).join(" · ");
+    const sources = [
+      typeof delivery.modelSource === "string" ? `modelSource=${delivery.modelSource}` : undefined,
+      typeof delivery.thinkingSource === "string" ? `thinkingSource=${delivery.thinkingSource}` : undefined,
+    ].filter(Boolean).join(" · ");
     const content = [
-      `Agent ${delivery.agentId} job ${delivery.jobId} ${delivery.resultStatus}.`,
+      `Agent ${compactIdentity || delivery.agentId} job ${delivery.jobId}.`,
+      sources,
       truncated ? `[preview truncated to ${PARENT_PREVIEW_CHAR_LIMIT} characters; full output: ${delivery.outputRef}]` : `Full output: ${delivery.outputRef}`,
       String(delivery.preview ?? ""),
       `History: ${delivery.historyRef}`,
-    ].join("\n");
+    ].filter((line) => line.length > 0).join("\n");
     let sent: "sent" | "unavailable";
     try {
       sent = await this.parent.send({
@@ -436,11 +589,24 @@ export class AsyncDeliveryService {
           turnId: String(delivery.turnId),
           status: String(delivery.resultStatus),
           selector: String(delivery.selector),
+          ...(typeof delivery.name === "string" ? { name: delivery.name } : {}),
           effectiveMode: "async",
+          ...(typeof delivery.effectiveModeReason === "string" ? { effectiveModeReason: delivery.effectiveModeReason } : {}),
           ...(typeof delivery.requestedModel === "string" ? { requestedModel: delivery.requestedModel } : {}),
+          ...(typeof delivery.requestedThinking === "string" ? { requestedThinking: delivery.requestedThinking } : {}),
           ...(typeof delivery.effectiveModel === "string" ? { effectiveModel: delivery.effectiveModel } : {}),
+          ...(typeof delivery.provider === "string" ? { provider: delivery.provider } : {}),
+          ...(typeof delivery.model === "string" ? { model: delivery.model } : {}),
           ...(typeof delivery.modelLayer === "string" ? { modelLayer: delivery.modelLayer } : {}),
           ...(typeof delivery.thinking === "string" ? { thinking: delivery.thinking } : {}),
+          ...(typeof delivery.speedTier === "string" ? { speedTier: delivery.speedTier } : {}),
+          ...(typeof delivery.parentModel === "string" ? { parentModel: delivery.parentModel } : {}),
+          ...(typeof delivery.parentThinking === "string" ? { parentThinking: delivery.parentThinking } : {}),
+          ...(typeof delivery.parentSpeedTier === "string" ? { parentSpeedTier: delivery.parentSpeedTier } : {}),
+          ...(typeof delivery.parentSource === "string" ? { parentSource: delivery.parentSource } : {}),
+          ...(typeof delivery.modelSource === "string" ? { modelSource: delivery.modelSource } : {}),
+          ...(typeof delivery.thinkingSource === "string" ? { thinkingSource: delivery.thinkingSource } : {}),
+          ...(typeof delivery.source === "string" ? { source: delivery.source } : {}),
           outputRef: String(delivery.outputRef),
           historyRef: String(delivery.historyRef),
           previewTruncated: truncated,

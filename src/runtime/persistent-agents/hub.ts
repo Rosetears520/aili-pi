@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { Type } from "typebox";
 import type { CoordinatorJournal } from "./storage.js";
-import type { AgentRecord, CoordinatorState, TurnRecord } from "./types.js";
+import type { AgentRecord, CoordinatorState, ModelIdentityProjection, TurnRecord } from "./types.js";
 import { assertNoCredentialMaterial } from "./permission.js";
 import {
   FORMAL_CONTINUATION_AUDIT_SCHEMA,
@@ -143,6 +143,168 @@ function isDescendant(state: CoordinatorState, ancestorId: string, targetId: str
   return false;
 }
 
+function metadataString(
+  keys: string | readonly string[],
+  ...sources: Array<Record<string, unknown> | undefined>
+): string | undefined {
+  const candidates = typeof keys === "string" ? [keys] : keys;
+  for (const source of sources) {
+    for (const key of candidates) {
+      const value = source?.[key];
+      if (typeof value === "string" && value.trim().length > 0) return value.trim();
+      const nested = source?.model;
+      if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+        const nestedValue = (nested as Record<string, unknown>)[key];
+        if (typeof nestedValue === "string" && nestedValue.trim().length > 0) return nestedValue.trim();
+      }
+    }
+  }
+  return undefined;
+}
+
+function metadataObject(
+  key: string,
+  ...sources: Array<Record<string, unknown> | undefined>
+): Record<string, unknown> | undefined {
+  for (const source of sources) {
+    const value = source?.[key];
+    if (value && typeof value === "object" && !Array.isArray(value)) return value as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+function canonicalMetadataModel(provider: string | undefined, model: string | undefined): string | undefined {
+  return provider && model ? `${provider}/${model}` : undefined;
+}
+
+interface HubIdentityProjection extends ModelIdentityProjection {
+  name?: string;
+  status: string;
+  agentState?: string;
+  jobState?: string;
+  turnState?: string;
+  outputRef: string;
+  historyRef: string;
+  turnId?: string;
+  jobId?: string;
+  parentAgentId?: string;
+}
+
+/**
+ * Durable display identity is resolved newest-to-oldest (turn, job, Agent),
+ * field by field.  In particular, an execution audit containing an undefined
+ * field cannot erase the Agent's frozen allocation identity.
+ */
+function hubIdentity(
+  agent: AgentRecord,
+  job?: { id: string; metadata?: Record<string, unknown>; state?: string },
+  turn?: TurnRecord,
+  preferFrozenAgent = false,
+): HubIdentityProjection {
+  const newestSources = [
+    turn?.metadata,
+    turn as unknown as Record<string, unknown> | undefined,
+    job?.metadata,
+    job as unknown as Record<string, unknown> | undefined,
+  ];
+  const agentSources = [agent.metadata, agent as unknown as Record<string, unknown>];
+  const sources = preferFrozenAgent ? [...agentSources, ...newestSources] : [...newestSources, ...agentSources];
+  const currentOrSources = (keys: string | readonly string[]): string | undefined => {
+    const keyList = typeof keys === "string" ? [keys] : keys;
+    return currentTurnMetadata && keyList.some((key) => Object.prototype.hasOwnProperty.call(currentTurnMetadata, key))
+      ? metadataString(keys, currentTurnMetadata)
+      : metadataString(keys, ...sources);
+  };
+  const currentTurnMetadata = turn?.metadata;
+  const rawModel = currentOrSources("model");
+  const modelProvider = rawModel?.includes("/") ? rawModel.slice(0, rawModel.indexOf("/")) : undefined;
+  const model = rawModel?.includes("/") ? rawModel.slice(rawModel.indexOf("/") + 1) : rawModel;
+  const provider = currentOrSources("provider") ?? modelProvider;
+  const effectiveModel = currentOrSources(["effectiveModel", "effective", "canonical"])
+    ?? (rawModel?.includes("/") ? rawModel : undefined)
+    ?? canonicalMetadataModel(provider, model);
+  const requestedModel = currentTurnMetadata && Object.prototype.hasOwnProperty.call(currentTurnMetadata, "requestedModel")
+    ? metadataString(["requestedModel", "requested"], currentTurnMetadata)
+    : currentOrSources(["requestedModel", "requested"]);
+  const requestedThinking = currentTurnMetadata && Object.prototype.hasOwnProperty.call(currentTurnMetadata, "requestedThinking")
+    ? metadataString("requestedThinking", currentTurnMetadata)
+    : currentOrSources("requestedThinking");
+  const modelLayer = currentOrSources(["modelLayer", "layer"]);
+  const thinking = currentOrSources("thinking");
+  const rawSource = currentOrSources("source");
+  const source = rawSource && !rawSource.startsWith("hub.") ? rawSource : undefined;
+  const modelSource = currentOrSources("modelSource") ?? source;
+  const thinkingSource = currentOrSources("thinkingSource");
+  const effectiveMode = currentOrSources(["effectiveMode", "mode"]);
+  const effectiveModeReason = currentOrSources("effectiveModeReason");
+  const service = currentOrSources(["service", "serviceMode"]);
+  const speedTier = currentOrSources("speedTier");
+  const parentResolution = metadataObject("parentResolution", ...sources);
+  const parentModel = currentOrSources(["parentModel", "parentEffectiveModel", "parentCanonicalModel"])
+    ?? metadataString(["effectiveModel", "effective", "canonical"], parentResolution);
+  const parentThinking = currentOrSources("parentThinking")
+    ?? metadataString("thinking", parentResolution);
+  const parentSpeedTier = currentOrSources("parentSpeedTier")
+    ?? metadataString("speedTier", parentResolution);
+  const parentSource = currentOrSources("parentSource")
+    ?? metadataString(["modelSource", "source"], parentResolution);
+  const effectiveProvenance = currentOrSources(["effectiveProvenance", "effectiveSource"]);
+  const jobId = turn?.jobId ?? job?.id ?? agent.currentJobId;
+  const turnId = turn?.id ?? agent.currentTurnId;
+  const outputRef = metadataString("outputRef", ...sources) ?? `agent://${agent.id}`;
+  const historyRef = metadataString("historyRef", ...sources) ?? `history://${agent.id}`;
+  return {
+    name: agent.name,
+    ...(requestedModel ? { requestedModel, requested: requestedModel } : {}),
+    ...(requestedThinking ? { requestedThinking } : {}),
+    ...(effectiveModel ? { effectiveModel, effective: effectiveModel, canonical: effectiveModel } : {}),
+    ...(provider ? { provider } : {}),
+    ...(model ? { model } : {}),
+    ...(modelLayer ? { modelLayer, layer: modelLayer } : {}),
+    ...(thinking ? { thinking } : {}),
+    ...(modelSource ? { modelSource } : {}),
+    ...(thinkingSource ? { thinkingSource } : {}),
+    ...(source ? { source } : {}),
+    ...(speedTier ? { speedTier } : {}),
+    ...(service ? { service } : {}),
+    ...(parentModel ? { parentModel } : {}),
+    ...(parentThinking ? { parentThinking } : {}),
+    ...(parentSpeedTier ? { parentSpeedTier } : {}),
+    ...(parentSource ? { parentSource } : {}),
+    ...(effectiveProvenance ? { effectiveProvenance } : {}),
+    ...(effectiveMode ? { effectiveMode } : {}),
+    ...(effectiveModeReason ? { effectiveModeReason } : {}),
+    status: turn?.state ?? job?.state ?? agent.state,
+    agentState: agent.state,
+    ...(job?.state ? { jobState: job.state } : {}),
+    ...(turn?.state ? { turnState: turn.state } : {}),
+    outputRef,
+    historyRef,
+    ...(turnId ? { turnId } : {}),
+    ...(jobId ? { jobId } : {}),
+    ...(agent.parentAgentId ? { parentAgentId: agent.parentAgentId } : {}),
+  };
+}
+
+/** Copy only the Agent's recorded/frozen identity into a hub continuation.
+ * No root Parent model or call argument is consulted here. */
+function frozenContinuationMetadata(agent: AgentRecord): Record<string, unknown> {
+  // Only the direct-parent snapshot is carried across a continuation. The
+  // prior Agent effective identity may be a turn-local one-shot and must not
+  // become the next turn's requested/effective model.
+  const projection = hubIdentity(agent, undefined, undefined, true);
+  const copied: Record<string, unknown> = {};
+  for (const [field, value] of [
+    ["parentModel", projection.parentModel],
+    ["parentThinking", projection.parentThinking],
+    ["parentSpeedTier", projection.parentSpeedTier],
+    ["parentSource", projection.parentSource],
+  ] as const) {
+    if (typeof value === "string" && value.length > 0) copied[field] = value;
+  }
+  return copied;
+}
+
 export class HubService {
   private readonly live = new Map<string, LiveAgentAdapter>();
   private readonly agentTails = new Map<string, Promise<void>>();
@@ -228,6 +390,10 @@ export class HubService {
       case "model":
         strictKeys(input, ["action", "operation", "agentId", "selector", "model"]);
         if (!this.options.model) throw new Error("hub model operations are unavailable");
+        if (typeof input.agentId === "string" && input.agentId.trim()) {
+          const agentId = requiredString(input.agentId, "hub.agentId");
+          return await this.withAgentOperation(agentId, async () => await this.options.model!(input, caller));
+        }
         return await this.options.model(input, caller);
       default:
         throw new Error(`unknown hub action: ${action}`);
@@ -277,18 +443,18 @@ export class HubService {
       const latestTurn = Object.values(state.turns)
         .filter((candidate) => candidate.agentId === agent.id)
         .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0];
+      const job = latestTurn?.jobId
+        ? state.jobs[latestTurn.jobId]
+        : agent.currentJobId
+          ? state.jobs[agent.currentJobId]
+          : undefined;
+      const identity = hubIdentity(agent, job, latestTurn);
       return {
         ...agent,
         display: {
           selector: agent.selector,
-          effectiveModel: typeof latestTurn?.metadata?.effectiveModel === "string" ? latestTurn.metadata.effectiveModel : undefined,
-          modelLayer: typeof latestTurn?.metadata?.modelLayer === "string" ? latestTurn.metadata.modelLayer : undefined,
-          thinking: typeof latestTurn?.metadata?.thinking === "string" ? latestTurn.metadata.thinking : undefined,
-          effectiveMode: typeof latestTurn?.metadata?.effectiveMode === "string" ? latestTurn.metadata.effectiveMode : undefined,
-          turnId: latestTurn?.id ?? agent.currentTurnId,
-          jobId: latestTurn?.jobId ?? agent.currentJobId,
-          outputRef: typeof latestTurn?.metadata?.outputRef === "string" ? latestTurn.metadata.outputRef : `agent://${agent.id}`,
-          historyRef: typeof latestTurn?.metadata?.historyRef === "string" ? latestTurn.metadata.historyRef : `history://${agent.id}`,
+          name: agent.name,
+          ...identity,
         },
       };
     };
@@ -535,7 +701,40 @@ export class HubService {
     if (agent.state === "parked") {
       let revived: LiveAgentAdapter;
       try {
-        revived = await this.options.revive(agent);
+        // The revive boundary receives the same frozen allocation snapshot as
+        // the continuation turn.  This is an evidence hand-off only; it never
+        // falls back to the root Main model or writes a new override.
+        const continuationIdentity = frozenContinuationMetadata(agent);
+        const frozenAgent = {
+          ...agent,
+          requestedModel: undefined,
+          requestedThinking: undefined,
+          effectiveModel: undefined,
+          provider: undefined,
+          model: undefined,
+          modelLayer: undefined,
+          thinking: undefined,
+          modelSource: undefined,
+          thinkingSource: undefined,
+          source: undefined,
+          speedTier: undefined,
+          metadata: {
+            ...(agent.metadata ?? {}),
+            requestedModel: null,
+            requestedThinking: null,
+            effectiveModel: null,
+            provider: null,
+            model: null,
+            modelLayer: null,
+            thinking: null,
+            modelSource: null,
+            thinkingSource: null,
+            source: null,
+            speedTier: null,
+            ...continuationIdentity,
+          },
+        } as AgentRecord;
+        revived = await this.options.revive(frozenAgent);
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         await this.putMessage(message, "failed", { permanent: true, reason });
@@ -564,6 +763,7 @@ export class HubService {
     const state = this.options.journal.getState();
     const turnId = nextId("turn", Object.keys(state.turns));
     const now = this.clock().toISOString();
+    const frozenIdentity = frozenContinuationMetadata(agent);
     const turn: TurnRecord = {
       id: turnId,
       agentId: agent.id,
@@ -571,10 +771,27 @@ export class HubService {
       createdAt: now,
       updatedAt: now,
       metadata: {
-        source: "hub.send",
+        turnSource: "hub.send",
+        service: "hub",
+        effectiveMode: "hub",
+        effectiveModeReason: "hub-follow-up",
         messageId: message.id,
+        requestedModel: null,
+        requestedThinking: null,
+        effectiveModel: null,
+        provider: null,
+        model: null,
+        modelLayer: null,
+        thinking: null,
+        speedTier: null,
+        modelSource: null,
+        thinkingSource: null,
+        source: null,
+        outputRef: `agent://${agent.id}`,
+        historyRef: `history://${agent.id}`,
         ...(continuationIdentity ? { formalContinuationIdentity: continuationIdentity } : {}),
         ...formalTurnMetadata,
+        ...frozenIdentity,
       },
     };
     await this.options.journal.append({ kind: "turn.created", agentId: agent.id, turnId, payload: { record: turn } });
@@ -583,7 +800,21 @@ export class HubService {
     try {
       await live.sendUserMessage(message.content);
       await this.putMessage(message, "delivered", { delivery: priorState === "parked" ? "revive-turn" : "idle-turn", turnId });
-      return { messageId: message.id, status: "delivered", delivery: priorState === "parked" ? "revive-turn" : "idle-turn", turnId };
+      const current = this.options.journal.getState();
+      const currentTurn = current.turns[turnId];
+      const currentJob = currentTurn?.jobId ? current.jobs[currentTurn.jobId] : undefined;
+      const identity = hubIdentity(agent, currentJob, currentTurn);
+      return {
+        messageId: message.id,
+        status: "delivered",
+        delivery: priorState === "parked" ? "revive-turn" : "idle-turn",
+        turnId,
+        ...(identity.effectiveModel ? { effectiveModel: identity.effectiveModel } : {}),
+        ...(identity.thinking ? { thinking: identity.thinking } : {}),
+        ...(identity.modelLayer ? { modelLayer: identity.modelLayer } : {}),
+        ...(identity.source ? { source: identity.source } : {}),
+        ...(identity.parentSource ? { parentSource: identity.parentSource } : {}),
+      };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       await this.options.journal.append({ kind: "turn.state", agentId: agent.id, turnId, payload: { from: "running", to: "failed", outcome: reason } });
@@ -626,17 +857,20 @@ export class HubService {
     }).map((job) => {
       const agent = state.agents[job.agentId] ?? state.releasedAgents[job.agentId];
       const turn = Object.values(state.turns).find((candidate) => candidate.jobId === job.id && candidate.agentId === job.agentId);
+      const identity = agent
+        ? hubIdentity(agent, job, turn)
+        : {
+          status: job.state,
+          jobId: job.id,
+          outputRef: `agent://${job.agentId}`,
+          historyRef: `history://${job.agentId}`,
+        } satisfies HubIdentityProjection;
       return {
         ...job,
         display: {
           selector: agent?.selector,
-          effectiveModel: typeof turn?.metadata?.effectiveModel === "string" ? turn.metadata.effectiveModel : undefined,
-          modelLayer: typeof turn?.metadata?.modelLayer === "string" ? turn.metadata.modelLayer : undefined,
-          thinking: typeof turn?.metadata?.thinking === "string" ? turn.metadata.thinking : undefined,
-          effectiveMode: typeof turn?.metadata?.effectiveMode === "string" ? turn.metadata.effectiveMode : undefined,
-          turnId: turn?.id,
-          outputRef: typeof turn?.metadata?.outputRef === "string" ? turn.metadata.outputRef : `agent://${job.agentId}`,
-          historyRef: `history://${job.agentId}`,
+          name: agent?.name,
+          ...identity,
         },
       };
     });

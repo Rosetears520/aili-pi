@@ -26,6 +26,8 @@ export interface AiliWebBffBridge {
 export interface PrivateWebBffBridgeOptions<T extends OfficialAgentSessionLike> {
   /** Authenticated, redacted read provider owned by the Runtime composition root. */
   readonly catalog: (identity: Pick<AiliBffHttpRequest, "host" | "origin" | "cookie">) => Promise<GatewayResponse<unknown>> | GatewayResponse<unknown>;
+  /** Authenticated bounded per-session history; the catalog itself stays metadata-only. */
+  readonly history?: (identity: Pick<AiliBffHttpRequest, "host" | "origin" | "cookie">, sessionHandle: string) => Promise<GatewayResponse<unknown>> | GatewayResponse<unknown>;
   /** Authenticated read-only export provider; it must not disclose a session path. */
   readonly exportSession?: (identity: Pick<AiliBffHttpRequest, "host" | "origin" | "cookie">, sessionHandle: string) => Promise<GatewayResponse<unknown>> | GatewayResponse<unknown>;
   /** Authenticated bounded media provider addressed only by an opaque handle. */
@@ -66,6 +68,9 @@ export class PrivateWebBffBridge<T extends OfficialAgentSessionLike> implements 
     }
     if (request.method === "GET" && first === "workbench" && second === "catalog" && request.segments.length === 2) {
       return this.options.catalog(identity);
+    }
+    if (request.method === "GET" && first === "sessions" && validHandle(second) && third === "history" && request.segments.length === 3 && this.options.history) {
+      return this.options.history(identity, second);
     }
     if (request.method === "GET" && first === "sessions" && validHandle(second) && third === "connect" && request.segments.length === 3) {
       return this.bff.connect(identity, second, request.cursor);

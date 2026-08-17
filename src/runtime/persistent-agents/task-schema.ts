@@ -2,6 +2,8 @@ import { Type } from "typebox";
 import { BUNDLED_ROLE_SELECTORS, type RoleProfile } from "../roles.js";
 
 export type TaskWorkspaceMode = "auto" | "shared" | "isolated";
+export const TASK_THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
+export type TaskThinking = (typeof TASK_THINKING_LEVELS)[number];
 
 export interface TaskWriteScope {
   paths: string[];
@@ -28,6 +30,7 @@ export interface NormalizedTaskItem {
   agent: string;
   name?: string;
   model?: string;
+  thinking?: TaskThinking;
   async?: boolean;
   tools?: string[];
   workspace: TaskWorkspaceMode;
@@ -88,7 +91,21 @@ const ItemFields = {
     description: "Choose an exact Specialized selector from the active task catalog when one routing responsibility matches. Omit only for ordinary general compatibility; formal packages require their exact Specialized Owner.",
   })),
   name: Type.Optional(Type.String({ minLength: 1 })),
-  model: Type.Optional(Type.String({ minLength: 1, description: "Prefer exact canonical provider/model form (for example, openai-codex/gpt-5.6-terra). A bare model id resolves only by Parent-provider match or one unambiguous authenticated available catalog match." })),
+  model: Type.Optional(Type.String({
+    minLength: 1,
+    description: "Optional one-shot provider/model request. Omitted by default; it inherits the direct parent's effective provider/model unless an existing user-owned instance/project/global role override wins. Model-facing values are untrusted and never self-authorizing. Prefer exact canonical provider/model form; a bare model id resolves only by Parent-provider match or one unambiguous authenticated available catalog match.",
+  })),
+  thinking: Type.Optional(Type.Union([
+    Type.Literal("off"),
+    Type.Literal("minimal"),
+    Type.Literal("low"),
+    Type.Literal("medium"),
+    Type.Literal("high"),
+    Type.Literal("xhigh"),
+    Type.Literal("max"),
+  ], {
+    description: "Optional one-shot thinking override. Omitted by default; it inherits the direct parent's effective thinking unless an authorized one-shot model changes, in which case the target model default is used. Model-facing values are untrusted and never self-authorizing.",
+  })),
   async: Type.Optional(Type.Boolean({ description: "Set false to wait synchronously or true for background execution. Do not send blocking; blocking is profile-only internal metadata." })),
   tools: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
   workspace: Type.Optional(Type.Union([Type.Literal("auto"), Type.Literal("shared"), Type.Literal("isolated")])),
@@ -123,6 +140,14 @@ function optionalString(value: unknown, label: string): string | undefined {
   if (value === undefined) return undefined;
   if (typeof value !== "string" || !value.trim()) throw new Error(`${label} must be a non-empty string`);
   return value.trim();
+}
+
+function optionalThinking(value: unknown, label: string): TaskThinking | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !(TASK_THINKING_LEVELS as readonly string[]).includes(value)) {
+    throw new Error(`${label} must be one of: ${TASK_THINKING_LEVELS.join(", ")}`);
+  }
+  return value as TaskThinking;
 }
 
 function stringArray(value: unknown, label: string): string[] | undefined {
@@ -287,6 +312,7 @@ function normalizeItem(
     agent: selector,
     name: optionalString(item.name, `${label}.name`),
     model: optionalString(item.model, `${label}.model`),
+    thinking: optionalThinking(item.thinking, `${label}.thinking`),
     async: item.async as boolean | undefined,
     tools: stringArray(item.tools, `${label}.tools`),
     workspace,

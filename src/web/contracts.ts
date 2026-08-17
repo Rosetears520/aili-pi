@@ -287,6 +287,20 @@ export function validateWorkbenchCatalog(value: unknown): WorkbenchCatalogV1 {
   return freezeClone(value) as unknown as WorkbenchCatalogV1;
 }
 
+export interface WorkbenchHistoryV1 {
+  readonly schemaVersion: 1;
+  readonly sessionHandle: string;
+  readonly timeline: readonly TimelineItemV1[];
+}
+
+export function validateWorkbenchHistory(value: unknown): WorkbenchHistoryV1 {
+  if (!record(value) || value.schemaVersion !== 1 || !safeId(value.sessionHandle)
+    || !Array.isArray(value.timeline)) throw new Error("invalid WorkbenchHistoryV1");
+  assertBoundedPublicJson(value);
+  for (const item of value.timeline) validateTimeline(item);
+  return freezeClone(value) as unknown as WorkbenchHistoryV1;
+}
+
 export function createMutationEnvelope(input: {
   readonly requestId: string;
   readonly clientId: string;

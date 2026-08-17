@@ -130,9 +130,9 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 - Revision: 7624b3c50d09d2e9dafa8dbc810c7f2adb453d70
 - Version: 0.53.0
 - License: MIT
-- Source files: upstream/pi-file-context-0.53.0/package.json, upstream/pi-file-context-0.53.0/SOURCE_INVENTORY.json, upstream/pi-file-context-0.53.0/LICENSE, licenses/pi-file-context-MIT.txt, src/runtime/file-context.ts, extensions/file-context/index.ts
-- Reused symbols/patterns: bounded file search, line-range snapshots, SHA-256 provenance, deterministic token estimate, Git provenance adapter seam, immutable prompt attachment
-- Local changes: AILI keeps selection and snapshot policy independent of menus/components behind a thin Pi UI registration seam; the declared companion @narumitw/pi-tui-kit is resolved as exact 0.53.0 metadata only and is not vendored or installed; no floating range remains; filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git data is caller-supplied and bounded without starting a Git process
+- Source files: upstream/pi-file-context-0.53.0/package.json, upstream/pi-file-context-0.53.0/SOURCE_INVENTORY.json, upstream/pi-file-context-0.53.0/LICENSE, licenses/pi-file-context-MIT.txt, src/runtime/file-context.ts, extensions/file-context/index.ts, extensions/file-context/file-context.ts, extensions/file-context/file-context-explorer.ts, extensions/file-context/file-context-menu.ts, extensions/file-context/file-context-preview-ui.ts, extensions/file-context/file-context-settings.ts, extensions/file-context/content-search.ts, extensions/file-context/content-search-session.ts, extensions/file-context/content-search-ui.ts, extensions/file-context/file-search.ts, extensions/file-context/git-context.ts
+- Reused symbols/patterns: F8 File Context Explorer, Git status browser, diff and changed-hunk navigation, bounded file/content search, line-range selections, Git blame/history/revision views, immutable prompt snapshots, SHA-256 provenance, deterministic token estimate
+- Local changes: AILI keeps selection and snapshot policy independent of the restored TUI controller; the companion @narumitw/pi-tui-kit dependency is installed and pinned exactly to 0.53.0; the adapter preserves the legacy bounded search commands while routing /file-context browse and /file-context-browse through the restored explorer; filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git reads and diff output remain bounded by the local 5-second/1.1 MiB limits
 
 ## pi-codex-fast reference
 
@@ -191,6 +191,6 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 
 ## npm dependency inventory
 
-The exact 519-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
+The exact 1208-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
 
 Runtime dependencies are initialized through the single AILI Extension entry. Package-owned third-party adaptations are copied only where their provenance sourceFiles explicitly name repository paths.

@@ -7,8 +7,11 @@ import type { CoordinatorJournal } from "./storage.js";
 import { assertNoCredentialMaterial } from "./permission.js";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 
-export type ModelLayer = "one-shot" | "instance" | "project-role" | "user-role" | "profile" | "parent-fallback";
-export type ModelSource = "confirmed-one-shot" | "instance-override" | "project-role-override" | "user-role-override" | "inherited-parent" | "profile-fallback" | "runtime-fallback";
+export type ModelLayer = "one-shot" | "instance" | "project-role" | "user-role" | "profile" | "parent-fallback" | "runtime-fallback";
+/** Compatibility source retained for existing audit consumers. */
+export type ModelSource = "confirmed-one-shot" | "user-one-shot" | "instance-override" | "project-role-override" | "user-role-override" | "inherited-parent" | "profile-fallback" | "runtime-fallback";
+export type ModelChoiceSource = "user-one-shot" | "confirmed-one-shot" | "instance-override" | "project-role-override" | "user-role-override" | "inherited-parent" | "profile-fallback" | "runtime-fallback";
+export type ThinkingSource = ModelChoiceSource | "model-default";
 export type ModelThinking = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 export type SpeedTier = "standard" | "priority";
 
@@ -31,7 +34,8 @@ export interface LoadedModelConfigs {
   projectBytes?: string;
 }
 
-const THINKING = new Set<ModelThinking>(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
+export const MODEL_THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
+const THINKING = new Set<ModelThinking>(MODEL_THINKING_LEVELS);
 const SELECTORS = new Set<string>(BUNDLED_ROLE_SELECTORS as readonly string[]);
 
 export function defaultGlobalModelConfigPath(home = homedir()): string {
@@ -50,7 +54,7 @@ export function validateModelIdentifier(model: string): { provider: string; mode
   const normalized = model.trim();
   const slash = normalized.indexOf("/");
   if (slash <= 0 || slash === normalized.length - 1 || /[\s\0\r\n]/.test(normalized)) {
-    throw new Error(`model must use canonical provider/model form (for example, openai-codex/gpt-5.6-terra): ${model}`);
+    throw new Error(`model must use canonical provider/model form (provider/model): ${model}`);
   }
   return { provider: normalized.slice(0, slash), model: normalized.slice(slash + 1), canonical: normalized };
 }
@@ -184,12 +188,20 @@ export interface CatalogModel {
   model: string;
   available: boolean;
   authenticated: boolean;
-  thinkingLevels?: ModelThinking[];
+  thinkingLevels?: readonly ModelThinking[];
+  /** Catalog-advertised preferred thinking level for this model, when known. */
+  defaultThinking?: ModelThinking;
+  /** Compatibility aliases used by catalog adapters. */
+  thinkingDefault?: ModelThinking;
+  supportedDefaultThinking?: ModelThinking;
+  defaultThinkingLevel?: ModelThinking;
 }
 
 export interface ModelCatalog {
   resolve(model: string): Promise<CatalogModel | undefined>;
   resolveParentFallback(): Promise<CatalogModel | undefined>;
+  resolveProfileFallback?(selector: string): Promise<CatalogModel | undefined>;
+  resolveRuntimeFallback?(): Promise<CatalogModel | undefined>;
   resolveBare?(model: string): Promise<CatalogModel[]>;
 }
 
@@ -197,7 +209,8 @@ export class OfficialPiModelCatalog implements ModelCatalog {
   constructor(
     private readonly runtime: ModelRuntime,
     private readonly parentModel: { provider: string; id: string } | undefined,
-    private readonly thinkingLevels: (model: { provider: string; id: string }) => ModelThinking[] | undefined = () => undefined,
+    private readonly thinkingLevels: (model: { provider: string; id: string }) => readonly ModelThinking[] | undefined = () => undefined,
+    private readonly defaultThinking: (model: { provider: string; id: string }) => ModelThinking | undefined = () => undefined,
   ) {}
 
   async resolve(model: string): Promise<CatalogModel | undefined> {
@@ -211,12 +224,23 @@ export class OfficialPiModelCatalog implements ModelCatalog {
       available,
       authenticated: this.runtime.hasConfiguredAuth(found.provider),
       thinkingLevels: this.thinkingLevels({ provider: found.provider, id: found.id }),
+      defaultThinking: this.defaultThinking({ provider: found.provider, id: found.id }),
     };
   }
 
   async resolveParentFallback(): Promise<CatalogModel | undefined> {
     if (!this.parentModel) return undefined;
     return await this.resolve(`${this.parentModel.provider}/${this.parentModel.id}`);
+  }
+
+  async resolveRuntimeFallback(): Promise<CatalogModel | undefined> {
+    const candidates = [...this.runtime.getAvailableSnapshot()]
+      .sort((left, right) => `${left.provider}/${left.id}`.localeCompare(`${right.provider}/${right.id}`));
+    for (const candidate of candidates) {
+      const resolved = await this.resolve(`${candidate.provider}/${candidate.id}`);
+      if (resolved?.available && resolved.authenticated) return resolved;
+    }
+    return undefined;
   }
 
   async resolveBare(model: string): Promise<CatalogModel[]> {
@@ -229,21 +253,299 @@ export class OfficialPiModelCatalog implements ModelCatalog {
         available: this.runtime.getAvailableSnapshot().some((available) => available.provider === candidate.provider && available.id === candidate.id),
         authenticated: this.runtime.hasConfiguredAuth(candidate.provider),
         thinkingLevels: this.thinkingLevels({ provider: candidate.provider, id: candidate.id }),
+        defaultThinking: this.defaultThinking({ provider: candidate.provider, id: candidate.id }),
       }));
   }
 }
 
+export type CurrentTurnModelAuthorityMode = "inherit-only" | "explicit" | "delegated-choice";
+
+/**
+ * User-owned authority for model-facing task values. The discriminator is
+ * intentionally explicit: no role, task text, or model suggestion can create
+ * this authority implicitly.
+ *
+ * `kind`, `models`, and `thinking` are accepted as compatibility aliases for
+ * callers that used the earlier authority vocabulary; the validator requires
+ * one unambiguous discriminator and normalizes all aliases.
+ */
+export interface CurrentTurnModelAuthority {
+  mode?: CurrentTurnModelAuthorityMode;
+  kind?: CurrentTurnModelAuthorityMode;
+  allowedModels?: readonly string[] | string | "available";
+  allowedCanonicalModels?: readonly string[] | string | "available";
+  models?: readonly string[] | string | "available";
+  allowedThinking?: readonly ModelThinking[] | ModelThinking;
+  allowedCanonicalThinking?: readonly ModelThinking[] | ModelThinking;
+  thinking?: readonly ModelThinking[] | ModelThinking;
+  /** Delegated-choice thinking authority defaults to inherit unless explicitly available. */
+  thinkingMode?: "inherit" | "available";
+}
+
+export type TaskModelAuthority = CurrentTurnModelAuthority;
+export type ModelAuthority = CurrentTurnModelAuthority;
+export type CurrentTurnAuthority = CurrentTurnModelAuthority;
+export type CurrentTurnModelPermission = CurrentTurnModelAuthority;
+export type TaskModelPermission = CurrentTurnModelAuthority;
+
+export interface TaskModelRequest {
+  model?: string;
+  thinking?: ModelThinking;
+}
+
+function authorityArray<T>(value: unknown, label: string): T[] | undefined {
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) return [...value] as T[];
+  if (typeof value === "string") return [value as T];
+  throw new Error(`${label} must be an array or one exact value`);
+}
+
+function normalizeCurrentTurnAuthority(authority: CurrentTurnModelAuthority): {
+  mode: CurrentTurnModelAuthorityMode;
+  allowedModels?: string[] | "available";
+  allowedThinking?: ModelThinking[];
+  thinkingMode?: "inherit" | "available";
+} {
+  if (!authority || typeof authority !== "object" || Array.isArray(authority)) {
+    throw new Error("current-turn model authority is required and must be an object");
+  }
+  const raw = authority as Record<string, unknown>;
+  const unknown = Object.keys(raw).filter((key) => ![
+    "mode", "kind", "allowedModels", "allowedCanonicalModels", "models", "allowedThinking", "allowedCanonicalThinking", "thinking", "thinkingMode",
+  ].includes(key));
+  if (unknown.length > 0) throw new Error(`current-turn model authority contains unknown fields: ${unknown.join(", ")}`);
+  if (raw.mode !== undefined && raw.kind !== undefined && raw.mode !== raw.kind) {
+    throw new Error("current-turn model authority mode and kind must agree");
+  }
+  const mode = (raw.mode ?? raw.kind) as CurrentTurnModelAuthorityMode | undefined;
+  if (mode !== "inherit-only" && mode !== "explicit" && mode !== "delegated-choice") {
+    throw new Error("current-turn model authority must be inherit-only, explicit, or delegated-choice");
+  }
+  const normalizedMode = mode as CurrentTurnModelAuthorityMode;
+  const modelAliasValues = [raw.allowedModels, raw.allowedCanonicalModels, raw.models].filter((value) => value !== undefined);
+  if (modelAliasValues.some((value) => JSON.stringify(value) !== JSON.stringify(modelAliasValues[0]))) {
+    throw new Error("current-turn model authority model allowances must agree");
+  }
+  const thinkingAliasValues = [raw.allowedThinking, raw.allowedCanonicalThinking, raw.thinking].filter((value) => value !== undefined);
+  if (thinkingAliasValues.some((value) => JSON.stringify(value) !== JSON.stringify(thinkingAliasValues[0]))) {
+    throw new Error("current-turn model authority thinking allowances must agree");
+  }
+  const rawModelAllowance = modelAliasValues[0];
+  if (rawModelAllowance === "available" && normalizedMode !== "delegated-choice") {
+    throw new Error("current-turn model authority models=available requires delegated-choice");
+  }
+  const modelValues = rawModelAllowance === "available"
+    ? undefined
+    : authorityArray<unknown>(rawModelAllowance, "current-turn model authority allowedModels");
+  const allowedModels = rawModelAllowance === "available"
+    ? "available" as const
+    : modelValues?.map((value, index) => {
+      if (typeof value !== "string") throw new Error(`current-turn model authority allowedModels[${index}] must be canonical`);
+      return validateModelIdentifier(value).canonical;
+    });
+  if (Array.isArray(allowedModels) && new Set(allowedModels).size !== allowedModels.length) {
+    throw new Error("current-turn model authority allowedModels must not contain duplicates");
+  }
+  const thinkingValues = authorityArray<unknown>(thinkingAliasValues[0], "current-turn model authority allowedThinking");
+  const allowedThinking = thinkingValues?.map((value, index) => {
+    if (typeof value !== "string" || !THINKING.has(value as ModelThinking)) {
+      throw new Error(`current-turn model authority allowedThinking[${index}] is invalid`);
+    }
+    return value as ModelThinking;
+  });
+  if (allowedThinking && new Set(allowedThinking).size !== allowedThinking.length) {
+    throw new Error("current-turn model authority allowedThinking must not contain duplicates");
+  }
+  if (normalizedMode === "inherit-only" && (allowedModels !== undefined || allowedThinking !== undefined)) {
+    throw new Error("inherit-only current-turn model authority cannot contain explicit allowances");
+  }
+  if (normalizedMode === "explicit" && allowedModels === undefined && allowedThinking === undefined) {
+    throw new Error("explicit current-turn model authority must declare allowed models or thinking levels");
+  }
+  if (normalizedMode !== "delegated-choice" && raw.thinkingMode !== undefined) {
+    throw new Error("current-turn model authority thinkingMode requires delegated-choice");
+  }
+  const thinkingMode = normalizedMode === "delegated-choice"
+    ? raw.thinkingMode === "available" ? "available" as const : "inherit" as const
+    : undefined;
+  return {
+    mode: normalizedMode,
+    ...(allowedModels === undefined ? {} : { allowedModels }),
+    ...(allowedThinking === undefined ? {} : { allowedThinking }),
+    ...(thinkingMode === undefined ? {} : { thinkingMode }),
+  };
+}
+
+/** Validate and normalize the user-owned authority itself before using it. */
+export function validateCurrentTurnAuthority(authority: CurrentTurnModelAuthority): {
+  mode: CurrentTurnModelAuthorityMode;
+  allowedModels?: string[] | "available";
+  allowedThinking?: ModelThinking[];
+  thinkingMode?: "inherit" | "available";
+} {
+  return normalizeCurrentTurnAuthority(authority);
+}
+
+/**
+ * Hard, deterministic validation for model-facing values in the current turn.
+ * A missing authority fails closed for every explicit value. Canonical model
+ * identity and thinking levels are validated before any catalog lookup.
+ */
+export function validateCurrentTurnModelRequest(
+  requested: TaskModelRequest | undefined,
+  authority: CurrentTurnModelAuthority,
+): TaskModelRequest | undefined;
+export function validateCurrentTurnModelRequest(
+  authority: CurrentTurnModelAuthority,
+  requested: TaskModelRequest | undefined,
+): TaskModelRequest | undefined;
+export function validateCurrentTurnModelRequest(
+  first: TaskModelRequest | CurrentTurnModelAuthority | undefined,
+  second: CurrentTurnModelAuthority | TaskModelRequest | undefined,
+): TaskModelRequest | undefined {
+  const authorityFirst = looksLikeCurrentTurnAuthority(first);
+  const requested = (authorityFirst ? second : first) as TaskModelRequest | undefined;
+  const authority = (authorityFirst ? first : second) as CurrentTurnModelAuthority;
+  const normalizedAuthority = normalizeCurrentTurnAuthority(authority);
+  if (requested === undefined) return undefined;
+  if (!requested || typeof requested !== "object" || Array.isArray(requested)) {
+    throw new Error("current-turn model request must be an object");
+  }
+  const raw = requested as Record<string, unknown>;
+  const unknown = Object.keys(raw).filter((key) => key !== "model" && key !== "thinking");
+  if (unknown.length > 0) throw new Error(`current-turn model request contains unknown fields: ${unknown.join(", ")}`);
+  const hasModel = raw.model !== undefined;
+  const hasThinking = raw.thinking !== undefined;
+  if (!hasModel && !hasThinking) return undefined;
+  if (normalizedAuthority.mode === "inherit-only") {
+    throw new Error("current-turn model request is unauthorized: authority is inherit-only");
+  }
+
+  let model: string | undefined;
+  if (hasModel) {
+    if (typeof raw.model !== "string") throw new Error("current-turn model request.model must be a model identifier");
+    if (!raw.model.includes("/") && normalizedAuthority.mode === "delegated-choice" && (normalizedAuthority.allowedModels === undefined || normalizedAuthority.allowedModels === "available")) {
+      model = validateBareModelIdentifier(raw.model);
+    } else {
+      model = validateModelIdentifier(raw.model).canonical;
+    }
+    if (normalizedAuthority.mode === "explicit"
+      && (!Array.isArray(normalizedAuthority.allowedModels) || !normalizedAuthority.allowedModels.includes(model))) {
+      throw new Error(`current-turn model request model '${model}' is not authorized by the explicit allowance`);
+    }
+    if (normalizedAuthority.mode === "explicit" && normalizedAuthority.allowedModels === undefined) {
+      throw new Error("current-turn model request model is unauthorized: no explicit model allowance");
+    }
+    if (normalizedAuthority.mode === "delegated-choice"
+      && Array.isArray(normalizedAuthority.allowedModels)
+      && !normalizedAuthority.allowedModels.includes(model)) {
+      throw new Error(`current-turn model request model '${model}' is not authorized by the delegated allowance`);
+    }
+  }
+
+  let thinking: ModelThinking | undefined;
+  if (hasThinking) {
+    if (typeof raw.thinking !== "string" || !THINKING.has(raw.thinking as ModelThinking)) {
+      throw new Error("current-turn model request.thinking is invalid");
+    }
+    thinking = raw.thinking as ModelThinking;
+    if (normalizedAuthority.mode === "explicit"
+      && (!normalizedAuthority.allowedThinking || !normalizedAuthority.allowedThinking.includes(thinking))) {
+      throw new Error(`current-turn model request thinking '${thinking}' is not authorized by the explicit allowance`);
+    }
+    if (normalizedAuthority.mode === "explicit" && normalizedAuthority.allowedThinking === undefined) {
+      throw new Error("current-turn model request thinking is unauthorized: no explicit thinking allowance");
+    }
+    if (normalizedAuthority.mode === "delegated-choice"
+      && normalizedAuthority.thinkingMode !== "available"
+      && (normalizedAuthority.allowedThinking === undefined || !normalizedAuthority.allowedThinking.includes(thinking))) {
+      throw new Error(`current-turn model request thinking '${thinking}' is not authorized by delegated model-choice authority`);
+    }
+    if (normalizedAuthority.mode === "delegated-choice"
+      && normalizedAuthority.thinkingMode === "available"
+      && normalizedAuthority.allowedThinking !== undefined
+      && !normalizedAuthority.allowedThinking.includes(thinking)) {
+      throw new Error(`current-turn model request thinking '${thinking}' is not authorized by the delegated allowance`);
+    }
+  }
+  return {
+    ...(model === undefined ? {} : { model }),
+    ...(thinking === undefined ? {} : { thinking }),
+  };
+}
+
+/** Compatibility aliases for callers that name the boundary by task rather than turn. */
+function looksLikeCurrentTurnAuthority(value: unknown): value is CurrentTurnModelAuthority {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return [
+    "mode", "kind", "allowedModels", "allowedCanonicalModels", "models",
+    "allowedThinking", "allowedCanonicalThinking",
+  ].some((key) => Object.prototype.hasOwnProperty.call(record, key));
+}
+
+export function validateTaskModelAuthority(
+  requested: TaskModelRequest | undefined,
+  authority: CurrentTurnModelAuthority,
+): TaskModelRequest | undefined;
+export function validateTaskModelAuthority(
+  authority: CurrentTurnModelAuthority,
+  requested: TaskModelRequest | undefined,
+): TaskModelRequest | undefined;
+export function validateTaskModelAuthority(
+  first: TaskModelRequest | CurrentTurnModelAuthority | undefined,
+  second: CurrentTurnModelAuthority | TaskModelRequest | undefined,
+): TaskModelRequest | undefined {
+  return looksLikeCurrentTurnAuthority(first)
+    ? validateCurrentTurnModelRequest(second as TaskModelRequest | undefined, first)
+    : validateCurrentTurnModelRequest(first as TaskModelRequest | undefined, second as CurrentTurnModelAuthority);
+}
+
+export const validateTaskModelRequestAuthority = validateTaskModelAuthority;
+export const validateTaskModelRequest = validateTaskModelAuthority;
+export const validateCurrentTurnPermission = validateTaskModelAuthority;
+export const validateModelAuthority = validateTaskModelAuthority;
+
+export function assertCurrentTurnModelRequest(
+  requested: TaskModelRequest | undefined,
+  authority: CurrentTurnModelAuthority,
+): void;
+export function assertCurrentTurnModelRequest(
+  authority: CurrentTurnModelAuthority,
+  requested: TaskModelRequest | undefined,
+): void;
+export function assertCurrentTurnModelRequest(
+  first: TaskModelRequest | CurrentTurnModelAuthority | undefined,
+  second: CurrentTurnModelAuthority | TaskModelRequest | undefined,
+): void {
+  if (looksLikeCurrentTurnAuthority(first)) {
+    validateCurrentTurnModelRequest(first, second as TaskModelRequest | undefined);
+  } else {
+    validateCurrentTurnModelRequest(first as TaskModelRequest | undefined, second as CurrentTurnModelAuthority);
+  }
+}
+
+export const assertCurrentTurnPermission = assertCurrentTurnModelRequest;
+
 export interface ResolveModelInput {
   selector: string;
   agentId: string;
+  /** Already-authorized one-shot values. Use the hard validator above first. */
   oneShot?: ModelOverride;
   instance?: ModelOverride;
   projectRole?: ModelOverride;
   projectTrusted: boolean;
   userRole?: ModelOverride;
+  /** Role profile model, used only when no direct Parent identity exists. */
   profile?: ModelOverride;
-  /** A direct Persistent parent snapshot outranks role-profile fallback. */
-  parent?: Pick<ResolvedModelChoice, "provider" | "model" | "canonical" | "thinking" | "speedTier">;
+  authority?: CurrentTurnModelAuthority;
+  currentTurnAuthority?: CurrentTurnModelAuthority;
+  /** One-shot thinking-only compatibility inputs for task callers. */
+  oneShotThinking?: ModelThinking;
+  taskThinking?: ModelThinking;
+  thinking?: ModelThinking;
+  /** A direct Persistent parent snapshot whose model and thinking are exact. */
+  parent?: Pick<ResolvedModelChoice, "provider" | "model" | "canonical" | "thinking" | "speedTier" | "source" | "modelSource" | "thinkingSource" | "parentSource">;
   parentThinking?: ModelThinking;
 }
 
@@ -254,7 +556,12 @@ export interface ResolvedModelChoice {
   layer: ModelLayer;
   thinking: ModelThinking;
   speedTier?: SpeedTier;
+  /** Legacy audit field retained for compatibility. */
   source?: ModelSource;
+  modelSource?: ModelChoiceSource;
+  /** Source of the direct Parent snapshot, when this choice inherited one. */
+  parentSource?: ModelSource;
+  thinkingSource?: ThinkingSource;
   persistent: boolean;
   oneShot: boolean;
 }
@@ -278,34 +585,108 @@ export class ModelSelectionError extends Error {
   }
 }
 
+function targetModelDefaultThinking(candidate: CatalogModel): ModelThinking {
+  const preferred = candidate.defaultThinking
+    ?? candidate.thinkingDefault
+    ?? candidate.supportedDefaultThinking
+    ?? candidate.defaultThinkingLevel;
+  if (preferred && (!candidate.thinkingLevels || candidate.thinkingLevels.includes(preferred))) return preferred;
+  if (candidate.thinkingLevels?.includes("medium")) return "medium";
+  if (candidate.thinkingLevels && candidate.thinkingLevels.length > 0) return candidate.thinkingLevels[0]!;
+  return "medium";
+}
+
 export async function resolveModelChoice(input: ResolveModelInput, catalog: ModelCatalog): Promise<ResolvedModelChoice> {
-  const layers: Array<{ layer: ModelLayer; value?: ModelOverride; persistent: boolean; source: ModelSource }> = [
-    { layer: "instance", value: input.instance, persistent: true, source: "instance-override" },
-    { layer: "project-role", value: input.projectTrusted ? input.projectRole : undefined, persistent: true, source: "project-role-override" },
-    { layer: "user-role", value: input.userRole, persistent: true, source: "user-role-override" },
-    { layer: "one-shot", value: input.oneShot, persistent: false, source: "confirmed-one-shot" },
+  const aliases = [input.oneShotThinking, input.taskThinking, input.thinking].filter((value): value is ModelThinking => value !== undefined);
+  if (new Set(aliases).size > 1) throw new ModelSelectionError("one-shot", "conflicting one-shot thinking values were supplied");
+  let oneShotThinking: ModelThinking | undefined = aliases[0];
+  if (input.oneShot?.thinking !== undefined && oneShotThinking !== undefined && input.oneShot.thinking !== oneShotThinking) {
+    throw new ModelSelectionError("one-shot", "one-shot model and thinking values disagree");
+  }
+
+  let oneShot = input.oneShot;
+  const authority = input.authority ?? input.currentTurnAuthority;
+  if (authority) {
+    const requested: TaskModelRequest | undefined = oneShot || oneShotThinking !== undefined
+      ? {
+        ...(oneShot ? { model: oneShot.model } : {}),
+        ...((oneShot?.thinking ?? oneShotThinking) !== undefined
+          ? { thinking: oneShot?.thinking ?? oneShotThinking }
+          : {}),
+      }
+      : undefined;
+    const authorized = validateCurrentTurnModelRequest(requested, authority);
+    const authorizedModel = authorized?.model;
+    oneShot = authorizedModel === undefined ? undefined : { model: authorizedModel, thinking: authorized?.thinking };
+    oneShotThinking = authorized?.thinking;
+  } else if (oneShot && oneShotThinking !== undefined && oneShot.thinking === undefined) {
+    oneShot = { ...oneShot, thinking: oneShotThinking };
+  }
+
+  const layers: Array<{
+    layer: ModelLayer;
+    value?: ModelOverride;
+    persistent: boolean;
+    source: ModelSource;
+    modelSource: ModelChoiceSource;
+  }> = [
+    { layer: "instance", value: input.instance, persistent: true, source: "instance-override", modelSource: "instance-override" },
+    { layer: "project-role", value: input.projectTrusted ? input.projectRole : undefined, persistent: true, source: "project-role-override", modelSource: "project-role-override" },
+    { layer: "user-role", value: input.userRole, persistent: true, source: "user-role-override", modelSource: "user-role-override" },
+    // A confirmed one-shot is lower than user-owned configuration but higher
+    // than the direct Parent/profile/runtime fallbacks.
+    { layer: "one-shot", value: oneShot, persistent: false, source: "confirmed-one-shot", modelSource: "user-one-shot" },
   ];
-  let selected = layers.find((candidate) => candidate.value);
-  let layer: ModelLayer = selected?.layer ?? "parent-fallback";
-  let source: ModelSource = selected?.source ?? (input.parent ? "inherited-parent" : "runtime-fallback");
-  let requested = selected?.value;
+  const selected = layers.find((candidate) => candidate.value !== undefined);
+  const selectedLayer = selected ?? (oneShotThinking !== undefined ? {
+    layer: "one-shot" as const,
+    persistent: false,
+    source: "confirmed-one-shot" as const,
+    modelSource: "user-one-shot" as const,
+  } : undefined);
+  const fallbackLayer: ModelLayer = input.parent ? "parent-fallback" : input.profile ? "profile" : "runtime-fallback";
+  const layer: ModelLayer = selectedLayer?.layer ?? fallbackLayer;
+  const source: ModelSource = selectedLayer?.source
+    ?? (layer === "profile" ? "profile-fallback" : layer === "runtime-fallback" ? "runtime-fallback" : "inherited-parent");
+  const modelSource: ModelChoiceSource = selectedLayer?.modelSource
+    ?? (layer === "profile" ? "profile-fallback" : layer === "runtime-fallback" ? "runtime-fallback" : "inherited-parent");
+  const requested = selected?.value ?? (layer === "profile" ? input.profile : undefined);
+  let fallbackParent: CatalogModel | undefined;
+  let fallbackLoaded = false;
+  const getFallbackParent = async (): Promise<CatalogModel | undefined> => {
+    if (!fallbackLoaded) {
+      fallbackLoaded = true;
+      fallbackParent = await catalog.resolveParentFallback();
+    }
+    return fallbackParent;
+  };
+  let runtimeFallback: CatalogModel | undefined;
+  let runtimeFallbackLoaded = false;
+  const getRuntimeFallback = async (): Promise<CatalogModel | undefined> => {
+    if (!runtimeFallbackLoaded) {
+      runtimeFallbackLoaded = true;
+      runtimeFallback = catalog.resolveRuntimeFallback
+        ? await catalog.resolveRuntimeFallback()
+        : await getFallbackParent();
+    }
+    return runtimeFallback;
+  };
+
   let candidate: CatalogModel | undefined;
-  if (!selected && input.parent) {
-    candidate = await catalog.resolve(input.parent.canonical);
-  }
-  if (!selected && !input.parent && input.profile) {
-    selected = { layer: "profile", value: input.profile, persistent: true, source: "profile-fallback" };
-    layer = selected.layer;
-    source = selected.source;
-    requested = selected.value;
-  }
+  let requestedCanonical: string | undefined;
   if (requested) {
-    if (layer === "one-shot" && !requested.model.includes("/")) {
+    if (typeof requested.model !== "string" || !requested.model.trim()) {
+      throw new ModelSelectionError(layer, "explicit model is missing");
+    }
+    if (!requested.model.includes("/")) {
+      if (layer !== "one-shot") {
+        throw new ModelSelectionError(layer, `explicit model '${requested.model}' must use canonical provider/model form`);
+      }
       const bare = validateBareModelIdentifier(requested.model);
       if (!catalog.resolveBare) throw new ModelSelectionError(layer, `bare model '${bare}' cannot be resolved by this catalog`);
       const matches = await catalog.resolveBare(bare);
       const eligible = matches.filter((match) => match.available && match.authenticated);
-      const parentProvider = (await catalog.resolveParentFallback())?.provider;
+      const parentProvider = input.parent?.provider ?? (await getFallbackParent())?.provider;
       const parentMatches = parentProvider ? matches.filter((match) => match.provider === parentProvider) : [];
       if (parentMatches.length > 0) {
         const usableParentMatches = parentMatches.filter((match) => match.available && match.authenticated);
@@ -322,20 +703,60 @@ export async function resolveModelChoice(input: ResolveModelInput, catalog: Mode
         throw new ModelSelectionError(layer, `bare model '${bare}' has no authenticated available candidate${matches.length > 0 ? `; observed: ${matches.map((match) => `${match.provider}/${match.model}`).join(", ")}` : ""}`);
       }
     } else {
-      validateModelIdentifier(requested.model);
-      candidate = await catalog.resolve(requested.model);
+      requestedCanonical = validateModelIdentifier(requested.model).canonical;
+      candidate = await catalog.resolve(requestedCanonical);
     }
-  } else if (!candidate) {
-    candidate = await catalog.resolveParentFallback();
+  } else if (input.parent) {
+    const parentCanonical = validateModelIdentifier(input.parent.canonical).canonical;
+    candidate = await catalog.resolve(parentCanonical);
+    if (candidate && `${candidate.provider}/${candidate.model}` !== input.parent.canonical) {
+      throw new ModelSelectionError(layer, `direct parent identity changed from ${input.parent.canonical}; frozen identity was not switched`);
+    }
+  } else if (input.profile) {
+    candidate = await catalog.resolve(input.profile.model);
+  } else {
+    candidate = await getRuntimeFallback();
   }
-  if (!candidate) throw new ModelSelectionError(layer, requested ? `unknown explicit model ${requested.model}; lower layers were not considered` : "official parent/fallback model is unavailable");
+
+  if (!candidate) {
+    throw new ModelSelectionError(layer, requested ? `unknown explicit model ${requested.model}; lower layers were not considered` : "runtime fallback model is unavailable");
+  }
   const canonical = `${candidate.provider}/${candidate.model}`;
+  if (requestedCanonical && canonical !== requestedCanonical) {
+    throw new ModelSelectionError(layer, `catalog identity ${canonical} did not match explicit model ${requestedCanonical}; lower layers were not considered`);
+  }
   if (!candidate.available) throw new ModelSelectionError(layer, `${canonical} is unavailable; lower layers were not considered`);
   if (!candidate.authenticated) throw new ModelSelectionError(layer, `${canonical} is unauthenticated; lower layers were not considered`);
-  const thinking = requested?.thinking ?? input.parent?.thinking ?? input.parentThinking ?? "medium";
+
+  const explicitThinking = requested?.thinking ?? (selectedLayer?.layer === "one-shot" ? oneShotThinking : undefined);
+  let thinking: ModelThinking;
+  let thinkingSource: ThinkingSource;
+  if (explicitThinking !== undefined) {
+    if (!THINKING.has(explicitThinking)) throw new ModelSelectionError(layer, `${canonical} is incompatible with thinking=${String(explicitThinking)}; lower layers were not considered`);
+    thinking = explicitThinking;
+    thinkingSource = requested?.thinking !== undefined ? modelSource : "user-one-shot";
+  } else {
+    const inheritsDirectParent = input.parent !== undefined && (!selectedLayer || canonical === input.parent.canonical);
+    if (inheritsDirectParent) {
+      // The direct parent's effective thinking is frozen and must not be
+      // replaced by a role/profile/default heuristic for nested work.
+      thinking = input.parent!.thinking;
+      thinkingSource = "inherited-parent";
+    } else if (!selectedLayer && layer === "parent-fallback") {
+      thinking = input.parentThinking ?? "medium";
+      thinkingSource = "inherited-parent";
+    } else {
+      thinking = targetModelDefaultThinking(candidate);
+      thinkingSource = selectedLayer ? "model-default" : modelSource;
+    }
+  }
+  if (!THINKING.has(thinking)) {
+    throw new ModelSelectionError(layer, `${canonical} is incompatible with thinking=${String(thinking)}; lower layers were not considered`);
+  }
   if (candidate.thinkingLevels && !candidate.thinkingLevels.includes(thinking)) {
     throw new ModelSelectionError(layer, `${canonical} is incompatible with thinking=${thinking}; lower layers were not considered`);
   }
+
   return {
     provider: candidate.provider,
     model: candidate.model,
@@ -344,7 +765,10 @@ export async function resolveModelChoice(input: ResolveModelInput, catalog: Mode
     thinking,
     speedTier: input.parent?.speedTier ?? "standard",
     source,
-    persistent: selected?.persistent ?? false,
+    modelSource,
+    thinkingSource,
+    ...(input.parent?.source ? { parentSource: input.parent.source } : {}),
+    persistent: selectedLayer?.persistent ?? (layer === "profile" || layer === "runtime-fallback"),
     oneShot: layer === "one-shot",
   };
 }
@@ -371,8 +795,8 @@ export interface ModelChangeConfirmation {
 
 export interface TaskModelRequestConfirmation {
   hasUI: boolean;
-  /** YOLO is an explicit user choice to skip interactive permission prompts. */
-  bypassConfirmation?: boolean;
+  /** Optional hard authority supplied by a direct-user current-turn decision. */
+  authority?: CurrentTurnModelAuthority;
   confirm(packet: { parent: string; requested: string }): Promise<"confirm" | "deny" | "dismiss">;
 }
 
@@ -381,17 +805,28 @@ export async function confirmTaskModelRequest(
   requested: ModelOverride | undefined,
   parent: Pick<ResolvedModelChoice, "canonical"> | undefined,
   confirmation: TaskModelRequestConfirmation,
+  authority?: CurrentTurnModelAuthority,
 ): Promise<ModelOverride | undefined> {
   if (!requested) return undefined;
+  const validated = confirmation.authority || authority
+    ? validateCurrentTurnModelRequest(requested, confirmation.authority ?? authority!)
+    : requested;
+  if (!validated?.model) return undefined;
+  const effectiveRequested: ModelOverride = { model: validated.model, ...(validated.thinking === undefined ? {} : { thinking: validated.thinking }) };
   // A model-facing argument never becomes authority when no direct Parent
   // identity is available to present/compare.
   if (!parent) return undefined;
-  if (requested.model === parent.canonical) return undefined;
-  if (confirmation.bypassConfirmation) return requested;
+  if (effectiveRequested.model === parent.canonical && effectiveRequested.thinking === undefined) return undefined;
   if (!confirmation.hasUI) return undefined;
-  return await confirmation.confirm({ parent: parent.canonical, requested: requested.model }) === "confirm"
-    ? requested
-    : undefined;
+  try {
+    return await confirmation.confirm({ parent: parent.canonical, requested: effectiveRequested.model }) === "confirm"
+      ? effectiveRequested
+      : undefined;
+  } catch {
+    // Dismissal, expiry, abort, and UI bridge loss all retain normal
+    // configured/parent resolution; none grants the requested model.
+    return undefined;
+  }
 }
 
 export class ModelConfigurationService {

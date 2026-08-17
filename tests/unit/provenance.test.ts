@@ -108,14 +108,14 @@ describe("provenance and SBOM", () => {
   it("emits a deterministic SPDX 2.3 inventory with locked package integrity", async () => {
     const sbom = JSON.parse(await readFile(new URL("../../manifests/sbom.json", import.meta.url), "utf8"));
     expect(sbom.spdxVersion).toBe("SPDX-2.3");
-    expect(sbom.name).toBe("@rosetears/aili-pi-0.2.7");
+    expect(sbom.name).toBe("@rosetears/aili-pi-0.2.9");
     expect(sbom.creationInfo).toMatchObject({
       created: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
       creators: ["Tool: @rosetears/aili-pi scripts/generate-provenance.ts"],
     });
     expect(sbom.packages[0]).toMatchObject({
       name: "@rosetears/aili-pi",
-      versionInfo: "0.2.7",
+      versionInfo: "0.2.9",
       licenseConcluded: "MIT",
       licenseDeclared: "MIT",
     });

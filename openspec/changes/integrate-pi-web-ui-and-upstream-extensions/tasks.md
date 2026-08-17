@@ -24,16 +24,18 @@
 - [x] 2.3 Add deterministic Web build output and package inclusion rules without changing the sole Pi Extension entry.
   - Acceptance: the npm package contains only required runtime assets, and normal package/Pi load neither starts the server nor injects Web assets into model context.
   - Verify: package inventory and extension-load tests.
-- [ ] 2.4 Add the foreground `pi-web` executable using the compatible Pi Web launcher patterns and explicit build-artifact checks.
+- [x] 2.4 Add the foreground `pi-web` executable using the compatible Pi Web launcher patterns and explicit build-artifact checks.
   - Acceptance: standalone startup is foreground-owned, signal-safe, and leaves no detached process.
-  - Verify: CLI process-lifecycle tests with disposable ports and bounded child-process observations.
-- [ ] 2.5 Add Pi `/web` as a non-detached child lifecycle command using the same packaged executable.
+  - Verify: CLI process-lifecycle tests with disposable ports and bounded child-process observations (`tests/integration/web-foreground-lifecycle.test.ts`).
+- [x] 2.5 Add Pi `/web` as a non-detached child lifecycle command using the same packaged executable.
   - Acceptance: `/web` starts or reports the Pi-owned address, passes bootstrap identity outside argv, and terminates the child on Pi shutdown.
-  - Verify: Pi command/lifecycle integration tests with no ordinary-startup listener.
+  - Verify: Pi command/lifecycle integration tests with no ordinary-startup listener (extension-load tests plus the managed-child lifecycle case in `tests/integration/web-foreground-lifecycle.test.ts`).
 - [x] 2.6 Under D-17, make the npm artifact TUI-only: retain Web source in the repository but exclude `/web`, `pi-web`, Web build output, and all Web build/prepack hooks from the published package.
+  - Superseded 2026-08-15: the user's Pi Web resumption authorization restores `bin/pi-web`, `dist/web/`, `extensions/web/`, `src/runtime/web/`, and the locked Web dependency graph in `package.json`; publication itself remains unauthorized so no TUI-only artifact claim persists.
   - Acceptance: installing or packing the package has no Web build/start requirement and exposes only the retained Pi TUI extension behavior.
   - Verify: package manifest and tarball-inventory assertions prove Web paths and commands are absent.
 - [x] 2.7 Under D-17, remove foreground-Pi-Web-exclusive dependencies and regenerate `package-lock.json` with exactly `npm install --ignore-scripts`; repair only the existing `process-liveness.ts` type error so the TUI-only package typechecks. Under D-18, retain `pi-web-access@0.13.0` because it provides independent Pi TUI web-retrieval capability rather than the paused foreground Pi Web application.
+  - Superseded 2026-08-15: the exact locked Web runtime and UI-build dependencies were restored and `package-lock.json` regenerated with `npm install --ignore-scripts`; `pi-web-access@0.13.0` remains retained.
   - Acceptance: the resolved graph contains no Next/React/Web-build dependency residue; `pi-web-access@0.13.0` and its Pi-owned skill remain available; global typecheck passes; and no foreground Web behavior is added or executed.
   - Verify: focused package/dependency assertions, lockfile inspection, extension-load tests, and `npm run typecheck`.
 

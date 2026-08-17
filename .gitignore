@@ -5,3 +5,9 @@ coverage/
 .codegraph/
 .worktrees/
 artifacts/test-results/
+.next/
+*.tsbuildinfo
+.pi/
+graphify-out/
+*:Zone.Identifier
+chatgpt-archive-json-*/

@@ -76,19 +76,18 @@ describe("locked Pi Web adaptation inventory", () => {
     expect(client).not.toMatch(/\/api\/(?:agent|files|git|worktrees|skills|plugins|models-config)\b/);
   });
 
-  it("makes retained JavaScript placeholders ineligible and keeps both Next configs aligned", async () => {
-    const [effectiveConfig, typedConfig, pageJs, layoutJs, pageTsx, layoutTsx] = await Promise.all([
+  it("ships the upstream Pi Web application pages and keeps both Next configs aligned", async () => {
+    const [effectiveConfig, typedConfig, pageTsx, layoutTsx] = await Promise.all([
       readFile("src/web/next.config.js", "utf8"),
       readFile("src/web/next.config.ts", "utf8"),
-      readFile("src/web/app/page.js", "utf8"),
-      readFile("src/web/app/layout.js", "utf8"),
       readFile("src/web/app/page.tsx", "utf8"),
       readFile("src/web/app/layout.tsx", "utf8"),
     ]);
-    expect(pageJs).toContain("Private runtime projection is initializing");
-    expect(layoutJs).toContain('title: "AILI Web"');
-    expect(pageTsx).toContain("AiliWorkbench");
-    expect(layoutTsx).toContain("PwaRegistration");
+    // The upstream application tree replaced the AILI workbench pages; the
+    // retained AILI BFF stays mounted under its own versioned namespace.
+    expect(pageTsx.length).toBeGreaterThan(0);
+    expect(layoutTsx.length).toBeGreaterThan(0);
+    expect(await readFile("src/web/app/api/runtime/v1/[...segments]/route.ts", "utf8")).toContain("requireAiliWebBffBridge");
 
     const expectedExternals = ["undici", "@earendil-works/pi-coding-agent", "@earendil-works/pi-agent-core", "@earendil-works/pi-ai", "@earendil-works/pi-tui"];
     for (const source of [effectiveConfig, typedConfig]) {

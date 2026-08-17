@@ -14,7 +14,7 @@ macOS and native Windows are not supported by this bootstrap and fail before ins
 
 ## Install
 
-### Stable 0.2.8
+### Stable 0.2.9
 
 Install the current stable package through Pi:
 
@@ -106,7 +106,7 @@ The `pi-permission-modes@2.2.0` baseline owns mode persistence, prompts, and san
 - AILI owns the public `task`/`hub` persistent Agent framework. `task` creates parent-scoped official Pi child sessions using 20 specialized `aili.*` selectors, including read-only `aili.solution-architect`, or `general`; top-level work is async by default, supports bounded batch scheduling, and returns stable Agent/job/turn IDs plus `agent://` and `history://` references. `hub` provides list/send/wait/inbox/output/history/jobs/cancel/model operations, park/revive, durable delivery, and owner/descendant scoping. Use `/aili-agent-fast <standard|priority>` to select the Parent session's Fast tier for newly created Persistent Agents. No `subagent` compatibility alias or run/attempt backend selector remains. See [`docs/persistent-agents.md`](docs/persistent-agents.md).
 - `pi-cache-optimizer@2.6.18` provides `/cache-optimizer`, provider cache diagnostics, cache statistics, and prompt-cache optimization. It may maintain `~/.pi/agent/pi-cache-optimizer-stats.json`; `/cache-optimizer fix` is interactive and is the only command that may propose editing `models.json`.
 - The Parent Pi session has an advisory `pi-notify@1.4.0` adaptation. It preserves OSC 777, iTerm OSC 9, Kitty OSC 99, tmux passthrough, Windows Terminal PowerShell toast, and terminal-bell routes. Every route is best-effort and failure is nonfatal; Persistent Workers do not load the notifier.
-- `/file-context` attaches bounded immutable project-file selections; `/file-context-files` searches paths and `/file-context-search` searches content. It supports multiple line ranges, Git status/diff/blame/history/revision provenance, SHA-256/token estimates, and rejects root/symlink escapes, binary files, and previews over 1 MiB. UI registration stays separate from the file-context core. The upstream `@narumitw/pi-file-context@0.53.0` identity and its exact `@narumitw/pi-tui-kit@0.53.0` companion disposition are recorded in provenance; AILI does not retain a floating TUI-kit dependency.
+- `F8` or `/file-context browse` opens the restored File Context Explorer: Git-status file list, Enter preview, `[`/`]` changed-hunk navigation, and `d` diff review. Space/Enter selects immutable context for the next prompt; `/file-context` reviews the pending selections, while `/file-context-files` and `/file-context-search` search paths/content. It supports line ranges, Git status/diff/blame/history/revision provenance, SHA-256/token estimates, and rejects root/symlink escapes, binary files, and previews over 1 MiB. UI registration stays separate from the file-context core. The upstream `@narumitw/pi-file-context@0.53.0` identity and exact `@narumitw/pi-tui-kit@0.53.0` runtime companion are recorded in provenance.
 
 ## Optional capability packs
 

@@ -114,6 +114,63 @@ describe("shared task/hub renderers", () => {
     expect(mixed).toContain("2. aili.implementer");
   });
 
+  it("renders effective live identity instead of reconstructing the requested call", () => {
+    const live = rendered(renderTaskResult(
+      result({
+        status: "running",
+        name: "file-context-scout",
+        selector: "aili.code-scout",
+        requestedModel: "openai-codex/gpt-5.6-terra",
+        effectiveModel: "openai-codex/gpt-5.6-sol",
+        thinking: "high",
+        modelSource: "inherited-parent",
+        thinkingSource: "inherited-parent",
+        agentId: "Scout",
+        jobId: "job-1",
+        turnId: "turn-1",
+        lifecycle: { agent: "queued", job: "queued", turn: "queued" },
+      }),
+      { expanded: false, isPartial: true },
+      theme,
+      context({ task: "x" }),
+    ));
+    expect(live).toContain("file-context-scout · aili.code-scout · openai-codex/gpt-5.6-sol · high · running");
+    expect(live).not.toContain("openai-codex/gpt-5.6-terra");
+    const batch = rendered(renderTaskResult(
+      result({
+        status: "allocated",
+        batch: true,
+        results: [
+          { status: "allocated", name: "one", selector: "aili.code-scout", effectiveModel: "provider/one", thinking: "low", lifecycle: { agent: "queued", job: "queued", turn: "queued" } },
+          { status: "allocated", name: "two", selector: "aili.implementer", effectiveModel: "provider/two", thinking: "high", lifecycle: { agent: "queued", job: "queued", turn: "queued" } },
+        ],
+      }),
+      { expanded: false, isPartial: true },
+      theme,
+      context({ task: "batch" }),
+    ));
+    expect(batch).toContain("batch 2");
+    expect(batch).toContain("provider/one");
+    expect(batch).toContain("provider/two");
+
+    const expanded = rendered(renderTaskResult(
+      result({ batch: false, results: [taskItem("completed", {
+        name: "Scout",
+        requestedThinking: "low",
+        effectiveModel: "openai-codex/gpt-5.6-sol",
+        modelSource: "inherited-parent",
+        thinkingSource: "model-default",
+      })] }),
+      { expanded: true, isPartial: false },
+      theme,
+      context({ task: "x" }),
+    ));
+    expect(expanded).toContain("requested: openai-codex/gpt-5.6-terra");
+    expect(expanded).toContain("requested thinking: low");
+    expect(expanded).toContain("model source: inherited-parent");
+    expect(expanded).toContain("thinking source: model-default");
+  });
+
   it("shows expanded model, mode, ids and references from structured details", () => {
     const text = rendered(renderTaskResult(
       result({ batch: false, results: [taskItem("completed")] }),

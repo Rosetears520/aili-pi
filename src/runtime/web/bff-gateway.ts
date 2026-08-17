@@ -60,9 +60,18 @@ export class PrivateWebBff<T extends OfficialAgentSessionLike = OfficialAgentSes
   }
 
   public exchangeLoopbackBootstrap(request: Pick<WebRequestIdentity, "host" | "origin" | "cookie">): GatewayResponse<{ readonly authenticated: true } | { readonly error: string }> {
-    const value = this.loopbackBootstrap;
+    if (!this.lifecycle.loopback) return this.denied("bootstrap-unavailable");
+    let value = this.loopbackBootstrap;
     this.loopbackBootstrap = undefined;
-    if (!this.lifecycle.loopback || !value) return this.denied("bootstrap-unavailable");
+    if (!value) {
+      // Loopback trust is reachability-based: arm a fresh one-use exchange for
+      // the next same-site browser instead of dead-ending it after the first
+      // session expires.
+      this.armLoopbackBootstrap();
+      value = this.loopbackBootstrap;
+      this.loopbackBootstrap = undefined;
+      if (!value) return this.denied("bootstrap-unavailable");
+    }
     const exchanged = this.lifecycle.consumeBootstrap(value, request);
     if (!exchanged) return this.denied("bootstrap-invalid");
     return { status: 200, body: { authenticated: true }, headers: { ...PRIVATE_HEADERS, "Set-Cookie": exchanged.setCookie } };
@@ -96,7 +105,7 @@ export class PrivateWebBff<T extends OfficialAgentSessionLike = OfficialAgentSes
   }
 
   public session(request: WebRequestIdentity): GatewayResponse<{ readonly authenticated: true; readonly clientId: string } | { readonly error: string }> {
-    const access = this.lifecycle.authorize(request);
+    const access = this.lifecycle.authorizeLoopbackRead(request);
     if (!access.ok) return this.denied(access.reason);
     return { status: 200, body: { authenticated: true, clientId: access.sessionId }, headers: PRIVATE_HEADERS };
   }
@@ -116,21 +125,21 @@ export class PrivateWebBff<T extends OfficialAgentSessionLike = OfficialAgentSes
   }
 
   public snapshot(request: WebRequestIdentity, sessionHandle: string): GatewayResponse<RuntimeSnapshotV1 | { readonly error: string }> {
-    if (!this.lifecycle.authorize(request).ok) return this.denied("access-denied");
+    if (!this.lifecycle.authorizeLoopbackRead(request).ok) return this.denied("access-denied");
     const host = this.hosts.get(sessionHandle);
     if (!host) return this.notFound();
     return { status: 200, body: host.snapshot, headers: PRIVATE_HEADERS };
   }
 
   public connect(request: WebRequestIdentity, sessionHandle: string, cursor?: string): GatewayResponse<SnapshotFirstReplay | { readonly error: string }> {
-    if (!this.lifecycle.authorize(request).ok) return this.denied("access-denied");
+    if (!this.lifecycle.authorizeLoopbackRead(request).ok) return this.denied("access-denied");
     const host = this.hosts.get(sessionHandle);
     if (!host) return this.notFound();
     return { status: 200, body: host.connect(cursor), headers: PRIVATE_HEADERS };
   }
 
   public events(request: WebRequestIdentity, sessionHandle: string, cursor?: string): GatewayResponse<EventReplayResult | { readonly error: string }> {
-    if (!this.lifecycle.authorize(request).ok) return this.denied("access-denied");
+    if (!this.lifecycle.authorizeLoopbackRead(request).ok) return this.denied("access-denied");
     const host = this.hosts.get(sessionHandle);
     if (!host) return this.notFound();
     return { status: 200, body: host.replay(cursor), headers: PRIVATE_HEADERS };
@@ -138,7 +147,7 @@ export class PrivateWebBff<T extends OfficialAgentSessionLike = OfficialAgentSes
 
   /** Snapshot-first push attachment. The caller owns and must close the subscription. */
   public stream(request: WebRequestIdentity, sessionHandle: string, cursor?: string): GatewayResponse<BffEventStream | { readonly error: string }> {
-    if (!this.lifecycle.authorize(request).ok) return this.denied("access-denied");
+    if (!this.lifecycle.authorizeLoopbackRead(request).ok) return this.denied("access-denied");
     const host = this.hosts.get(sessionHandle);
     if (!host) return this.notFound();
     const snapshotFirst = host.connect(cursor);
@@ -201,5 +210,6 @@ export class PrivateWebBff<T extends OfficialAgentSessionLike = OfficialAgentSes
     return { status: 404, body: { error: "session-not-found" }, headers: PRIVATE_HEADERS };
   }
 }
+
 
 export { PRIVATE_HEADERS };

@@ -149,10 +149,10 @@
       "version": "0.53.0",
       "license": "MIT",
       "status": "adapted",
-      "sourceFiles": ["upstream/pi-file-context-0.53.0/package.json", "upstream/pi-file-context-0.53.0/SOURCE_INVENTORY.json", "upstream/pi-file-context-0.53.0/LICENSE", "licenses/pi-file-context-MIT.txt", "src/runtime/file-context.ts", "extensions/file-context/index.ts"],
-      "symbols": ["bounded file search", "line-range snapshots", "SHA-256 provenance", "deterministic token estimate", "Git provenance adapter seam", "immutable prompt attachment"],
-      "localChanges": ["AILI keeps selection and snapshot policy independent of menus/components behind a thin Pi UI registration seam", "the declared companion @narumitw/pi-tui-kit is resolved as exact 0.53.0 metadata only and is not vendored or installed; no floating range remains", "filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git data is caller-supplied and bounded without starting a Git process"],
-      "verification": ["tests/unit/file-context-inventory.test.ts", "tests/integration/extension-load.test.ts", "npm run typecheck"]
+      "sourceFiles": ["upstream/pi-file-context-0.53.0/package.json", "upstream/pi-file-context-0.53.0/SOURCE_INVENTORY.json", "upstream/pi-file-context-0.53.0/LICENSE", "licenses/pi-file-context-MIT.txt", "src/runtime/file-context.ts", "extensions/file-context/index.ts", "extensions/file-context/file-context.ts", "extensions/file-context/file-context-explorer.ts", "extensions/file-context/file-context-menu.ts", "extensions/file-context/file-context-preview-ui.ts", "extensions/file-context/file-context-settings.ts", "extensions/file-context/content-search.ts", "extensions/file-context/content-search-session.ts", "extensions/file-context/content-search-ui.ts", "extensions/file-context/file-search.ts", "extensions/file-context/git-context.ts"],
+      "symbols": ["F8 File Context Explorer", "Git status browser", "diff and changed-hunk navigation", "bounded file/content search", "line-range selections", "Git blame/history/revision views", "immutable prompt snapshots", "SHA-256 provenance", "deterministic token estimate"],
+      "localChanges": ["AILI keeps selection and snapshot policy independent of the restored TUI controller", "the companion @narumitw/pi-tui-kit dependency is installed and pinned exactly to 0.53.0", "the adapter preserves the legacy bounded search commands while routing /file-context browse and /file-context-browse through the restored explorer", "filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git reads and diff output remain bounded by the local 5-second/1.1 MiB limits"],
+      "verification": ["tests/unit/file-context-inventory.test.ts", "tests/unit/file-context-tui.test.ts", "tests/integration/extension-load.test.ts", "npm run typecheck"]
     },
     {
       "name": "pi-codex-fast reference",

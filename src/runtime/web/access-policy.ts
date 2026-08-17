@@ -204,6 +204,15 @@ export class WebAccessLifecycle {
     return this.authorizeRequest({ ...request, mutation: false, allowLoopbackReadWithoutSession: false });
   }
 
+  /**
+   * Read-only admission that may use the policy-exempt loopback path. Only
+   * same-site loopback reads qualify; every mutation still goes through
+   * authorize() with a real browser session.
+   */
+  public authorizeLoopbackRead(request: WebRequestIdentity): AuthorizationResult {
+    return this.authorizeRequest({ ...request, mutation: false, allowLoopbackReadWithoutSession: true });
+  }
+
   /** Perform Host/Origin, body, content-type, capability, and session admission before route logic. */
   public authorizeRequest(request: WebRequestAdmission): AuthorizationResult {
     const mutation = request.mutation ?? isMutationMethod(request.method);

@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 
 // Keep this effective .js config aligned with next.config.ts. Restricting page
-// extensions makes the retained placeholder page.js/layout.js files ineligible.
+// extensions keeps any retained placeholder .js pages ineligible.
 /** @type {import("next").NextConfig} */
 const config = {
   pageExtensions: ["tsx", "ts"],
@@ -9,7 +9,14 @@ const config = {
   poweredByHeader: false,
   outputFileTracingRoot: resolve(process.cwd()),
   serverExternalPackages: ["undici", "@earendil-works/pi-coding-agent", "@earendil-works/pi-agent-core", "@earendil-works/pi-ai", "@earendil-works/pi-tui"],
-  env: { NEXT_PUBLIC_APP_VERSION: "0.2.2", NEXT_PUBLIC_PI_VERSION: "0.84.1" },
+  allowedDevOrigins: ["127.0.0.1", "192.168.*.*"],
+  env: { NEXT_PUBLIC_APP_VERSION: "0.2.9", NEXT_PUBLIC_PI_VERSION: "0.84.1" },
+  webpack: (webpackConfig) => {
+    // NodeNext sources import compiled ".js" specifiers; webpack must map them
+    // back to the TypeScript originals inside this repository-only boundary.
+    webpackConfig.resolve.extensionAlias = { ".js": [".ts", ".tsx", ".js"] };
+    return webpackConfig;
+  },
   async headers() { return [
     {
       source: "/:path*",

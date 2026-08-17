@@ -28,9 +28,9 @@ describe("Pi package baseline", () => {
     const manifest = await readManifest();
 
     expect(manifest.name).toBe("@rosetears/aili-pi");
-    expect(manifest.version).toBe("0.2.7");
+    expect(manifest.version).toBe("0.2.9");
     expect(manifest.license).toBe("MIT");
-    expect(manifest.bin).toBeUndefined();
+    expect(manifest.bin).toEqual({ "pi-web": "./bin/pi-web.js", "aili-pi": "./bin/aili-pi.js" });
     expect(manifest.engines?.node).toBe(">=22.19.0");
     expect(manifest.pi?.extensions).toEqual(["./extensions/index.ts"]);
     expect(manifest.pi?.prompts).toBeUndefined();
@@ -46,33 +46,38 @@ describe("Pi package baseline", () => {
     expect(manifest.devDependencies?.["@earendil-works/pi-tui"]).toBe("0.84.1");
     expect(manifest.dependencies).toEqual({
       "@narumitw/pi-codex-compact": "0.50.0",
+      "@narumitw/pi-tui-kit": "0.53.0",
       "acp-kernel": "0.0.19",
+      "js-yaml": "5.2.3",
+      next: "16.2.12",
       "pi-cache-optimizer": "2.6.18",
       "pi-mcp-adapter": "2.23.0",
       "pi-permission-modes": "2.2.0",
       "pi-quota-status": "0.3.0",
       "pi-web-access": "0.13.0",
+      "proper-lockfile": "4.1.2",
+      react: "19.2.4",
+      "react-dom": "19.2.4",
+      "remark-frontmatter": "5.0.0",
+      undici: "8.5.0",
     });
-    for (const webDependency of ["next", "react", "react-dom", "undici", "js-yaml", "remark-frontmatter"]) {
-      expect(manifest.dependencies).not.toHaveProperty(webDependency);
-    }
-    for (const webToolchainDependency of ["@lobehub/icons", "@tailwindcss/postcss", "@types/js-yaml", "@types/react", "@types/react-dom", "@types/react-syntax-highlighter", "katex", "mammoth", "mermaid", "postcss", "react-markdown", "react-syntax-highlighter", "rehype-katex", "rehype-raw", "rehype-sanitize", "remark-gfm", "remark-math", "tailwindcss"]) {
-      expect(manifest.devDependencies).not.toHaveProperty(webToolchainDependency);
-    }
+    expect(manifest.dependencies).not.toHaveProperty("@agegr/pi-web");
     expect(JSON.stringify(manifest.overrides ?? {})).not.toContain("372000");
   });
 
-  it("registers only the Pi Web Access skill, never the paused foreground Pi Web", async () => {
+  it("keeps Web building manual: no install-time hook runs or references the Web build", async () => {
     const manifest = await readManifest();
-    expect(manifest.bin).toBeUndefined();
+    expect(manifest.bin).toEqual({ "pi-web": "./bin/pi-web.js", "aili-pi": "./bin/aili-pi.js" });
     expect(manifest.pi).toEqual({
       extensions: ["./extensions/index.ts"],
       skills: ["./node_modules/pi-web-access/skills"],
     });
-    for (const hook of ["prepack", "prepare", "prepublish", "prepublishOnly", "postpack", "build", "build:web", "web"]) {
+    expect(manifest.scripts?.["build:web"]).toContain("scripts/build-web.ts");
+    for (const hook of ["prepack", "prepare", "prepublish", "prepublishOnly", "postpack", "build", "web"]) {
       expect(manifest.scripts).not.toHaveProperty(hook);
     }
-    for (const command of Object.values(manifest.scripts ?? {})) {
+    for (const [name, command] of Object.entries(manifest.scripts ?? {})) {
+      if (name === "build:web") continue;
       expect(command).not.toMatch(/(?:build-web|(?:src|runtime|extensions)\/web)/i);
     }
   });
@@ -94,15 +99,13 @@ describe("Pi package baseline", () => {
     ]));
     expect(manifest.files).toContain("extensions/index.ts");
     expect(manifest.files).toContain("extensions/footer/");
-    expect(manifest.files).toEqual(expect.arrayContaining(["extensions/analytics/", "extensions/btw/", "extensions/stamp/"]));
-    expect(manifest.files).not.toContain("extensions/web/");
-    expect(manifest.files).not.toContain("bin/");
-    expect(manifest.files).not.toContain("dist/web/");
+    expect(manifest.files).toEqual(expect.arrayContaining(["extensions/analytics/", "extensions/btw/", "extensions/stamp/", "extensions/web/"]));
+    expect(manifest.files).toEqual(expect.arrayContaining(["bin/", "dist/web/"]));
     expect(manifest.files).toContain("src/");
-    for (const excludedWebPath of ["!src/web/", "!src/runtime/web/", "!scripts/build-web.ts"]) {
+    for (const excludedWebPath of ["!src/web/", "!scripts/build-web.ts"]) {
       expect(manifest.files).toContain(excludedWebPath);
     }
-    for (const forbiddenWebPath of ["src/web/", "src/runtime/web/", "extensions/web/", "scripts/build-web.ts"]) {
+    for (const forbiddenWebPath of ["src/web/", "scripts/build-web.ts"]) {
       expect(manifest.files).not.toContain(forbiddenWebPath);
     }
     expect(manifest.files).not.toContain("!src/runtime/aili-compact/");
@@ -158,8 +161,8 @@ describe("Pi package baseline", () => {
     expect(readme).toContain("is licensed under the MIT License");
     expect(packageLock).toMatchObject({
       name: "@rosetears/aili-pi",
-      version: "0.2.7",
-      packages: { "": { name: "@rosetears/aili-pi", version: "0.2.7", license: "MIT" } },
+      version: "0.2.9",
+      packages: { "": { name: "@rosetears/aili-pi", version: "0.2.9", license: "MIT" } },
     });
     expect(JSON.stringify(packageLock)).not.toContain("@agwab/pi-subagent");
     expect(createHash("sha256").update(licenseText).digest("hex")).toBe("50d626e331a5b05c3a574ae969762851070af5b32dbc73cc2277409eec1358f4");

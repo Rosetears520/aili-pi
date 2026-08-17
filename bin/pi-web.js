@@ -23,9 +23,11 @@ let managed = false;
 function parseOptions(args) {
   let hostname = process.env.PI_WEB_HOSTNAME ?? "127.0.0.1";
   let port = process.env.PORT ?? "30141";
+  let open = false;
   for (let index = 0; index < args.length; index += 1) {
     const item = args[index];
     if (item === "--managed") managed = true;
+    else if (item === "--open") open = true;
     else if (item === "--hostname" || item === "-H") hostname = optionValue(args, ++index, "hostname");
     else if (item === "--port" || item === "-p") port = optionValue(args, ++index, "port");
     else if (item === "--no-open") { /* retained as an inert compatibility option; this launcher never detaches a browser. */ }
@@ -33,7 +35,7 @@ function parseOptions(args) {
   }
   hostname = normalizeHostname(hostname);
   if (!/^[0-9]{1,5}$/.test(port) || Number(port) < 1 || Number(port) > 65535) throw new Error("port must be from 1 through 65535");
-  return { hostname, port };
+  return { hostname, port, open };
 }
 
 function optionValue(args, index, name) {
@@ -54,6 +56,21 @@ function normalizeHostname(value) {
 
 function isLoopback(hostname) {
   return hostname === "127.0.0.1" || hostname === "localhost" || hostname === "::1";
+}
+
+/** One best-effort operator-facing browser launch; failures only log. */
+function openBrowser(address) {
+  const candidates = ["xdg-open", "x-www-browser", "www-browser"];
+  const tryNext = (index) => {
+    if (index >= candidates.length) {
+      process.stdout.write(`pi-web: open ${address} manually\n`);
+      return;
+    }
+    const child = spawn(candidates[index], [address], { stdio: "ignore", shell: false });
+    child.once("error", () => tryNext(index + 1));
+    child.once("spawn", () => child.unref());
+  };
+  tryNext(0);
 }
 
 function formatHost(hostname, port) {
@@ -172,13 +189,30 @@ function readJson(path, label) {
 }
 
 function resolvePackageJson(require, packageName) {
-  let directory = dirname(require.resolve(packageName));
+  let directory;
+  try { directory = dirname(require.resolve(packageName)); }
+  catch { directory = manualNodeModulesPackageDir(packageName); }
   for (let depth = 0; depth < 6; depth += 1) {
     const candidate = resolve(directory, "package.json");
     if (regularFile(candidate)) {
       const value = readJson(candidate, "installed package manifest");
       if (value.name === packageName) return candidate;
     }
+    const parent = dirname(directory);
+    if (parent === directory) break;
+    directory = parent;
+  }
+  throw new Error("installed package manifest is missing");
+}
+
+// ESM-only packages without a require export still own a readable manifest on
+// disk; resolve it by walking node_modules upward from this launcher.
+function manualNodeModulesPackageDir(packageName) {
+  const segments = packageName.split("/");
+  let directory = dirname(fileURLToPath(import.meta.url));
+  for (let depth = 0; depth < 8; depth += 1) {
+    const candidate = resolve(directory, "node_modules", ...segments);
+    if (regularFile(resolve(candidate, "package.json"))) return candidate;
     const parent = dirname(directory);
     if (parent === directory) break;
     directory = parent;
@@ -221,7 +255,9 @@ function sendControl(message) {
 
 function monitorParent(onDeath) {
   if (!managed) return undefined;
-  const stream = createReadStream("/proc/self/fd/5");
+  // Node child "pipes" are socketpairs on Linux; read the inherited fd directly
+  // because /proc/self/fd cannot reopen a socket.
+  const stream = createReadStream("/proc/self/fd/5", { fd: 5 });
   stream.on("error", onDeath);
   stream.on("end", onDeath);
   stream.resume();
@@ -302,6 +338,7 @@ async function main() {
     ready = true;
     if (!sendControl({ schemaVersion: 1, status: "ready", address: policy.origin })) requestStop("SIGTERM");
     else if (!managed) process.stdout.write(`pi-web ready: ${policy.origin}\n`);
+    if (options.open && !managed) openBrowser(policy.origin);
   };
 
   child.stdout.on("data", (chunk) => {

@@ -22,7 +22,7 @@ import {
   type FormalContinuationAudit,
   type NormalizedTaskItem,
 } from "./task-schema.js";
-import type { ResolvedModelChoice } from "./model-selection.js";
+import type { CurrentTurnModelAuthority, ModelChoiceSource, ResolvedModelChoice, ThinkingSource } from "./model-selection.js";
 import { boundedDisplayText } from "./task-hub-renderer.js";
 
 export interface TaskExecutionOutput {
@@ -31,7 +31,7 @@ export interface TaskExecutionOutput {
   output: string;
   error?: string;
   evidence?: unknown;
-  model?: { provider?: string; model?: string; thinking?: string; layer?: string };
+  model?: { provider?: string; model?: string; thinking?: string; speedTier?: string; layer?: string; modelSource?: string; thinkingSource?: string };
   profile?: { profileHash?: string; sourceHash?: string; version?: number };
   workspace?: Record<string, unknown>;
 }
@@ -156,6 +156,10 @@ export interface TaskExecutorInput {
   depth: number;
   context: ScheduledExecutionContext;
   formalProtection?: FormalTaskProtection;
+  /** Frozen direct-parent identity for this turn, including hub/revive preparation. */
+  parentResolution?: ResolvedModelChoice;
+  /** Frozen current-turn authority captured before this task was allocated. */
+  currentTurnModelAuthority?: CurrentTurnModelAuthority;
 }
 
 export interface OutputTruncation {
@@ -183,7 +187,17 @@ export interface NormalizedTaskSettlement {
   historyRef: string;
   truncation: OutputTruncation;
   lifecycle: { agent: "idle" | "aborted"; job: "completed" | "failed" | "aborted"; turn: "completed" | "failed" | "aborted" };
-  model: { requested?: string; provider?: string; model?: string; thinking?: string; layer?: string };
+  name?: string;
+  requestedModel?: string | null;
+  effectiveModel?: string | null;
+  modelLayer?: string | null;
+  thinking?: string | null;
+  source?: string | null;
+  parentModel?: string | null;
+  parentThinking?: string | null;
+  parentSpeedTier?: string | null;
+  parentSource?: string | null;
+  model: { requested?: string; requestedThinking?: string; provider?: string; model?: string; thinking?: string; speedTier?: string; layer?: string; modelSource?: string; thinkingSource?: string };
   profile: { profileHash: string; sourceHash: string; version: number };
   workspace: { requested: NormalizedTaskItem["workspace"]; writeScope: NormalizedTaskItem["writeScope"] } & Record<string, unknown>;
   deliveryRequired: boolean;
@@ -201,7 +215,17 @@ export interface TaskAcceptedResult {
   effectiveMode: "async";
   effectiveModeReason: "default-async" | "requested-async";
   lifecycle: { agent: string; job: string; turn: string };
-  model: { requested?: string; provider?: string; model?: string; thinking?: string; layer?: string };
+  name: string;
+  requestedModel: string | null;
+  effectiveModel: string | null;
+  modelLayer: string | null;
+  thinking: string | null;
+  source: string | null;
+  parentModel?: string | null;
+  parentThinking?: string | null;
+  parentSpeedTier?: string | null;
+  parentSource?: string | null;
+  model: { requested?: string; requestedThinking?: string; provider?: string; model?: string; thinking?: string; speedTier?: string; layer?: string; modelSource?: string; thinkingSource?: string };
   outputRef: string;
   historyRef: string;
   deliveryRequired: true;
@@ -215,6 +239,51 @@ export interface TaskResponse {
   results: TaskItemResult[];
 }
 
+export interface TaskLiveSnapshot {
+  /** Allocation evidence is deliberately distinct from the authoritative final result. */
+  status: "allocated" | "running";
+  name: string;
+  selector: string;
+  requestedModel: string | null;
+  /** Short aliases retained for display consumers that use the final-result vocabulary. */
+  requested?: string;
+  effectiveModel?: string;
+  effective?: string;
+  provider?: string;
+  model?: string;
+  layer?: string;
+  thinking?: string;
+  speedTier?: string;
+  modelSource?: string;
+  thinkingSource?: string;
+  source?: string;
+  parentModel?: string;
+  parentThinking?: string;
+  parentSpeedTier?: string;
+  parentSource?: string;
+  agentId: string;
+  jobId: string;
+  turnId: string;
+  lifecycle: {
+    agent: AgentRecord["state"];
+    job: JobRecord["state"];
+    turn: TurnRecord["state"];
+  };
+}
+
+export interface TaskLiveBatchSnapshot {
+  status: "allocated" | "running";
+  batch: true;
+  results: TaskLiveSnapshot[];
+}
+
+export interface TaskLiveUpdate {
+  content: [{ type: "text"; text: string }];
+  details: TaskLiveSnapshot | TaskLiveBatchSnapshot;
+}
+
+export type TaskUpdateCallback = (partialResult: TaskLiveUpdate) => void;
+
 export interface TaskAncestry {
   parentAgentId: string;
   parentSelector: string;
@@ -222,8 +291,19 @@ export interface TaskAncestry {
   inheritedPermit: SchedulerPermit;
   /** Frozen direct-parent resolution used by nested work, never the root Main implicitly. */
   parentResolution?: ResolvedModelChoice;
+  /** User-owned authority captured for the latest direct Parent turn. */
+  currentTurnModelAuthority?: CurrentTurnModelAuthority;
+  /** Compatibility aliases for callers using shorter authority vocabulary. */
+  currentTurnAuthority?: CurrentTurnModelAuthority;
+  authority?: CurrentTurnModelAuthority;
   configuredMaxDepth?: number;
   formalChangeId?: string;
+}
+
+export interface TaskPreflightResult {
+  choice?: ResolvedModelChoice;
+  parentResolution?: ResolvedModelChoice;
+  currentTurnModelAuthority?: CurrentTurnModelAuthority;
 }
 
 export interface TaskCoordinatorOptions {
@@ -232,7 +312,7 @@ export interface TaskCoordinatorOptions {
   scheduler?: FifoTurnScheduler;
   loadProfiles?: () => Promise<RoleProfile[]>;
   execute: (input: TaskExecutorInput) => Promise<TaskExecutionOutput>;
-  preflight?: (input: { item: NormalizedTaskItem; role: RoleProfile; ancestry?: TaskAncestry }) => ResolvedModelChoice | Promise<ResolvedModelChoice>;
+  preflight?: (input: { item: NormalizedTaskItem; role: RoleProfile; ancestry?: TaskAncestry }) => ResolvedModelChoice | TaskPreflightResult | undefined | Promise<ResolvedModelChoice | TaskPreflightResult | undefined>;
   onSettled?: (settlement: NormalizedTaskSettlement, fullOutput: string) => void | Promise<void>;
   onFormalSettled?: (settlement: NormalizedTaskSettlement, fullOutput: string) => void | Promise<void>;
   onAsyncSettled?: (settlement: NormalizedTaskSettlement, fullOutput: string) => void | Promise<void>;
@@ -247,6 +327,8 @@ interface CreatedTask {
   turnId: string;
   depth: number;
   modelChoice?: ResolvedModelChoice;
+  parentResolution?: ResolvedModelChoice;
+  currentTurnModelAuthority?: CurrentTurnModelAuthority;
   effectiveAsync: boolean;
   reason: TaskAcceptedResult["effectiveModeReason"] | "requested-sync" | "role-blocking" | "nested-sync";
   formalProtection?: FormalTaskProtection;
@@ -275,6 +357,22 @@ function nextNumericId(prefix: string, existing: Iterable<string>): string {
     if (match) max = Math.max(max, Number(match[1]));
   }
   return `${prefix}-${max + 1}`;
+}
+
+function modelAuditSources(choice: ResolvedModelChoice | undefined): {
+  modelSource?: ModelChoiceSource | string;
+  thinkingSource?: ThinkingSource | string;
+  source?: string;
+} {
+  if (!choice) return {};
+  const modelSource = choice.modelSource ?? choice.source;
+  const thinkingSource = choice.thinkingSource
+    ?? (choice.layer === "parent-fallback" ? "inherited-parent" : choice.layer === "one-shot" ? "user-one-shot" : "model-default");
+  return {
+    ...(modelSource === undefined ? {} : { modelSource }),
+    ...(thinkingSource === undefined ? {} : { thinkingSource }),
+    ...(choice.source === undefined ? {} : { source: choice.source }),
+  };
 }
 
 export async function resolveFormalTaskProtection(
@@ -364,7 +462,14 @@ export class TaskCoordinator {
     this.clock = options.clock ?? (() => new Date());
   }
 
-  async submit(raw: unknown, ancestry?: TaskAncestry, parentSignal?: AbortSignal): Promise<TaskResponse> {
+  async submit(
+    raw: unknown,
+    ancestry?: TaskAncestry,
+    parentSignalOrUpdate?: AbortSignal | TaskUpdateCallback,
+    onUpdate?: TaskUpdateCallback,
+  ): Promise<TaskResponse> {
+    const parentSignal = typeof parentSignalOrUpdate === "function" ? undefined : parentSignalOrUpdate;
+    const liveUpdate = typeof parentSignalOrUpdate === "function" ? parentSignalOrUpdate : onUpdate;
     await assertNoCredentialMaterial(raw, "task input");
     const prepared = await this.serializeSubmission(async () => {
       const profiles = await this.loadProfiles();
@@ -408,6 +513,12 @@ export class TaskCoordinator {
       return { request, created };
     });
 
+    // Every callback is emitted only after the complete preflight and the
+    // durable Agent/job/turn allocation for each item. It is bounded display
+    // evidence; callback failures cannot change the authoritative result.
+    if (prepared.created.length === 1) this.emitLiveSnapshot(prepared.created[0]!, liveUpdate);
+    else this.emitLiveBatch(prepared.created, liveUpdate);
+
     let abortListener: (() => void) | undefined;
     if (parentSignal) {
       abortListener = () => {
@@ -429,6 +540,16 @@ export class TaskCoordinator {
           jobId: task.jobId,
           turnId: task.turnId,
           selector: task.role.selector,
+          name: task.item.name ?? task.role.name,
+          requestedModel: task.item.model ?? null,
+          effectiveModel: task.modelChoice?.canonical ?? null,
+          modelLayer: task.modelChoice?.layer ?? null,
+          thinking: task.modelChoice?.thinking ?? null,
+          source: task.modelChoice?.source ?? null,
+          ...(task.parentResolution?.canonical ? { parentModel: task.parentResolution.canonical } : {}),
+          ...(task.parentResolution?.thinking ? { parentThinking: task.parentResolution.thinking } : {}),
+          ...(task.parentResolution?.speedTier ? { parentSpeedTier: task.parentResolution.speedTier } : {}),
+          ...(task.parentResolution?.source ? { parentSource: task.parentResolution.source } : {}),
           async: true,
           effectiveMode: "async",
           effectiveModeReason: task.reason as "default-async" | "requested-async",
@@ -437,7 +558,7 @@ export class TaskCoordinator {
             job: state.jobs[task.jobId]?.state ?? "queued",
             turn: state.turns[task.turnId]?.state ?? "queued",
           },
-          model: { requested: task.item.model, ...(task.modelChoice ?? {}) },
+          model: { requested: task.item.model, requestedThinking: task.item.thinking, ...(task.modelChoice ?? {}) },
           outputRef: `agent://${task.agentId}`,
           historyRef: `history://${task.agentId}`,
           deliveryRequired: true,
@@ -447,6 +568,78 @@ export class TaskCoordinator {
       return await task.handle.result;
     }));
     return { batch: prepared.request.batch, results };
+  }
+
+  private liveSnapshot(task: CreatedTask): TaskLiveSnapshot {
+    const state = this.options.journal.getState();
+    const agent = state.agents[task.agentId] ?? state.releasedAgents[task.agentId];
+    const job = state.jobs[task.jobId];
+    const turn = state.turns[task.turnId];
+    const sources = modelAuditSources(task.modelChoice);
+    return {
+      status: turn?.state === "running" ? "running" : "allocated",
+      name: boundedDisplayText(task.item.name ?? task.role.name, 160),
+      selector: boundedDisplayText(task.role.selector, 160),
+      requestedModel: task.item.model === undefined ? null : boundedDisplayText(task.item.model, 160),
+      ...(task.item.model === undefined ? {} : { requested: boundedDisplayText(task.item.model, 160) }),
+      ...(task.modelChoice?.canonical ? {
+        effectiveModel: boundedDisplayText(task.modelChoice.canonical, 160),
+        effective: boundedDisplayText(task.modelChoice.canonical, 160),
+      } : {}),
+      ...(task.modelChoice?.provider ? { provider: boundedDisplayText(task.modelChoice.provider, 96) } : {}),
+      ...(task.modelChoice?.model ? { model: boundedDisplayText(task.modelChoice.model, 128) } : {}),
+      ...(task.modelChoice?.layer ? { layer: boundedDisplayText(task.modelChoice.layer, 64) } : {}),
+      ...(task.modelChoice?.thinking ? { thinking: boundedDisplayText(task.modelChoice.thinking, 32) } : {}),
+      ...(task.modelChoice?.speedTier ? { speedTier: boundedDisplayText(task.modelChoice.speedTier, 32) } : {}),
+      ...(sources.modelSource === undefined ? {} : { modelSource: boundedDisplayText(sources.modelSource, 64) }),
+      ...(sources.thinkingSource === undefined ? {} : { thinkingSource: boundedDisplayText(sources.thinkingSource, 64) }),
+      ...(sources.source === undefined ? {} : { source: boundedDisplayText(sources.source, 64) }),
+      ...(task.parentResolution?.canonical ? { parentModel: boundedDisplayText(task.parentResolution.canonical, 160) } : {}),
+      ...(task.parentResolution?.thinking ? { parentThinking: boundedDisplayText(task.parentResolution.thinking, 32) } : {}),
+      ...(task.parentResolution?.speedTier ? { parentSpeedTier: boundedDisplayText(task.parentResolution.speedTier, 32) } : {}),
+      ...(task.parentResolution?.source ? { parentSource: boundedDisplayText(task.parentResolution.source, 64) } : {}),
+      agentId: task.agentId,
+      jobId: task.jobId,
+      turnId: task.turnId,
+      lifecycle: {
+        agent: agent?.state ?? "queued",
+        job: job?.state ?? "queued",
+        turn: turn?.state ?? "queued",
+      },
+    };
+  }
+
+  private emitLiveSnapshot(task: CreatedTask, onUpdate: TaskUpdateCallback | undefined): void {
+    if (!onUpdate) return;
+    try {
+      const snapshot = this.liveSnapshot(task);
+      onUpdate({
+        content: [{ type: "text", text: JSON.stringify(snapshot) }],
+        details: snapshot,
+      });
+    } catch {
+      // UI live evidence is explicitly non-authoritative and must never turn
+      // a successfully allocated task into a failed execution.
+    }
+  }
+
+  private emitLiveBatch(tasks: CreatedTask[], onUpdate: TaskUpdateCallback | undefined): void {
+    if (!onUpdate) return;
+    try {
+      const results = tasks.map((task) => this.liveSnapshot(task));
+      const details: TaskLiveBatchSnapshot = {
+        status: results.some((result) => result.status === "running") ? "running" : "allocated",
+        batch: true,
+        results,
+      };
+      onUpdate({
+        content: [{ type: "text", text: JSON.stringify(details) }],
+        details,
+      });
+    } catch {
+      // UI live evidence is explicitly non-authoritative and must never turn
+      // a successfully allocated batch into a failed execution.
+    }
   }
 
   private async serializeSubmission<T>(operation: () => Promise<T>): Promise<T> {
@@ -488,8 +681,17 @@ export class TaskCoordinator {
     role: RoleProfile,
     ancestry?: TaskAncestry,
     formalProtection?: FormalTaskProtection,
-    modelChoice?: ResolvedModelChoice,
+    preflight?: ResolvedModelChoice | TaskPreflightResult,
   ): Promise<CreatedTask> {
+    const preflightResult: TaskPreflightResult = preflight && typeof preflight === "object" && "choice" in preflight
+      ? preflight as TaskPreflightResult
+      : { choice: preflight as ResolvedModelChoice | undefined };
+    const modelChoice = preflightResult.choice;
+    const parentResolution = preflightResult.parentResolution ?? ancestry?.parentResolution;
+    const currentTurnModelAuthority = preflightResult.currentTurnModelAuthority
+      ?? ancestry?.currentTurnModelAuthority
+      ?? ancestry?.currentTurnAuthority
+      ?? ancestry?.authority;
     const before = this.options.journal.getState();
     const agentId = allocateAgentId(item.name ?? role.name, [...Object.keys(before.agents), ...Object.keys(before.releasedAgents)], ancestry?.parentAgentId);
     const jobId = nextNumericId("job", Object.keys(before.jobs));
@@ -507,6 +709,7 @@ export class TaskCoordinator {
       formalContinuationIdentity: item.continuationAudit,
       formalWorkspaceRequest,
     } : {};
+    const modelSources = modelAuditSources(modelChoice);
     const agent: AgentRecord = {
       id: agentId,
       name: item.name ?? role.name,
@@ -524,13 +727,19 @@ export class TaskCoordinator {
         sourceHash: role.sourceHash,
         profileVersion: role.profileVersion,
         runtimeAdapterVersion: role.runtimeAdapterVersion,
+        requestedModel: item.model,
         effectiveModel: modelChoice?.canonical,
         provider: modelChoice?.provider,
         model: modelChoice?.model,
         modelLayer: modelChoice?.layer,
         thinking: modelChoice?.thinking,
         speedTier: modelChoice?.speedTier,
-        modelSource: modelChoice?.source,
+        ...modelSources,
+        parentResolutionPresent: parentResolution !== undefined,
+        ...(parentResolution?.canonical ? { parentModel: parentResolution.canonical } : {}),
+        ...(parentResolution?.thinking ? { parentThinking: parentResolution.thinking } : {}),
+        ...(parentResolution?.speedTier ? { parentSpeedTier: parentResolution.speedTier } : {}),
+        ...(parentResolution?.source ? { parentSource: parentResolution.source } : {}),
         ...formalMetadata,
       },
     };
@@ -552,11 +761,17 @@ export class TaskCoordinator {
       updatedAt: now,
       metadata: {
         requestedModel: item.model,
+        requestedThinking: item.thinking,
         effectiveModel: modelChoice?.canonical,
         modelLayer: modelChoice?.layer,
         thinking: modelChoice?.thinking,
         speedTier: modelChoice?.speedTier,
-        modelSource: modelChoice?.source,
+        ...modelSources,
+        parentResolutionPresent: parentResolution !== undefined,
+        ...(parentResolution?.canonical ? { parentModel: parentResolution.canonical } : {}),
+        ...(parentResolution?.thinking ? { parentThinking: parentResolution.thinking } : {}),
+        ...(parentResolution?.speedTier ? { parentSpeedTier: parentResolution.speedTier } : {}),
+        ...(parentResolution?.source ? { parentSource: parentResolution.source } : {}),
         requestedAsync: item.async,
         effectiveMode: effectiveAsync ? "async" : "sync",
         effectiveModeReason: reason,
@@ -574,6 +789,8 @@ export class TaskCoordinator {
       updatedAt: now,
       metadata: {
         taskSummary: boundedDisplayText(item.task, 160),
+        requestedModel: item.model,
+        requestedThinking: item.thinking,
         profileHash: role.profileHash,
         sourceHash: role.sourceHash,
         maxRuntimeMs: DEFAULT_AGENT_MAX_RUNTIME_MS,
@@ -584,7 +801,12 @@ export class TaskCoordinator {
         modelLayer: modelChoice?.layer,
         thinking: modelChoice?.thinking,
         speedTier: modelChoice?.speedTier,
-        modelSource: modelChoice?.source,
+        ...modelSources,
+        parentResolutionPresent: parentResolution !== undefined,
+        ...(parentResolution?.canonical ? { parentModel: parentResolution.canonical } : {}),
+        ...(parentResolution?.thinking ? { parentThinking: parentResolution.thinking } : {}),
+        ...(parentResolution?.speedTier ? { parentSpeedTier: parentResolution.speedTier } : {}),
+        ...(parentResolution?.source ? { parentSource: parentResolution.source } : {}),
         scheduledAt: now,
         effectiveMode: effectiveAsync ? "async" : "sync",
         effectiveModeReason: reason,
@@ -597,7 +819,7 @@ export class TaskCoordinator {
     await this.options.journal.append({ kind: "job.created", agentId, jobId, payload: { record: job } });
     await this.options.journal.append({ kind: "turn.created", agentId, jobId, turnId, payload: { record: turn } });
 
-    const run = (context: ScheduledExecutionContext) => this.runLifecycle({ item, role, agentId, jobId, turnId, depth, modelChoice, effectiveAsync, reason, formalProtection, context });
+    const run = (context: ScheduledExecutionContext) => this.runLifecycle({ item, role, agentId, jobId, turnId, depth, modelChoice, parentResolution, currentTurnModelAuthority, effectiveAsync, reason, formalProtection, context });
     const onCancelBeforeStart = () => this.cancelBeforeStart(agentId, jobId, turnId, role, item, effectiveAsync, reason);
     const handle = ancestry
       ? this.scheduler.runNested(jobId, ancestry.inheritedPermit, run)
@@ -605,7 +827,7 @@ export class TaskCoordinator {
     this.handles.set(jobId, handle);
     const baseSettlement = handle.result.catch(async (error) => {
       if (error instanceof ScheduledTaskCancelledError && error.beforeStart) {
-        return this.cancelledSettlement(agentId, jobId, turnId, role, item, effectiveAsync, reason, error.message);
+        return this.cancelledSettlement(agentId, jobId, turnId, role, item, modelChoice, parentResolution, effectiveAsync, reason, error.message);
       }
       throw error;
     });
@@ -618,7 +840,7 @@ export class TaskCoordinator {
     void settlement.catch(() => undefined);
     const normalizedHandle: ScheduledHandle<NormalizedTaskSettlement> = { ...handle, result: settlement };
     this.handles.set(jobId, normalizedHandle);
-    return { item, role, agentId, jobId, turnId, depth, modelChoice, effectiveAsync, reason, formalProtection, handle: normalizedHandle };
+    return { item, role, agentId, jobId, turnId, depth, modelChoice, parentResolution, currentTurnModelAuthority, effectiveAsync, reason, formalProtection, handle: normalizedHandle };
   }
 
   private async begin(agentId: string, jobId: string, turnId: string): Promise<void> {
@@ -629,7 +851,7 @@ export class TaskCoordinator {
   }
 
   private async runLifecycle(args: Omit<CreatedTask, "handle"> & { context: ScheduledExecutionContext }): Promise<NormalizedTaskSettlement> {
-    const { agentId, jobId, turnId, role, item, modelChoice, effectiveAsync, reason, formalProtection, context, depth } = args;
+    const { agentId, jobId, turnId, role, item, modelChoice, parentResolution, currentTurnModelAuthority, effectiveAsync, reason, formalProtection, context, depth } = args;
     await this.begin(agentId, jobId, turnId);
     let status: NormalizedTaskSettlement["status"] = "completed";
     let output: TaskExecutionOutput;
@@ -638,7 +860,7 @@ export class TaskCoordinator {
       // before awaiting the turn so interval evidence never reports completion
       // itself as the first activity.
       await this.options.journal.append({ kind: "turn.audit", agentId, jobId, turnId, payload: { firstActivityAt: this.clock().toISOString() } });
-      output = await this.options.execute({ agentId, jobId, turnId, item, role, modelChoice, depth, context, formalProtection });
+      output = await this.options.execute({ agentId, jobId, turnId, item, role, modelChoice, depth, context, formalProtection, parentResolution, currentTurnModelAuthority });
       if (context.signal.aborted) throw context.signal.reason ?? new ScheduledTaskCancelledError(jobId, false);
       if (output.status === "failed") status = "failed";
     } catch (error) {
@@ -666,7 +888,7 @@ export class TaskCoordinator {
     }
 
     await this.options.journal.append({ kind: "turn.audit", agentId, jobId, turnId, payload: { completedAt: this.clock().toISOString(), outcome: status } });
-    let result = this.settlement(status, agentId, jobId, turnId, role, item, modelChoice, effectiveAsync, reason, output, formalResultStatus);
+    let result = this.settlement(status, agentId, jobId, turnId, role, item, modelChoice, parentResolution, effectiveAsync, reason, output, formalResultStatus);
     try {
       await this.options.onSettled?.(result, output.output);
       if (formalProtection) {
@@ -678,7 +900,7 @@ export class TaskCoordinator {
       status = status === "aborted" ? "aborted" : "failed";
       output = { output: "", error: message };
       formalResultStatus ??= formalProtection ? "malformed" : undefined;
-      result = this.settlement(status, agentId, jobId, turnId, role, item, modelChoice, effectiveAsync, reason, output, formalResultStatus);
+      result = this.settlement(status, agentId, jobId, turnId, role, item, modelChoice, parentResolution, effectiveAsync, reason, output, formalResultStatus);
     }
 
     if (status === "completed") await this.finishCompleted(agentId, jobId, turnId, formalResultStatus === "partial" ? "partial" : "completed");
@@ -722,8 +944,8 @@ export class TaskCoordinator {
     void reason;
   }
 
-  private cancelledSettlement(agentId: string, jobId: string, turnId: string, role: RoleProfile, item: NormalizedTaskItem, effectiveAsync: boolean, reason: CreatedTask["reason"], error: string): NormalizedTaskSettlement {
-    return this.settlement("aborted", agentId, jobId, turnId, role, item, undefined, effectiveAsync, reason, { output: "", error });
+  private cancelledSettlement(agentId: string, jobId: string, turnId: string, role: RoleProfile, item: NormalizedTaskItem, modelChoice: ResolvedModelChoice | undefined, parentResolution: ResolvedModelChoice | undefined, effectiveAsync: boolean, reason: CreatedTask["reason"], error: string): NormalizedTaskSettlement {
+    return this.settlement("aborted", agentId, jobId, turnId, role, item, modelChoice, parentResolution, effectiveAsync, reason, { output: "", error });
   }
 
   private settlement(
@@ -734,6 +956,7 @@ export class TaskCoordinator {
     role: RoleProfile,
     item: NormalizedTaskItem,
     modelChoice: ResolvedModelChoice | undefined,
+    parentResolution: ResolvedModelChoice | undefined,
     effectiveAsync: boolean,
     reason: CreatedTask["reason"],
     execution: TaskExecutionOutput,
@@ -752,6 +975,16 @@ export class TaskCoordinator {
       jobId,
       turnId,
       selector: role.selector,
+      name: item.name ?? role.name,
+      requestedModel: item.model ?? null,
+      effectiveModel: modelChoice?.canonical ?? (execution.model?.provider && execution.model.model ? `${execution.model.provider}/${execution.model.model}` : null),
+      modelLayer: modelChoice?.layer ?? execution.model?.layer ?? null,
+      thinking: modelChoice?.thinking ?? execution.model?.thinking ?? null,
+      source: modelChoice?.source ?? null,
+      ...(parentResolution?.canonical ? { parentModel: parentResolution.canonical } : {}),
+      ...(parentResolution?.thinking ? { parentThinking: parentResolution.thinking } : {}),
+      ...(parentResolution?.speedTier ? { parentSpeedTier: parentResolution.speedTier } : {}),
+      ...(parentResolution?.source ? { parentSource: parentResolution.source } : {}),
       async: effectiveAsync,
       effectiveMode: effectiveAsync ? "async" : "sync",
       effectiveModeReason: reason,
@@ -762,7 +995,19 @@ export class TaskCoordinator {
       historyRef: `history://${agentId}`,
       truncation: truncated.truncation,
       lifecycle,
-      model: { requested: item.model, ...(modelChoice ?? {}), ...execution.model },
+      model: {
+        requested: item.model,
+        requestedThinking: item.thinking,
+        ...(modelChoice ?? (execution.model ? {
+          provider: execution.model.provider,
+          model: execution.model.model,
+          thinking: execution.model.thinking,
+          speedTier: execution.model.speedTier,
+          layer: execution.model.layer,
+          modelSource: execution.model.modelSource,
+          thinkingSource: execution.model.thinkingSource,
+        } : {})),
+      },
       profile: {
         profileHash: execution.profile?.profileHash ?? role.profileHash,
         sourceHash: execution.profile?.sourceHash ?? role.sourceHash,

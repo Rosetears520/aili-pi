@@ -13,7 +13,7 @@
       "artifacts": [
         {
           "path": "package-lock.json",
-          "sha256": "588bbed986f5c99cb78b6f40994536ed38222c353aa2e3140e25f794380a23b5"
+          "sha256": "454f70ca81cadc3c6ef52b081d040ff65ede0c2b3143d5e269ce43888189159f"
         },
         {
           "path": "tests/integration/extension-load.test.ts",
@@ -40,11 +40,11 @@
       "artifacts": [
         {
           "path": "src/runtime/persistent-agents/production.ts",
-          "sha256": "6131bed0a86ec594298d32a576a204ec6e27f8b29bd6f464a1d233bb788727dd"
+          "sha256": "16f1faf12a7875d8f45c46d9d61620fa2772f7bc14c6de3498461ae6fcc558bb"
         },
         {
           "path": "src/runtime/persistent-agents/runtime.ts",
-          "sha256": "3d4718c48ad34330b8b88dd4794f7f7da2b53c160980a503514a63ed9a10d885"
+          "sha256": "757dd0f177e553be9b2de302b52f289f04e93c1f7d761d639df280f7d01bb855"
         },
         {
           "path": "src/runtime/persistent-agents/session-factory.ts",
@@ -68,7 +68,7 @@
         },
         {
           "path": "tests/unit/persistent-agent-task.test.ts",
-          "sha256": "34b61f0270600576caa97bd67483dbbf58a3408a073eb8b8ac1aa8a0f0f7b043"
+          "sha256": "888910c1fc1bc3bdc9502e7bb270f0f106dfeab362e53a007ecf239653fc923f"
         },
         {
           "path": "tests/unit/persistent-agent-hub.test.ts",
@@ -80,7 +80,7 @@
         },
         {
           "path": "tests/integration/persistent-agent-runtime.test.ts",
-          "sha256": "6be8f80b93ef23eb060def34904d2c3acc16bd8cc77b2b5bfefb3028e77ed511"
+          "sha256": "331e9e1923df30d1d8d9c003c580a5c203e7a920dae160bcd188cc6d4e1d7db8"
         },
         {
           "path": "tests/integration/persistent-agent-production.test.ts",
@@ -96,7 +96,7 @@
         },
         {
           "path": "tests/integration/package-runtime.test.ts",
-          "sha256": "55a80484585d53c263cdb9b1b050cfe58e477aa55d5a11278ad8371e817ec556"
+          "sha256": "716733db584fb79812623c564fab6307c8e6f98ff5bbe453abb152558b2613cb"
         }
       ]
     },
@@ -123,7 +123,7 @@
         },
         {
           "path": "package-lock.json",
-          "sha256": "588bbed986f5c99cb78b6f40994536ed38222c353aa2e3140e25f794380a23b5"
+          "sha256": "454f70ca81cadc3c6ef52b081d040ff65ede0c2b3143d5e269ce43888189159f"
         },
         {
           "path": "node_modules/@earendil-works/pi-coding-agent/docs/skills.md",

@@ -10,6 +10,8 @@ const EN = {
   observer: "Read-only observer", media: "Add images", remove: "Remove", status: "Runtime status",
   emptyAgents: "No persistent Agents are projected", emptyMcp: "No MCP servers are projected",
   mcpLazy: "Inspection never connects lazy MCP servers", loading: "Loading workbench…", retry: "Retry",
+  projects: "Projects", collapseSidebar: "Collapse sidebar", expandSidebar: "Expand sidebar",
+  composerPlaceholder: "Message this session…", loginTitle: "Access password",
 } as const;
 const ZH: Record<keyof typeof EN, string> = {
   appName: "AILI Pi 工作台", sessions: "会话", timeline: "时间线", inspector: "检查器",
@@ -21,6 +23,8 @@ const ZH: Record<keyof typeof EN, string> = {
   observer: "只读观察者", media: "添加图片", remove: "移除", status: "运行时状态",
   emptyAgents: "没有持久 Agent 投影", emptyMcp: "没有 MCP 服务器投影",
   mcpLazy: "检查状态不会连接惰性 MCP 服务器", loading: "正在加载工作台…", retry: "重试",
+  projects: "项目", collapseSidebar: "收起侧边栏", expandSidebar: "展开侧边栏",
+  composerPlaceholder: "输入消息…", loginTitle: "访问密码",
 };
 export type TranslationKey = keyof typeof EN;
 export function translate(locale: WorkbenchLocale, key: TranslationKey): string { return (locale === "zh-CN" ? ZH : EN)[key]; }

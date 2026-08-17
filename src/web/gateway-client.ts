@@ -3,11 +3,13 @@ import {
   validateRuntimeEvent,
   validateRuntimeSnapshot,
   validateWorkbenchCatalog,
+  validateWorkbenchHistory,
   type JsonValue,
   type MutationEnvelopeV1,
   type RuntimeEventV1,
   type RuntimeSnapshotV1,
   type WorkbenchCatalogV1,
+  type WorkbenchHistoryV1,
 } from "./contracts.js";
 import { ACTION_CONTRACTS, type WorkbenchAction } from "./workbench-model.js";
 
@@ -15,6 +17,7 @@ export const AILI_BFF_BASE = "/api/runtime/v1" as const;
 export const AILI_BFF_ENDPOINTS = Object.freeze({
   catalog: `${AILI_BFF_BASE}/workbench/catalog`,
   connect: (sessionHandle: string) => `${AILI_BFF_BASE}/sessions/${encodeURIComponent(sessionHandle)}/connect`,
+  history: (sessionHandle: string) => `${AILI_BFF_BASE}/sessions/${encodeURIComponent(sessionHandle)}/history`,
   events: (sessionHandle: string, cursor: string) => `${AILI_BFF_BASE}/sessions/${encodeURIComponent(sessionHandle)}/events?cursor=${encodeURIComponent(cursor)}`,
   stream: (sessionHandle: string, cursor?: string) => `${AILI_BFF_BASE}/sessions/${encodeURIComponent(sessionHandle)}/stream${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
   bootstrap: `${AILI_BFF_BASE}/auth/bootstrap`,
@@ -109,6 +112,15 @@ export class GatewayClient {
     return Object.freeze({ snapshot, replay });
   }
 
+  /** Loads one session's bounded message history; the catalog stays metadata-only. */
+  public async history(sessionHandle: string): Promise<WorkbenchHistoryV1["timeline"]> {
+    const response = await this.fetcher(AILI_BFF_ENDPOINTS.history(assertHandle(sessionHandle)), { cache: "no-store" });
+    const body = await json(response);
+    if (!response.ok) throw gatewayError(response.status, body);
+    if (!record(body) || body.sessionHandle !== sessionHandle) throw new Error("BFF returned an invalid session history");
+    return validateWorkbenchHistory(body).timeline;
+  }
+
   public async events(sessionHandle: string, cursor: string): Promise<EventReplayV1> {
     const response = await this.fetcher(AILI_BFF_ENDPOINTS.events(assertHandle(sessionHandle), cursor), { cache: "no-store" });
     const body = await json(response);
@@ -171,11 +183,9 @@ export class GatewayClient {
     sessionLeaf: string,
     args: Readonly<Record<string, JsonValue>> = {},
   ): Promise<MutationResultV1> {
-    const clientId = this.clientId;
-    if (!clientId) throw new Error("Load the authenticated workbench catalog before mutation");
     const contract = ACTION_CONTRACTS[action];
     if (snapshot.capabilities[contract.capability] !== true) throw new Error(`${contract.label} is unavailable`);
-    const envelope = createMutationEnvelope({
+    const build = (clientId: string) => createMutationEnvelope({
       requestId: this.requestId(),
       clientId,
       snapshot,
@@ -185,7 +195,25 @@ export class GatewayClient {
       arguments: args,
       requestedAt: this.now().toISOString(),
     });
-    return this.sendEnvelope(envelope);
+    let clientId = this.clientId;
+    if (!clientId) {
+      // A loopback read session may have loaded the catalog without a cookie.
+      if (!await this.bootstrapLoopback()) throw new Error("Load the authenticated workbench catalog before mutation");
+      await this.catalog();
+      clientId = this.clientId;
+    }
+    if (!clientId) throw new Error("Load the authenticated workbench catalog before mutation");
+    try {
+      return await this.sendEnvelope(build(clientId));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/client-identity-mismatch|same-site-session-required|access-denied/.test(message)) throw error;
+      if (!await this.bootstrapLoopback()) throw error;
+      await this.catalog();
+      const refreshed = this.clientId;
+      if (!refreshed) throw error;
+      return this.sendEnvelope(build(refreshed));
+    }
   }
 
   public async sendEnvelope(envelope: MutationEnvelopeV1): Promise<MutationResultV1> {

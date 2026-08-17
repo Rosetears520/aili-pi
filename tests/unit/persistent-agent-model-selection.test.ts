@@ -10,6 +10,8 @@ import {
   revalidateResolvedModelChoice,
   resolveAgentModel,
   resolveModelChoice,
+  validateCurrentTurnAuthority,
+  validateCurrentTurnModelRequest,
   type CatalogModel,
   type ModelCatalog,
   type ModelOverride,
@@ -82,14 +84,14 @@ describe("direct-parent model resolution", () => {
     parentThinking: "medium" as const,
   };
 
-  it("uses the fixed precedence and source-aware audit metadata", async () => {
-    expect(await resolveModelChoice(base, catalog())).toMatchObject({ canonical: "provider/instance", layer: "instance", source: "instance-override", oneShot: false, persistent: true, thinking: "medium" });
-    expect(await resolveModelChoice({ ...base, instance: undefined }, catalog())).toMatchObject({ canonical: "provider/project", layer: "project-role", source: "project-role-override" });
-    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined }, catalog())).toMatchObject({ canonical: "provider/user", layer: "user-role", source: "user-role-override" });
-    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined }, catalog())).toMatchObject({ canonical: "provider/one", layer: "one-shot", source: "confirmed-one-shot", oneShot: true, thinking: "high" });
-    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined }, catalog())).toMatchObject({ canonical: "provider/profile", layer: "profile", source: "profile-fallback", persistent: true, thinking: "medium" });
-    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "high", speedTier: "priority" } }, catalog())).toMatchObject({ canonical: "provider/parent", source: "inherited-parent", thinking: "high", speedTier: "priority" });
-    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, parent: undefined }, catalog())).toMatchObject({ canonical: "provider/profile", layer: "profile", source: "profile-fallback" });
+  it("keeps user-owned precedence above a confirmed one-shot and records source-aware inheritance", async () => {
+    expect(await resolveModelChoice(base, catalog())).toMatchObject({ canonical: "provider/instance", layer: "instance", source: "instance-override", modelSource: "instance-override", oneShot: false, thinking: "medium" });
+    expect(await resolveModelChoice({ ...base, instance: undefined }, catalog())).toMatchObject({ canonical: "provider/project", layer: "project-role", source: "project-role-override", modelSource: "project-role-override" });
+    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined }, catalog())).toMatchObject({ canonical: "provider/user", layer: "user-role", source: "user-role-override", modelSource: "user-role-override" });
+    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined }, catalog())).toMatchObject({ canonical: "provider/one", layer: "one-shot", source: "confirmed-one-shot", modelSource: "user-one-shot", oneShot: true, thinking: "high", thinkingSource: "user-one-shot" });
+    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "high", speedTier: "priority" } }, catalog())).toMatchObject({ canonical: "provider/parent", source: "inherited-parent", modelSource: "inherited-parent", thinking: "high", thinkingSource: "inherited-parent", speedTier: "priority" });
+    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, parent: undefined }, catalog())).toMatchObject({ canonical: "provider/profile", layer: "profile", source: "profile-fallback", modelSource: "profile-fallback" });
+    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, profile: undefined }, catalog())).toMatchObject({ canonical: "provider/parent", layer: "runtime-fallback", source: "runtime-fallback", modelSource: "runtime-fallback" });
   });
 
   it("resolves an explicit bare model through Parent provider first and otherwise requires one candidate", async () => {
@@ -121,7 +123,7 @@ describe("direct-parent model resolution", () => {
   });
 
   it("revalidates the frozen identity without consulting fallback or switching models", async () => {
-    const frozen = await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined }, catalog());
+    const frozen = await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, profile: undefined }, catalog());
     const fallback = vi.fn(async () => models["provider/parent"]);
     await expect(revalidateResolvedModelChoice(frozen, catalog({
       resolve: async () => ({ ...models["provider/one"]!, available: false }),
@@ -150,8 +152,8 @@ describe("direct-parent model resolution", () => {
       journal,
       configs,
       catalog: catalog(),
-    })).toMatchObject({ canonical: "provider/instance", layer: "instance" });
-    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "provider/project" } }, catalog())).toMatchObject({ canonical: "provider/project", layer: "one-shot" });
+    })).toMatchObject({ canonical: "provider/instance", layer: "instance", modelSource: "instance-override" });
+    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "provider/project" } }, catalog())).toMatchObject({ canonical: "provider/project", layer: "one-shot", modelSource: "user-one-shot" });
     expect(await readFile(globalPath, "utf8")).toBe(beforeBytes);
     expect(journal.getState().models).toEqual(beforeState);
     expect(await resolveAgentModel({
@@ -163,15 +165,41 @@ describe("direct-parent model resolution", () => {
   });
 });
 
+describe("current-turn model authority", () => {
+  it("rejects model and thinking overrides under inherit-only authority", () => {
+    const authority = { mode: "inherit-only" as const };
+    expect(validateCurrentTurnModelRequest(undefined, authority)).toBeUndefined();
+    expect(() => validateCurrentTurnModelRequest({ model: "provider/one" }, authority)).toThrow(/inherit-only/);
+    expect(() => validateCurrentTurnModelRequest({ thinking: "high" }, authority)).toThrow(/inherit-only/);
+  });
+
+  it("accepts only explicitly allowed canonical values and delegated catalog choice", async () => {
+    expect(validateCurrentTurnAuthority({ mode: "explicit", allowedModels: ["provider/one"], allowedThinking: ["medium"] })).toMatchObject({ mode: "explicit" });
+    expect(validateCurrentTurnModelRequest({ model: "provider/one", thinking: "medium" }, { mode: "explicit", allowedModels: ["provider/one"], allowedThinking: ["medium"] })).toEqual({ model: "provider/one", thinking: "medium" });
+    expect(() => validateCurrentTurnModelRequest({ model: "provider/parent" }, { mode: "explicit", allowedModels: ["provider/one"] })).toThrow(/not authorized/);
+    expect(validateCurrentTurnModelRequest({ model: "one" }, { mode: "delegated-choice", models: "available" })).toEqual({ model: "one" });
+    expect(() => validateCurrentTurnModelRequest({ thinking: "high" }, { mode: "delegated-choice", models: "available" })).toThrow(/delegated model-choice/);
+    expect(validateCurrentTurnModelRequest({ thinking: "high" }, { mode: "delegated-choice", models: "available", thinkingMode: "available" })).toEqual({ thinking: "high" });
+    await expect(resolveModelChoice({ selector: "general", agentId: "Worker", projectTrusted: true, oneShotThinking: "high", parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "medium", speedTier: "standard" } }, catalog())).resolves.toMatchObject({ canonical: "provider/parent", thinking: "high", thinkingSource: "user-one-shot", source: "confirmed-one-shot" });
+  });
+
+  it("rejects malformed authority instead of treating it as permission", () => {
+    expect(() => validateCurrentTurnAuthority({ mode: "explicit" })).toThrow(/declare allowed/);
+    expect(() => validateCurrentTurnAuthority({ mode: "inherit-only", models: "available" })).toThrow(/requires delegated-choice/);
+    expect(() => validateCurrentTurnAuthority({ mode: "explicit", allowedModels: ["Terra"] })).toThrow(/provider\/model/);
+  });
+});
+
 describe("model-facing task confirmation", () => {
   it("requires fresh UI confirmation and never turns a denied or headless request into an override", async () => {
     const parent = { canonical: "provider/parent" };
     await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: false, confirm: async () => "confirm" })).resolves.toBeUndefined();
     await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "deny" })).resolves.toBeUndefined();
     await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "dismiss" })).resolves.toBeUndefined();
+    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => { throw new Error("expired"); } })).resolves.toBeUndefined();
     await expect(confirmTaskModelRequest({ model: "provider/one" }, undefined, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
     await expect(confirmTaskModelRequest({ model: "provider/parent" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
-    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, bypassConfirmation: true, confirm: async () => "deny" })).resolves.toEqual({ model: "provider/one" });
+    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: false, confirm: async () => "confirm" })).resolves.toBeUndefined();
     await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toEqual({ model: "provider/one" });
   });
 });

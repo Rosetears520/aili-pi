@@ -26,7 +26,41 @@ export interface FormalResultEvidenceRecord {
   historyPrefixBytes: number;
 }
 
-export interface AgentRecord {
+/**
+ * Structured model identity shared by durable Agent, turn, job, delivery, and
+ * display projections.  All fields are optional so legacy Journal records can
+ * still be replayed without inventing identity that was never recorded.
+ */
+export interface ModelIdentityProjection {
+  requestedModel?: string;
+  /** Compatibility alias used by task result model objects. */
+  requested?: string;
+  requestedThinking?: string;
+  effectiveModel?: string;
+  /** Compatibility aliases used by live/result consumers. */
+  effective?: string;
+  canonical?: string;
+  provider?: string;
+  model?: string;
+  modelLayer?: string;
+  layer?: string;
+  thinking?: string;
+  modelSource?: string;
+  thinkingSource?: string;
+  /** Legacy model-selection source alias retained for consumers in the wild. */
+  source?: string;
+  speedTier?: string;
+  service?: string;
+  effectiveMode?: string;
+  effectiveModeReason?: string;
+  parentModel?: string;
+  parentThinking?: string;
+  parentSpeedTier?: string;
+  parentSource?: string;
+  effectiveProvenance?: string;
+}
+
+export interface AgentRecord extends ModelIdentityProjection {
   id: string;
   name: string;
   selector: string;
@@ -40,7 +74,7 @@ export interface AgentRecord {
   metadata?: Record<string, unknown>;
 }
 
-export interface JobRecord {
+export interface JobRecord extends ModelIdentityProjection {
   id: string;
   agentId: string;
   state: JobState;
@@ -50,7 +84,7 @@ export interface JobRecord {
   metadata?: Record<string, unknown>;
 }
 
-export interface TurnRecord {
+export interface TurnRecord extends ModelIdentityProjection {
   id: string;
   agentId: string;
   jobId?: string;

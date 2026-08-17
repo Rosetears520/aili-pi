@@ -964,11 +964,40 @@
   - Expected evidence: `artifact:BUILD-P02-R6-R4-foreground-composition`
   - Acceptance: `the Next process installs exactly one production bridge before declaring runtime ready; protected routes have reachable browser session bootstrap/login/logout semantics; catalog and opaque handles map to JSONL/RuntimeHost/observer owners; mutation dispatch is exhaustive and deny-by-default; authenticated read-only paths do not acquire a Web writer lease; TUI-owned observation stays read-only; Web-owned mutation uses one official Pi runtime; readiness and cleanup cannot report false success; focused deterministic tests and typecheck are available for ROSE verification`
   - Dispatch evidence: `pending`
-  - Result evidence: `pending`
-  - Evidence: `pending`
-  - ROSE disposition: `pending`
-  - Blocker: `the user reaffirmed that Pi Web is deferred; no foreground Pi Web composition or deferred Web parity work may resume without fresh explicit user approval`
-  - Next action: `hold until the user explicitly authorizes Pi Web resumption`
+  - Result evidence: `artifact:BUILD-P12-WEB-RESUME-foreground-composition`
+  - Evidence: `verification:BUILD-P12-typecheck, verification:BUILD-P12-full-suite, verification:BUILD-P12-foreground-lifecycle-matrix`
+  - ROSE disposition: `partially-accepted`
+  - Blocker: `tasks 2.4 and 2.5 are complete with deterministic lifecycle evidence; the remaining 3.2–5.4 verification residue is the real-stock-TUI asymmetric-attachment fixture (4.4) and the accepted browser matrix (13.2), both still requiring their exact operation gates`
+  - Next action: `continue the unchanged accepted tasks through BUILD-P12-WEB-RESUME continuation work; the 2026-08-15 user authorization removed the D-15 hold on foreground Pi Web`
+
+- [ ] BUILD-P12-WEB-RESUME — Resume foreground Pi Web under fresh user authorization
+  - Phase: `BUILD`
+  - Package kind: `task-execution`
+  - Source refs: `decision:user-2026-08-15-resume-pi-web, task:2.4, task:2.5, task:2.6, task:2.7, artifact:BUILD-P02-R6-R4-foreground-composition`
+  - Accepted task IDs: `2.4, 2.5`
+  - Status: `completed`
+  - Owner: `agent:aili.implementer`
+  - Dispatch: `waived`
+  - Dispatch reason: `N/A`
+  - No-dispatch reason: `direct ZCode implementation under the user's 2026-08-15 request that this change's Web UI be implemented`
+  - Execution: `sync`
+  - Join: `immediate`
+  - Depends on: `BUILD-P02-R2`, `BUILD-P02-R4-DEPS`, `BUILD-P03-R2`, `BUILD-E09`
+  - Decision gate: `2026-08-15 user authorization resuming foreground Pi Web; D-17 TUI-only artifact boundary is superseded for the repository state while publication remains unauthorized`
+  - Final test-plan gate: `accepted 2026-08-13`
+  - Implementation authorization: `granted`
+  - Operation permissions: `npm install --ignore-scripts, npm run build:web, repository-local disposable-HOME foreground server probes, adapter-evidence/provenance regeneration; commit/push/publish/release/real-HOME installation remain absent`
+  - Scope: `restore the exact locked Web dependency graph; wire extensions/web registration and session-derived allowed-root seeding; repair the first real production build and foreground execution (webpack extensionAlias, strict-type fixes, ESM exports manifest resolution, socketpair fd liveness reopen defect); stage dist/web; verify the foreground lifecycle end to end; realign TUI-only package assertions`
+  - Forbidden scope: `workbench redesign, absorbed-capability Web parity, AI components, Git/publish/release/real-HOME operations`
+  - Expected result: `a runnable foreground Pi Web composition with deterministic lifecycle evidence`
+  - Expected evidence: `artifact:BUILD-P12-WEB-RESUME-foreground-composition`
+  - Acceptance: `npm run build:web succeeds and stages dist/web; bin/pi-web.js serves, authenticates, streams, and stops with no orphan; /web registration is inert at ordinary load; typecheck and the full automated suite pass`
+  - Dispatch evidence: `verification:BUILD-P12-waiver`
+  - Result evidence: `artifact:BUILD-P12-WEB-RESUME-foreground-composition`
+  - Evidence: `verification:BUILD-P12-typecheck, verification:BUILD-P12-full-suite, verification:BUILD-P12-foreground-lifecycle-matrix`
+  - ROSE disposition: `accepted`
+  - Blocker: `none for tasks 2.4/2.5; interactive TUI /web exercise, 13.2 browser matrix, deferred Web parity, AI components, docs, and provenance generalization remain outside this package`
+  - Next action: `continue BUILD-P02-R6-R4 residue and the remaining accepted queue`
 
 - [ ] BUILD-P04 — Absorb Analytics and Stamp services
   - Phase: `BUILD`
