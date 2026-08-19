@@ -986,6 +986,10 @@ function TextFileViewer({
   const [displayMode, setDisplayMode] = useState<DisplayMode>(requestedInitialDisplayMode);
   const [wrapLines, setWrapLines] = useState(initialWrapLines);
   const [watching, setWatching] = useState(false);
+  // Task 3.1 (add-webui-coding-workspace): copy-contents feedback + the
+  // go-to-line query ("42" or "#L42").
+  const [copied, setCopied] = useState(false);
+  const [lineQuery, setLineQuery] = useState("");
   const esRef = useRef<EventSource | null>(null);
   const contentRequestRef = useRef(0);
   const gitDiffRequestRef = useRef(0);
@@ -1011,8 +1015,37 @@ function TextFileViewer({
     setDisplayMode(nextDisplayMode);
   }, []);
 
-  const toggleWrapLines = useCallback(() => {
-    setWrapLines((current) => {
+  // Copy the file contents to the clipboard (the path-copy action elsewhere
+  // copies paths; this one is the contents themselves).
+  const copyContent = useCallback(() => {
+    void navigator.clipboard.writeText(data?.content ?? "")
+      .then(() => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(() => undefined);
+  }, [data?.content]);
+
+  // Jump to a source line ("42" or "#L42") inside the scroll container; the
+  // #L form is the deep-link shape navigation callers use. The scroll is
+  // applied to the viewer container only — scrollIntoView would also scroll
+  // every scrollable ancestor (the chat history with its fold anchor, the
+  // page), which visibly folds the chat and snaps views back to their start.
+  const goToLine = useCallback(() => {
+    const match = lineQuery.match(/^\s*#?L?(\d+)\s*$/i);
+    if (!match) return;
+    const container = contentRef.current;
+    if (!container) return;
+    const target = container.querySelector<HTMLElement>(
+      `.file-source-line[data-line-number="${Number(match[1])}"]`,
+    );
+    if (!target) return;
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    container.scrollTop += targetRect.top - containerRect.top - container.clientHeight / 2 + targetRect.height / 2;
+  }, [lineQuery]);
+
+  const toggleWrapLines = useCallback(() => {    setWrapLines((current) => {
       const next = !current;
       viewerStateRef.current.wrapLines = next;
       return next;
@@ -1336,6 +1369,39 @@ function TextFileViewer({
         )}
 
         <div className="file-viewer-controls">
+          {!isDeletedDiff && (
+            <>
+              <input
+                value={lineQuery}
+                onChange={(event) => setLineQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") goToLine();
+                }}
+                placeholder={t("viewer.goToLine")}
+                aria-label={t("viewer.goToLine")}
+                title={t("viewer.goToLine")}
+                style={{ width: 76, height: 22, padding: "0 7px", flexShrink: 0, border: "1px solid var(--border)", borderRadius: 4, background: "var(--bg-panel)", color: "var(--text)", fontSize: 11, fontFamily: "var(--font-mono)", outline: "none" }}
+              />
+              <button
+                type="button"
+                onClick={copyContent}
+                title={copied ? t("viewer.copied") : t("viewer.copyContent")}
+                aria-label={copied ? t("viewer.copied") : t("viewer.copyContent")}
+                style={{ width: 24, height: 22, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1px solid var(--border)", borderRadius: 4, background: "var(--bg-panel)", color: copied ? "#15a06a" : "var(--text-dim)", cursor: "pointer" }}
+              >
+                {copied ? (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="m5 12 4 4L19 6" />
+                  </svg>
+                ) : (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="9" y="9" width="12" height="12" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                )}
+              </button>
+            </>
+          )}
           {displayModes.length > 1 && (
             <div className="file-viewer-mode-switch" aria-label={t("i18n.fileViewMode")}>
               {displayModes.map((mode) => {

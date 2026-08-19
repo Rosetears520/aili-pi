@@ -22,3 +22,10 @@
 - **Why the enrichment was wrong, not just unwanted:** a git file diff reflects the working tree relative to HEAD — it can include earlier edits from previous turns or pre-session changes, so "upgrading" a write card with it would misattribute changes to this tool call. Tool data is the only truthful source for per-call changes.
 - **Spec alignment:** the accepted `webui-inline-file-change-events` delta already says events come "exclusively from arrived, non-error results of file-mutating tools" — the git enrichment was a design-level addition (design.md decision 2); this correction brings implementation and design back inside the accepted spec. `webui-shared-diff-rendering`'s "tool-result and git data sources" wording remains accurate: git feeds the Changes page and file viewer surfaces, never the timeline card.
 - **Write-back:** design.md decision 2 rewritten around the git-free table; component test now asserts the card performs no git fetches.
+
+## D-2026-08-19-4 — Existing chrome wins: tree header cwd row removed
+
+- **Trigger:** user direction 2026-08-19: 「如果有冲突，以我现在的功能为准；如果我已经有相关功能，就在现有基础上拓展，而不是另起一个新的。就比如文件 cwd，我上面其实有一个路径以及一个分支切换管理的，这个感觉可以都去了的。」
+- **Change:** the ROUND-7 tree-header cwd row (and the ROUND-8-removed duplicate refresh button) are gone entirely. The sidebar already presents the project path and branch/worktree switching above the tree and owns the explorer toolbar (refresh with done indicator, upload, changed-count). `FileExplorer` adds no chrome; its only new behavior is changed-file clicks opening diff mode. Unused `files.currentCwd`/`files.refreshTree` i18n keys removed.
+- **Requirement mapping:** `webui-workspace-surfaces` FileTree "manual refresh and current-cwd display" is satisfied by the existing sidebar controls; the tree keeps status badges/expand/collapse/selection on `/api/files` + allowed-roots, unchanged.
+- **Audit rule adopted for the remaining phases:** before adding any control, check the sidebar/toolbars first; extend or reuse what exists, and record any intentional coexistence here.

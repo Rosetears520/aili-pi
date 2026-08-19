@@ -43,13 +43,13 @@
 
 ## 3. Phase 3 — Workspace wiring (progressive integration)
 
-- [ ] 3.1 Complete the CodeView surface in `FileViewer`: copy-to-clipboard action, go-to-line input with `#L`-style deep-link support, and an always-visible current file path.
+- [x] 3.1 Complete the CodeView surface in `FileViewer`: copy-to-clipboard action, go-to-line input with `#L`-style deep-link support, and an always-visible current file path.
   - Acceptance: the CodeView requirement's control set (highlighting, line numbers, horizontal scroll, copy, go-to-line, tabs, path) is fully present; no write path exists.
   - Verify: colocated component tests for copy, go-to-line, deep link, and path display.
-- [ ] 3.2 Wire cross-surface navigation through `openFileTab` mode hints: tree file → source tab, changed tree entry / Changes entry → diff-mode tab, inline-card "Show full diff" → the `/changes` open path, inline-card filename → source tab.
+- [x] 3.2 Wire cross-surface navigation through `openFileTab` mode hints: tree file → source tab, changed tree entry / Changes entry → diff-mode tab, inline-card "Show full diff" → the `/changes` open path, inline-card filename → source tab.
   - Acceptance: every navigation arrow in the workspace requirement works without losing chat context and restores tab state per the existing conventions.
   - Verify: colocated tests for each navigation arrow; manual browser pass across tree, viewer, changes page, and timeline.
-- [ ] 3.3 Formalize the FileTree header in `FileExplorer`: explicit refresh control and current-cwd display alongside the existing badges, expand/collapse, selected state, and changed-directory highlighting.
+- [x] 3.3 Formalize the FileTree surface in `FileExplorer`. Amended 2026-08-19 by user direction: the sidebar's existing path/branch display and explorer refresh/upload/changed-count toolbar are the canonical chrome — the tree adds no duplicate header; refresh and cwd requirements are satisfied by those existing controls (drift-log D-2026-08-19-4).
   - Acceptance: the tree satisfies the FileTree requirement entirely on the existing `/api/files` + allowed-roots path with no new filesystem runtime.
   - Verify: colocated component tests for refresh and cwd display; manual check that status badges refresh.
 

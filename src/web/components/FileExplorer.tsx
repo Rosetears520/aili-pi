@@ -276,9 +276,11 @@ function TreeNode({
       onToggleExpanded(node.fullPath, next);
       if (next && !loaded) loadChildren();
     } else {
-      onOpenFile(node.fullPath, node.name);
+      // Changed files open straight into diff mode (user direction
+      // 2026-08-19: "点击 Changed 状态 → DiffView"); clean files open source.
+      onOpenFile(node.fullPath, node.name, gitStatus ? { modeHint: "diff" } : undefined);
     }
-  }, [node.isDir, node.fullPath, node.name, loaded, open, loadChildren, onOpenFile, onToggleExpanded]);
+  }, [node.isDir, node.fullPath, node.name, loaded, open, gitStatus, loadChildren, onOpenFile, onToggleExpanded]);
 
   return (
     <div>
