@@ -44,8 +44,8 @@ describe("Pi Web static lifecycle seams", () => {
     expect(build).toContain('WEB_SOURCE_ROOT = "src/web"');
     expect(build).toContain('WEB_OUTPUT_ROOT = "dist/web"');
     expect(build).toContain('PI_WEB_SOURCE_LOCK = "upstream/web-source-locks.json"');
-    expect(build).toContain('source: "upstream/pi-web-0.8.8"');
-    expect(build).toContain('sourceRevision: "5a53c18ca9328400a3dfb8c48c1e4f343b3e4903"');
+    expect(build).toContain('source: "upstream/pi-web-0.8.9"');
+    expect(build).toContain('sourceRevision: "febcba5e33e5eef9bf7f092099105c5dfea742ff"');
     expect(build).toContain("await runNextBuild(root, sourceRoot)");
     expect(build).toContain('cp(join(sourceRoot, ".next"), join(outputRoot, ".next")');
     expect(build).not.toContain('cp(join(root, "upstream"');
@@ -61,7 +61,7 @@ describe("Pi Web static lifecycle seams", () => {
 
     expect(manifest.bin).toEqual({ "pi-web": "./bin/pi-web.js", "aili-pi": "./bin/aili-pi.js" });
     expect(manifest.files).toEqual(expect.arrayContaining(["bin/", "dist/web/", "extensions/web/", "src/"]));
-    expect(manifest.dependencies).toMatchObject({ next: "16.2.12", react: "19.2.4", "react-dom": "19.2.4" });
+    expect(manifest.dependencies).toMatchObject({ next: "16.3.1", react: "19.2.4", "react-dom": "19.2.4" });
     expect(manifest.dependencies).not.toHaveProperty("@agegr/pi-web");
     expect(manifest.scripts).toMatchObject({ "build:web": expect.stringContaining("scripts/build-web.ts") });
   });

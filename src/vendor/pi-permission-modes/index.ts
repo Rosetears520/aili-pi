@@ -107,7 +107,10 @@ const BUILTIN_HANDLED = new Set([
 ]);
 
 /** Our own tools that must never be hidden (show_plan is needed in Plan mode). */
-const NEVER_HIDE = new Set(["show_plan"]);
+// AILI: questionnaire is the non-mutating user-interaction tool and stays
+// available in every mode — YOLO relaxes tool authorization, it never
+// silences user questions.
+const NEVER_HIDE = new Set(["show_plan", "questionnaire"]);
 
 const PI_SESSION_ENV_KEYS = ["PI_SESSION_ID", "PI_SESSION_FILE", "PI_PROVIDER", "PI_MODEL", "PI_REASONING_LEVEL"] as const;
 

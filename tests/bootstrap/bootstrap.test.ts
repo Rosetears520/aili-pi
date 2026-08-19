@@ -48,7 +48,7 @@ async function fixture(options: {
 set -eu
 printf '%s\\n' "$*" >> "$FAKE_PI_LOG"
 case " $* " in
-  *" --version "*) printf '%s\\n' "${options.version ?? "0.84.1"}" ;;
+  *" --version "*) printf '%s\\n' "${options.version ?? "0.84.2"}" ;;
   *" --help "*) printf '%s\\n' '${options.help ?? "  --extension <path>\n  --no-extensions\n  --no-skills\n  --no-prompt-templates\n  --mode <mode>\n  --no-session\n  --print, -p\n  --offline\n  --list-models [search]"}' ;;
   *" --list-models "*) [ "${options.headlessFails ? "1" : "0"}" = 0 ] ;;
   *" list "*)
@@ -427,11 +427,11 @@ describe("thin Unix bootstrap", () => {
     expect(await readFile(update.log, "utf8")).toContain("update --self");
   });
 
-  it("accepts the exact Pi 0.84.1 compatibility floor", async () => {
-    const compatible = await fixture({ version: "0.84.1" });
+  it("accepts the exact Pi 0.84.2 compatibility floor", async () => {
+    const compatible = await fixture({ version: "0.84.2" });
     const result = run(compatible.env);
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("preflight=pass pi_version=0.84.1");
+    expect(result.stdout).toContain("preflight=pass pi_version=0.84.2");
     expect(await readFile(compatible.log, "utf8")).toContain("install npm:@rosetears/aili-pi@latest");
   });
 
@@ -442,7 +442,7 @@ describe("thin Unix bootstrap", () => {
     expect(versionResult.stdout).toContain("stage=pi-version-incompatible");
     expect(await readFile(incompatible.log, "utf8")).not.toContain("install npm:");
 
-    const malformed = await fixture({ version: "0.84.1-beta1" });
+    const malformed = await fixture({ version: "0.84.2-beta1" });
     expect(run(malformed.env).stdout).toContain("stage=pi-version-format");
     expect(await readFile(malformed.log, "utf8")).not.toContain("install npm:");
 

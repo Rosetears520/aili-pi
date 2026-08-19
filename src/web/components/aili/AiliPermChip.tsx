@@ -15,13 +15,15 @@ const FALLBACK_MODES: readonly PermMode[] = [
   { key: "yolo", label: "YOLO" },
 ];
 
-export function AiliPermChip({ status, onRunCommand, onSwitchMode, disabled, sessionId }: {
+export function AiliPermChip({ status, onRunCommand, onSwitchMode, disabled, sessionId, pendingKey }: {
   status: PermStatusView | undefined;
   onRunCommand: (command: string) => void;
   /** Preferred direct switch path: invokes the /perm handler without the prompt pipeline. */
   onSwitchMode?: (mode: string) => void;
   disabled: boolean;
   sessionId?: string | null;
+  /** Mode queued for a session that does not exist yet (new-session draft). */
+  pendingKey?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [modes, setModes] = useState<readonly PermMode[]>(FALLBACK_MODES);
@@ -97,7 +99,7 @@ export function AiliPermChip({ status, onRunCommand, onSwitchMode, disabled, ses
     }
   }, [statusKey, optimisticKey]);
 
-  const currentKey = optimisticKey ?? statusKey ?? seedKey ?? defaultKey ?? undefined;
+  const currentKey = optimisticKey ?? statusKey ?? pendingKey ?? seedKey ?? defaultKey ?? undefined;
   const currentLabel = currentKey ? modes.find((mode) => mode.key === currentKey)?.label : undefined;
 
   const applyMode = (key: string) => {

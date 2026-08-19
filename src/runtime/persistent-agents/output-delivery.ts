@@ -15,7 +15,7 @@ import { parseCanonicalFormalResult } from "./task-coordinator.js";
 import { assertNoCredentialMaterial } from "./permission.js";
 
 export const PARENT_PREVIEW_CHAR_LIMIT = 5_000;
-export const BUILTIN_PARENT_DELETE_GAP = "official Pi 0.84.1 built-in Ctrl+D/archive does not cascade AILI sidecars; use confirmed AILI deletion or reconciliation";
+export const BUILTIN_PARENT_DELETE_GAP = "official Pi 0.84.2 built-in Ctrl+D/archive does not cascade AILI sidecars; use confirmed AILI deletion or reconciliation";
 
 function isInside(root: string, candidate: string): boolean {
   const rel = relative(root, candidate);

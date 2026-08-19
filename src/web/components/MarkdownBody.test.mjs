@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { register } from "node:module";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createJiti } from "jiti";
+
+register(new URL("./aicss/module-css-stub.mjs", import.meta.url));
 
 const jiti = createJiti(import.meta.url, {
   jsx: { runtime: "automatic" },

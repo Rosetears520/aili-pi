@@ -94,7 +94,10 @@ function adaptIndex(source: string): string {
   const withEnvironmentPrelude = replaceExactlyOnce(
     withBashContext,
     'const NEVER_HIDE = new Set(["show_plan"]);',
-    `const NEVER_HIDE = new Set(["show_plan"]);
+    `// AILI: questionnaire is the non-mutating user-interaction tool and stays
+// available in every mode — YOLO relaxes tool authorization, it never
+// silences user questions.
+const NEVER_HIDE = new Set(["show_plan", "questionnaire"]);
 
 const PI_SESSION_ENV_KEYS = ["PI_SESSION_ID", "PI_SESSION_FILE", "PI_PROVIDER", "PI_MODEL", "PI_REASONING_LEVEL"] as const;
 
@@ -188,7 +191,7 @@ async function expectedOutputs(): Promise<Record<string, string>> {
     localChanges: [
       "Package-owned adapted entry redirects all unchanged sibling modules to the exact pi-permission-modes dependency while owning resolve.ts locally.",
       "matchPattern compiles its anchored glob RegExp with dotAll so * and ? include ECMAScript line terminators.",
-      "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.84.1 can derive current PI_* session environment values.",
+      "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.84.2 can derive current PI_* session environment values.",
       "The adapted sandbox BashOperations wrapper injects Pi's resolved five-variable session environment as a shell-safe prelude because pi-permission-modes@2.2.0 ignores BashOperations.options.env.",
       "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime.",
       "Formal persistent children compose their exact two owning-file denyWrite paths into each sandboxed command while preserving the active profile, network rules, and blocked-host diagnostics.",

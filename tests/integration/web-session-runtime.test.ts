@@ -21,7 +21,7 @@ describe("Pi Web workbench through PrivateWebBff and RuntimeHost", () => {
     const executed: string[] = [];
     const registry = new RuntimeHostRegistry<{ id: string }>();
     const host = registry.create("private-pi-session", {
-      piVersion: "0.84.1",
+      piVersion: "0.84.2",
       runtimeDirectory: directory,
       sessionHandle: "session-browser",
       now: () => clock,
@@ -103,7 +103,7 @@ describe("Pi Web workbench through PrivateWebBff and RuntimeHost", () => {
     let officialAgentCreations = 0;
     const registry = new RuntimeHostRegistry<{ id: string }>();
     const host = registry.create("private-observed-session", {
-      piVersion: "0.84.1", runtimeDirectory: directory, sessionHandle: "session-observer", now: () => clock,
+      piVersion: "0.84.2", runtimeDirectory: directory, sessionHandle: "session-observer", now: () => clock,
       agentSessionFactory: { create: () => { officialAgentCreations += 1; return { id: "unexpected" }; } },
       initialSnapshot: { state: "running", capabilities: { "pi.steer": true }, projection: { pi: { activeRun: true, leafId: "leaf-1" } } },
     });

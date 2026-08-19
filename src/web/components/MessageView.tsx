@@ -43,10 +43,10 @@ interface TokenEstimateCacheEntry {
   tokens: number;
 }
 
-function getTokenEstimateText(block: AssistantContentBlock): string | null {
+export function getTokenEstimateText(block: AssistantContentBlock): string | null {
   if (block.type === "text") return block.text;
   if (block.type === "thinking") return block.thinking;
-  if (block.type === "toolCall") return JSON.stringify(block.input ?? {}) ?? "";
+  if (block.type === "toolCall") return block.rawInput ?? JSON.stringify(block.input ?? {}) ?? "";
   return null;
 }
 
@@ -850,7 +850,7 @@ function BlockView({ block, toolResults, isStreaming, streamingDuration, toolCal
     return <TextBlock block={block as TextContent} isStreaming={isStreaming} cwd={cwd} onOpenFile={onOpenFile} />;
   }
   if (block.type === "thinking") {
-    return <ThinkingBlock block={block as ThinkingContent} duration={streamingDuration} sessionId={sessionId} entryId={entryId} blockIndex={blockIndex} />;
+    return <ThinkingBlock block={block as ThinkingContent} duration={streamingDuration} active={isStreaming} sessionId={sessionId} entryId={entryId} blockIndex={blockIndex} />;
   }
   if (block.type === "toolCall") {
     const tc = block as ToolCallContent;
@@ -865,9 +865,10 @@ function TextBlock({ block, isStreaming, cwd, onOpenFile }: { block: TextContent
   return <SafeMarkdownBody isStreaming={isStreaming} cwd={cwd} onOpenFile={onOpenFile}>{block.text}</SafeMarkdownBody>;
 }
 
-function ThinkingBlock({ block, duration, sessionId, entryId, blockIndex }: {
+function ThinkingBlock({ block, duration, active, sessionId, entryId, blockIndex }: {
   block: ThinkingContent;
   duration?: number;
+  active?: boolean;
   sessionId?: string;
   entryId?: string;
   blockIndex: number;
@@ -898,59 +899,54 @@ function ThinkingBlock({ block, duration, sessionId, entryId, blockIndex }: {
     }
   };
 
+  // aicss thinking-state + thinking-reasoning adaptation: shimmering label while
+  // the block is live, "Thought for Ns" summary once it settles, chevron toggle
+  // over an animated collapsible body (styles in globals.css .aili-thinking*).
+  const label = active || duration === undefined
+    ? t("i18n.thinking")
+    : t("i18n.thoughtFor", { seconds: duration });
+
   return (
-    <div
-      style={{
-        border: "1px solid var(--border)",
-        borderRadius: 6,
-        overflow: "hidden",
-        fontSize: 13,
-      }}
-    >
+    <div className="aili-thinking">
       <button
+        type="button"
+        className="aili-thinking-head"
         onClick={() => void toggle()}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          width: "100%",
-          padding: "6px 10px",
-          background: "var(--bg-panel)",
-          border: "none",
-          color: "var(--text-muted)",
-          cursor: "pointer",
-          fontSize: 12,
-          textAlign: "left",
-        }}
+        aria-expanded={expanded}
       >
-         <span>{t("i18n.thinking")}</span>
-        {duration !== undefined && (
-          <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-dim)", fontVariantNumeric: "tabular-nums" }}>{duration}s</span>
-        )}
-      </button>
-      {expanded && (
-        <div
-          style={{
-            padding: "8px 10px",
-            color: error ? "#f87171" : "var(--text-muted)",
-            fontSize: 12,
-            lineHeight: 1.6,
-            whiteSpace: "pre-wrap",
-            background: "var(--bg-panel)",
-            borderTop: "1px solid var(--border)",
-          }}
+        <span className={active ? "aili-shimmer" : undefined}>{label}</span>
+        <svg
+          className="aili-thinking-chevron"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
         >
-           {loading ? t("i18n.loadingThinking") : error ?? (block.deferred ? content : block.thinking)}
+          <path d="m18 15-6-6-6 6" />
+        </svg>
+      </button>
+      <div className={expanded ? "aili-thinking-body" : "aili-thinking-body is-collapsed"}>
+        <div className="aili-thinking-inner">
+          <div className={error ? "aili-thinking-content aili-thinking-error" : "aili-thinking-content"}>
+            {loading ? t("i18n.loadingThinking") : error ?? (block.deferred ? content : block.thinking)}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
 
 function ToolCallBlock({ block, result, duration }: { block: ToolCallContent; result?: ToolResultMessage; duration?: number }) {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
-  const inputStr = JSON.stringify(block.input, null, 2);
+  const inputStr = getToolCallInputText(block);
+  const isStreamingInput = block.rawInput !== undefined;
   const isEditTool = isEditToolName(block.toolName);
   const resultDiff = result && !result.isError ? getResultDiff(result) : null;
 
@@ -993,7 +989,7 @@ function ToolCallBlock({ block, result, duration }: { block: ToolCallContent; re
           {block.toolName}
         </span>
         <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
-          {getToolPreview(block)}
+          {isStreamingInput ? t("chat.generatingToolInput") : getToolPreview(block)}
         </span>
         {duration !== undefined && (
           <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{duration}s</span>
@@ -1004,7 +1000,7 @@ function ToolCallBlock({ block, result, duration }: { block: ToolCallContent; re
       </button>
 
       {/* ── Expanded: input args ── */}
-      {expanded && !isEditTool && (
+      {expanded && (isStreamingInput || !isEditTool) && (
         <pre
           style={{
             margin: 0,
@@ -1588,6 +1584,10 @@ function safeJson(value: unknown): string {
   } catch {
     return String(value);
   }
+}
+
+export function getToolCallInputText(block: ToolCallContent): string {
+  return block.rawInput ?? JSON.stringify(block.input, null, 2);
 }
 
 function formatCustomType(type: string): string {

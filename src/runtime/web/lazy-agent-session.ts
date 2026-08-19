@@ -31,7 +31,7 @@ export class LazyOfficialAgentSession<T extends OfficialAgentSessionLike = Offic
 
   public async get(): Promise<T> {
     if (this.disposed) throw new Error("official AgentSession bridge is disposed");
-    if (!this.options.compatible()) throw new Error("official Pi 0.84.1 compatibility is required before session mutation");
+    if (!this.options.compatible()) throw new Error("official Pi 0.84.2 compatibility is required before session mutation");
     if (this.value) return this.value;
     this.loading ??= Promise.resolve(this.options.factory.create(this.options.sessionId)).then((value) => {
       if (!value || typeof value !== "object") throw new Error("official AgentSession factory returned an invalid session");
@@ -60,7 +60,7 @@ export class LazyOfficialAgentSession<T extends OfficialAgentSessionLike = Offic
   }
 }
 
-export const OFFICIAL_PI_VERSION = "0.84.1" as const;
+export const OFFICIAL_PI_VERSION = "0.84.2" as const;
 
 export function isOfficialPiCompatible(version: unknown): version is typeof OFFICIAL_PI_VERSION {
   return version === OFFICIAL_PI_VERSION;

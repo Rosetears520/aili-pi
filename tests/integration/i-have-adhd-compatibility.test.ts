@@ -37,14 +37,14 @@ describe("i-have-adhd Pi compatibility", () => {
     }));
   });
 
-  it("binds the official local Pi 0.84.1 skill docs and native discovery API", async () => {
+  it("binds the official local Pi 0.84.2 skill docs and native discovery API", async () => {
     const [packageText, distributionText, docs, api] = await Promise.all([
       readFile(new URL("package.json", piPackageRoot), "utf8"),
       readFile(new URL("../../package.json", import.meta.url), "utf8"),
       readFile(new URL("docs/skills.md", piPackageRoot)),
       readFile(new URL("dist/core/package-manager.js", piPackageRoot)),
     ]);
-    expect(JSON.parse(packageText).version).toBe("0.84.1");
+    expect(JSON.parse(packageText).version).toBe("0.84.2");
     const distribution = JSON.parse(distributionText);
     expect(distribution.files).not.toContain("skills/");
     expect(distribution.pi.skills).not.toContain("skills/i-have-adhd");
@@ -54,7 +54,7 @@ describe("i-have-adhd Pi compatibility", () => {
     });
   });
 
-  it("uses Pi 0.84.1 native ~/.agents/skills discovery and progressive disclosure", async () => {
+  it("uses Pi 0.84.2 native ~/.agents/skills discovery and progressive disclosure", async () => {
     const root = await mkdtemp(join(tmpdir(), "aili-pi-adhd-discovery-"));
     roots.push(root);
     const home = join(root, "home");

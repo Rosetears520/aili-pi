@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { redactedWebDiagnostic } from "../../src/runtime/web/access-policy.js";
 
 export const WEB_COMMAND_NAME = "web" as const;
-export const SUPPORTED_PI_VERSION = "0.84.1" as const;
+export const SUPPORTED_PI_VERSION = "0.84.2" as const;
 export const WEB_CHILD_READY_TIMEOUT_MS = 30_000;
 export const WEB_CHILD_STOP_TIMEOUT_MS = 5_000;
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");

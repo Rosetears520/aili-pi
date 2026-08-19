@@ -1,4 +1,4 @@
-// Adapted from the exact MIT-licensed Pi Web 0.8.8 baseline.
+// Adapted from the exact MIT-licensed Pi Web 0.8.9 baseline.
 // Upstream: https://github.com/agegr/pi-web.git
 // Revision: 5a53c18ca9328400a3dfb8c48c1e4f343b3e4903
 // Copyright (c) 2026 agegr
@@ -9,7 +9,7 @@ export const PI_WEB_BASELINE = Object.freeze({
   package: "@agegr/pi-web",
   version: "0.8.8",
   revision: "5a53c18ca9328400a3dfb8c48c1e4f343b3e4903",
-  sourceRoot: "upstream/pi-web-0.8.8",
+  sourceRoot: "upstream/pi-web-0.8.9",
   license: "MIT",
   copyright: "Copyright (c) 2026 agegr",
   adaptation: "AILI PrivateWebBff and versioned Runtime contracts",

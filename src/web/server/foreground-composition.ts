@@ -32,7 +32,7 @@ import {
   type AiliWebBffBridge,
 } from "./private-bff-bridge.js";
 
-const OFFICIAL_PI_VERSION = "0.84.1" as const;
+const OFFICIAL_PI_VERSION = "0.84.2" as const;
 /** Most recent JSONL entries served by the per-session history route. */
 const HISTORY_ENTRY_LIMIT = 500;
 const PRIVATE_HEADERS = Object.freeze({

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-13T01:42:00Z",
+  "generatedAt": "2026-08-18T09:55:00Z",
   "policy": {
     "webCodeBase": "pi-web-only",
     "referenceOnlySources": [
@@ -8,32 +8,33 @@
       "minghinmatthewlam/pi-gui",
       "OpenCode"
     ],
-    "aicssSourceCopied": false,
-    "aicssDisposition": "Independently implement all fourteen accepted semantic categories because public npm/MIT source redistribution rights were not established."
+    "aicssSourceCopied": true,
+    "aicssDisposition": "2026-08-18 project-owner authorization plus free/locked audit: only AIcss's ten free components may be vendored (FAQ: free components are usable in personal and commercial projects without a license); four verbatim free components live under src/web/components/aicss/ (ApprovalCard, Orb, TodoList, StreamingText + module CSS) with provenance in that directory's README. The locked components (inline-citations, image-generation, comparison-table, file-diff) are never vendored: an InlineCitations copy was removed the same day and replaced by the AILI-owned .aili-cite-* implementation, and the markdown-table/diff CSS values were re-derived onto theme variables. The FAQ's redistribution ban (as-is resale as a competing template/component library) does not cover use inside this application's prebuilt bundle."
   },
   "sources": [
     {
       "id": "pi-web",
       "package": "@agegr/pi-web",
-      "version": "0.8.8",
+      "version": "0.8.9",
       "sourceUrl": "https://github.com/agegr/pi-web.git",
-      "npmTarballUrl": "https://registry.npmjs.org/@agegr/pi-web/-/pi-web-0.8.8.tgz",
-      "npmTarballSha256": "c26849652028fd7aabf06ee215b2c3eb9a461161a0ca8de32a2d5a3f27dba470",
-      "npmIntegrity": "sha512-CB7XMJnXX4YWhAbYbtS0wFJuE3s0BFsezI/Pj8GKssCCVTlsa2Rhtzwn+rTT3lJOVLFNRUQi+td0E3jqIC1SzQ==",
-      "gitRevision": "5a53c18ca9328400a3dfb8c48c1e4f343b3e4903",
-      "gitSourceArchiveSha256": "9276b8fc9950293219a40dffe23b49f0f86ba5f2d1fc5d429869f30e2da12dc6",
-      "sourceManifestVersion": "0.8.8-beta.2",
-      "identityNote": "npm 0.8.8 declares gitHead 5a53c18; that exact pre-publish source commit still declares 0.8.8-beta.2. The repository snapshot is identified by git revision, while the distributable baseline is identified by npm version, tarball hash, and integrity.",
+      "npmTarballUrl": "https://registry.npmjs.org/@agegr/pi-web/-/pi-web-0.8.9.tgz",
+      "npmTarballSha256": "323838460754b5ea9d56303b6018e7b82ae732d7aca76d9c860a8bd68e74f3ec",
+      "npmIntegrity": "sha512-jmsABuL2aJE9yxPok7u97GLj72PjVeJbjHBjx67eXB5lnNJrPLTj6F6Jy7yl3F0vH0K5R0YyZxPZHDCMI770VA==",
+      "gitRevision": "febcba5e33e5eef9bf7f092099105c5dfea742ff",
+      "gitSourceArchiveSha256": "2f04f9f273aaedfcc5dc78a5652fa033d2d929b0440cd480d6713f9479747377",
+      "sourceManifestVersion": "0.8.8",
+      "identityNote": "npm 0.8.9 declares gitHead febcba5; that exact pre-publish source commit still declares 0.8.8 in its package manifest. The repository snapshot is identified by git revision, while the distributable baseline is identified by npm version, tarball hash, and integrity.",
       "license": "MIT",
       "copyright": "Copyright (c) 2026 agegr",
-      "importPath": "upstream/pi-web-0.8.8",
+      "importPath": "upstream/pi-web-0.8.9",
       "importKind": "exact-git-source-snapshot",
-      "importedFileCount": 361,
-      "importedTreeSha256": "f85d7bbc5a918c9727ad51588b9801b9d2d1d64d12104bc3a22113fb95b92661",
+      "importedFileCount": 376,
+      "importedTreeSha256": "21cc3896e8942cc0789b3012f86eb30b0dbc7fe983aa483fc339526c01b24820",
       "excludedSourceFiles": [
         ".git/**",
         ".gitignore",
         "AGENTS.md",
+        "CONTEXT.md",
         "bun.lock",
         "node_modules/**",
         ".next/**"

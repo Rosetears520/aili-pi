@@ -1,5 +1,6 @@
 import type {
   AgentSessionEvent,
+  BashOperations,
   SessionManager,
   SettingsManager,
   SlashCommandInfo,
@@ -86,8 +87,12 @@ type WidgetOptionsLike = {
   placement?: "aboveEditor" | "belowEditor";
 };
 
+import type { QuestionnaireQuestion, QuestionnaireResult } from "../../questionnaire/model.ts";
+
 export interface ExtensionUiContextLike {
   select(title: string, options: string[], opts?: DialogOptionsLike): Promise<string | undefined>;
+  /** AILI Unified User Interaction: full structured questionnaire card. */
+  questionnaire?(questions: QuestionnaireQuestion[], signal?: AbortSignal): Promise<QuestionnaireResult>;
   confirm(title: string, message: string, opts?: DialogOptionsLike): Promise<boolean>;
   input(title: string, placeholder?: string, opts?: DialogOptionsLike): Promise<string | undefined>;
   editor(title: string, prefill?: string, opts?: DialogOptionsLike): Promise<string | undefined>;
@@ -153,7 +158,10 @@ export interface AgentSessionLike {
     preflightResult?: (success: boolean) => void;
   }): Promise<void>;
   abort(): Promise<void>;
-  executeBash(command: string, onChunk?: (chunk: string) => void, options?: { excludeFromContext?: boolean }): Promise<{ output: string; exitCode?: number; cancelled?: boolean; truncated?: boolean; fullOutputPath?: string }>;
+  executeBash(command: string, onChunk?: (chunk: string) => void, options?: {
+    excludeFromContext?: boolean;
+    operations?: BashOperations;
+  }): Promise<{ output: string; exitCode?: number; cancelled?: boolean; truncated?: boolean; fullOutputPath?: string }>;
   abortBash(): void;
   readonly isBashRunning: boolean;
   setModel(model: ModelLike): Promise<void>;

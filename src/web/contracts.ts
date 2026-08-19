@@ -1,4 +1,4 @@
-// Pi Web 0.8.8 adaptation: browser-facing data is intentionally independent
+// Pi Web 0.8.9 adaptation: browser-facing data is intentionally independent
 // from private Pi objects and contains only BFF-issued opaque handles.
 
 export const WEB_WORKBENCH_SCHEMA_VERSION = 1 as const;

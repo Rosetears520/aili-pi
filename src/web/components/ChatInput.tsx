@@ -70,6 +70,8 @@ interface Props {
   onToolPresetChange?: (preset: ToolPreset) => void;
   /** Current permission-mode footer text reported by the perm extension. */
   permStatusText?: string | null;
+  /** Queued mode for a not-yet-created session; shown on the chip until applied. */
+  pendingPermMode?: string | null;
   /** Active session id — seeds the permission-mode chip from the session journal. */
   permSessionId?: string | null;
   /** Direct permission-mode switch path (no prompt pipeline). */
@@ -397,7 +399,7 @@ export function ModelScopeWarningBanner({ warnings }: { warnings?: string[] }) {
 export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   onSend, onAbort, onSteer, onFollowUp, isStreaming, model, isAutoModelSelection, modelNames, modelList, modelError, modelScopeWarnings, onModelChange, modelSwitching,
   onCompact, onAbortCompaction, isCompacting, compactError, compactResult, toolPreset, onToolPresetChange,
-  permStatusText, permSessionId, onSwitchPermMode, onRunCommand,
+  permStatusText, pendingPermMode, permSessionId, onSwitchPermMode, onRunCommand,
   thinkingLevel, onThinkingLevelChange, availableThinkingLevels, thinkingLevelMap,
   retryInfo, queuedMessages, inputHistory = [], onRecallQueue,
   slashCommands, slashCommandsLoading, onLoadSlashCommands,
@@ -2213,7 +2215,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               status={parsePermStatus(permStatusText ?? undefined)}
               onRunCommand={onRunCommand ?? runCommand}
               onSwitchMode={onSwitchPermMode}
-              disabled={!permSessionId}
+              disabled={!permSessionId && !onSwitchPermMode}
+              pendingKey={pendingPermMode ?? undefined}
               sessionId={permSessionId}
             />
               </>

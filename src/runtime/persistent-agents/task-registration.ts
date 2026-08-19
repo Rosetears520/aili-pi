@@ -104,7 +104,7 @@ function isReservedDefinition(tool: TaskToolInfo | undefined, reservation: Canon
 
 /**
  * Register the sole top-level AILI task definition and reserve its exact
- * in-process definition and loader-owned source identity. Pi 0.84.1 exposes
+ * in-process definition and loader-owned source identity. Pi 0.84.2 exposes
  * the winning definition's schema/guideline references and immutable sourceInfo
  * through getAllTools(), so event-time policy can distinguish this registration
  * from same-name extension, SDK, or MCP tools.

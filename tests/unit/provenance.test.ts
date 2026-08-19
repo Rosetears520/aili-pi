@@ -31,8 +31,8 @@ describe("provenance and SBOM", () => {
       readFile(new URL("../../manifests/provenance.json", import.meta.url), "utf8").then(JSON.parse),
       readFile(new URL("../../THIRD_PARTY_NOTICES.md", import.meta.url), "utf8"),
     ]);
-    expect(provenance.sources).toHaveLength(17);
-    expect(provenance.sources.filter((item: { status: string }) => item.status === "adapted")).toHaveLength(7);
+    expect(provenance.sources).toHaveLength(18);
+    expect(provenance.sources.filter((item: { status: string }) => item.status === "adapted")).toHaveLength(8);
     expect(provenance.sources.filter((item: { status: string }) => item.status === "dependency")).toHaveLength(5);
     expect(provenance.sources.filter((item: { status: string }) => item.status === "reference-only")).toHaveLength(5);
     expect(provenance.sources.find((item: { name: string }) => item.name === "Oh My Pi reference")).toMatchObject({
@@ -120,7 +120,7 @@ describe("provenance and SBOM", () => {
       licenseDeclared: "MIT",
     });
     expect(sbom.packages.length).toBeGreaterThan(100);
-    expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "@earendil-works/pi-coding-agent", versionInfo: "0.84.1", licenseDeclared: "MIT" }));
+    expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "@earendil-works/pi-coding-agent", versionInfo: "0.84.2", licenseDeclared: "MIT" }));
     expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "pi-mcp-adapter", versionInfo: "2.23.0", licenseDeclared: "MIT" }));
     expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "@narumitw/pi-codex-compact", versionInfo: "0.50.0", licenseDeclared: "MIT" }));
     expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "billion-context-pi", versionInfo: "0.1.34", licenseDeclared: "MIT" }));

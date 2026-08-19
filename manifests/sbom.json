@@ -3,9 +3,9 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "@rosetears/aili-pi-0.2.9",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/753c512abc75c7b8cfd55f02c2c623a2",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/a222df3e1b8c8fdf47a3c0f84e69b2fb",
   "creationInfo": {
-    "created": "2026-08-14T22:16:31.419Z",
+    "created": "2026-08-18T15:24:03.102Z",
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
     ]
@@ -165,6 +165,18 @@
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
       "comment": "revision=7624b3c50d09d2e9dafa8dbc810c7f2adb453d70; files=upstream/pi-file-context-0.53.0/package.json, upstream/pi-file-context-0.53.0/SOURCE_INVENTORY.json, upstream/pi-file-context-0.53.0/LICENSE, licenses/pi-file-context-MIT.txt, src/runtime/file-context.ts, extensions/file-context/index.ts, extensions/file-context/file-context.ts, extensions/file-context/file-context-explorer.ts, extensions/file-context/file-context-menu.ts, extensions/file-context/file-context-preview-ui.ts, extensions/file-context/file-context-settings.ts, extensions/file-context/content-search.ts, extensions/file-context/content-search-session.ts, extensions/file-context/content-search-ui.ts, extensions/file-context/file-search.ts, extensions/file-context/git-context.ts; symbols=F8 File Context Explorer, Git status browser, diff and changed-hunk navigation, bounded file/content search, line-range selections, Git blame/history/revision views, immutable prompt snapshots, SHA-256 provenance, deterministic token estimate; local changes=AILI keeps selection and snapshot policy independent of the restored TUI controller | the companion @narumitw/pi-tui-kit dependency is installed and pinned exactly to 0.53.0 | the adapter preserves the legacy bounded search commands while routing /file-context browse and /file-context-browse through the restored explorer | filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git reads and diff output remain bounded by the local 5-second/1.1 MiB limits"
+    },
+    {
+      "SPDXID": "SPDXRef-source-PiCraft-questionnaire-11427d244b",
+      "name": "PiCraft questionnaire",
+      "versionInfo": "git:55642c8efb320f8785d12e391805876715f8f685",
+      "downloadLocation": "https://github.com/Losomz/AgentFramework/commit/55642c8efb320f8785d12e391805876715f8f685",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "checksums": [],
+      "primaryPackagePurpose": "SOURCE",
+      "comment": "revision=55642c8efb320f8785d12e391805876715f8f685; files=upstream/picraft-questionnaire-55642c8/index.ts (byte-exact), upstream/picraft-questionnaire-55642c8/model.ts (byte-exact), upstream/picraft-questionnaire-55642c8/ui.ts (byte-exact), src/questionnaire/model.ts (byte-exact copy of model.ts), src/questionnaire/ui.ts (byte-exact copy of ui.ts); symbols=questionnaire tool schema (1-4 questions, up to five options each, multiple/recommended flags), normalizeQuestions validation (ids, lengths, duplicate and reserved labels, recommended bounds), QuestionnaireResult with separated selectedOptions and customInput plus explicit cancelled/unavailable states, QuestionnairePrompt TUI component (tabbed questions, multi-select, custom editor, review page); local changes=src/questionnaire/index.ts is AILI-owned glue: the tool is registered as a non-mutating interaction tool active in all four permission modes (NEVER_HIDE invariant), TUI routes to the absorbed prompt, AILI Web routes through a dedicated extension-UI questionnaire method rendering one full card, generic RPC hosts get a sequential ui.select fallback, headless hosts get an explicit unavailable result | no timeout is ever configured on any presentation path: the user is never auto-answered | persistent workers do not carry the tool (child sessions load no top-level extensions); the parent tool guidance routes worker-reported user decisions through the parent questionnaire"
     },
     {
       "SPDXID": "SPDXRef-node-modules-accepts-818cd6a4d3",
@@ -3365,15 +3377,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-agent-core-c009226610",
       "name": "@earendil-works/pi-agent-core",
-      "versionInfo": "0.84.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.84.1.tgz",
+      "versionInfo": "0.84.2",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.84.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "evyzXYWCLQGmcaBYHlmSku02r8qoN4SGI60GZABo6iV+H+nqX+P9ud8fEZ4GmRq9mUSREvvfX+w9dA9ThF9C6w=="
+          "checksumValue": "8Pn3wSCxj0cfo5I6jxQYVB/3uuQRmHhAlEclyjqpOuMEdQMIODHizRogv56FLdbU+dTiGnybeHQ2N+sV1/L2YA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -3399,15 +3411,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-ai-26a52f7c9a",
       "name": "@earendil-works/pi-ai",
-      "versionInfo": "0.84.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.1.tgz",
+      "versionInfo": "0.84.2",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "wMsAdJMxuNri08vLqTyYVI201DQQezGhPSTkzYsHdw5dYX3rCNwEmSvpaAwhi7ELKI/2tE/CEgSWg/6iRxSgdQ=="
+          "checksumValue": "6MzsrYIYNVlE7SfpbL2yYb67Qo58p/7Q+xWG1RZvoX1P80aRCHSod2/13aFpxkow1lPO2LEh3c495J0Gwmyjig=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -3433,15 +3445,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-9848483bff",
       "name": "@earendil-works/pi-coding-agent",
-      "versionInfo": "0.84.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.84.1.tgz",
+      "versionInfo": "0.84.2",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.84.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "ncAqFrG+iybuPGOhMiZoEHkEzTpJgz3guYD32pD+M7ucc0WeHmauP6wa7qwP8V/KWvsZDVNa5XGsdZ7fkC7w7A=="
+          "checksumValue": "l4E+B7hgXKWddRo8bC/eSue2aWZjEgJ9xIpf5p0Og+lq8a2TArCwJ0HCoCPCgaBP/tN4zbYH/wOwvx9pJpeLCA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -4113,8 +4125,8 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-agent-core-865ec0637c",
       "name": "@earendil-works/pi-agent-core",
-      "versionInfo": "0.84.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.84.1.tgz",
+      "versionInfo": "0.84.2",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.84.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -4125,8 +4137,8 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-ai-93728abce9",
       "name": "@earendil-works/pi-ai",
-      "versionInfo": "0.84.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.1.tgz",
+      "versionInfo": "0.84.2",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -4137,8 +4149,8 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-client-bd5e33384d",
       "name": "@earendil-works/pi-client",
-      "versionInfo": "0.84.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-client/-/pi-client-0.84.1.tgz",
+      "versionInfo": "0.84.2",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-client/-/pi-client-0.84.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -4149,8 +4161,8 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-protocol-e44b6e6331",
       "name": "@earendil-works/pi-protocol",
-      "versionInfo": "0.84.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-protocol/-/pi-protocol-0.84.1.tgz",
+      "versionInfo": "0.84.2",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-protocol/-/pi-protocol-0.84.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -4161,8 +4173,8 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-telemetry-bfc6dfe468",
       "name": "@earendil-works/pi-telemetry",
-      "versionInfo": "0.84.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-telemetry/-/pi-telemetry-0.84.1.tgz",
+      "versionInfo": "0.84.2",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-telemetry/-/pi-telemetry-0.84.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -4173,8 +4185,8 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-earendil-works-pi-tui-eff2aca2e7",
       "name": "@earendil-works/pi-tui",
-      "versionInfo": "0.84.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.84.1.tgz",
+      "versionInfo": "0.84.2",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.84.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
@@ -4897,23 +4909,6 @@
       "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/minipass; development=false; optional=false"
     },
     {
-      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-mistralai-mistralai-2c148dbd34",
-      "name": "@mistralai/mistralai",
-      "versionInfo": "2.2.6",
-      "downloadLocation": "https://registry.npmjs.org/@mistralai/mistralai/-/mistralai-2.2.6.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "Apache-2.0",
-      "licenseDeclared": "Apache-2.0",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "W8pX7zHxjJvMIpw8JMxeJEleapXX0Q9NPszdNzqkM3MIEoIGPObdodujj+WHteXEvGfaP/AMwlNyRfEzSY6dQQ=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/@mistralai/mistralai; development=false; optional=false"
-    },
-    {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-ms-586225afc5",
       "name": "ms",
       "versionInfo": "2.1.3",
@@ -4984,15 +4979,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-openai-57d6587e4f",
       "name": "openai",
-      "versionInfo": "6.26.0",
-      "downloadLocation": "https://registry.npmjs.org/openai/-/openai-6.26.0.tgz",
+      "versionInfo": "6.40.0",
+      "downloadLocation": "https://registry.npmjs.org/openai/-/openai-6.40.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "zd23dbWTjiJ6sSAX6s0HrCZi41JwTA1bQVs0wLQPZ2/5o2gxOJA5wh7yOAUgwYybfhDXyhwlpeQf7Mlgx8EOCA=="
+          "checksumValue": "MWtTjd/gQt4jpbji61NTgFWJLoY/PdRJ6wG9/ZDRMYNMlBKrCrSlkLI+KgHP1vR1qT6LKSAyAqIxno6lcK9JiA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -5014,23 +5009,6 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/@opentelemetry/api; development=false; optional=false"
-    },
-    {
-      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-opentelemetry-semantic-conventions-a2ee453318",
-      "name": "@opentelemetry/semantic-conventions",
-      "versionInfo": "1.41.1",
-      "downloadLocation": "https://registry.npmjs.org/@opentelemetry/semantic-conventions/-/semantic-conventions-1.41.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "Apache-2.0",
-      "licenseDeclared": "Apache-2.0",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "/UhIkaZgPutTFmQ7RnIJGgDXZmtEJ7Dvi86xNTFWcnRxVRNk/aotsqDJYeEvDP+FSMB2SdW+pQzNMcWP0rwuNA=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/@opentelemetry/semantic-conventions; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-p-retry-66cdf960b7",
@@ -5815,51 +5793,17 @@
       "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/yaml; development=false; optional=false"
     },
     {
-      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-zod-4a9ef14443",
-      "name": "zod",
-      "versionInfo": "3.25.76",
-      "downloadLocation": "https://registry.npmjs.org/zod/-/zod-3.25.76.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/zod; development=false; optional=false"
-    },
-    {
-      "SPDXID": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-zod-to-json-schema-e9fd3bfe0b",
-      "name": "zod-to-json-schema",
-      "versionInfo": "3.25.2",
-      "downloadLocation": "https://registry.npmjs.org/zod-to-json-schema/-/zod-to-json-schema-3.25.2.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "ISC",
-      "licenseDeclared": "ISC",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/@earendil-works/pi-coding-agent/node_modules/zod-to-json-schema; development=false; optional=false"
-    },
-    {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-telemetry-8166135365",
       "name": "@earendil-works/pi-telemetry",
-      "versionInfo": "0.84.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-telemetry/-/pi-telemetry-0.84.1.tgz",
+      "versionInfo": "0.84.2",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-telemetry/-/pi-telemetry-0.84.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "180/xGJtsq7IoR3p9EKWjRd0e9M4DkxInhlo9xyD7prDC7Qrhqq+nhvwrW0lFjPfXcEI2FSHmGCSyvSJE9GsaQ=="
+          "checksumValue": "wg5caea7uIv1BHRBm2Y116RvFG4oSAiP5qk9tA2463PDGIr4K8M1Ceyyg5DOpF/shUUl0gk826yQJAeAcHYB9g=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -5868,15 +5812,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-earendil-works-pi-tui-35871b6679",
       "name": "@earendil-works/pi-tui",
-      "versionInfo": "0.84.1",
-      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.84.1.tgz",
+      "versionInfo": "0.84.2",
+      "downloadLocation": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.84.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "udeXFbgEhJ6JiB0uguwNVNkDy2FENfmtQwPcY+/iJ8GWeq18wkal1tKqa5YyeH0IqtX1vG0cGh8zfSYzyzVuLA=="
+          "checksumValue": "ds2TLihOnM5sLJB3VpXV6y0uR5efVuHf4MN7yDpsty6hA2DUO/EDVzjp/0od0G2JslzVLMjT8T8zavtxVb+qbg=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8095,15 +8039,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-darwin-arm64-426ae662fe",
       "name": "@img/sharp-darwin-arm64",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-darwin-arm64/-/sharp-darwin-arm64-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-darwin-arm64/-/sharp-darwin-arm64-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "imtQ3WMJXbMY4fxb/Ndp6HBTNVtWCUI0WdobyheGf5+ad6xX8VIDO8u2xE4qc/fr08CKG/7dDseFtn6M6g/r3w=="
+          "checksumValue": "RMnFX7YQsMoh7lWfcM4NEHHymBX/rLuKNPVM84XE9ONPcaSCDgE7CHIHpSgPcO2xcRthgBy1HfNO319mwhIAkg=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8112,32 +8056,49 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-darwin-x64-8226c6ae36",
       "name": "@img/sharp-darwin-x64",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-darwin-x64/-/sharp-darwin-x64-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-darwin-x64/-/sharp-darwin-x64-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "YNEFAF/4KQ/PeW0N+r+aVVsoIY0/qxxikF2SWdp+NRkmMB7y9LBZAVqQ4yhGCm/H3H270OSykqmQMKLBhBJDEw=="
+          "checksumValue": "Xo+5uFBtLN0BKqieTxiFzFPQAUlBbbH5iBKyRX/z1JrbnYsHTfKJnUfL8+p2TPXr1pXqao4eeL4Rl144uDpK9w=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/@img/sharp-darwin-x64; development=false; optional=true"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-img-sharp-freebsd-wasm32-9e957983d3",
+      "name": "@img/sharp-freebsd-wasm32",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-freebsd-wasm32/-/sharp-freebsd-wasm32-0.35.3.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "Apache-2.0",
+      "licenseDeclared": "Apache-2.0",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "lUxcqWIj2wMQ9BrwNjngcr1gWUr5xgaGThBRqPPalIC2n67Cqj1uPh8NnA/ZhAg8hUbKl+kVHKwgUIwe6ZYPrg=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@img/sharp-freebsd-wasm32; development=false; optional=true"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-img-sharp-libvips-darwin-arm64-37fabdebc1",
       "name": "@img/sharp-libvips-darwin-arm64",
-      "versionInfo": "1.2.4",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-darwin-arm64/-/sharp-libvips-darwin-arm64-1.2.4.tgz",
+      "versionInfo": "1.3.2",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-darwin-arm64/-/sharp-libvips-darwin-arm64-1.3.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "LGPL-3.0-or-later",
       "licenseDeclared": "LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "zqjjo7RatFfFoP0MkQ51jfuFZBnVE2pRiaydKJ1G/rHZvnsrHAOcQALIi9sA5co5xenQdTugCvtb1cuf78Vf4g=="
+          "checksumValue": "9J6ypZFpQBj4YnePGoq/S38w6nz+vqg5WZLrLGY4YuSemdMq47GMLBPO42MzwdGwpg/agZ7xzZcFHa48xlywfg=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8146,15 +8107,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-libvips-darwin-x64-5397ba74e4",
       "name": "@img/sharp-libvips-darwin-x64",
-      "versionInfo": "1.2.4",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-darwin-x64/-/sharp-libvips-darwin-x64-1.2.4.tgz",
+      "versionInfo": "1.3.2",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-darwin-x64/-/sharp-libvips-darwin-x64-1.3.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "LGPL-3.0-or-later",
       "licenseDeclared": "LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "1IOd5xfVhlGwX+zXv2N93k0yMONvUlANylbJw1eTah8K/Jtpi15KC+WSiaX/nBmbm2HxRM1gZ0nSdjSsrZbGKg=="
+          "checksumValue": "m2pW1n6cns9VaubNwsZ+c3CRYjxNQWgJ5gPlnL1nbBcpkBvFm6SCFN5o0psFHI8w9n11NKhFkeEDns98tiqbEw=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8163,15 +8124,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-libvips-linux-arm-ab2989012b",
       "name": "@img/sharp-libvips-linux-arm",
-      "versionInfo": "1.2.4",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm/-/sharp-libvips-linux-arm-1.2.4.tgz",
+      "versionInfo": "1.3.2",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm/-/sharp-libvips-linux-arm-1.3.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "LGPL-3.0-or-later",
       "licenseDeclared": "LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "bFI7xcKFELdiNCVov8e44Ia4u2byA+l3XtsAj+Q8tfCwO6BQ8iDojYdvoPMqsKDkuoOo+X6HZA0s0q11ANMQ8A=="
+          "checksumValue": "1eMLzy92I4J6rmi4mAT8yC3HxOtniyGELlzGbNMLLeqe052ahFQ0h6LFq+lh5DsDIdYViIDst08abvSbcEdLXQ=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8180,15 +8141,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-libvips-linux-arm64-1353fe95fb",
       "name": "@img/sharp-libvips-linux-arm64",
-      "versionInfo": "1.2.4",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm64/-/sharp-libvips-linux-arm64-1.2.4.tgz",
+      "versionInfo": "1.3.2",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm64/-/sharp-libvips-linux-arm64-1.3.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "LGPL-3.0-or-later",
       "licenseDeclared": "LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "excjX8DfsIcJ10x1Kzr4RcWe1edC9PquDRRPx3YVCvQv+U5p7Yin2s32ftzikXojb1PIFc/9Mt28/y+iRklkrw=="
+          "checksumValue": "dqVSFynCox4C/J8kT16V7SIFAns0IjgLwkvYT7p8LQVmJ5OS5b6tI9IGflxTeuBS//zXeFIUbwt5dwxyZ17cnA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8197,15 +8158,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-libvips-linux-ppc64-e3fa9bfca0",
       "name": "@img/sharp-libvips-linux-ppc64",
-      "versionInfo": "1.2.4",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linux-ppc64/-/sharp-libvips-linux-ppc64-1.2.4.tgz",
+      "versionInfo": "1.3.2",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linux-ppc64/-/sharp-libvips-linux-ppc64-1.3.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "LGPL-3.0-or-later",
       "licenseDeclared": "LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "FMuvGijLDYG6lW+b/UvyilUWu5Ayu+3r2d1S8notiGCIyYU/76eig1UfMmkZ7vwgOrzKzlQbFSuQfgm7GYUPpA=="
+          "checksumValue": "3z0NHDxD6n5I9gc05U1eW1AyRm+Gznzq3naMrthPNqE6oYykcogW0l/jfpJdjYnuNl8R7yI9pNbE1XiUeyq0Aw=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8214,15 +8175,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-libvips-linux-riscv64-acdbdd9b84",
       "name": "@img/sharp-libvips-linux-riscv64",
-      "versionInfo": "1.2.4",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linux-riscv64/-/sharp-libvips-linux-riscv64-1.2.4.tgz",
+      "versionInfo": "1.3.2",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linux-riscv64/-/sharp-libvips-linux-riscv64-1.3.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "LGPL-3.0-or-later",
       "licenseDeclared": "LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "oVDbcR4zUC0ce82teubSm+x6ETixtKZBh/qbREIOcI3cULzDyb18Sr/Wcyx7NRQeQzOiHTNbZFF1UwPS2scyGA=="
+          "checksumValue": "bsb4rI+NldGOsXuej2r8OdSS8+zXDVaCWxyWrcv6kneTOlgAHtZABRzBBCwdsPiD90J4myNJuHpg6kA20ImW/w=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8231,15 +8192,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-libvips-linux-s390x-08b4a1284c",
       "name": "@img/sharp-libvips-linux-s390x",
-      "versionInfo": "1.2.4",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linux-s390x/-/sharp-libvips-linux-s390x-1.2.4.tgz",
+      "versionInfo": "1.3.2",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linux-s390x/-/sharp-libvips-linux-s390x-1.3.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "LGPL-3.0-or-later",
       "licenseDeclared": "LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "qmp9VrzgPgMoGZyPvrQHqk02uyjA0/QrTO26Tqk6l4ZV0MPWIW6LTkqOIov+J1yEu7MbFQaDpwdwJKhbJvuRxQ=="
+          "checksumValue": "/ABshyj8gCpyIrNXnHn4LorDJ0HHm1VhXPBlxZ8zAtfVPAaSafXPGn+sUSIRiwaSBy0mmFjSjiXI5mkcwdChKQ=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8248,15 +8209,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-libvips-linux-x64-6fe808aac5",
       "name": "@img/sharp-libvips-linux-x64",
-      "versionInfo": "1.2.4",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linux-x64/-/sharp-libvips-linux-x64-1.2.4.tgz",
+      "versionInfo": "1.3.2",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linux-x64/-/sharp-libvips-linux-x64-1.3.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "LGPL-3.0-or-later",
       "licenseDeclared": "LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "tJxiiLsmHc9Ax1bz3oaOYBURTXGIRDODBqhveVHonrHJ9/+k89qbLl0bcJns+e4t4rvaNBxaEZsFtSfAdquPrw=="
+          "checksumValue": "ITPEtgffGJ0S6G9dRyw/366tJQqFRcHWPHhC+Stpg3Z8AEMrDrTr2lhdz4f/Y/HMbRh//7Z5mBzEpVdi62Oc3w=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8265,15 +8226,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-libvips-linuxmusl-arm64-065b5603ae",
       "name": "@img/sharp-libvips-linuxmusl-arm64",
-      "versionInfo": "1.2.4",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-arm64/-/sharp-libvips-linuxmusl-arm64-1.2.4.tgz",
+      "versionInfo": "1.3.2",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-arm64/-/sharp-libvips-linuxmusl-arm64-1.3.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "LGPL-3.0-or-later",
       "licenseDeclared": "LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "FVQHuwx1IIuNow9QAbYUzJ+En8KcVm9Lk5+uGUQJHaZmMECZmOlix9HnH7n1TRkXMS0pGxIJokIVB9SuqZGGXw=="
+          "checksumValue": "zE9EdiUzUmg5mDT5a1rk5fYJ6GWPloTwWBYDS14naqHsL+EaMpDj1AWnpLgh3u0YCORv2Tt50wrcrpYqkP97Kw=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8282,15 +8243,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-libvips-linuxmusl-x64-1e75c8a4b7",
       "name": "@img/sharp-libvips-linuxmusl-x64",
-      "versionInfo": "1.2.4",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64/-/sharp-libvips-linuxmusl-x64-1.2.4.tgz",
+      "versionInfo": "1.3.2",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64/-/sharp-libvips-linuxmusl-x64-1.3.2.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "LGPL-3.0-or-later",
       "licenseDeclared": "LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "+LpyBk7L44ZIXwz/VYfglaX/okxezESc6UxDSoyo2Ks6Jxc4Y7sGjpgU9s4PMgqgjj1gZCylTieNamqA1MF7Dg=="
+          "checksumValue": "m0lrLiUt+lBYnCFr8qV/65yMR4E/c7/wf78I5eKTdkEakFAlZ9QlzEM3QIhhAwVeUhLAHLcCq7a7Vszq/oFNZQ=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8299,15 +8260,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-linux-arm-717e47a9c3",
       "name": "@img/sharp-linux-arm",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linux-arm/-/sharp-linux-arm-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linux-arm/-/sharp-linux-arm-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "9dLqsvwtg1uuXBGZKsxem9595+ujv0sJ6Vi8wcTANSFpwV/GONat5eCkzQo/1O6zRIkh0m/8+5BjrRr7jDUSZw=="
+          "checksumValue": "affVWCTLooy8TSxbDx2qkzuDeaWLNVBA+P//FNBirHsXpP2fuBhk5AuboYUnrDnzoXes8GFjpTx0SBFOCRg+FA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8316,15 +8277,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-linux-arm64-d0d2b4b043",
       "name": "@img/sharp-linux-arm64",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linux-arm64/-/sharp-linux-arm64-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linux-arm64/-/sharp-linux-arm64-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "bKQzaJRY/bkPOXyKx5EVup7qkaojECG6NLYswgktOZjaXecSAeCWiZwwiFf3/Y+O1HrauiE3FVsGxFg8c24rZg=="
+          "checksumValue": "QgKDspHPnrU+GQ55XPhGwyhC8acLVOOSyAvo1oVfFmrIXLkDNmGWzAfDZ4xK8oSA1qBQrALcHX0G5UZni/SuFQ=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8333,15 +8294,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-linux-ppc64-8f0f33a05d",
       "name": "@img/sharp-linux-ppc64",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linux-ppc64/-/sharp-linux-ppc64-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linux-ppc64/-/sharp-linux-ppc64-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "7zznwNaqW6YtsfrGGDA6BRkISKAAE1Jo0QdpNYXNMHu2+0dTrPflTLNkpc8l7MUP5M16ZJcUvysVWWrMefZquA=="
+          "checksumValue": "sMd8rDxmpLOwv/7N44klFjOD5DUO7FLdjiXDI0hoxYaf7Ar262dQIEkosE98bps+5HPLtp/EvNqeqQtOycP/IA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8350,15 +8311,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-linux-riscv64-810cb8a951",
       "name": "@img/sharp-linux-riscv64",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linux-riscv64/-/sharp-linux-riscv64-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linux-riscv64/-/sharp-linux-riscv64-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "51gJuLPTKa7piYPaVs8GmByo7/U7/7TZOq+cnXJIHZKavIRHAP77e3N2HEl3dgiqdD/w0yUfiJnII77PuDDFdw=="
+          "checksumValue": "0Eob78yjlYPfL5vMNWAW55l3R9Y6BQS/gOfe0ZcP9mEz9ohhKSt4im1hayiknXgf8AWrFqMvJcKIdmLmEe7yeQ=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8367,15 +8328,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-linux-s390x-ed39d27a5e",
       "name": "@img/sharp-linux-s390x",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linux-s390x/-/sharp-linux-s390x-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linux-s390x/-/sharp-linux-s390x-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "nQtCk0PdKfho3eC5MrbQoigJ2gd1CgddUMkabUj+rBevs8tZ2cULOx46E7oyX+04WGfABgIwmMC0VqieTiR4jg=="
+          "checksumValue": "KgAxQ0DxpNOq1rG2t5cgTgShJFGSuU7XO45cqC+1NVOuZnP6tlgZRuSYOfNupGkHID0o3cJOsw4DVeJpMovcGw=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8384,15 +8345,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-linux-x64-ee3da03880",
       "name": "@img/sharp-linux-x64",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linux-x64/-/sharp-linux-x64-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linux-x64/-/sharp-linux-x64-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "MEzd8HPKxVxVenwAa+JRPwEC7QFjoPWuS5NZnBt6B3pu7EG2Ge0id1oLHZpPJdn3OQK+BQDiw9zStiHBTJQQQQ=="
+          "checksumValue": "8pqvxubL2PGdhlPy6GLqzDYMUjyRmKAwKHYKixpdJYBUK7PJ0C029XdsnpFIdgRZG68fZiGdHVWcKPvtiPB4cA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8401,15 +8362,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-linuxmusl-arm64-fce7160de2",
       "name": "@img/sharp-linuxmusl-arm64",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linuxmusl-arm64/-/sharp-linuxmusl-arm64-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linuxmusl-arm64/-/sharp-linuxmusl-arm64-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "fprJR6GtRsMt6Kyfq44IsChVZeGN97gTD331weR1ex1c1rypDEABN6Tm2xa1wE6lYb5DdEnk03NZPqA7Id21yg=="
+          "checksumValue": "Vz0iQjzzcSX3HCbfwFfCSG/9SCIqyO0mH2sXyiHaAYfBk0cRsCWXRyQYX0ovCK/PAQBbTzQ0dsPQHh5MAFL59w=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8418,15 +8379,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-linuxmusl-x64-1041ecb22e",
       "name": "@img/sharp-linuxmusl-x64",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linuxmusl-x64/-/sharp-linuxmusl-x64-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-linuxmusl-x64/-/sharp-linuxmusl-x64-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "Jg8wNT1MUzIvhBFxViqrEhWDGzqymo3sV7z7ZsaWbZNDLXRJZoRGrjulp60YYtV4wfY8VIKcWidjojlLcWrd8Q=="
+          "checksumValue": "6O1NPKcDVj9QEdg7Hx549EX8U0rp6yXQERqru6yRN7fGBn32UvIRJUlWnk+8xDCiG76hXVBbX82NZ/ZKr0euIg=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8435,32 +8396,49 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-wasm32-569ae8520d",
       "name": "@img/sharp-wasm32",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-wasm32/-/sharp-wasm32-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-wasm32/-/sharp-wasm32-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
       "licenseDeclared": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "OdWTEiVkY2PHwqkbBI8frFxQQFekHaSSkUIJkwzclWZe64O1X4UlUjqqqLaPbUpMOQk6FBu/HtlGXNblIs0huw=="
+          "checksumValue": "cZ0XkcYGpHZkqW6iCkqTcmUC0CD9DhD5d/qeZlZkfRBn6GnHniZXLUo5+9xw8Iv76YE6LQFN9YNBlKREcCG76w=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/@img/sharp-wasm32; development=false; optional=true"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-img-sharp-webcontainers-wasm32-3c697aeb73",
+      "name": "@img/sharp-webcontainers-wasm32",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-webcontainers-wasm32/-/sharp-webcontainers-wasm32-0.35.3.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "Apache-2.0",
+      "licenseDeclared": "Apache-2.0",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "2rnq7bX3NzeR2T4YWgz8qiG4h3TSdMe+vN1iQXpJleSJ3SM5zQ8Fy2SyyXAWlbxpEZ2Y+Z4u1BePgJEYbSy80Q=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@img/sharp-webcontainers-wasm32; development=false; optional=true"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-img-sharp-win32-arm64-28f9221562",
       "name": "@img/sharp-win32-arm64",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-win32-arm64/-/sharp-win32-arm64-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-win32-arm64/-/sharp-win32-arm64-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0 AND LGPL-3.0-or-later",
       "licenseDeclared": "Apache-2.0 AND LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "WQ3AgWCWYSb2yt+IG8mnC6Jdk9Whs7O0gxphblsLvdhSpSTtmu69ZG1Gkb6NuvxsNACwiPV6cNSZNzt0KPsw7g=="
+          "checksumValue": "4bPwFdMbeC4JQ8L8LOyWp6nsHcboP5fxkp6iPOXz2Vg49R42TuMs2whkJ5OAP4/Ul035qOzy0AecOF9VOscn4w=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8469,15 +8447,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-win32-ia32-c888bdc2ea",
       "name": "@img/sharp-win32-ia32",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-win32-ia32/-/sharp-win32-ia32-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-win32-ia32/-/sharp-win32-ia32-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0 AND LGPL-3.0-or-later",
       "licenseDeclared": "Apache-2.0 AND LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "FV9m/7NmeCmSHDD5j4+4pNI8Cp3aW+JvLoXcTUo0IqyjSfAZJ8dIUmijx1qaJsIiU+Hosw6xM5KijAWRJCSgNg=="
+          "checksumValue": "r53mXsBN6lFUDiST764SvgwUdHAqM4rPAiDzAmf4fLoB6X/rkfyTrLCg6+g17wJJiCmB3JYgHuUldCWUIRFSXw=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -8486,15 +8464,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-img-sharp-win32-x64-7b06f750aa",
       "name": "@img/sharp-win32-x64",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0 AND LGPL-3.0-or-later",
       "licenseDeclared": "Apache-2.0 AND LGPL-3.0-or-later",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "+29YMsqY2/9eFEiW93eqWnuLcWcufowXewwSNIT6UwZdUUCrM3oFjMWH/Z6/TMmb4hlFenmfAVbpWeup2jryCw=="
+          "checksumValue": "D4y1vNeZrIIJCN+uHaWVtH86B+aCrdMYYjicy9pXHvbGZeGYLLSd3wdVuC37FxVXlU1ARsk84eKWfWMXGYEqvA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -9759,6 +9737,23 @@
       "comment": "npm lock path=node_modules/@lobehub/fluent-emoji; development=true; optional=false"
     },
     {
+      "SPDXID": "SPDXRef-node-modules-lobehub-fluent-emoji-node-modules-lucide-react-302c625588",
+      "name": "lucide-react",
+      "versionInfo": "0.562.0",
+      "downloadLocation": "https://registry.npmjs.org/lucide-react/-/lucide-react-0.562.0.tgz",
+      "filesAnalyzed": false,
+      "licenseConcluded": "ISC",
+      "licenseDeclared": "ISC",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "82hOAu7y0dbVuFfmO4bYF1XEwYk/mEbM5E+b1jgci/udUBEE/R7LF5Ip0CCEmXe8AybRM8L+04eP+LGZeDvkiw=="
+        }
+      ],
+      "primaryPackagePurpose": "LIBRARY",
+      "comment": "npm lock path=node_modules/@lobehub/fluent-emoji/node_modules/lucide-react; development=true; optional=false"
+    },
+    {
       "SPDXID": "SPDXRef-node-modules-lobehub-icons-1ee3d54f4f",
       "name": "@lobehub/icons",
       "versionInfo": "5.6.0",
@@ -9859,23 +9854,6 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/@lobehub/ui/node_modules/katex; development=true; optional=false"
-    },
-    {
-      "SPDXID": "SPDXRef-node-modules-lobehub-ui-node-modules-lucide-react-36d987ad23",
-      "name": "lucide-react",
-      "versionInfo": "1.31.0",
-      "downloadLocation": "https://registry.npmjs.org/lucide-react/-/lucide-react-1.31.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "ISC",
-      "licenseDeclared": "ISC",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "G8u2eEtoHUnUa9f8lbvqDhCiORMnYLdUEo06EEG9MQvHQrInKcX3Pa2TH39MM5qyzRcWETxB0+aOwAPI1g1kEg=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/@lobehub/ui/node_modules/lucide-react; development=true; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-lobehub-ui-node-modules-marked-4a215c2e4f",
@@ -10050,15 +10028,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-lucide-react-005b3cad11",
       "name": "lucide-react",
-      "versionInfo": "0.562.0",
-      "downloadLocation": "https://registry.npmjs.org/lucide-react/-/lucide-react-0.562.0.tgz",
+      "versionInfo": "1.32.0",
+      "downloadLocation": "https://registry.npmjs.org/lucide-react/-/lucide-react-1.32.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "ISC",
       "licenseDeclared": "ISC",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "82hOAu7y0dbVuFfmO4bYF1XEwYk/mEbM5E+b1jgci/udUBEE/R7LF5Ip0CCEmXe8AybRM8L+04eP+LGZeDvkiw=="
+          "checksumValue": "txX56hMFnRxPi1f9/nH69YN8uvAO6a7Y1KSWKjCDAtdD9+soEgmWuCt6iRm1pkxUZo2+YntSdsE1L6bIuKoY8Q=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -10645,15 +10623,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-mermaid-8d213759ca",
       "name": "mermaid",
-      "versionInfo": "11.14.0",
-      "downloadLocation": "https://registry.npmjs.org/mermaid/-/mermaid-11.14.0.tgz",
+      "versionInfo": "11.16.1",
+      "downloadLocation": "https://registry.npmjs.org/mermaid/-/mermaid-11.16.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "GSGloRsBs+JINmmhl0JDwjpuezCsHB4WGI4NASHxL3fHo3o/BRXTxhDLKnln8/Q0lRFRyDdEjmk1/d5Sn1Xz8g=="
+          "checksumValue": "TQsq6u22fAn3rek5VOubrhKPo1g5hwC3FXUN9hiyupTckcYiGuuKGkNQrKYwGJkXUxZdojwRG46gsSCFZMDp4g=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -10692,23 +10670,6 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/mermaid/node_modules/marked; development=true; optional=false"
-    },
-    {
-      "SPDXID": "SPDXRef-node-modules-mermaid-node-modules-uuid-34729a4caa",
-      "name": "uuid",
-      "versionInfo": "11.1.1",
-      "downloadLocation": "https://registry.npmjs.org/uuid/-/uuid-11.1.1.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/mermaid/node_modules/uuid; development=true; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-micromark-b90d6c2c17",
@@ -11425,23 +11386,6 @@
       "comment": "npm lock path=node_modules/mime-types; development=false; optional=false"
     },
     {
-      "SPDXID": "SPDXRef-node-modules-mistralai-mistralai-4fab87b243",
-      "name": "@mistralai/mistralai",
-      "versionInfo": "2.2.6",
-      "downloadLocation": "https://registry.npmjs.org/@mistralai/mistralai/-/mistralai-2.2.6.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "Apache-2.0",
-      "licenseDeclared": "Apache-2.0",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "W8pX7zHxjJvMIpw8JMxeJEleapXX0Q9NPszdNzqkM3MIEoIGPObdodujj+WHteXEvGfaP/AMwlNyRfEzSY6dQQ=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/@mistralai/mistralai; development=false; optional=false"
-    },
-    {
       "SPDXID": "SPDXRef-node-modules-mixin-deep-984330b093",
       "name": "mixin-deep",
       "versionInfo": "1.3.2",
@@ -11988,15 +11932,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-next-59ca010c48",
       "name": "next",
-      "versionInfo": "16.2.12",
-      "downloadLocation": "https://registry.npmjs.org/next/-/next-16.2.12.tgz",
+      "versionInfo": "16.3.1",
+      "downloadLocation": "https://registry.npmjs.org/next/-/next-16.3.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "iD59eYQWmbFcEbX7v/acG5DRym9iw1DdaPoD0WTA920naWsE25wShzJW4+UvAs8MK9EC2kBfIH6vtto1H1PHGw=="
+          "checksumValue": "hsAp0i7Rh+/dhe7DGIeN2YlpLM1DP4MNxti9EtDMtqcO612X81MvvEj388/oTce9U1EcEIOWDlGq0zRwrBKvuA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -12005,15 +11949,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-next-env-114ec76daf",
       "name": "@next/env",
-      "versionInfo": "16.2.12",
-      "downloadLocation": "https://registry.npmjs.org/@next/env/-/env-16.2.12.tgz",
+      "versionInfo": "16.3.1",
+      "downloadLocation": "https://registry.npmjs.org/@next/env/-/env-16.3.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "d0Z5Bc13Fa4nR8pFAKx2jay2yhJM16vlfHbTzYnUQAxlNb6B6lmn4hjt69lYNt4kRtyYP6gEM49lPRHNbIyneg=="
+          "checksumValue": "35G3xwkQUb2oETSDjFXGrVugknoayLFBh7vSE+yAcl9IP2zT9wyGwq7297AYHR11kJld807t5f8AJBs6WBzXsQ=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -12022,15 +11966,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-next-node-modules-postcss-4634eb97a3",
       "name": "postcss",
-      "versionInfo": "8.4.31",
-      "downloadLocation": "https://registry.npmjs.org/postcss/-/postcss-8.4.31.tgz",
+      "versionInfo": "8.5.23",
+      "downloadLocation": "https://registry.npmjs.org/postcss/-/postcss-8.5.23.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "PS08Iboia9mts/2ygV3eLpY5ghnUcfLV/EXTOW1E2qYxJKGGBUtNjN76FYHnMs36RmARn41bC0AZmn+rR0OVpQ=="
+          "checksumValue": "g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -12039,15 +11983,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-next-swc-darwin-arm64-5f96e4efeb",
       "name": "@next/swc-darwin-arm64",
-      "versionInfo": "16.2.12",
-      "downloadLocation": "https://registry.npmjs.org/@next/swc-darwin-arm64/-/swc-darwin-arm64-16.2.12.tgz",
+      "versionInfo": "16.3.1",
+      "downloadLocation": "https://registry.npmjs.org/@next/swc-darwin-arm64/-/swc-darwin-arm64-16.3.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "0W1R0teHWJrqKX0FH20IzzIWAOuGtBxPGuObrxy1lE8hQvCFj49KE8a3WUg0D7sq6rn6zkM4c7YGUnhudBS6oA=="
+          "checksumValue": "ABMIu2zQ7cnNIHm5ivKGwZwUrm0pAai3yiJ/gK/rF1c1VP9UOnj7XECbMKFdVKp9I9eMYq9NoDs1WXOoowxzJw=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -12056,15 +12000,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-next-swc-darwin-x64-a47ddbc87f",
       "name": "@next/swc-darwin-x64",
-      "versionInfo": "16.2.12",
-      "downloadLocation": "https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-16.2.12.tgz",
+      "versionInfo": "16.3.1",
+      "downloadLocation": "https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-16.3.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "Hy5Ls099+aFUmOLmIgPfLqNi6iCwhL3uQCssz5rWk+5Nkc6TUKCE83DY5BbNylfm3+mfwcSFnLRfrZDJhVxdtw=="
+          "checksumValue": "gNG21e/UnrroeScbY/QndUEdl0mF1FRibW7BBeYUz/5ABCepjqDdEdgr592vpzMtCn/m7FTjYq3TN4TpyDnutw=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -12073,15 +12017,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-next-swc-linux-arm64-gnu-f7b61644a7",
       "name": "@next/swc-linux-arm64-gnu",
-      "versionInfo": "16.2.12",
-      "downloadLocation": "https://registry.npmjs.org/@next/swc-linux-arm64-gnu/-/swc-linux-arm64-gnu-16.2.12.tgz",
+      "versionInfo": "16.3.1",
+      "downloadLocation": "https://registry.npmjs.org/@next/swc-linux-arm64-gnu/-/swc-linux-arm64-gnu-16.3.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "+YqU2h1cQkHsGfvjAsrSmst8UIFBibBGm5x3Xgel8NLMiDQtNOM4sM2GOEMvG5YiOBNeN/Ykk8cQC2S0Xrqljg=="
+          "checksumValue": "6B6Lw016iwNUQuaJoraMMTLh6TwHzFUtxipSScD1F3YyymcrRWkobodRS2ftIOkF5vrs4zNlyUrTC5YZQ9Lz5w=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -12090,15 +12034,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-next-swc-linux-arm64-musl-23145eb03c",
       "name": "@next/swc-linux-arm64-musl",
-      "versionInfo": "16.2.12",
-      "downloadLocation": "https://registry.npmjs.org/@next/swc-linux-arm64-musl/-/swc-linux-arm64-musl-16.2.12.tgz",
+      "versionInfo": "16.3.1",
+      "downloadLocation": "https://registry.npmjs.org/@next/swc-linux-arm64-musl/-/swc-linux-arm64-musl-16.3.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "0qjhiYBaKAqF63LA1ZWAAnKTzFUguAaZiRa5etMLGGPj/B6uEVjtIZldIzFEp3wHlB0koK6aTzqPtSdplTCjoA=="
+          "checksumValue": "JUiPXZKK9wOhjf4MgDiH29GZLxfqOesbLtHq2pDxwH/WwscTRV2ToymnOTh1egzaZf0ueUf8T2+CeYTGHjW0Iw=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -12107,15 +12051,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-next-swc-linux-x64-gnu-a1bd8ebf54",
       "name": "@next/swc-linux-x64-gnu",
-      "versionInfo": "16.2.12",
-      "downloadLocation": "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-16.2.12.tgz",
+      "versionInfo": "16.3.1",
+      "downloadLocation": "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-16.3.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "7A3q26W+h7gnA15uqBToNuDqBEFZZcqh0mW2mn4AJh/G5pdg2RVE3n4slzLEliASZFG3NmsbEzng/x2Sh09mBg=="
+          "checksumValue": "Uog9jsrmIRIL/lfvIp9htmskSNC7JcQsMVucXL2V2YY1y/D9IUN3LPEafqy0zRJ2cIU1SQ0V6F6TlffQ+pLAGg=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -12124,15 +12068,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-next-swc-linux-x64-musl-7b8e85dfa3",
       "name": "@next/swc-linux-x64-musl",
-      "versionInfo": "16.2.12",
-      "downloadLocation": "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-16.2.12.tgz",
+      "versionInfo": "16.3.1",
+      "downloadLocation": "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-16.3.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "qSjL/uppm+cbh21s72Ss8gkiOhQ4dExWHNGOWy6eZV7STj5WsKehgxT61beSsOj+YYQuTplL376lOCdMQU5T8w=="
+          "checksumValue": "6yy3FT13KgUFOj5H8bl8w/6nKiJwHIvbtwh1V+1acsu+7y4tJjnemSa6mhsh53BeoVrlozE+fMgZhXH46WmjMA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -12141,15 +12085,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-next-swc-win32-arm64-msvc-b2b80ce506",
       "name": "@next/swc-win32-arm64-msvc",
-      "versionInfo": "16.2.12",
-      "downloadLocation": "https://registry.npmjs.org/@next/swc-win32-arm64-msvc/-/swc-win32-arm64-msvc-16.2.12.tgz",
+      "versionInfo": "16.3.1",
+      "downloadLocation": "https://registry.npmjs.org/@next/swc-win32-arm64-msvc/-/swc-win32-arm64-msvc-16.3.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "X6hzsOUJac/e7AWSbn9gQ9nzHld1xWP5iyjHpYWvud8pufB679O1xg4JDyKr8Xd69Jvd+kM2Der6uftiZCmjYA=="
+          "checksumValue": "iOoN1QecUoGNZik536U/vtK43YwgyrCsGIkth52yIkl612n+0C9MjSnJbQAikISpb+WYRooBVhaDlUW7iZoKog=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -12158,15 +12102,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-next-swc-win32-x64-msvc-2fc1761b8c",
       "name": "@next/swc-win32-x64-msvc",
-      "versionInfo": "16.2.12",
-      "downloadLocation": "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-16.2.12.tgz",
+      "versionInfo": "16.3.1",
+      "downloadLocation": "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-16.3.1.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "F6fakeHuFTLOPt0bslQJdf+xtT+WIP9DVn/m4y1w1mRnVPyh3D/cNvzlRkxM444xfm+IvvYNSOrKiA2CDJ0Uxw=="
+          "checksumValue": "d/k+PpAriUPaeMJJOG7HUSdqfEX46FEPWU1p3/nm2ACmXhj9hFEWdFODUBIpkuijXYkfL90qZzTqVPRp4BW/hw=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -12430,15 +12374,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-openai-c70cd286d0",
       "name": "openai",
-      "versionInfo": "6.26.0",
-      "downloadLocation": "https://registry.npmjs.org/openai/-/openai-6.26.0.tgz",
+      "versionInfo": "6.40.0",
+      "downloadLocation": "https://registry.npmjs.org/openai/-/openai-6.40.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "zd23dbWTjiJ6sSAX6s0HrCZi41JwTA1bQVs0wLQPZ2/5o2gxOJA5wh7yOAUgwYybfhDXyhwlpeQf7Mlgx8EOCA=="
+          "checksumValue": "MWtTjd/gQt4jpbji61NTgFWJLoY/PdRJ6wG9/ZDRMYNMlBKrCrSlkLI+KgHP1vR1qT6LKSAyAqIxno6lcK9JiA=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -12460,23 +12404,6 @@
       ],
       "primaryPackagePurpose": "LIBRARY",
       "comment": "npm lock path=node_modules/@opentelemetry/api; development=false; optional=false"
-    },
-    {
-      "SPDXID": "SPDXRef-node-modules-opentelemetry-semantic-conventions-1ab1ea47d7",
-      "name": "@opentelemetry/semantic-conventions",
-      "versionInfo": "1.43.0",
-      "downloadLocation": "https://registry.npmjs.org/@opentelemetry/semantic-conventions/-/semantic-conventions-1.43.0.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "Apache-2.0",
-      "licenseDeclared": "Apache-2.0",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "eSYWTm620tTk45EKSedaUL8MFYI8hW164hIXsgIHyxu3VobUB3fFCu5t0hQby6OoWRPsG1KkKUG2M5UadiLiVg=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/@opentelemetry/semantic-conventions; development=false; optional=false"
     },
     {
       "SPDXID": "SPDXRef-node-modules-option-277d7f49c5",
@@ -13144,15 +13071,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-postcss-0830b7c0be",
       "name": "postcss",
-      "versionInfo": "8.5.8",
-      "downloadLocation": "https://registry.npmjs.org/postcss/-/postcss-8.5.8.tgz",
+      "versionInfo": "8.5.26",
+      "downloadLocation": "https://registry.npmjs.org/postcss/-/postcss-8.5.26.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "OW/rX8O/jXnm82Ey1k44pObPtdblfiuWnrd8X7GJ7emImCOstunGbXUpp7HdBrFQX6rJzn3sPT397Wp5aCwCHg=="
+          "checksumValue": "u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -16476,15 +16403,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-sharp-bc30f9f18b",
       "name": "sharp",
-      "versionInfo": "0.34.5",
-      "downloadLocation": "https://registry.npmjs.org/sharp/-/sharp-0.34.5.tgz",
+      "versionInfo": "0.35.3",
+      "downloadLocation": "https://registry.npmjs.org/sharp/-/sharp-0.35.3.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "Ou9I5Ft9WNcCbXrU9cMgPBcCK8LiwLqcbywW3t4oDV37n1pzpuNLsYiAV8eODnjbtQlSDwZ2cUEeQz4E54Hltg=="
+          "checksumValue": "ej0zVHuZGHCiABXcNxeYhpRnPNPAcvbG8RMdBAhDAxLKkCRVSpK3Iyu7qbqw3JMzoj0REeM6f3tJLtVwl0023Q=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -17394,15 +17321,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-swc-helpers-bab3650594",
       "name": "@swc/helpers",
-      "versionInfo": "0.5.15",
-      "downloadLocation": "https://registry.npmjs.org/@swc/helpers/-/helpers-0.5.15.tgz",
+      "versionInfo": "0.5.23",
+      "downloadLocation": "https://registry.npmjs.org/@swc/helpers/-/helpers-0.5.23.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g=="
+          "checksumValue": "5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -19757,15 +19684,15 @@
     {
       "SPDXID": "SPDXRef-node-modules-undici-009540c311",
       "name": "undici",
-      "versionInfo": "8.5.0",
-      "downloadLocation": "https://registry.npmjs.org/undici/-/undici-8.5.0.tgz",
+      "versionInfo": "8.10.0",
+      "downloadLocation": "https://registry.npmjs.org/undici/-/undici-8.10.0.tgz",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "xamtWoB1EshgjpmlXd7GGm2VfdDtw1+rD8uhry8pSNW3If6S8E0m2T2+orSKeZXEn/aPJMviCpDBA65WJt8zhg=="
+          "checksumValue": "HvltHd7avK13QIw/oLe4qoOLyoVSoafqJ2jYOrtMRBkbYT31eiBQ8O0ehRKZiEZCMEyLFQNIADpgCWC5fALvYQ=="
         }
       ],
       "primaryPackagePurpose": "LIBRARY",
@@ -20248,23 +20175,6 @@
       "comment": "npm lock path=node_modules/vite; development=true; optional=false"
     },
     {
-      "SPDXID": "SPDXRef-node-modules-vite-node-modules-postcss-54266466c4",
-      "name": "postcss",
-      "versionInfo": "8.5.26",
-      "downloadLocation": "https://registry.npmjs.org/postcss/-/postcss-8.5.26.tgz",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "checksums": [
-        {
-          "algorithm": "SHA512",
-          "checksumValue": "u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ=="
-        }
-      ],
-      "primaryPackagePurpose": "LIBRARY",
-      "comment": "npm lock path=node_modules/vite/node_modules/postcss; development=true; optional=false"
-    },
-    {
       "SPDXID": "SPDXRef-node-modules-vitest-ea239ee496",
       "name": "vitest",
       "versionInfo": "4.1.9",
@@ -20733,6 +20643,11 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-source-pi-file-context-a13bd6c97d"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-source-PiCraft-questionnaire-11427d244b"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -22137,11 +22052,6 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-mistralai-mistralai-2c148dbd34"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-ms-586225afc5"
     },
     {
@@ -22168,11 +22078,6 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-opentelemetry-api-e09bf55810"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-opentelemetry-semantic-conventions-a2ee453318"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -22403,16 +22308,6 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-yaml-610bc58449"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-zod-4a9ef14443"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-earendil-works-pi-coding-agent-node-modules-zod-to-json-schema-e9fd3bfe0b"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -23087,6 +22982,11 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-img-sharp-freebsd-wasm32-9e957983d3"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-img-sharp-libvips-darwin-arm64-37fabdebc1"
     },
     {
@@ -23178,6 +23078,11 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-img-sharp-wasm32-569ae8520d"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-img-sharp-webcontainers-wasm32-3c697aeb73"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -23567,6 +23472,11 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-node-modules-lobehub-fluent-emoji-node-modules-lucide-react-302c625588"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-aili-pi",
+      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-lobehub-icons-1ee3d54f4f"
     },
     {
@@ -23593,11 +23503,6 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-lobehub-ui-node-modules-katex-cc735e71da"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-lobehub-ui-node-modules-lucide-react-36d987ad23"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -23842,11 +23747,6 @@
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-mermaid-node-modules-uuid-34729a4caa"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-micromark-b90d6c2c17"
     },
     {
@@ -24053,11 +23953,6 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-mime-types-8469a1f1bf"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-mistralai-mistralai-4fab87b243"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -24358,11 +24253,6 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-opentelemetry-api-5c488015e8"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-opentelemetry-semantic-conventions-1ab1ea47d7"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",
@@ -26648,11 +26538,6 @@
       "spdxElementId": "SPDXRef-Package-aili-pi",
       "relationshipType": "DEPENDS_ON",
       "relatedSpdxElement": "SPDXRef-node-modules-vite-bae5313630"
-    },
-    {
-      "spdxElementId": "SPDXRef-Package-aili-pi",
-      "relationshipType": "DEPENDS_ON",
-      "relatedSpdxElement": "SPDXRef-node-modules-vite-node-modules-postcss-54266466c4"
     },
     {
       "spdxElementId": "SPDXRef-Package-aili-pi",

@@ -134,6 +134,17 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 - Reused symbols/patterns: F8 File Context Explorer, Git status browser, diff and changed-hunk navigation, bounded file/content search, line-range selections, Git blame/history/revision views, immutable prompt snapshots, SHA-256 provenance, deterministic token estimate
 - Local changes: AILI keeps selection and snapshot policy independent of the restored TUI controller; the companion @narumitw/pi-tui-kit dependency is installed and pinned exactly to 0.53.0; the adapter preserves the legacy bounded search commands while routing /file-context browse and /file-context-browse through the restored explorer; filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git reads and diff output remain bounded by the local 5-second/1.1 MiB limits
 
+## PiCraft questionnaire
+
+- Status: adapted
+- Source: https://github.com/Losomz/AgentFramework
+- Revision: 55642c8efb320f8785d12e391805876715f8f685
+- Version: git:55642c8efb320f8785d12e391805876715f8f685
+- License: MIT
+- Source files: upstream/picraft-questionnaire-55642c8/index.ts (byte-exact), upstream/picraft-questionnaire-55642c8/model.ts (byte-exact), upstream/picraft-questionnaire-55642c8/ui.ts (byte-exact), src/questionnaire/model.ts (byte-exact copy of model.ts), src/questionnaire/ui.ts (byte-exact copy of ui.ts)
+- Reused symbols/patterns: questionnaire tool schema (1-4 questions, up to five options each, multiple/recommended flags), normalizeQuestions validation (ids, lengths, duplicate and reserved labels, recommended bounds), QuestionnaireResult with separated selectedOptions and customInput plus explicit cancelled/unavailable states, QuestionnairePrompt TUI component (tabbed questions, multi-select, custom editor, review page)
+- Local changes: src/questionnaire/index.ts is AILI-owned glue: the tool is registered as a non-mutating interaction tool active in all four permission modes (NEVER_HIDE invariant), TUI routes to the absorbed prompt, AILI Web routes through a dedicated extension-UI questionnaire method rendering one full card, generic RPC hosts get a sequential ui.select fallback, headless hosts get an explicit unavailable result; no timeout is ever configured on any presentation path: the user is never auto-answered; persistent workers do not carry the tool (child sessions load no top-level extensions); the parent tool guidance routes worker-reported user decisions through the parent questionnaire
+
 ## pi-codex-fast reference
 
 - Status: reference-only
@@ -191,6 +202,6 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 
 ## npm dependency inventory
 
-The exact 1208-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
+The exact 1202-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
 
 Runtime dependencies are initialized through the single AILI Extension entry. Package-owned third-party adaptations are copied only where their provenance sourceFiles explicitly name repository paths.

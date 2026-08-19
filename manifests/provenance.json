@@ -13,14 +13,24 @@
         "upstream/aili-workflows-runtime/** (exact generated Pi runtime bundle)",
         "manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.7 source revision)"
       ],
-      "symbols": ["58 canonical skill bodies and owned assets", "20 canonical Specialized Agent roles", "Pi system/role/selection/protocol/installation runtime bundle"],
+      "symbols": [
+        "58 canonical skill bodies and owned assets",
+        "20 canonical Specialized Agent roles",
+        "Pi system/role/selection/protocol/installation runtime bundle"
+      ],
       "localChanges": [
         "skills/** is an exact byte-for-byte snapshot with no semantic overlay",
         "the generated Pi runtime bundle is copied byte-for-byte and validated through one lock-bound loader",
         "specialized role prompts and deterministic routing were regenerated from the exact 0.4.7 source revision and remain manifest-hash bound",
         "legacy APPEND_SYSTEM and global-role installation ownership is retired and report-only"
       ],
-      "verification": ["npm run verify:skills", "tests/unit/workflow-bundle.test.ts", "tests/integration/workflow-bundle-consumers.test.ts", "tests/unit/generated.test.ts", "tests/unit/global-resources.test.ts"]
+      "verification": [
+        "npm run verify:skills",
+        "tests/unit/workflow-bundle.test.ts",
+        "tests/integration/workflow-bundle-consumers.test.ts",
+        "tests/unit/generated.test.ts",
+        "tests/unit/global-resources.test.ts"
+      ]
     },
     {
       "name": "pi-mcp-adapter",
@@ -29,10 +39,27 @@
       "version": "2.23.0",
       "license": "MIT",
       "status": "dependency",
-      "sourceFiles": ["index.ts", "types.ts", "mcp-status.ts", "tool-approval.ts"],
-      "symbols": ["createMcpAdapter", "MCP status snapshots", "multi-origin tool approval event"],
-      "localChanges": ["AILI composes a fresh factory for Parent and each persistent Worker through src/runtime/mcp.ts; no upstream source is copied and the dependency is not registered as a second Pi package"],
-      "verification": ["tests/unit/mcp-config.test.ts", "tests/unit/mcp-permission.test.ts", "tests/unit/mcp-status.test.ts", "tests/integration/mcp-session-runtime.test.ts", "npm run typecheck"]
+      "sourceFiles": [
+        "index.ts",
+        "types.ts",
+        "mcp-status.ts",
+        "tool-approval.ts"
+      ],
+      "symbols": [
+        "createMcpAdapter",
+        "MCP status snapshots",
+        "multi-origin tool approval event"
+      ],
+      "localChanges": [
+        "AILI composes a fresh factory for Parent and each persistent Worker through src/runtime/mcp.ts; no upstream source is copied and the dependency is not registered as a second Pi package"
+      ],
+      "verification": [
+        "tests/unit/mcp-config.test.ts",
+        "tests/unit/mcp-permission.test.ts",
+        "tests/unit/mcp-status.test.ts",
+        "tests/integration/mcp-session-runtime.test.ts",
+        "npm run typecheck"
+      ]
     },
     {
       "name": "billion-context-pi",
@@ -41,10 +68,30 @@
       "version": "0.1.34",
       "license": "MIT",
       "status": "adapted",
-      "sourceFiles": ["upstream/billion-context-pi/** (complete tracked source tree except .git metadata)"],
-      "symbols": ["compress", "decompress", "search_context", "acp_status", "acp_delegate", "acp_delegate_wait", "acp_delegate_cancel", "context and compaction handlers"],
-      "localChanges": ["added AcpOwnershipRouter so a turn-frozen canonical route gates context, system-prompt and compaction ownership before side effects", "disabled upstream auto-update and user-home subagent settings mutation in the AILI composition", "rebuilt dist against the retained source and Pi 0.84.1"],
-      "verification": ["tests/unit/context-upstream-inventory.test.ts", "tests/unit/context-provider-router.test.ts", "tests/integration/context-runtime-load.test.ts", "npm run typecheck"]
+      "sourceFiles": [
+        "upstream/billion-context-pi/** (complete tracked source tree except .git metadata)"
+      ],
+      "symbols": [
+        "compress",
+        "decompress",
+        "search_context",
+        "acp_status",
+        "acp_delegate",
+        "acp_delegate_wait",
+        "acp_delegate_cancel",
+        "context and compaction handlers"
+      ],
+      "localChanges": [
+        "added AcpOwnershipRouter so a turn-frozen canonical route gates context, system-prompt and compaction ownership before side effects",
+        "disabled upstream auto-update and user-home subagent settings mutation in the AILI composition",
+        "rebuilt dist against the retained source and Pi 0.84.1"
+      ],
+      "verification": [
+        "tests/unit/context-upstream-inventory.test.ts",
+        "tests/unit/context-provider-router.test.ts",
+        "tests/integration/context-runtime-load.test.ts",
+        "npm run typecheck"
+      ]
     },
     {
       "name": "pi-codex-compact",
@@ -53,10 +100,27 @@
       "version": "0.50.0",
       "license": "MIT",
       "status": "dependency",
-      "sourceFiles": ["node_modules/@narumitw/pi-codex-compact/src/**", "upstream/pi-codex-compact-0.50.0-src/**", "upstream/pi-codex-compact-0.50.0-LICENSE", "upstream/pi-codex-compact-0.50.0-README.md"],
-      "symbols": ["Codex Remote Compaction V2", "opaque checkpoint marker/fingerprint replay", "Pi-native fallback"],
-      "localChanges": ["composed only for canonical openai-codex/openai-codex-responses turns", "settings view forces extension transport maxRetries=0 so Pi owns retries"],
-      "verification": ["tests/unit/context-upstream-inventory.test.ts", "tests/unit/context-provider-router.test.ts", "tests/integration/context-runtime-load.test.ts", "npm run typecheck"]
+      "sourceFiles": [
+        "node_modules/@narumitw/pi-codex-compact/src/**",
+        "upstream/pi-codex-compact-0.50.0-src/**",
+        "upstream/pi-codex-compact-0.50.0-LICENSE",
+        "upstream/pi-codex-compact-0.50.0-README.md"
+      ],
+      "symbols": [
+        "Codex Remote Compaction V2",
+        "opaque checkpoint marker/fingerprint replay",
+        "Pi-native fallback"
+      ],
+      "localChanges": [
+        "composed only for canonical openai-codex/openai-codex-responses turns",
+        "settings view forces extension transport maxRetries=0 so Pi owns retries"
+      ],
+      "verification": [
+        "tests/unit/context-upstream-inventory.test.ts",
+        "tests/unit/context-provider-router.test.ts",
+        "tests/integration/context-runtime-load.test.ts",
+        "npm run typecheck"
+      ]
     },
     {
       "name": "pi-retry",
@@ -65,10 +129,26 @@
       "version": "0.31.0",
       "license": "MIT",
       "status": "adapted",
-      "sourceFiles": ["upstream/pi-retry-0.31.0/**", "src/runtime/provider-retry.ts"],
-      "symbols": ["provider retry classifiers", "stall watchdog", "receiving/retrying status", "Pi retry-policy integration"],
-      "localChanges": ["added bounded redacted structured retry diagnostics and exported classification helpers", "Pi 0.84.1 remains the sole attempt budget/backoff owner", "later upstream deprecated placement is documented in the accepted change"],
-      "verification": ["tests/unit/provider-retry-classification.test.ts", "tests/unit/footer-layout.test.ts", "npm run typecheck"]
+      "sourceFiles": [
+        "upstream/pi-retry-0.31.0/**",
+        "src/runtime/provider-retry.ts"
+      ],
+      "symbols": [
+        "provider retry classifiers",
+        "stall watchdog",
+        "receiving/retrying status",
+        "Pi retry-policy integration"
+      ],
+      "localChanges": [
+        "added bounded redacted structured retry diagnostics and exported classification helpers",
+        "Pi 0.84.1 remains the sole attempt budget/backoff owner",
+        "later upstream deprecated placement is documented in the accepted change"
+      ],
+      "verification": [
+        "tests/unit/provider-retry-classification.test.ts",
+        "tests/unit/footer-layout.test.ts",
+        "npm run typecheck"
+      ]
     },
     {
       "name": "pi-permission-modes",
@@ -77,10 +157,30 @@
       "version": "2.2.0",
       "license": "MIT",
       "status": "adapted",
-      "sourceFiles": ["src/vendor/pi-permission-modes/index.ts", "src/vendor/pi-permission-modes/resolve.ts", "upstream/pi-permission-modes.lock.json", "licenses/pi-permission-modes-MIT.txt"],
-      "symbols": ["Default/Plan/Build/YOLO", "/perm", "Alt+M", "shared permission pattern matcher", "sandbox degradation"],
-      "localChanges": ["AILI's generated adapted entry redirects unchanged sibling modules to the exact 2.2.0 dependency", "the owned resolve.ts compiles permission globs with RegExp dotAll so * and ? include ECMAScript line terminators", "the exact upstream and adapted files are hash-locked and drift-checked"],
-      "verification": ["npm run verify:permission-modes", "tests/unit/permission-patterns.test.ts", "tests/integration/permission-modes.test.ts", "tests/integration/extension-load.test.ts"]
+      "sourceFiles": [
+        "src/vendor/pi-permission-modes/index.ts",
+        "src/vendor/pi-permission-modes/resolve.ts",
+        "upstream/pi-permission-modes.lock.json",
+        "licenses/pi-permission-modes-MIT.txt"
+      ],
+      "symbols": [
+        "Default/Plan/Build/YOLO",
+        "/perm",
+        "Alt+M",
+        "shared permission pattern matcher",
+        "sandbox degradation"
+      ],
+      "localChanges": [
+        "AILI's generated adapted entry redirects unchanged sibling modules to the exact 2.2.0 dependency",
+        "the owned resolve.ts compiles permission globs with RegExp dotAll so * and ? include ECMAScript line terminators",
+        "the exact upstream and adapted files are hash-locked and drift-checked"
+      ],
+      "verification": [
+        "npm run verify:permission-modes",
+        "tests/unit/permission-patterns.test.ts",
+        "tests/integration/permission-modes.test.ts",
+        "tests/integration/extension-load.test.ts"
+      ]
     },
     {
       "name": "pi-quota-status",
@@ -89,10 +189,26 @@
       "version": "0.3.0",
       "license": "MIT",
       "status": "dependency",
-      "sourceFiles": ["src/index.ts", "src/subscription.ts", "src/format.ts", "src/paths.ts"],
-      "symbols": ["quota footer", "Codex subscription windows", "/quota", "global state maintenance"],
-      "localChanges": ["AILI initializes the pinned upstream extension; upstream owns quota polling and state files; the Pi-native minimal footer consumes its published status without changing percentage or reset data"],
-      "verification": ["tests/unit/extension-status.test.ts", "tests/unit/runtime.test.ts", "tests/integration/extension-load.test.ts"]
+      "sourceFiles": [
+        "src/index.ts",
+        "src/subscription.ts",
+        "src/format.ts",
+        "src/paths.ts"
+      ],
+      "symbols": [
+        "quota footer",
+        "Codex subscription windows",
+        "/quota",
+        "global state maintenance"
+      ],
+      "localChanges": [
+        "AILI initializes the pinned upstream extension; upstream owns quota polling and state files; the Pi-native minimal footer consumes its published status without changing percentage or reset data"
+      ],
+      "verification": [
+        "tests/unit/extension-status.test.ts",
+        "tests/unit/runtime.test.ts",
+        "tests/integration/extension-load.test.ts"
+      ]
     },
     {
       "name": "pi-web-access",
@@ -101,10 +217,23 @@
       "version": "0.13.0",
       "license": "MIT",
       "status": "dependency",
-      "sourceFiles": ["index.ts", "skills/"],
-      "symbols": ["web_search", "fetch_content", "get_search_content", "curator and bundled librarian skill"],
-      "localChanges": ["AILI initializes the complete pinned upstream surface through its sole Extension entry; no upstream source is copied"],
-      "verification": ["tests/unit/runtime.test.ts", "tests/integration/extension-load.test.ts"]
+      "sourceFiles": [
+        "index.ts",
+        "skills/"
+      ],
+      "symbols": [
+        "web_search",
+        "fetch_content",
+        "get_search_content",
+        "curator and bundled librarian skill"
+      ],
+      "localChanges": [
+        "AILI initializes the complete pinned upstream surface through its sole Extension entry; no upstream source is copied"
+      ],
+      "verification": [
+        "tests/unit/runtime.test.ts",
+        "tests/integration/extension-load.test.ts"
+      ]
     },
     {
       "name": "pi-cache-optimizer",
@@ -113,10 +242,24 @@
       "version": "2.6.18",
       "license": "MIT",
       "status": "dependency",
-      "sourceFiles": ["index.ts"],
-      "symbols": ["default Extension", "/cache-optimizer", "cache statistics", "prompt cache hooks"],
-      "localChanges": ["AILI initializes the pinned upstream extension through its single Extension entry; the Pi-native minimal footer gives model and quota status priority while leaving cache commands and collection unchanged; no upstream source is copied"],
-      "verification": ["tests/unit/runtime.test.ts", "tests/unit/footer-layout.test.ts", "tests/integration/package-runtime.test.ts", "npm pack --dry-run --json"]
+      "sourceFiles": [
+        "index.ts"
+      ],
+      "symbols": [
+        "default Extension",
+        "/cache-optimizer",
+        "cache statistics",
+        "prompt cache hooks"
+      ],
+      "localChanges": [
+        "AILI initializes the pinned upstream extension through its single Extension entry; the Pi-native minimal footer gives model and quota status priority while leaving cache commands and collection unchanged; no upstream source is copied"
+      ],
+      "verification": [
+        "tests/unit/runtime.test.ts",
+        "tests/unit/footer-layout.test.ts",
+        "tests/integration/package-runtime.test.ts",
+        "npm pack --dry-run --json"
+      ]
     },
     {
       "name": "pi-sakura-cyberdeck",
@@ -125,10 +268,30 @@
       "version": "git:165a1f8011a12a58a6409b56b8a6c0416cd9b589",
       "license": "MIT",
       "status": "adapted",
-      "sourceFiles": ["extensions/header/index.ts", "extensions/matrix/index.ts", "extensions/zentui/**"],
-      "symbols": ["retired header", "retired matrix animation", "retired Zentui UI", "inactive fixed editor compositor"],
-      "localChanges": ["historical adapted source is retained in the repository but no header, Matrix, Zentui extension or theme is registered as a production Pi resource", "legacy user configuration is untouched", "the inactive fixed-editor source remains separate from the independently owned WSL image-paste keybinding behavior"],
-      "verification": ["tests/integration/native-ui-ownership.test.ts", "tests/integration/footer-runtime.test.ts", "tests/unit/footer-layout.test.ts", "tests/unit/footer-lifecycle.test.ts", "tests/bootstrap/bootstrap.test.ts", "npm run typecheck"]
+      "sourceFiles": [
+        "extensions/header/index.ts",
+        "extensions/matrix/index.ts",
+        "extensions/zentui/**"
+      ],
+      "symbols": [
+        "retired header",
+        "retired matrix animation",
+        "retired Zentui UI",
+        "inactive fixed editor compositor"
+      ],
+      "localChanges": [
+        "historical adapted source is retained in the repository but no header, Matrix, Zentui extension or theme is registered as a production Pi resource",
+        "legacy user configuration is untouched",
+        "the inactive fixed-editor source remains separate from the independently owned WSL image-paste keybinding behavior"
+      ],
+      "verification": [
+        "tests/integration/native-ui-ownership.test.ts",
+        "tests/integration/footer-runtime.test.ts",
+        "tests/unit/footer-layout.test.ts",
+        "tests/unit/footer-lifecycle.test.ts",
+        "tests/bootstrap/bootstrap.test.ts",
+        "npm run typecheck"
+      ]
     },
     {
       "name": "pi-notify",
@@ -137,10 +300,32 @@
       "version": "1.4.0",
       "license": "MIT",
       "status": "adapted",
-      "sourceFiles": ["upstream/pi-notify-1.4.0/package.json", "upstream/pi-notify-1.4.0/SOURCE_INVENTORY.json", "upstream/pi-notify-1.4.0/LICENSE", "licenses/pi-notify-MIT.txt", "src/runtime/notify.ts", "extensions/index.ts"],
-      "symbols": ["agent-end notification", "OSC 777", "iTerm OSC 9", "Kitty OSC 99", "tmux passthrough", "Windows Terminal PowerShell toast", "terminal bell"],
-      "localChanges": ["all terminal writes, PowerShell start/error events, and sound fallback failures are individually nonfatal", "the top-level sole extension entry registers notifications only for the Parent session; Persistent Worker inline extension sets omit it to prevent notification storms"],
-      "verification": ["tests/unit/notify.test.ts", "tests/integration/extension-load.test.ts", "npm run typecheck"]
+      "sourceFiles": [
+        "upstream/pi-notify-1.4.0/package.json",
+        "upstream/pi-notify-1.4.0/SOURCE_INVENTORY.json",
+        "upstream/pi-notify-1.4.0/LICENSE",
+        "licenses/pi-notify-MIT.txt",
+        "src/runtime/notify.ts",
+        "extensions/index.ts"
+      ],
+      "symbols": [
+        "agent-end notification",
+        "OSC 777",
+        "iTerm OSC 9",
+        "Kitty OSC 99",
+        "tmux passthrough",
+        "Windows Terminal PowerShell toast",
+        "terminal bell"
+      ],
+      "localChanges": [
+        "all terminal writes, PowerShell start/error events, and sound fallback failures are individually nonfatal",
+        "the top-level sole extension entry registers notifications only for the Parent session; Persistent Worker inline extension sets omit it to prevent notification storms"
+      ],
+      "verification": [
+        "tests/unit/notify.test.ts",
+        "tests/integration/extension-load.test.ts",
+        "npm run typecheck"
+      ]
     },
     {
       "name": "pi-file-context",
@@ -149,10 +334,78 @@
       "version": "0.53.0",
       "license": "MIT",
       "status": "adapted",
-      "sourceFiles": ["upstream/pi-file-context-0.53.0/package.json", "upstream/pi-file-context-0.53.0/SOURCE_INVENTORY.json", "upstream/pi-file-context-0.53.0/LICENSE", "licenses/pi-file-context-MIT.txt", "src/runtime/file-context.ts", "extensions/file-context/index.ts", "extensions/file-context/file-context.ts", "extensions/file-context/file-context-explorer.ts", "extensions/file-context/file-context-menu.ts", "extensions/file-context/file-context-preview-ui.ts", "extensions/file-context/file-context-settings.ts", "extensions/file-context/content-search.ts", "extensions/file-context/content-search-session.ts", "extensions/file-context/content-search-ui.ts", "extensions/file-context/file-search.ts", "extensions/file-context/git-context.ts"],
-      "symbols": ["F8 File Context Explorer", "Git status browser", "diff and changed-hunk navigation", "bounded file/content search", "line-range selections", "Git blame/history/revision views", "immutable prompt snapshots", "SHA-256 provenance", "deterministic token estimate"],
-      "localChanges": ["AILI keeps selection and snapshot policy independent of the restored TUI controller", "the companion @narumitw/pi-tui-kit dependency is installed and pinned exactly to 0.53.0", "the adapter preserves the legacy bounded search commands while routing /file-context browse and /file-context-browse through the restored explorer", "filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git reads and diff output remain bounded by the local 5-second/1.1 MiB limits"],
-      "verification": ["tests/unit/file-context-inventory.test.ts", "tests/unit/file-context-tui.test.ts", "tests/integration/extension-load.test.ts", "npm run typecheck"]
+      "sourceFiles": [
+        "upstream/pi-file-context-0.53.0/package.json",
+        "upstream/pi-file-context-0.53.0/SOURCE_INVENTORY.json",
+        "upstream/pi-file-context-0.53.0/LICENSE",
+        "licenses/pi-file-context-MIT.txt",
+        "src/runtime/file-context.ts",
+        "extensions/file-context/index.ts",
+        "extensions/file-context/file-context.ts",
+        "extensions/file-context/file-context-explorer.ts",
+        "extensions/file-context/file-context-menu.ts",
+        "extensions/file-context/file-context-preview-ui.ts",
+        "extensions/file-context/file-context-settings.ts",
+        "extensions/file-context/content-search.ts",
+        "extensions/file-context/content-search-session.ts",
+        "extensions/file-context/content-search-ui.ts",
+        "extensions/file-context/file-search.ts",
+        "extensions/file-context/git-context.ts"
+      ],
+      "symbols": [
+        "F8 File Context Explorer",
+        "Git status browser",
+        "diff and changed-hunk navigation",
+        "bounded file/content search",
+        "line-range selections",
+        "Git blame/history/revision views",
+        "immutable prompt snapshots",
+        "SHA-256 provenance",
+        "deterministic token estimate"
+      ],
+      "localChanges": [
+        "AILI keeps selection and snapshot policy independent of the restored TUI controller",
+        "the companion @narumitw/pi-tui-kit dependency is installed and pinned exactly to 0.53.0",
+        "the adapter preserves the legacy bounded search commands while routing /file-context browse and /file-context-browse through the restored explorer",
+        "filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git reads and diff output remain bounded by the local 5-second/1.1 MiB limits"
+      ],
+      "verification": [
+        "tests/unit/file-context-inventory.test.ts",
+        "tests/unit/file-context-tui.test.ts",
+        "tests/integration/extension-load.test.ts",
+        "npm run typecheck"
+      ]
+    },
+    {
+      "name": "PiCraft questionnaire",
+      "repository": "https://github.com/Losomz/AgentFramework",
+      "revision": "55642c8efb320f8785d12e391805876715f8f685",
+      "version": "git:55642c8efb320f8785d12e391805876715f8f685",
+      "license": "MIT",
+      "status": "adapted",
+      "sourceFiles": [
+        "upstream/picraft-questionnaire-55642c8/index.ts (byte-exact)",
+        "upstream/picraft-questionnaire-55642c8/model.ts (byte-exact)",
+        "upstream/picraft-questionnaire-55642c8/ui.ts (byte-exact)",
+        "src/questionnaire/model.ts (byte-exact copy of model.ts)",
+        "src/questionnaire/ui.ts (byte-exact copy of ui.ts)"
+      ],
+      "symbols": [
+        "questionnaire tool schema (1-4 questions, up to five options each, multiple/recommended flags)",
+        "normalizeQuestions validation (ids, lengths, duplicate and reserved labels, recommended bounds)",
+        "QuestionnaireResult with separated selectedOptions and customInput plus explicit cancelled/unavailable states",
+        "QuestionnairePrompt TUI component (tabbed questions, multi-select, custom editor, review page)"
+      ],
+      "localChanges": [
+        "src/questionnaire/index.ts is AILI-owned glue: the tool is registered as a non-mutating interaction tool active in all four permission modes (NEVER_HIDE invariant), TUI routes to the absorbed prompt, AILI Web routes through a dedicated extension-UI questionnaire method rendering one full card, generic RPC hosts get a sequential ui.select fallback, headless hosts get an explicit unavailable result",
+        "no timeout is ever configured on any presentation path: the user is never auto-answered",
+        "persistent workers do not carry the tool (child sessions load no top-level extensions); the parent tool guidance routes worker-reported user decisions through the parent questionnaire"
+      ],
+      "verification": [
+        "tests/unit/questionnaire.test.ts",
+        "npm run typecheck",
+        "npm run build:web"
+      ]
     },
     {
       "name": "pi-codex-fast reference",
@@ -164,7 +417,10 @@
       "sourceFiles": [],
       "symbols": [],
       "localChanges": [],
-      "verification": ["tests/unit/codex-fast.test.ts", "manual no-copy provenance inspection"]
+      "verification": [
+        "tests/unit/codex-fast.test.ts",
+        "manual no-copy provenance inspection"
+      ]
     },
     {
       "name": "Graphify reference",
@@ -176,7 +432,10 @@
       "sourceFiles": [],
       "symbols": [],
       "localChanges": [],
-      "verification": ["tests/unit/mcp-config.test.ts", "manual no-copy provenance inspection"]
+      "verification": [
+        "tests/unit/mcp-config.test.ts",
+        "manual no-copy provenance inspection"
+      ]
     },
     {
       "name": "pi-tool-display reference",
@@ -188,7 +447,10 @@
       "sourceFiles": [],
       "symbols": [],
       "localChanges": [],
-      "verification": ["openspec/changes/absorb-pi-runtime-integrations-and-agent-controls/specs/future-runtime-projections/spec.md", "manual no-copy provenance inspection"]
+      "verification": [
+        "openspec/changes/absorb-pi-runtime-integrations-and-agent-controls/specs/future-runtime-projections/spec.md",
+        "manual no-copy provenance inspection"
+      ]
     },
     {
       "name": "Oh My Pi reference",
@@ -200,7 +462,11 @@
       "sourceFiles": [],
       "symbols": [],
       "localChanges": [],
-      "verification": ["tests/integration/persistent-agent-runtime.test.ts", "tests/unit/persistent-agent-output-delivery.test.ts", "manual no-copy provenance inspection"]
+      "verification": [
+        "tests/integration/persistent-agent-runtime.test.ts",
+        "tests/unit/persistent-agent-output-delivery.test.ts",
+        "manual no-copy provenance inspection"
+      ]
     },
     {
       "name": "algal pi-openai-server-compaction reference",
@@ -212,7 +478,10 @@
       "sourceFiles": [],
       "symbols": [],
       "localChanges": [],
-      "verification": ["openspec/changes/converge-pi-runtime-mcp-memory-and-context/compaction-decision.md", "tests/unit/package.test.ts"]
+      "verification": [
+        "openspec/changes/converge-pi-runtime-mcp-memory-and-context/compaction-decision.md",
+        "tests/unit/package.test.ts"
+      ]
     }
   ]
 }

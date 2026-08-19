@@ -11,6 +11,9 @@ import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { ChatMinimap, useMessageRefs } from "./ChatMinimap";
 import { ExtensionStatusBar } from "./ExtensionStatusBar";
 import { actionForBinding, eventToBinding, fetchWebKeybinds, isTextInput, type WebKeybinds } from "@/lib/aili-keybinds";
+import { ApprovalCard } from "./aicss/ApprovalCard";
+import { Orb } from "./aicss/Orb";
+import { AiliQuestionnaire } from "./AiliQuestionnaire";
 import { sendAgentCommand } from "@/lib/agent-client";
 import { MAX_ATTACHED_IMAGE_BYTES } from "@/lib/image-attachments";
 import { parseQuotaStatus, parsePermStatus } from "@/lib/aili-status";
@@ -62,6 +65,10 @@ function phaseLabel(phase: AgentPhase, t: (key: string, params?: Record<string, 
     const names = phase.tools.map((t) => t.name);
     if (names.length === 0) return t("chat.runningTool");
     if (names.length === 1) return t("chat.runningNamedTool", { name: names[0] });
+    const latest = phase.tools[phase.tools.length - 1];
+    if (latest?.progress) {
+      return `${t("chat.runningNamedTool", { name: latest.name })} ${latest.progress}`;
+    }
     if (names.length <= 3) return t("chat.runningTools", { names: names.join(", ") });
     return t("chat.runningToolsMore", { names: names.slice(0, 2).join(", "), count: names.length - 2 });
   }
@@ -72,7 +79,6 @@ function phaseLabel(phase: AgentPhase, t: (key: string, params?: Record<string, 
 
 const CHAT_MINIMAP_WIDTH = 36;
 const CHAT_COLUMN_PADDING = 16;
-const CHAT_INPUT_RIGHT_PADDING = CHAT_COLUMN_PADDING + CHAT_MINIMAP_WIDTH;
 
 function NewSessionUpdateLink({
   label,
@@ -284,7 +290,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
     retryInfo, contextUsage, forkingEntryId,
     isCompacting, compactError, compactResult, displayModel: displayModelValue, modelSwitching, sessionStats,
     slashCommands, slashCommandsLoading, queuedMessages,
-    notices, extensionDialog, extensionCustomUi, extensionStatuses, extensionWidgets, respondToExtensionUi, sendExtensionCustomInput,
+    notices, extensionDialog, extensionQuestionnaire, extensionCustomUi, extensionStatuses, extensionWidgets, respondToExtensionUi, sendExtensionCustomInput,
     isAutoModelSelection,
     agentPhase,
     isNew,
@@ -316,9 +322,10 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
   // thinking-level changes; the channel waits for extension readiness, and
   // the command path is only a fallback when direct execution is missing
   // entirely — a transient miss must never surface as a typed command.
-  const switchPermMode = useCallback((mode: string) => {
-    const sid = session?.id;
-    if (!sid) return;
+  // A mode picked before the draft session exists is queued and applied the
+  // moment the session id arrives, so switching in a fresh composer works.
+  const [pendingPermMode, setPendingPermMode] = useState<string | null>(null);
+  const sendPermSwitch = useCallback((sid: string, mode: string) => {
     void sendAgentCommand(sid, { type: "set_perm_mode", mode }).catch((error) => {
       if (error instanceof Error && error.message.includes("Direct command execution unavailable")) {
         console.warn("[aili] direct perm switch unavailable in this build; falling back to the /perm command");
@@ -327,7 +334,23 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
       }
       console.warn("[aili] perm switch failed; the optimistic chip state will revert", error);
     });
-  }, [session?.id, runAiliCommand]);
+  }, [runAiliCommand]);
+
+  const switchPermMode = useCallback((mode: string) => {
+    const sid = session?.id;
+    if (!sid) {
+      setPendingPermMode(mode);
+      return;
+    }
+    sendPermSwitch(sid, mode);
+  }, [session?.id, sendPermSwitch]);
+
+  useEffect(() => {
+    const sid = session?.id;
+    if (!sid || !pendingPermMode) return;
+    sendPermSwitch(sid, pendingPermMode);
+    setPendingPermMode(null);
+  }, [session?.id, pendingPermMode, sendPermSwitch]);
 
   useEffect(() => {
     onAiliSurfaceChange?.({
@@ -650,6 +673,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
       onToolPresetChange={session || isNew ? handleToolPresetChange : undefined}
       permStatusText={permStatusText}
       permSessionId={session?.id ?? null}
+      pendingPermMode={pendingPermMode}
       onSwitchPermMode={switchPermMode}
       onRunCommand={runAiliCommand}
       thinkingLevel={thinkingLevel}
@@ -731,7 +755,30 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
         <ExtensionDialog
           request={extensionDialog}
           onRespond={respondToExtensionUi}
+          cwd={messageCwd ?? session?.cwd}
         />
+      )}
+
+      {extensionQuestionnaire && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 90,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+            background: "rgba(0,0,0,0.18)",
+          }}
+        >
+          <div role="dialog" aria-modal="true" style={{ width: "min(560px, 100%)", maxHeight: "80vh", overflowY: "auto" }}>
+            <AiliQuestionnaire
+              request={extensionQuestionnaire}
+              onRespond={(request, response) => void respondToExtensionUi(request, response)}
+            />
+          </div>
+        </div>
       )}
 
       {extensionCustomUi && (
@@ -740,6 +787,22 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
           onInput={sendExtensionCustomInput}
         />
       )}
+
+      <div
+        style={{
+          position: "absolute",
+          top: 12,
+          left: 0,
+          right: isMobile ? 0 : CHAT_MINIMAP_WIDTH,
+          zIndex: 40,
+          display: "flex",
+          justifyContent: "center",
+          padding: `0 ${CHAT_COLUMN_PADDING}px`,
+          pointerEvents: "none",
+        }}
+      >
+        <NoticeShelf notices={notices} floating />
+      </div>
 
       {isEmptyNew ? (
         <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
@@ -770,7 +833,6 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                 </span>
               </div>
             </div>
-            <NoticeShelf notices={notices} align="right" />
             {chatInputElement}
             <ExtensionStatusBar statuses={extensionStatuses} widgets={extensionWidgets} />
           </div>
@@ -778,21 +840,6 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
       ) : (
       <>
       <div className="relative flex min-w-0 flex-1 overflow-hidden">
-        <div
-          style={{
-            position: "absolute",
-            top: 12,
-            left: 0,
-            right: isMobile ? 0 : CHAT_MINIMAP_WIDTH,
-            zIndex: 40,
-            padding: `0 ${CHAT_COLUMN_PADDING}px`,
-            pointerEvents: "none",
-          }}
-        >
-          <div style={{ maxWidth: 820, margin: "0 auto" }}>
-            <NoticeShelf notices={notices} floating align="right" />
-          </div>
-        </div>
         <div ref={scrollContainerRef} className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pt-4 [scrollbar-width:none]">
           <div style={{ minWidth: 0, padding: `0 ${CHAT_COLUMN_PADDING}px` }}>
             <div ref={messageContentRef} style={{ width: "100%", minWidth: 0, maxWidth: 820, margin: "0 auto" }}>
@@ -987,14 +1034,19 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
             )}
 
             {agentRunning && !hasStreamingContent && agentPhase && (
-              <div className="py-2 text-[13px] text-text-muted">
-                <span className="animate-[pulse_1.5s_infinite]">{phaseLabel(agentPhase, t)}</span>
+              <div className="break-words py-2 text-[13px] text-text-muted">
+                <Orb
+                  variant={agentPhase.kind === "waiting_model" ? "B1" : agentPhase.kind === "running_command" ? "G1" : "C1"}
+                  size={14}
+                  pill
+                  label={phaseLabel(agentPhase, t) ?? t("chat.runningTool")}
+                />
               </div>
             )}
 
             {bashRunning && !pendingBash && (
               <div className="py-2 text-[13px] text-text-muted">
-                 <span className="animate-[pulse_1.5s_infinite]">{t("chat.runningCommand")}</span>
+                <Orb variant="G1" size={14} pill label={t("chat.runningCommand")} />
               </div>
             )}
 
@@ -1037,14 +1089,14 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
   );
 }
 
-function NoticeShelf({ notices, floating = false, align = "left" }: { notices: NoticeItem[]; floating?: boolean; align?: "left" | "right" }) {
+function NoticeShelf({ notices, floating = false }: { notices: NoticeItem[]; floating?: boolean }) {
   if (notices.length === 0) return null;
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        alignItems: align === "right" ? "flex-end" : "stretch",
+        alignItems: "center",
         marginBottom: floating ? 0 : 10,
       }}
     >
@@ -1111,9 +1163,11 @@ type ExtensionDialogRequest = Extract<ExtensionUiRequest, { method: "select" | "
 function ExtensionDialog({
   request,
   onRespond,
+  cwd,
 }: {
   request: ExtensionDialogRequest;
   onRespond: (request: ExtensionDialogRequest, response: { value: string } | { confirmed: boolean } | { cancelled: true }) => void;
+  cwd?: string;
 }) {
   const { t } = useI18n();
   const [value, setValue] = useState(request.method === "editor" ? request.prefill ?? "" : "");
@@ -1129,6 +1183,50 @@ function ExtensionDialog({
       onRespond(request, { value });
     }
   };
+
+  // AIcss ApprovalCard covers the two approval-shaped requests: confirm
+  // (approve a command/message) and select (clarify with options). Free-form
+  // input/editor requests keep the plain themed dialog below.
+  if (request.method === "confirm" || request.method === "select") {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 90,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+          background: "rgba(0,0,0,0.18)",
+        }}
+      >
+        <div role="dialog" aria-modal="true" style={{ width: "min(560px, 100%)" }}>
+          {request.method === "confirm" ? (
+            <ApprovalCard
+              variant="command"
+              title={request.title}
+              command={request.message}
+              cwd={cwd ?? "~/aili"}
+              approveLabel={t("chat.confirm")}
+              rejectLabel={t("chat.cancel")}
+              onApprove={() => onRespond(request, { confirmed: true })}
+              onReject={() => onRespond(request, { cancelled: true })}
+            />
+          ) : (
+            <ApprovalCard
+              variant="questions"
+              questions={[{ id: request.id, prompt: request.title, options: request.options }]}
+              approveLabel={t("chat.submit")}
+              rejectLabel={t("chat.cancel")}
+              onApprove={(payload) => onRespond(request, { value: payload?.answers?.[request.id] ?? "" })}
+              onReject={() => onRespond(request, { cancelled: true })}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -1161,32 +1259,6 @@ function ExtensionDialog({
         </div>
 
         <div style={{ padding: 14 }}>
-          {request.method === "confirm" && (
-            <div style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{request.message}</div>
-          )}
-          {request.method === "select" && (
-            <div style={{ display: "grid", gap: 8 }}>
-              {request.options.map((option) => (
-                <button
-                  key={option}
-                  onClick={() => onRespond(request, { value: option })}
-                  style={{
-                    width: "100%",
-                    padding: "9px 10px",
-                    borderRadius: 7,
-                    border: "1px solid var(--border)",
-                    background: "var(--bg-panel)",
-                    color: "var(--text)",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontSize: 13,
-                  }}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          )}
           {request.method === "input" && (
             <input
               autoFocus
@@ -1250,35 +1322,19 @@ function ExtensionDialog({
           >
              {t("chat.cancel")}
           </button>
-          {request.method === "confirm" ? (
-            <button
-              onClick={submitValue}
-              style={{
-                padding: "6px 10px",
-                borderRadius: 6,
-                border: "1px solid var(--accent)",
-                background: "var(--accent)",
-                color: "#fff",
-                cursor: "pointer",
-              }}
-            >
-               {t("chat.confirm")}
-            </button>
-          ) : request.method !== "select" ? (
-            <button
-              onClick={submitValue}
-              style={{
-                padding: "6px 10px",
-                borderRadius: 6,
-                border: "1px solid var(--accent)",
-                background: "var(--accent)",
-                color: "#fff",
-                cursor: "pointer",
-              }}
-            >
-               {t("chat.submit")}
-            </button>
-          ) : null}
+          <button
+            onClick={submitValue}
+            style={{
+              padding: "6px 10px",
+              borderRadius: 6,
+              border: "1px solid var(--accent)",
+              background: "var(--accent)",
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+             {t("chat.submit")}
+          </button>
         </div>
       </div>
     </div>

@@ -20,7 +20,7 @@ type SourceLocks = {
   schemaVersion: 1;
   policy: {
     webCodeBase: "pi-web-only";
-    aicssSourceCopied: false;
+    aicssSourceCopied: boolean;
   };
   sources: LockedSource[];
 };
@@ -31,11 +31,11 @@ const EXPECTED: Readonly<Record<string, Omit<LockedSource, "copyright" | "import
   "pi-web": {
     id: "pi-web",
     package: "@agegr/pi-web",
-    version: "0.8.8",
-    gitRevision: "5a53c18ca9328400a3dfb8c48c1e4f343b3e4903",
+    version: "0.8.9",
+    gitRevision: "febcba5e33e5eef9bf7f092099105c5dfea742ff",
     license: "MIT",
-    importPath: "upstream/pi-web-0.8.8",
-    sourceManifestVersion: "0.8.8-beta.2",
+    importPath: "upstream/pi-web-0.8.9",
+    sourceManifestVersion: "0.8.8",
   },
   "pi-analytics": {
     id: "pi-analytics",
@@ -106,7 +106,21 @@ export async function validateWebSourceLocks(): Promise<void> {
   const locks = JSON.parse(await readFile(LOCK_PATH, "utf8")) as SourceLocks;
   assert(locks.schemaVersion === 1, "web source lock schemaVersion must be 1");
   assert(locks.policy.webCodeBase === "pi-web-only", "Pi Web must remain the sole Web code/function base");
-  assert(locks.policy.aicssSourceCopied === false, "AIcss source copying is not authorized");
+  // 2026-08-18 owner authorization: verbatim AIcss vendoring lives under
+  // src/web/components/aicss/ with its README provenance record. Only the
+  // site's free components may be vendored; the locked ones must stay out.
+  assert(locks.policy.aicssSourceCopied === true, "AIcss vendored-component policy must stay recorded");
+  const aicssDir = resolve(ROOT, "src/web/components/aicss");
+  const aicssProvenance = await readFile(resolve(aicssDir, "README.md"), "utf8");
+  assert(aicssProvenance.includes("https://www.aicss.dev/"), "AIcss vendored provenance README missing");
+  const aicssFiles = new Set(await readdir(aicssDir));
+  const vendoredFreeComponents = ["ApprovalCard", "Orb", "TodoList", "StreamingText"];
+  for (const name of vendoredFreeComponents) {
+    assert(aicssFiles.has(`${name}.tsx`) && aicssFiles.has(`${name}.module.css`), `AIcss free component missing: ${name}`);
+  }
+  for (const locked of ["InlineCitations", "ImageGeneration", "ComparisonTable", "FileDiff"]) {
+    assert(!aicssFiles.has(`${locked}.tsx`), `AIcss locked component must not be vendored: ${locked}`);
+  }
   assert(locks.sources.length === Object.keys(EXPECTED).length, "web source lock inventory must contain exactly five sources");
 
   for (const source of locks.sources) {
@@ -136,11 +150,11 @@ export async function validateWebSourceLocks(): Promise<void> {
   }
 
   const inventory = await readFile(resolve(ROOT, "docs/upstream-web-behavior-inventory.md"), "utf8");
-  for (const heading of ["Pi Web 0.8.8", "pi-analytics 0.49.6", "pi-stamp 0.49.3", "pi-btw 0.50.0", "pi-worktree 0.50.0", "AIcss"]) {
+  for (const heading of ["Pi Web 0.8.9", "pi-analytics 0.49.6", "pi-stamp 0.49.3", "pi-btw 0.50.0", "pi-worktree 0.50.0", "AIcss"]) {
     assert(inventory.includes(heading), `${heading}: behavior inventory section missing`);
   }
   assert(inventory.includes("force removal"), "unsafe force Worktree removal disposition missing");
-  assert(inventory.includes("复制 **零 AIcss 源码**"), "AIcss no-copy fallback missing");
+  assert(inventory.includes("2026-08-18 项目所有者授权原样 vendor"), "AIcss vendoring authorization record missing");
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

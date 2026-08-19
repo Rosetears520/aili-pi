@@ -8,7 +8,7 @@
 - **安全修改**：保留用户目标，但必须经过已接受的 AILI Runtime/API、安全、写者租约或隐私边界。
 - **排除**：与已接受范围冲突，不进入生产界面或 API。
 
-## 1. Pi Web 0.8.8
+## 1. Pi Web 0.8.9
 
 Pi Web 是唯一 Web code/function base。Codex UI、`minghinmatthewlam/pi-gui` 与 OpenCode 仅作视觉/交互参考，不贡献源码、协议、数据模型或运行时。
 
@@ -94,9 +94,15 @@ Pi Web 是唯一 Web code/function base。Codex UI、`minghinmatthewlam/pi-gui` 
 
 ## 6. AIcss 与参考 UI
 
-AIcss 完整目录没有可支持公开 MIT npm 源码再分发的证据，且付费条款禁止按原样再分发组件。因此本仓库复制 **零 AIcss 源码**，后续 BUILD 独立实现已冻结的十四类语义组件：Thinking State、Thinking and Reasoning、Orbs、Web Search、File Diff、Image Generation、Text Response、Streaming Text、Inline Citations、Code Block、To-do List、Data Table、Comparison Table、AI Agent Input。
+2026-08-18 完成逐组件 free/locked 审计（依据每个组件页 JSON-LD 的 `isAccessibleForFree` 与 pricing FAQ），结论取代早前"零复制"保守基线：
 
-这些实现可参考公开视觉效果，但不得复制 private/locked/free component source，也不得展示 hidden chain-of-thought、credentials、prompts 或 private tool payloads。
+- 免费组件（10 个）：AI Agent Input、Thinking State、Thinking and Reasoning、Orbs、Text Response、Streaming Text、Code Block、Data Table、To-do List、Approval Card。FAQ 原文：「The free components are yours to use in personal and commercial projects without a license.」
+- 锁定组件（4 个）：Inline Citations、Image Generation、Comparison Table、File Diff（页面代码打码 + unlock CTA，需 Personal $190 / Enterprise $490 一次性 license）。
+- FAQ 明确禁止的仅是「as part of a competing template or component library」式原样转售；本包发布的是编译后的应用产物（src/web 不进 npm files），属于项目内使用。
+
+2026-08-18 项目所有者授权原样 vendor + 免费路线落地：`src/web/components/aicss/` 仅收录四个免费组件（ApprovalCard、Orb、TodoList、StreamingText + module CSS，README 记录出处与改写）；曾短暂 vendor 的 InlineCitations（锁定组件）当日移除，替换为 AILI 自有的 `.aili-cite-*` 文件引用实现（MarkdownBody 集成不变）；markdown 表格与 file-diff 的 CSS 取值从借鉴的十六进制数值改为主题变量再推导。validate-web-source-locks 现在断言四个免费组件在位且锁定组件文件不存在。
+
+不得展示 hidden chain-of-thought、credentials、prompts 或 private tool payloads 的约束不变。若日后购入 license，可将 `.aili-cite-*` 与表格取值换回官方实现并更新本节记录。
 
 ## 7. 后续 package gate
 

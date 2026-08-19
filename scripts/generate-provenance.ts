@@ -65,7 +65,7 @@ async function generate(created: string): Promise<{ notices: string; sbom: objec
   if (!packageManifest.name || !packageManifest.version || !packageManifest.license) throw new Error("package identity is incomplete");
   if (lock.lockfileVersion !== 3) throw new Error("package-lock must use lockfileVersion 3");
   const piHost = lock.packages["node_modules/@earendil-works/pi-coding-agent"];
-  if (piHost?.version !== "0.84.1") throw new Error("active Pi host must be exact @earendil-works/pi-coding-agent@0.84.1");
+  if (piHost?.version !== "0.84.2") throw new Error("active Pi host must be exact @earendil-works/pi-coding-agent@0.84.2");
   const seenSources = new Set<string>();
   for (const source of provenance.sources) {
     if (!source.name || seenSources.has(source.name)) throw new Error(`duplicate or missing provenance source: ${source.name}`);

@@ -10,7 +10,7 @@ const config: NextConfig = {
   outputFileTracingRoot: resolve(process.cwd()),
   serverExternalPackages: ["undici", "@earendil-works/pi-coding-agent", "@earendil-works/pi-agent-core", "@earendil-works/pi-ai", "@earendil-works/pi-tui"],
   allowedDevOrigins: ["127.0.0.1", "192.168.*.*"],
-  env: { NEXT_PUBLIC_APP_VERSION: "0.2.9", NEXT_PUBLIC_PI_VERSION: "0.84.1" },
+  env: { NEXT_PUBLIC_APP_VERSION: "0.2.9", NEXT_PUBLIC_PI_VERSION: "0.84.2" },
   webpack(webpackConfig) {
     // NodeNext sources import compiled ".js" specifiers; webpack must map them
     // back to the TypeScript originals inside this repository-only boundary.

@@ -451,13 +451,21 @@ pre, code {
   background: var(--bg-subtle);
   color: var(--text-muted);
 }
+/* AILI round 4: markdown tables — own values on the project's theme variables
+   after the AIcss locked-component audit (2026-08-18): the comparison-table
+   component is paid-locked, so the earlier borrowed hex palette was re-derived
+   independently; rounded card with a muted header band and 1px row/cell
+   dividers instead of zebra striping remains the accepted design. */
 .markdown-table-wrap {
   width: 100%;
+  max-width: 100%;
   margin: 8px 0;
   overflow-x: auto;
   overflow-y: hidden;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 10px;
+  background: var(--bg-panel);
+  font-size: 13px;
 }
 .markdown-body table {
   border-collapse: separate;
@@ -467,18 +475,28 @@ pre, code {
 }
 .markdown-body th, .markdown-body td {
   border: 0;
+  border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  padding: 6px 10px;
+  padding: 8px 12px;
   text-align: left;
   vertical-align: top;
+  background: var(--bg);
+  color: var(--text);
+  white-space: nowrap;
 }
+.markdown-body th:last-child, .markdown-body td:last-child { border-right: 0; }
 .markdown-body tr:last-child td { border-bottom: 0; }
 .markdown-body th {
-  background: var(--bg-panel);
-  color: color-mix(in srgb, var(--text) 88%, var(--text-muted));
-  font-weight: 650;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
 }
-.markdown-body tbody tr:nth-child(even) td { background: var(--bg-subtle); }
+/* comparison cells: bare affirm/negate marks render as colored checks */
+.markdown-body td.aili-cell-yes { color: #16a34a; }
+.markdown-body td.aili-cell-no { color: var(--text-dim); }
+html.dark .markdown-body td.aili-cell-yes { color: #4ade80; }
 .markdown-body hr {
   border: none;
   height: 1px;
@@ -1122,6 +1140,11 @@ span.linenumber {
   font-style: normal !important;
 }
 
+/* Prism's markdown table tokens collide with Tailwind's display utility. */
+span.token.table {
+  display: inline;
+}
+
 @keyframes drop-zone-in {
   from { opacity: 0; transform: scale(0.97); }
   to   { opacity: 1; transform: scale(1); }
@@ -1500,13 +1523,15 @@ span.linenumber {
 .aili-file-row[data-active="true"] { background: var(--bg-selected); }
 .aili-file-status { font-size: 10px; font-family: var(--font-mono); color: var(--text-dim); width: 22px; flex-shrink: 0; }
 .aili-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); }
-/* aicss file-diff adaptation (2026-08-15 copy authorization): rounded card,
-   dual line-number columns with a full-height divider, 3px left accent bar —
+/* aicss file-diff adaptation, values re-derived 2026-08-18 (the component is
+   paid-locked; structure and code are AILI-owned): rounded card, dual
+   line-number columns with a full-height divider, 3px left accent bar —
    solid green for additions, red hatch for deletions — dim context code. */
 .aili-diff {
-  border-radius: 12px;
+  border-radius: 10px;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.02), 0 0 0 0.5px rgba(0,0,0,0.08);
+  border: 1px solid rgba(0,0,0,0.10);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   padding: 12px 16px 16px;
   overflow: hidden;
   font-family: var(--font-mono);
@@ -1752,20 +1777,74 @@ html.dark .aili-split-cell.aili-split-add code { color: #f5f5f5; }
   background: rgba(239,68,68,0.06);
 }
 
-/* ============ AILI round 2: code block polish (aicss code-block adaptation) ============ */
-.markdown-code-block { border-radius: 10px; }
-.markdown-code-header { padding: 6px 10px 6px 12px; }
+/* ============ AILI round 3: code block (aicss code-block adaptation, 2026-08-18 user authorization) ============
+   Full aicss code-block look: 12px card with a 1px ring instead of a border, a
+   header band carrying a </> icon + language label and a borderless icon+text
+   copy button, and a 32px line-number gutter with a hairline divider. Prism
+   highlighting, the streaming fast path, and the mermaid preview/source toggle
+   ride on top of this visual language unchanged. */
+.markdown-code-block {
+  border: none;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 0 0 1px #e6e8ec;
+}
+.markdown-code-header {
+  padding: 10px 12px 10px 16px;
+  background: transparent;
+  border-bottom: 0.5px solid #e6e8ec;
+  color: #a1a1a1;
+  font-size: 12px;
+}
+.markdown-code-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.markdown-code-icon {
+  display: block;
+  width: 15px;
+  height: 15px;
+  color: #a1a1a1;
+  flex: none;
+}
 .markdown-code-lang {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 10px;
-  font-weight: 700;
+  color: #1a1a1a;
+  font-weight: 400;
+  font-size: 12.5px;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: 0;
 }
-.markdown-code-action { border-radius: 6px; }
-.markdown-code-action.is-copied {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+.markdown-code-actions { gap: 2px; }
+.markdown-code-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 7px;
+  padding: 3px 3px 3px 7px;
+  background: none;
+  color: #a1a1a1;
+  font-size: 12px;
 }
+.markdown-code-action:hover:not(:disabled) {
+  color: #1a1a1a;
+  background: #f4f5f7;
+  border-color: transparent;
+}
+.markdown-code-action:disabled { opacity: 0.6; }
+.markdown-code-action.is-active { background: #f4f5f7; color: #1a1a1a; }
+.markdown-code-action.is-copied { color: #15a06a; background: none; border-color: transparent; }
+.markdown-code-action svg { flex: none; }
+html.dark .markdown-code-block { background: #1a1a1a; box-shadow: 0 0 0 1px #303030; }
+html.dark .markdown-code-header { border-bottom-color: #303030; }
+html.dark .markdown-code-icon { color: #737373; }
+html.dark .markdown-code-lang { color: #f5f5f5; }
+html.dark .markdown-code-action:hover:not(:disabled) { color: #f5f5f5; background: #242424; }
+html.dark .markdown-code-action.is-active { background: #242424; color: #f5f5f5; }
+html.dark .markdown-code-action.is-copied { color: #34d399; }
 
 @media (prefers-reduced-motion: reduce) {
   .aili-composer-chips, .aili-btw, .aili-send { animation: none; transition: none; }
@@ -1911,3 +1990,154 @@ html.dark .aili-split-cell.aili-split-add code { color: #f5f5f5; }
   border: 1px solid rgba(245,158,11,0.25);
   border-radius: 8px;
 }
+
+/* ============ AILI round 3: thinking block (aicss thinking-state + thinking-reasoning adaptation, 2026-08-18 user authorization) ============ */
+/* Borderless inline disclosure: shimmering "Thinking" label while live, a
+   "Thought for Ns" summary once settled, chevron toggle over a grid-rows
+   animated collapsible body capped at a soft-scrolling 180px viewport. */
+.aili-thinking {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  animation: aili-fade 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.aili-thinking-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  min-height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--text-muted) 68%, transparent);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-align: left;
+  cursor: pointer;
+}
+.aili-thinking-head:hover { color: var(--text-muted); }
+.aili-thinking-chevron {
+  color: var(--text-dim);
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* base path is an up caret; the collapsed summary points down */
+  transform: rotate(180deg);
+}
+.aili-thinking-head[aria-expanded="true"] .aili-thinking-chevron { transform: rotate(0deg); }
+.aili-thinking-head:hover .aili-thinking-chevron { color: var(--text-muted); }
+.aili-thinking-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition: grid-template-rows 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease;
+}
+.aili-thinking-body.is-collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+.aili-thinking-inner { min-height: 0; overflow: hidden; }
+.aili-thinking-content {
+  margin-top: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 425;
+  color: var(--text-dim);
+  letter-spacing: -0.005em;
+  white-space: pre-wrap;
+}
+.aili-thinking-content::-webkit-scrollbar { display: none; }
+.aili-thinking-error { color: #f87171; }
+/* thinking-state shimmer: a soft brightness valley sweeps through the label */
+.aili-shimmer {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  background: linear-gradient(
+    90deg,
+    #a1a1a1 0%, #a1a1a1 30%,
+    rgba(161, 161, 161, 0.45) 45%, rgba(161, 161, 161, 0.45) 55%,
+    #a1a1a1 70%, #a1a1a1 100%
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: aili-label-shine 2.25s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+@keyframes aili-label-shine {
+  0%, 18% { background-position: 100% 0; }
+  82%, 100% { background-position: 0% 0; }
+}
+html.dark .aili-shimmer {
+  background: linear-gradient(
+    90deg,
+    #a3a3a3 0%, #a3a3a3 30%,
+    rgba(163, 163, 163, 0.45) 45%, rgba(163, 163, 163, 0.45) 55%,
+    #a3a3a3 70%, #a3a3a3 100%
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aili-thinking, .aili-shimmer { animation: none; }
+  .aili-thinking-body, .aili-thinking-chevron { transition: none; }
+}
+
+/* ============ AILI round 4: file citations (own design; the AIcss inline-citations
+   component is paid-locked and was replaced by this independent implementation) ============ */
+.aili-cite-tip { position: relative; display: inline; }
+.aili-cite-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 13px; height: 13px; flex: none;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text-dim);
+  font-size: 9px; font-weight: 600; line-height: 1;
+  vertical-align: 5px; margin: 0 1px;
+  transition: color 0.12s, border-color 0.12s;
+}
+.aili-cite-tip:hover .aili-cite-mark { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.aili-cite-box {
+  position: absolute; left: 50%; bottom: calc(100% + 5px);
+  transform: translateX(-50%) translateY(2px);
+  font-size: 10.5px; line-height: 1;
+  font-family: var(--font-mono);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  white-space: nowrap; max-width: 60vw; overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.12s, transform 0.12s;
+  z-index: 60;
+}
+.aili-cite-tip:hover .aili-cite-box, .aili-cite-tip:focus-within .aili-cite-box { opacity: 1; transform: translateX(-50%) translateY(0); }
+.aili-cite-footer {
+  display: flex; flex-direction: column; gap: 4px;
+  margin-top: 10px; padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.aili-cite-ref {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-width: 0; max-width: 100%;
+  font-size: 11.5px; line-height: 16px;
+  color: var(--text-muted);
+  text-decoration: none; cursor: pointer;
+}
+.aili-cite-ref:hover .aili-cite-path { color: var(--accent); text-decoration: underline; }
+.aili-cite-path {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  transition: color 0.12s;
+}
+.aili-cite-open { flex: none; font-size: 10px; color: var(--text-dim); opacity: 0; transition: opacity 0.12s; }
+.aili-cite-ref:hover .aili-cite-open { opacity: 1; color: var(--accent); }

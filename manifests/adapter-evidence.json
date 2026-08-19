@@ -13,7 +13,7 @@
       "artifacts": [
         {
           "path": "package-lock.json",
-          "sha256": "454f70ca81cadc3c6ef52b081d040ff65ede0c2b3143d5e269ce43888189159f"
+          "sha256": "fbf865d19020fbd8b16ab2b49506d9721236c2e23c5389077c6e2ef67a983a7c"
         },
         {
           "path": "tests/integration/extension-load.test.ts",
@@ -21,7 +21,7 @@
         },
         {
           "path": "tests/integration/persistent-agent-host-seams.test.ts",
-          "sha256": "a9cb80d3ee97c70ebe69b09ae48aa38506cd7ab795e681f084b31ffe263f4b65"
+          "sha256": "f6b6556bd00d64484c68f4e52154e6394a977fb782915ad9414560b0619e4c0d"
         }
       ]
     },
@@ -52,7 +52,7 @@
         },
         {
           "path": "src/runtime/persistent-agents/task-registration.ts",
-          "sha256": "4d644c805780f609fcbc6ec83d42dd4f822b34e140795c9bd96bbeb4c799a10c"
+          "sha256": "a2a21b567db10bafadf42ff79c8c2d3a2eb89f80356659243477b23887fc5e8b"
         },
         {
           "path": "src/runtime/native-integrations.ts",
@@ -84,11 +84,11 @@
         },
         {
           "path": "tests/integration/persistent-agent-production.test.ts",
-          "sha256": "f4dc0fce9a66c41843952d97d146c4f61ce3fd7fec96dd5a32dd244ae480d1db"
+          "sha256": "60585d93fe650914c88aad3143a04dbf6160006d45054966bf35c54727048435"
         },
         {
           "path": "tests/integration/persistent-agent-task-collision.test.ts",
-          "sha256": "7880a20f1d6042f4986e22ccdaad9f76f56c9ffee0028b9c888ccad45241ebd9"
+          "sha256": "9c986ecc9418766d344db5c16af116612631d787c95e2cfe3623f87a5a186e6c"
         },
         {
           "path": "tests/unit/persistent-agent-task-registration.test.ts",
@@ -123,7 +123,7 @@
         },
         {
           "path": "package-lock.json",
-          "sha256": "454f70ca81cadc3c6ef52b081d040ff65ede0c2b3143d5e269ce43888189159f"
+          "sha256": "fbf865d19020fbd8b16ab2b49506d9721236c2e23c5389077c6e2ef67a983a7c"
         },
         {
           "path": "node_modules/@earendil-works/pi-coding-agent/docs/skills.md",

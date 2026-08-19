@@ -35,7 +35,7 @@ const EXPECTED_GPT_56 = {
     contextWindow: 272000,
     maxTokens: 128000,
     thinkingLevelMap: { xhigh: "xhigh", max: "max", minimal: "low" },
-    compat: { supportsToolSearch: true, supportsOpenAIGrammarTools: true },
+    compat: { supportsToolSearch: true, supportsOpenAIGrammarTools: true, supportsAdditionalTools: true },
   },
   "gpt-5.6-terra": {
     id: "gpt-5.6-terra",
@@ -55,7 +55,7 @@ const EXPECTED_GPT_56 = {
     contextWindow: 272000,
     maxTokens: 128000,
     thinkingLevelMap: { xhigh: "xhigh", max: "max", minimal: "low" },
-    compat: { supportsToolSearch: true, supportsOpenAIGrammarTools: true },
+    compat: { supportsToolSearch: true, supportsOpenAIGrammarTools: true, supportsAdditionalTools: true },
   },
   "gpt-5.6-luna": {
     id: "gpt-5.6-luna",
@@ -75,7 +75,7 @@ const EXPECTED_GPT_56 = {
     contextWindow: 272000,
     maxTokens: 128000,
     thinkingLevelMap: { xhigh: "xhigh", max: "max", minimal: "low" },
-    compat: { supportsToolSearch: true, supportsOpenAIGrammarTools: true },
+    compat: { supportsToolSearch: true, supportsOpenAIGrammarTools: true, supportsAdditionalTools: true },
   },
 } as const;
 
@@ -127,13 +127,13 @@ function registrationSpy(): { pi: ExtensionAPI; providerCalls: unknown[][] } {
   return { pi, providerCalls };
 }
 
-describe("Pi 0.84.1-owned GPT-5.6 Codex metadata", () => {
+describe("Pi 0.84.2-owned GPT-5.6 Codex metadata", () => {
   it("keeps the installed Pi version and exact Sol, Terra, and Luna catalog values", async () => {
     const piPackage = JSON.parse(await readFile(
       new URL("../../node_modules/@earendil-works/pi-coding-agent/package.json", import.meta.url),
       "utf8",
     )) as { version?: string };
-    expect(piPackage.version).toBe("0.84.1");
+    expect(piPackage.version).toBe("0.84.2");
 
     const registry = await createOfflineRegistry();
     for (const [id, expected] of Object.entries(EXPECTED_GPT_56)) {

@@ -107,7 +107,7 @@ export function createProviderRoutedContextExtension(options: ProviderRoutedCont
       return router.route(ctx).owner === expected;
     };
 
-    // Keep Codex transport retries disabled: Pi 0.84.1 owns attempts, budget and backoff.
+    // Keep Codex transport retries disabled: Pi 0.84.2 owns attempts, budget and backoff.
     const settingsRuntime = forcePiOwnedCodexRetry(options.settingsRuntime ?? createCodexCompactSettingsRuntime());
     const codex = createCodexCompactExtension({ fetch: options.fetch, settingsRuntime });
     const acp = createAcpExtension({ autoUpdate: false }, {

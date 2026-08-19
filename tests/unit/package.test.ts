@@ -40,16 +40,16 @@ describe("Pi package baseline", () => {
     expect(manifest.dependencies).not.toHaveProperty("@narumitw/pi-lsp");
     expect(manifest.dependencies).not.toHaveProperty("pi-markdown-preview");
     expect(manifest.dependencies).not.toHaveProperty("@agwab/pi-subagent");
-    expect(manifest.devDependencies?.["@earendil-works/pi-agent-core"]).toBe("0.84.1");
-    expect(manifest.devDependencies?.["@earendil-works/pi-ai"]).toBe("0.84.1");
-    expect(manifest.devDependencies?.["@earendil-works/pi-coding-agent"]).toBe("0.84.1");
-    expect(manifest.devDependencies?.["@earendil-works/pi-tui"]).toBe("0.84.1");
+    expect(manifest.devDependencies?.["@earendil-works/pi-agent-core"]).toBe("0.84.2");
+    expect(manifest.devDependencies?.["@earendil-works/pi-ai"]).toBe("0.84.2");
+    expect(manifest.devDependencies?.["@earendil-works/pi-coding-agent"]).toBe("0.84.2");
+    expect(manifest.devDependencies?.["@earendil-works/pi-tui"]).toBe("0.84.2");
     expect(manifest.dependencies).toEqual({
       "@narumitw/pi-codex-compact": "0.50.0",
       "@narumitw/pi-tui-kit": "0.53.0",
       "acp-kernel": "0.0.19",
       "js-yaml": "5.2.3",
-      next: "16.2.12",
+      next: "16.3.1",
       "pi-cache-optimizer": "2.6.18",
       "pi-mcp-adapter": "2.23.0",
       "pi-permission-modes": "2.2.0",
@@ -59,7 +59,7 @@ describe("Pi package baseline", () => {
       react: "19.2.4",
       "react-dom": "19.2.4",
       "remark-frontmatter": "5.0.0",
-      undici: "8.5.0",
+      undici: "8.10.0",
     });
     expect(manifest.dependencies).not.toHaveProperty("@agegr/pi-web");
     expect(JSON.stringify(manifest.overrides ?? {})).not.toContain("372000");

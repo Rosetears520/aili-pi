@@ -8,14 +8,14 @@ import { delimiter, dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const SUPPORTED_PI_VERSION = "0.84.1";
+const SUPPORTED_PI_VERSION = "0.84.2";
 const SUPPORTED_PI_PACKAGES = [
   "@earendil-works/pi-agent-core",
   "@earendil-works/pi-ai",
   "@earendil-works/pi-coding-agent",
   "@earendil-works/pi-tui",
 ];
-const SOURCE_REVISION = "5a53c18ca9328400a3dfb8c48c1e4f343b3e4903";
+const SOURCE_REVISION = "febcba5e33e5eef9bf7f092099105c5dfea742ff";
 const READY_PATTERN = /(?:^|\s)(?:✓\s*)?Ready(?:\s|$)/m;
 const STOP_TIMEOUT_MS = 5_000;
 let managed = false;
@@ -145,7 +145,7 @@ function assertCompatibleRuntime() {
     if (value.version !== SUPPORTED_PI_VERSION) throw new Error(`pi-web requires ${packageName}@${SUPPORTED_PI_VERSION}`);
   }
   const nextManifest = readJson(resolvePackageJson(require, "next"), "installed Next manifest");
-  if (nextManifest.version !== "16.2.12") throw new Error("locked Next runtime version mismatch");
+  if (nextManifest.version !== "16.3.1") throw new Error("locked Next runtime version mismatch");
 }
 
 function supportedNode(value) {
@@ -168,7 +168,7 @@ function assertBuild(appRoot) {
   }
   if (!regularFile(manifestPath)) throw new Error("packaged Pi Web build manifest is missing");
   const manifest = readJson(manifestPath, "packaged Pi Web build manifest");
-  if (manifest.schemaVersion !== 1 || manifest.source !== "upstream/pi-web-0.8.8"
+  if (manifest.schemaVersion !== 1 || manifest.source !== "upstream/pi-web-0.8.9"
     || manifest.sourceRevision !== SOURCE_REVISION || manifest.piVersion !== SUPPORTED_PI_VERSION) {
     throw new Error("packaged Pi Web build manifest is incompatible");
   }

@@ -15,7 +15,7 @@ describe("RuntimeHost to AILI workbench projections", () => {
     let officialAgentCreations = 0;
     let lazyMcpConnections = 0;
     const host = new RuntimeHost("private-session-id", {
-      piVersion: "0.84.1",
+      piVersion: "0.84.2",
       runtimeDirectory: "/tmp/aili-web-projection-contract",
       sessionHandle: "session-projection",
       now: () => now,
@@ -45,7 +45,7 @@ describe("RuntimeHost to AILI workbench projections", () => {
 
   it("applies ordered projection patches and rejects stale/gapped state", () => {
     const host = new RuntimeHost("private-session-events", {
-      piVersion: "0.84.1",
+      piVersion: "0.84.2",
       runtimeDirectory: "/tmp/aili-web-projection-events",
       sessionHandle: "session-events",
       now: () => now,
@@ -71,7 +71,7 @@ describe("RuntimeHost to AILI workbench projections", () => {
 
   it("rejects protected owner data before it can enter a projection", () => {
     const host = new RuntimeHost("private-session-redaction", {
-      piVersion: "0.84.1",
+      piVersion: "0.84.2",
       runtimeDirectory: "/tmp/aili-web-projection-redaction",
       sessionHandle: "session-redaction",
       now: () => now,

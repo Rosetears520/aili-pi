@@ -108,7 +108,12 @@ export function MermaidBlock({ code, isStreaming, defaultPreview = false }: Merm
   return (
     <div className="markdown-code-block">
       <div className="markdown-code-header">
-        <span className="markdown-code-lang">mermaid</span>
+        <span className="markdown-code-file">
+          <svg className="markdown-code-icon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+            <path d="m8 6-6 6 6 6M16 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="markdown-code-lang">mermaid</span>
+        </span>
         {previewButton}
       </div>
       {body}
@@ -249,16 +254,41 @@ export const CodeBlock = memo(function CodeBlock({ code, lang, headerAction, isS
     });
   };
 
+  // aicss code-block adaptation: ring-outlined card, </> + language header,
+  // icon+text copy button, 32px line-number gutter with a hairline divider
+  // (see .markdown-code-* in globals.css). Prism highlighting is kept.
+  const gutterStyle = {
+    color: "#a1a1a1",
+    fontSize: 11,
+    fontStyle: "normal",
+    minWidth: 32,
+    paddingRight: 7,
+    textAlign: "right" as const,
+    userSelect: "none" as const,
+    borderRight: `0.5px solid ${isDark ? "#303030" : "#e6e8ec"}`,
+    marginRight: 8,
+  };
+
   return (
     <div className="markdown-code-block">
       <div className="markdown-code-header">
-        <span className="markdown-code-lang">{lang || "text"}</span>
+        <span className="markdown-code-file">
+          <svg className="markdown-code-icon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+            <path d="m8 6-6 6 6 6M16 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="markdown-code-lang">{lang || "text"}</span>
+        </span>
         <div className="markdown-code-actions">
           {headerAction}
           <button
             onClick={copy}
             className={copied ? "markdown-code-action is-copied" : "markdown-code-action"}
           >
+            {copied ? (
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m4.5 12.75 6 6 9-13.5" /></svg>
+            ) : (
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5" /><path d="M5 15a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2" /></svg>
+            )}
             {copied ? t("i18n.copied") : t("i18n.copy")}
           </button>
         </div>
@@ -267,11 +297,11 @@ export const CodeBlock = memo(function CodeBlock({ code, lang, headerAction, isS
         <pre
           style={{
             margin: 0,
-            padding: "11px 13px",
+            padding: "10px 12px 12px 16px",
             fontSize: 12.5,
-            lineHeight: 1.62,
+            lineHeight: "20px",
             overflowX: "auto",
-            background: "color-mix(in srgb, var(--bg) 92%, var(--bg-panel))",
+            background: "transparent",
           }}
         >
           <code style={{ fontFamily: "var(--font-mono)" }}>{code}</code>
@@ -281,14 +311,14 @@ export const CodeBlock = memo(function CodeBlock({ code, lang, headerAction, isS
           language={lang || "text"}
           style={isDark ? vscDarkPlus : vs}
           showLineNumbers
-          lineNumberStyle={{ color: "var(--text-dim)", fontStyle: "normal" }}
+          lineNumberStyle={gutterStyle}
           customStyle={{
             margin: 0,
-            padding: "11px 13px",
+            padding: "10px 0 12px",
             fontSize: 12.5,
-            lineHeight: 1.62,
+            lineHeight: "20px",
             borderRadius: 0,
-            background: "color-mix(in srgb, var(--bg) 92%, var(--bg-panel))",
+            background: "transparent",
           }}
           codeTagProps={{ style: { fontFamily: "var(--font-mono)" } }}
         >

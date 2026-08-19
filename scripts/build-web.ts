@@ -8,23 +8,23 @@ export const WEB_OUTPUT_ROOT = "dist/web";
 export const PI_WEB_SOURCE_LOCK = "upstream/web-source-locks.json";
 
 export const LOCKED_WEB_RUNTIME_DEPENDENCIES = Object.freeze({
-  next: "16.2.12",
+  next: "16.3.1",
   react: "19.2.4",
   "react-dom": "19.2.4",
   "js-yaml": "5.2.3",
   "proper-lockfile": "4.1.2",
   "remark-frontmatter": "5.0.0",
-  undici: "8.5.0",
+  undici: "8.10.0",
 });
 
 export const LOCKED_PI_DEVELOPMENT_PACKAGES = Object.freeze({
-  "@earendil-works/pi-agent-core": "0.84.1",
-  "@earendil-works/pi-ai": "0.84.1",
-  "@earendil-works/pi-coding-agent": "0.84.1",
-  "@earendil-works/pi-tui": "0.84.1",
+  "@earendil-works/pi-agent-core": "0.84.2",
+  "@earendil-works/pi-ai": "0.84.2",
+  "@earendil-works/pi-coding-agent": "0.84.2",
+  "@earendil-works/pi-tui": "0.84.2",
 });
 
-/** Exact versions resolved by the imported Pi Web 0.8.8 source lock for its UI build. */
+/** Exact versions resolved by the imported Pi Web 0.8.9 source lock for its UI build. */
 export const LOCKED_WEB_UI_BUILD_DEPENDENCIES = Object.freeze({
   "@lobehub/icons": "5.6.0",
   "@tailwindcss/postcss": "4.2.2",
@@ -34,9 +34,10 @@ export const LOCKED_WEB_UI_BUILD_DEPENDENCIES = Object.freeze({
   "@types/react-dom": "19.2.3",
   "@types/react-syntax-highlighter": "15.5.13",
   katex: "0.16.47",
+  "lucide-react": "1.32.0",
   mammoth: "1.12.0",
-  mermaid: "11.14.0",
-  postcss: "8.5.8",
+  mermaid: "11.16.1",
+  postcss: "8.5.26",
   "react-markdown": "10.1.0",
   "react-syntax-highlighter": "16.1.1",
   "rehype-katex": "7.0.1",
@@ -48,13 +49,13 @@ export const LOCKED_WEB_UI_BUILD_DEPENDENCIES = Object.freeze({
 });
 
 const ABSORBED_PACKAGES = ["@agegr/pi-web", "@narumitw/pi-analytics", "@narumitw/pi-stamp", "@narumitw/pi-btw", "@narumitw/pi-worktree"] as const;
-const REQUIRED_PACKAGE_EXCLUSIONS = ["!src/web/", "!upstream/pi-web-0.8.8/", "!upstream/pi-extensions/"] as const;
+const REQUIRED_PACKAGE_EXCLUSIONS = ["!src/web/", "!upstream/pi-web-0.8.9/", "!upstream/pi-extensions/"] as const;
 
 export interface WebBuildManifestV1 {
   readonly schemaVersion: 1;
-  readonly source: "upstream/pi-web-0.8.8";
-  readonly sourceRevision: "5a53c18ca9328400a3dfb8c48c1e4f343b3e4903";
-  readonly piVersion: "0.84.1";
+  readonly source: "upstream/pi-web-0.8.9";
+  readonly sourceRevision: "febcba5e33e5eef9bf7f092099105c5dfea742ff";
+  readonly piVersion: "0.84.2";
   readonly sourceDigest: string;
   readonly files: readonly string[];
 }
@@ -77,7 +78,7 @@ export async function assertLockedWebDependencies(root = process.cwd()): Promise
     sources?: Array<{ id?: string; version?: string; gitRevision?: string }>;
   };
   const piWebSource = sourceLock.sources?.find((source) => source.id === "pi-web");
-  if (piWebSource?.version !== "0.8.8" || piWebSource.gitRevision !== "5a53c18ca9328400a3dfb8c48c1e4f343b3e4903") {
+  if (piWebSource?.version !== "0.8.9" || piWebSource.gitRevision !== "febcba5e33e5eef9bf7f092099105c5dfea742ff") {
     throw new Error("locked Pi Web source identity mismatch");
   }
   const dependencies = manifest.dependencies ?? {};
@@ -153,9 +154,9 @@ export async function createWebBuildManifest(root = process.cwd()): Promise<WebB
   }
   return Object.freeze({
     schemaVersion: 1,
-    source: "upstream/pi-web-0.8.8",
-    sourceRevision: "5a53c18ca9328400a3dfb8c48c1e4f343b3e4903",
-    piVersion: "0.84.1",
+    source: "upstream/pi-web-0.8.9",
+    sourceRevision: "febcba5e33e5eef9bf7f092099105c5dfea742ff",
+    piVersion: "0.84.2",
     sourceDigest: digest.digest("hex"),
     files,
   });

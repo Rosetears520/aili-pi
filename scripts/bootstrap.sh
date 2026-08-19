@@ -4,7 +4,7 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd -P)
 PACKAGE_SOURCE='npm:@rosetears/aili-pi@latest'
 PACKAGE_ID='npm:@rosetears/aili-pi'
-MINIMUM_PI_VERSION='0.84.1'
+MINIMUM_PI_VERSION='0.84.2'
 OFFICIAL_INSTALLER_URL='https://pi.dev/install.sh'
 UPDATE_PI=0
 PI_STATE='existing'

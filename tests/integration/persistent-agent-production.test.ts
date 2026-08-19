@@ -236,7 +236,7 @@ describe("production persistent Agent controlled path", () => {
         generatedAt: new Date().toISOString(),
         evidenceClass: "deterministic-controlled-production",
         packageVersion: "0.2.2",
-        piVersion: "0.84.1",
+        piVersion: "0.84.2",
         test: { path: persistentTestPath, command: `npm test -- ${persistentTestPath}` },
         hashes: {
           implementation: await fileBinding("src/runtime/persistent-agents/production.ts"),

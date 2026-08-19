@@ -43,6 +43,8 @@ export interface ToolCallContent {
   toolCallId: string;
   toolName: string;
   input: Record<string, unknown>;
+  /** Client-only buffer for streamed tool input. Never persisted to session files. */
+  rawInput?: string;
 }
 
 export type AssistantContentBlock = TextContent | ImageContent | ThinkingContent | ToolCallContent;
@@ -109,6 +111,22 @@ export interface BashExecutionMessage {
 
 export type AgentMessage = UserMessage | AssistantMessage | ToolResultMessage | CustomMessage | BashExecutionMessage;
 
+/** One question of a questionnaire extension UI request (AILI Unified User Interaction). */
+export interface QuestionnaireUiQuestion {
+  id: string;
+  header: string;
+  question: string;
+  options: Array<{ label: string; description?: string }>;
+  multiple: boolean;
+  recommended?: number;
+}
+
+export interface QuestionnaireUiAnswer {
+  id: string;
+  selectedOptions: string[];
+  customInput?: string;
+}
+
 export type ExtensionUiRequest =
   | {
       type: "extension_ui_request";
@@ -145,6 +163,12 @@ export type ExtensionUiRequest =
       prefill?: string;
       timeout?: number;
       expiresAt?: number;
+    }
+  | {
+      type: "extension_ui_request";
+      id: string;
+      method: "questionnaire";
+      questions: QuestionnaireUiQuestion[];
     }
   | {
       type: "extension_ui_request";
@@ -190,12 +214,13 @@ export type ExtensionUiRequest =
 
 export type BlockingExtensionUiRequest = Extract<
   ExtensionUiRequest,
-  { method: "select" | "confirm" | "input" | "editor" | "custom" }
+  { method: "select" | "confirm" | "input" | "editor" | "custom" | "questionnaire" }
 >;
 
 export type ExtensionUiResponse =
   | { type: "extension_ui_response"; id: string; value: string }
   | { type: "extension_ui_response"; id: string; confirmed: boolean }
+  | { type: "extension_ui_response"; id: string; answers: QuestionnaireUiAnswer[] }
   | { type: "extension_ui_response"; id: string; cancelled: true };
 
 export interface ExtensionStatusItem {
@@ -307,6 +332,10 @@ export interface SessionInfo {
    *  Always set by the server; optional because the client builds transient
    *  SessionInfo objects before the first refresh. Fall back to cwd. */
   projectRoot?: string;
+  /** Stable server-computed project identity for grouping and comparison.
+   *  Unlike projectRoot, Windows keys are case- and separator-insensitive.
+   *  Internal only: use projectRoot/cwd for display and filesystem operations. */
+  projectKey?: string;
   /** Branch name when cwd is a linked git worktree (not the main checkout) */
   worktreeBranch?: string;
   /** True while the runtime session exists only in memory and its JSONL file
