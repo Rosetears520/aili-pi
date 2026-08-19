@@ -48,16 +48,19 @@ Add a client-side interaction presentation registry (a pure mapping module plus 
 
 ### 2. FileChangeEvent derivation from real tool results only
 
-A pure derivation module (web-side, e.g. `src/web/lib/file-change-events.ts`) turns a turn's tool-call/result pairs into `FileChangeEvent[]` (id, path, fileName, language, operation, additions, deletions, diff, toolCallId, timestamp, oldPath for renames). Inputs and fallbacks follow the verified tool evidence:
+A pure derivation module (web-side, e.g. `src/web/lib/file-change-events.ts`) turns a turn's tool-call/result pairs into `FileChangeEvent[]` (id, path, fileName, language, operation, additions, deletions, diff, toolCallId, timestamp, oldPath for renames). The timeline card is **git-free by contract** (user direction 2026-08-19: it shows what THIS tool changed; git state is the Changes page's concern) — inputs are the tool call and its result only:
 
 | Source | Data available | Behavior |
 |---|---|---|
 | pi `edit` | `details.patch` (unified), `details.diff`, `firstChangedLine` | Primary path: operation `edit`, counts parsed from the patch, patch stored for the card. |
-| pi `write` | `details: undefined`; input carries full content | Operation `create`/`edit` by prior-existence signal if cheaply known, else `create`. Additions from input content line count; when the cwd is a git worktree, lazily fetch the per-file diff from the existing `/api/git/diff` route to fill the patch and true counts; non-git or failed fetch renders an additions-only card with a "diff unavailable" body. |
+| pi `write` | `details: undefined`; input carries full content | Operation `create`. The input content is real tool data, so the event's diff is a synthesized `/dev/null` full-add patch of exactly what the tool wrote (flagged `diffIsSynthesized`); additions come from the content line count. No git lookups — an overwrite of an existing file shows as a full add because the old content is unavailable from the tool. |
 | Any other arrived, non-error tool result (including MCP-decorated names via the existing `tool-names.ts` predicates) with `details.patch`/`details.diff` and a resolvable `input.file_path`/`input.path` | generic | Event derived exactly like `edit`. This covers future tools and any `apply_patch`-style addition without schema changes. |
 | bash `mv`/`rm` and shell-driven mutations | no structured file data | Never synthesized. Parsing shell output to guess file operations would violate the real-tool-result principle; `rename`/`delete` stay schema-level operations produced only by tools that report them. |
+| Mutation with neither patch nor content | nothing displayable | Path-only card with zero counts and a "diff unavailable" body. |
 
-Assistant reasoning and prose are never inputs. Failed, cancelled, or patch-less successful mutations that cannot be enriched render either nothing or a path-only card — never an invented diff. `TurnWrittenFiles` (turn-end summary strip) initially remains as the turn-level summary alongside the per-call cards; consolidating the two surfaces is ordinary BUILD steering, not a contract change.
+Assistant reasoning and prose are never inputs. Git-backed views (the Changes page, the file viewer's diff mode) remain the surfaces where git state is shown; the "Show full diff" handoff from a card opens that git-backed page.
+
+`TurnWrittenFiles` (turn-end summary strip) initially remains as the turn-level summary alongside the per-call cards; consolidating the two surfaces is ordinary BUILD steering, not a contract change.
 
 ### 3. One shared ChangeDiffView with inline and full variants
 

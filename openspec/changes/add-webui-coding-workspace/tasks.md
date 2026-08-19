@@ -25,19 +25,19 @@
 
 ## 2. Phase 2 — Shared ChangeDiffView and inline file-change events
 
-- [ ] 2.1 Write characterization tests for both existing diff paths (`AiliFileDiff` row model and `lib/patch.ts`/`SplitPatchView`): row semantics, unified/split parity, render caps, per-file counts.
+- [x] 2.1 Write characterization tests for both existing diff paths (`AiliFileDiff` row model and `lib/patch.ts`/`SplitPatchView`): row semantics, unified/split parity, render caps, per-file counts.
   - Acceptance: current outputs are pinned before any consolidation edit.
   - Verify: the characterization suite passes against the unmodified renderers.
-- [ ] 2.2 Consolidate into one `ChangeDiffView` with `inline` and `full` variants over a single parser/row model, then migrate `MessageView` (tool-result diff), `FileViewer` diff mode, and the Changes page onto it, deleting the duplicate implementation.
+- [x] 2.2 Consolidate into one `ChangeDiffView` with `inline` and `full` variants over a single parser/row model, then migrate `MessageView` (tool-result diff), `FileViewer` diff mode, and the Changes page onto it, deleting the duplicate implementation.
   - Acceptance: one diff renderer serves all four consumers; inline is unified-only with a line/height cap and truncation indication; full keeps unified/split with the persisted `aili-diff-view` preference and today's render cap.
   - Verify: characterization tests pass against the consolidated renderer; colocated component tests for variants and caps; `build:web` clean.
-- [ ] 2.3 Implement the FileChangeEvent derivation module (pure): edit results from `details.patch`; write results with additions from input content and lazy `/api/git/diff` enrichment inside git worktrees; generic handling for any other non-error result carrying `details.patch`/`details.diff` with a resolvable path; no synthesis from bash output or reasoning; failed/cancelled calls produce nothing.
+- [x] 2.3 Implement the FileChangeEvent derivation module (pure): edit results from `details.patch`; write results with additions from input content and lazy `/api/git/diff` enrichment inside git worktrees; generic handling for any other non-error result carrying `details.patch`/`details.diff` with a resolvable path; no synthesis from bash output or reasoning; failed/cancelled calls produce nothing.
   - Acceptance: the derivation table in `design.md` is fully covered, including the additions-only degradation and the "diff unavailable" state.
   - Verify: unit tests under `tests/unit/` for every derivation row, dedupe, rename-schema passthrough, and negative cases.
-- [ ] 2.4 Render inline change cards in the timeline: default-collapsed row (operation icon/type, file icon, filename primary, parent path secondary, `+N −M`, chevron), expansion under a fixed header into the inline `ChangeDiffView` variant with a "Show full diff" handoff, tool-details JSON behind an explicit disclosure, and filename click opening the file tab.
+- [x] 2.4 Render inline change cards in the timeline: default-collapsed row (operation icon/type, file icon, filename primary, parent path secondary, `+N −M`, chevron), expansion under a fixed header into the inline `ChangeDiffView` variant with a "Show full diff" handoff, tool-details JSON behind an explicit disclosure, and filename click opening the file tab.
   - Acceptance: cards satisfy every element of the collapsed-row contract; raw tool JSON is never the default presentation; long diffs are capped with the handoff control visible.
   - Verify: colocated component tests for row anatomy, collapse/expand, cap + handoff, disclosure, and filename navigation; manual browser verification on a real edit turn.
-- [ ] 2.5 Add operation labels and change-card strings to the en/zh-CN i18n catalogs.
+- [x] 2.5 Add operation labels and change-card strings to the en/zh-CN i18n catalogs.
   - Acceptance: same as 1.4.
   - Verify: i18n key presence check in both catalogs.
 

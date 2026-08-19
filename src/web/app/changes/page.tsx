@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { AiliFileDiff, type DiffView } from "@/components/aili/AiliFileDiff";
+import { ChangeDiffView, type DiffView } from "@/components/aili/ChangeDiffView";
+// ChangeDiffView translates its truncation notice, and /changes opens as its
+// own browser tab outside the chat page's provider tree — the page must carry
+// its own I18nProvider or useI18n throws on mount.
+import { I18nProvider } from "@/hooks/useI18n";
 import type { GitStatusResponse } from "@/lib/git-types";
 import { useResizablePanel } from "@/hooks/useResizablePanel";
 
@@ -184,6 +188,7 @@ export default function ChangesPage() {
     : null;
 
   return (
+    <I18nProvider>
     <main className="aili-changes-page" aria-label="Changes viewer">
       <header className="aili-changes-head">
         <strong>Changes</strong>
@@ -238,11 +243,12 @@ export default function ChangesPage() {
         />
         <div className="aili-changes-diff">
           {error && <p className="aili-inspector-error" role="alert">{error}</p>}
-          {selected && patch !== null && <AiliFileDiff file={selected.relative} patch={patch} view={view} />}
+          {selected && patch !== null && <ChangeDiffView file={selected.relative} patch={patch} view={view} />}
           {selected && patch === null && !error && <p className="aili-inspector-empty">Loading diff…</p>}
           {!selected && <p className="aili-inspector-empty">Select a file</p>}
         </div>
       </div>
     </main>
+    </I18nProvider>
   );
 }
