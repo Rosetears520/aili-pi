@@ -100,3 +100,12 @@ scope=per user direction「文档也移除了吧」: the skill-chips rejection p
 evidence=openspec:validate-strict
 verification=openspec validate --strict PASS after excision
 next_action=commit docs; investigate bottom-left config buttons + existing MCP surfaces for the user's MCP panel request
+
+[2026-08-19T23:55:00Z] BUILD add-webui-coding-workspace ROUND-13 EXECUTED (MCP contract written, implementation deferred to final phase)
+scope=DEFINE writeback per user direction「MCP这个先写文档，放在最后的一部分来做」
+evidence=repo-survey (pi-mcp-adapter 2.23.0 types/commands/config, src/runtime/mcp.ts, src/web/runtime-projection.ts, AppShell bottom-left toolbar), openspec:validate-strict
+disposition=accepted
+contract=new capability webui-mcp-management (specs/webui-mcp-management/spec.md): MCP button right of Skills in the bottom-left toolbar + config-pattern panel; truthful per-server status from a bounded adapter-snapshot projection (connected/cached/failed/needs-auth/not-connected/disabled + counts + disabled flag, no config/args/env/credentials, listing never connects lazy servers); per-server enable/disable persisted ONLY through the adapter's config layer (same semantics as /mcp enable|disable incl. precedence rules), UI states the adapter's honest effect timing (applies on reload), no auto-reconnect/auto-reload; delivered after Terminal. proposal What Changes + capability list updated; design decision 6 added (alternative considered recorded); tasks section 6 (6.1-6.3) added, convergence renumbered to 7; test-plan goal 9 + planned files + manual acceptance item 5; context intent/phase-order/decision updated
+key-facts-grounding=adapter snapshot states and persistence semantics read from node_modules/pi-mcp-adapter/{types,commands,config}.ts; effect timing from adapter's own messaging ("run /mcp enable, then /reload"); web's existing read-only redacted projection McpServerProjectionV1 in src/web/runtime-projection.ts is the inspection baseline the panel extends without bypassing
+verification=openspec validate --strict PASS (after fixing a self-inflicted duplicate design-decision insertion, deduped and amended)
+next_action=Phase 5 Terminal remains the next implementation target and needs per-dependency exact approvals (node-pty, ws, @xterm/xterm + fit addon) before any installation; MCP implementation follows Terminal
