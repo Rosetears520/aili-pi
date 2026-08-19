@@ -1,6 +1,6 @@
 "use client";
 import { registerAbortHandler } from "@/hooks/useKeyboardShortcuts";
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Component, Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { AgentMessage, AssistantContentBlock, AssistantMessage, BashExecutionMessage, BlockingExtensionUiRequest, CustomMessage, ExtensionUiRequest, SessionInfo, SessionTreeNode, ToolResultMessage, UserMessage } from "@/lib/types";
 import { normalizeCustomPanelLines, parseAnsiLine } from "@/lib/ansi";
 import { asBracketedPaste, toTerminalKeyData } from "@/lib/terminal-input";
@@ -290,7 +290,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
     retryInfo, contextUsage, forkingEntryId,
     isCompacting, compactError, compactResult, displayModel: displayModelValue, modelSwitching, sessionStats,
     slashCommands, slashCommandsLoading, queuedMessages,
-    notices, extensionDialog, extensionQuestionnaire, extensionCustomUi, extensionStatuses, extensionWidgets, respondToExtensionUi, sendExtensionCustomInput,
+    notices, extensionDialog, extensionShelfQueue, extensionCustomUi, extensionStatuses, extensionWidgets, respondToExtensionUi, sendExtensionCustomInput,
     isAutoModelSelection,
     agentPhase,
     isNew,
@@ -1058,19 +1058,12 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
       </div>
 
       <div className="relative">
-        {extensionQuestionnaire && (
-          <div
-            className="questionnaire-shelf"
-            style={{ paddingRight: isMobile ? undefined : 52 }}
-          >
-            <div style={{ maxWidth: 820, margin: "0 auto" }}>
-              <AiliQuestionnaire
-                request={extensionQuestionnaire}
-                onRespond={(request, response) => void respondToExtensionUi(request, response)}
-              />
-            </div>
-          </div>
-        )}
+        <InteractionShelfHost
+          queue={extensionShelfQueue}
+          isMobile={isMobile}
+          cwd={messageCwd ?? session?.cwd}
+          onRespond={respondToExtensionUi}
+        />
         {chatInputElement}
         <ExtensionStatusBar statuses={extensionStatuses} widgets={extensionWidgets} />
       </div>
@@ -1147,6 +1140,197 @@ function NoticeShelf({ notices, floating = false }: { notices: NoticeItem[]; flo
       })}
     </div>
   );
+}
+
+type InteractionShelfRequest = Extract<ExtensionUiRequest, { method: "select" | "confirm" | "input" | "questionnaire" }>;
+
+type InteractionShelfRespond = (
+  request: InteractionShelfRequest | ExtensionDialogRequest,
+  response: { value: string } | { confirmed: boolean } | { cancelled: true } | { answers: Array<{ id: string; selectedOptions: string[]; customInput?: string }> },
+) => void;
+
+// Composer-docked Interaction Shelf (webui-interaction-shelf, design decision
+// 1): one primary blocking interaction at a time directly above the composer,
+// a compact queue indicator for any additional pending requests, and a modal
+// fallback so a shelf render error can never strand the runtime promise.
+// Runtime request/response semantics stay owned by respondToExtensionUi.
+function InteractionShelfHost({ queue, isMobile, cwd, onRespond }: {
+  queue: InteractionShelfRequest[];
+  isMobile: boolean;
+  cwd?: string;
+  onRespond: InteractionShelfRespond;
+}) {
+  const { t } = useI18n();
+  const [primary, ...waiting] = queue;
+  if (!primary) return null;
+  const fallback = primary.method === "questionnaire"
+    ? <ShelfFallbackCard request={primary} onRespond={onRespond} />
+    : <ExtensionDialog request={primary} onRespond={onRespond} cwd={cwd} />;
+  return (
+    <div
+      className="interaction-shelf"
+      style={{ paddingRight: isMobile ? undefined : 52 }}
+    >
+      <div style={{ maxWidth: 820, margin: "0 auto" }}>
+        <InteractionShelfBoundary key={primary.id} fallback={fallback}>
+          {primary.method === "questionnaire" ? (
+            <AiliQuestionnaire
+              request={primary}
+              onRespond={(request, response) => void onRespond(request, response)}
+            />
+          ) : (
+            <ShelfInteractionCard request={primary} cwd={cwd} onRespond={onRespond} />
+          )}
+        </InteractionShelfBoundary>
+        {waiting.length > 0 && (
+          <div
+            role="status"
+            style={{ padding: "4px 2px 8px", color: "var(--text-dim)", fontSize: 12 }}
+          >
+            {t("chat.shelfQueue").replace("{count}", String(waiting.length))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Inline (non-modal) card for the non-questionnaire shelf interactions.
+// confirm/select reuse the AIcss ApprovalCard exactly as the modal path does;
+// input keeps the compact themed card. The modal ExtensionDialog body stays
+// untouched and remains the fallback presentation for these methods.
+function ShelfInteractionCard({ request, cwd, onRespond }: {
+  request: Extract<InteractionShelfRequest, { method: "select" | "confirm" | "input" }>;
+  cwd?: string;
+  onRespond: InteractionShelfRespond;
+}) {
+  const { t } = useI18n();
+  const [value, setValue] = useState("");
+
+  useEffect(() => {
+    setValue("");
+  }, [request.id]);
+
+  if (request.method === "confirm") {
+    return (
+      <ApprovalCard
+        variant="command"
+        title={request.title}
+        command={request.message}
+        cwd={cwd ?? "~/aili"}
+        approveLabel={t("chat.confirm")}
+        rejectLabel={t("chat.cancel")}
+        onApprove={() => onRespond(request, { confirmed: true })}
+        onReject={() => onRespond(request, { cancelled: true })}
+      />
+    );
+  }
+  if (request.method === "select") {
+    return (
+      <ApprovalCard
+        variant="questions"
+        questions={[{ id: request.id, prompt: request.title, options: request.options }]}
+        approveLabel={t("chat.submit")}
+        rejectLabel={t("chat.cancel")}
+        onApprove={(payload) => onRespond(request, { value: payload?.answers?.[request.id] ?? "" })}
+        onReject={() => onRespond(request, { cancelled: true })}
+      />
+    );
+  }
+  return (
+    <div
+      style={{
+        border: "1px solid var(--border)",
+        borderRadius: 8,
+        background: "var(--bg)",
+        overflow: "hidden",
+      }}
+    >
+      <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ color: "var(--text)", fontSize: 14, fontWeight: 650 }}>{request.title}</div>
+        <div style={{ marginTop: 3, color: "var(--text-dim)", fontSize: 11, fontFamily: "var(--font-mono)" }}>{t("chat.extensionRequest")}</div>
+      </div>
+      <div style={{ padding: 14 }}>
+        <input
+          autoFocus
+          value={value}
+          placeholder={request.placeholder}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onRespond(request, { value });
+            if (e.key === "Escape") onRespond(request, { cancelled: true });
+          }}
+          style={{
+            width: "100%",
+            padding: "9px 10px",
+            borderRadius: 7,
+            border: "1px solid var(--border)",
+            background: "var(--bg-panel)",
+            color: "var(--text)",
+            fontSize: 13,
+            outline: "none",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Questionnaire failure fallback: the modal ExtensionDialog cannot render a
+// questionnaire, so an explicit cancel settles the runtime promise instead.
+function ShelfFallbackCard({ request, onRespond }: {
+  request: Extract<InteractionShelfRequest, { method: "questionnaire" }>;
+  onRespond: InteractionShelfRespond;
+}) {
+  const { t } = useI18n();
+  return (
+    <div
+      role="alert"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        padding: "10px 14px",
+        border: "1px solid var(--border)",
+        borderRadius: 8,
+        background: "var(--bg)",
+      }}
+    >
+      <span style={{ color: "var(--text)", fontSize: 13 }}>{t("chat.shelfRenderError")}</span>
+      <button
+        type="button"
+        onClick={() => onRespond(request, { cancelled: true })}
+        style={{
+          padding: "6px 12px",
+          borderRadius: 7,
+          border: "1px solid var(--border)",
+          background: "var(--bg-panel)",
+          color: "var(--text)",
+          fontSize: 12,
+          cursor: "pointer",
+        }}
+      >
+        {t("chat.cancel")}
+      </button>
+    </div>
+  );
+}
+
+class InteractionShelfBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error("Interaction shelf render failed; falling back to modal presentation", error);
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
 }
 
 type ExtensionDialogRequest = Extract<ExtensionUiRequest, { method: "select" | "confirm" | "input" | "editor" }>;

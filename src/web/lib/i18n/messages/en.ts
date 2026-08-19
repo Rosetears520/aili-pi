@@ -469,6 +469,8 @@ export const enLocale: LocalePlugin = {
     "chat.questionnaireBack": "Back",
     "chat.questionnaireSubmitAnswers": "Submit answers",
     "chat.questionnaireEdit": "Edit",
+    "chat.shelfQueue": "+{count} more waiting",
+    "chat.shelfRenderError": "This prompt could not render inline.",
     "i18n.largeMessageReveal": "Message content is very large ({size}). Click to view as plain text — markdown rendering is disabled to keep the page responsive.",
     "i18n.loadingThinking": "Loading thinking...",
     "i18n.copyMessage": "Copy message",

@@ -12,6 +12,7 @@ import type {
   UserMessage,
 } from "@/lib/types";
 import { isBlockingExtensionUiRequest } from "@/lib/browser-notifications";
+import { resolveInteractionPresentation } from "@/lib/interaction-host";
 import { normalizeToolCalls } from "@/lib/normalize";
 import { isPromptRejectedError, sendAgentCommand } from "@/lib/agent-client";
 import { clearDraft, rekeyDraft, restoreDraftSubmission } from "@/lib/draft-store";
@@ -85,6 +86,7 @@ function normalizeQueuedMessages(q?: { steering?: string[]; followUp?: string[] 
 type ExtensionUiDialogRequest = Extract<ExtensionUiRequest, { method: "select" | "confirm" | "input" | "editor" }>;
 type ExtensionUiQuestionnaireRequest = Extract<ExtensionUiRequest, { method: "questionnaire" }>;
 type ExtensionUiCustomRequest = Extract<ExtensionUiRequest, { method: "custom" }>;
+type ExtensionUiShelfRequest = Extract<ExtensionUiRequest, { method: "select" | "confirm" | "input" | "questionnaire" }>;
 export type NoticeType = "info" | "success" | "warning" | "error";
 
 export type NoticeItem = {
@@ -307,7 +309,9 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   const [noticeState, dispatchNotice] = useReducer(noticeReducer, { visible: [], pending: [] });
   const [sessionStatsOverride, setSessionStatsOverride] = useState<SessionStatsInfo | null>(null);
   const [extensionDialog, setExtensionDialog] = useState<ExtensionUiDialogRequest | null>(null);
-  const [extensionQuestionnaire, setExtensionQuestionnaire] = useState<Extract<ExtensionUiRequest, { method: "questionnaire" }> | null>(null);
+  // Composer-shelf interactions queue in arrival order; the first entry is the
+  // primary card and every later blocking request stays reachable behind it.
+  const [extensionShelfQueue, setExtensionShelfQueue] = useState<ExtensionUiShelfRequest[]>([]);
   const [extensionCustomUi, setExtensionCustomUi] = useState<ExtensionUiCustomRequest | null>(null);
   const [extensionStatuses, setExtensionStatuses] = useState<ExtensionStatusItem[]>([]);
   const [extensionWidgets, setExtensionWidgets] = useState<ExtensionWidgetItem[]>([]);
@@ -710,7 +714,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   ) => {
     const sid = sessionIdRef.current;
     setExtensionDialog((current) => current?.id === request.id ? null : current);
-    setExtensionQuestionnaire((current) => current?.id === request.id ? null : current);
+    setExtensionShelfQueue((current) => current.filter((item) => item.id !== request.id));
     if (!sid) return;
     try {
       await sendAgentCommand(sid, {
@@ -757,11 +761,21 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       case "select":
       case "confirm":
       case "input":
+      case "questionnaire": {
+        // InteractionHost mapping owns the presentation choice (design
+        // decision 1, add-webui-coding-workspace): shelf-assigned requests
+        // queue above the composer; a modal assignment keeps the ExtensionDialog
+        // path, which also serves as the shelf's render-failure fallback.
+        const { presentation } = resolveInteractionPresentation(request.method, request);
+        if (request.method === "questionnaire" || presentation === "composer-shelf") {
+          setExtensionShelfQueue((prev) => prev.some((item) => item.id === request.id) ? prev : [...prev, request]);
+        } else {
+          setExtensionDialog(request);
+        }
+        break;
+      }
       case "editor":
         setExtensionDialog(request);
-        break;
-      case "questionnaire":
-        setExtensionQuestionnaire(request);
         break;
       case "notify": {
         addNotice({
@@ -1932,7 +1946,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     retryInfo, contextUsage, systemPrompt, forkingEntryId,
     isCompacting, compactError, compactResult, currentModel, displayModel, modelSwitching, sessionStats,
     slashCommands, slashCommandsLoading, queuedMessages,
-    notices: noticeState.visible, extensionDialog, extensionQuestionnaire, extensionCustomUi, extensionStatuses, extensionWidgets, respondToExtensionUi, sendExtensionCustomInput,
+    notices: noticeState.visible, extensionDialog, extensionShelfQueue, extensionCustomUi, extensionStatuses, extensionWidgets, respondToExtensionUi, sendExtensionCustomInput,
     isAutoModelSelection: isNew && newSessionModel === null,
     agentPhase,
     isNew,

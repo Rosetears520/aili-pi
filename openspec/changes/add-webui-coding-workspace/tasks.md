@@ -10,16 +10,16 @@
 
 ## 1. Phase 1 — InteractionHost and the Interaction Shelf
 
-- [ ] 1.1 Build the InteractionHost presentation mapping as a pure module: one entry per blocking extension-UI method assigning `composer-shelf` (questionnaire, permission-approval selects, confirm, select, input, task/hub clarification) or an explicit exception (`editor`, `custom` → modal, with recorded reasons), plus a fallback mode.
+- [x] 1.1 Build the InteractionHost presentation mapping as a pure module: one entry per blocking extension-UI method assigning `composer-shelf` (questionnaire, permission-approval selects, confirm, select, input, task/hub clarification) or an explicit exception (`editor`, `custom` → modal, with recorded reasons), plus a fallback mode.
   - Acceptance: every `ExtensionUiRequest` method has exactly one mapping entry; unknown methods resolve to a safe default instead of a crash.
   - Verify: unit tests under `tests/unit/` covering each method, unknown-method fallback, and mapping completeness.
-- [ ] 1.2 Generalize the questionnaire shelf in `ChatWindow.tsx` into a shelf host that renders the primary interaction card from the mapping, with a compact queue indicator for additional pending requests and the modal path retained as render-failure fallback.
+- [x] 1.2 Generalize the questionnaire shelf in `ChatWindow.tsx` into a shelf host that renders the primary interaction card from the mapping, with a compact queue indicator for additional pending requests and the modal path retained as render-failure fallback.
   - Acceptance: at most one primary card; pending requests are visible/reachable; a shelf render error falls back without stranding the runtime promise; the transcript stays scrollable and copyable while the shelf is active.
   - Verify: colocated component tests (shelf mount, queue, fallback path) plus manual browser check.
-- [ ] 1.3 Route `useAgentSession.handleExtensionUiRequest` through the InteractionHost mapping instead of the hard-coded method switch, leaving `respondToExtensionUi`, timeouts, abort, and fallbacks untouched.
+- [x] 1.3 Route `useAgentSession.handleExtensionUiRequest` through the InteractionHost mapping instead of the hard-coded method switch, leaving `respondToExtensionUi`, timeouts, abort, and fallbacks untouched.
   - Acceptance: permission-approval asks, confirmations, selects, and inputs render in the shelf and resolve through the existing response channel; runtime request/response behavior is byte-compatible.
   - Verify: component tests for each migrated method's shelf rendering and response delivery; manual browser run of a permission ask and a confirm.
-- [ ] 1.4 Add shelf-queue and interaction labels to the en/zh-CN i18n catalogs.
+- [x] 1.4 Add shelf-queue and interaction labels to the en/zh-CN i18n catalogs.
   - Acceptance: no new user-facing string is hardcoded in components.
   - Verify: i18n key presence check in both catalogs.
 

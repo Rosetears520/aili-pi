@@ -469,6 +469,8 @@ export const zhCNLocale: LocalePlugin = {
     "chat.questionnaireBack": "上一步",
     "chat.questionnaireSubmitAnswers": "提交答案",
     "chat.questionnaireEdit": "修改",
+    "chat.shelfQueue": "还有 {count} 个等待中",
+    "chat.shelfRenderError": "此交互无法在内联栏中正常显示。",
     "i18n.largeMessageReveal": "消息内容过大（{size}）。点击以纯文本查看 — 已禁用 markdown 渲染以避免页面卡顿。",
     "i18n.loadingThinking": "正在加载思考内容...",
     "i18n.copyMessage": "复制消息",

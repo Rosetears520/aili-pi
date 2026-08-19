@@ -1240,14 +1240,16 @@ span.token.table {
   }
 }
 
-/* ============ AILI: questionnaire inline interaction shelf ============
-   The questionnaire renders as part of the conversation flow, docked above
-   the composer — not as a modal overlay. The conversation stays scrollable
-   while the runtime blocks on the answers; runtime blocking itself lives in
-   the extension layer and is unchanged. Horizontal inset follows the chat
-   column gutter; the desktop composer's extra right inset (minimap lane) is
-   applied inline by ChatWindow. */
-.questionnaire-shelf {
+/* ============ AILI: composer interaction shelf ============
+   Blocking agent interactions (questionnaire, permission approvals,
+   confirmations, selects, inputs) render as part of the conversation flow,
+   docked above the composer — not as modal overlays. The conversation stays
+   scrollable while the runtime blocks on the response; runtime blocking
+   itself lives in the extension layer and is unchanged. Presentation
+   assignments come from src/web/lib/interaction-host.ts. Horizontal inset
+   follows the chat column gutter; the desktop composer's extra right inset
+   (minimap lane) is applied inline by ChatWindow. */
+.interaction-shelf {
   flex: 0 0 auto;
   padding: 0 var(--chat-inline-gutter) 10px;
 }
