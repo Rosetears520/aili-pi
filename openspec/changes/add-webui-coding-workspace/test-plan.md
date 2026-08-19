@@ -19,8 +19,9 @@
 5. **共享 ChangeDiffView**：inline 变体仅 unified 且封顶；full 变体支持 unified/split 并保持 `localStorage("aili-diff-view")` 偏好与既有渲染上限；`MessageView`、`FileViewer` diff 模式、Changes 页、inline card 四个消费面全部迁移，重复实现删除。
 6. **Workspace 渐进整合**：CodeView 控件集补齐（copy、go-to-line、当前路径）；树文件→源码标签、changed→diff 标签、inline 卡 "Show full diff"→`/changes`、卡文件名→CodeView 四条导航箭头成立且不丢聊天上下文；FileTree 显式刷新与 cwd 显示；一切文件访问仍走 `/api/files` + allowed-roots。
 8. **Terminal**：标注 "Terminal · User controlled"；初始 cwd = 会话 cwd（allowed-roots 校验）；ANSI/Ctrl+C/resize 可用；断连/关页/停服后无孤儿 PTY；重连干净不重放；non-loopback fail-closed 同样关闭终端传输；与 agent 工具授权、权限模式、questionnaire 不变量零耦合。
-9. **阶段独立性**：Phases 1–4 在 Phase 5（及其依赖批准）之前完整可交付。
-10. **非目标负向断言**：无第二 filesystem/git/skill/permission/subagent/runtime；除批准的终端依赖集外无新增依赖；权限模式语义与「YOLO 不放宽用户问题」不变。
+9. **MCP 面板**：左下第 4 按钮打开面板；按服务器显示真实状态（connected/cached/failed/needs-auth/not-connected/disabled）与工具计数，不暴露配置/参数/环境变量/凭据；列出懒加载/未连接服务器不发起连接；启用/禁用仅走适配器配置层持久化（与 /mcp enable|disable 同语义，含优先级规则），UI 诚实标注「重载后生效」，绝不自动重连/重载。
+10. **阶段独立性**：Interaction/Workspace 各阶段与 Terminal、MCP 面板互相独立可交付。
+11. **非目标负向断言**：无第二 filesystem/git/skill/permission/subagent/runtime；除批准的终端依赖集外无新增依赖；权限模式语义与「YOLO 不放宽用户问题」不变。
 
 ### 1.2 证据等级
 
@@ -40,6 +41,7 @@
 | Inline change card | `src/web/components/MessageView.file-change-card.test.mjs` |
 | Diff 表征 + 共享渲染器 | `src/web/components/aili/ChangeDiffView.test.mjs`（先对现存两套渲染器写表征，再迁移） |
 | CodeView 补齐与导航 | `src/web/components/FileViewer.codeview.test.mjs`、`FileExplorer.tree-header.test.mjs` |
+| MCP 面板 | `src/web/components/McpConfig.test.mjs`、`tests/unit/web-mcp-management.test.ts` |
 | Terminal 生命周期/安全 | `tests/integration/web-terminal-lifecycle.test.ts`、`tests/integration/web-terminal-security.test.ts`、`src/web/components/TerminalPanel.test.mjs` |
 | 全局回归 | `npm run typecheck`、`npm test`、`npm run build:web` |
 
@@ -70,6 +72,7 @@
 2. **Phase 2**：让 agent 真实修改一个文件 —— timeline 出现默认折叠的「✎ 已编辑 … +N −M」行，展开为 unified diff，长 diff 封顶并可跳全量；raw 工具 JSON 仅在显式点开后可见。
 3. **Phase 3**：从树点击文件开 CodeView、点击 changed 文件开 diff、从 timeline 文件名跳 CodeView、从 "Show full diff" 进 Changes 页，往返不丢聊天上下文；copy 与 go-to-line 可用。
 4. **Phase 5**：终端可交互（ANSI、Ctrl+C、resize），标注 User controlled，关闭页面后服务器无孤儿 PTY。
+5. **MCP 面板（最后）**：按钮打开面板；状态与适配器一致；禁用→重载后生效的往返；面板不自动重连。
 
 ## 6. Final acceptance gate
 

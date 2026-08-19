@@ -11,11 +11,11 @@ On 2026-08-19 the user provided a full requirements text for evolving the AILI-P
 
 ## Maintained user intent
 
-- One unified Coding Agent Workspace over the existing single AILI-Pi runtime: a composer-docked Interaction Shelf for all blocking human interaction, a FileTree/CodeView/DiffView workspace, structured default-collapsed file-change events in the reasoning timeline, and a user terminal delivered last.
+- One unified Coding Agent Workspace over the existing single AILI-Pi runtime: a composer-docked Interaction Shelf for all blocking human interaction, a FileTree/CodeView/DiffView workspace, structured default-collapsed file-change events in the reasoning timeline, a user terminal, and — added 2026-08-19 — an MCP management panel as the final part (bottom-left MCP button, per-server status + adapter-layer enable/disable).
 - Change events must come exclusively from real successful tool results (edit/write/apply_patch and equivalents) with actual patch/diff data — never parsed or guessed from assistant reasoning.
 - One shared diff renderer serves the inline timeline, file viewer, and Changes surfaces; inline is unified-only, full supports unified and split.
 - The user terminal is the user's own shell ("User Terminal ≠ Agent bash tool") and must not inherit agent permission/sandbox semantics.
-- Phase order: 1 Interaction Shelf (+ Questions inline, InteractionHost base), 2 shared ChangeDiffView + inline file changes, 3 FileTree + CodeView + full DiffView (Workspace), 4 Terminal (PTY + WebSocket). Phase 2 may land before the full workspace because it immediately improves daily coding experience.
+- Phase order: 1 Interaction Shelf (+ Questions inline, InteractionHost base), 2 shared ChangeDiffView + inline file changes, 3 FileTree + CodeView + full DiffView (Workspace), 4 Terminal (PTY + WebSocket), 5 MCP management panel (contract written 2026-08-19, to be implemented last). Phase 2 may land before the full workspace because it immediately improves daily coding experience.
 - Reference projects are interaction/architecture references only: semantic absorption, no code copying, no Vue/Electron runtime, no dependencies added from them.
 
 ## Confirmed decisions
@@ -28,6 +28,7 @@ On 2026-08-19 the user provided a full requirements text for evolving the AILI-P
 - 2026-08-19 (user, BUILD-entry): final `test-plan.md` explicitly accepted; implementation authorized for the accepted tasks/specs. Task 0.1's sequencing gate was satisfied by user-approved commit `7d6906e` of the prior change's uncommitted BUILD work (18 files) plus the user's asserted browser verification, in place of a full SHIP closeout; the amendment is recorded in `tasks.md` 0.1.
 - 2026-08-19 (user, Phase 3 audit): existing functionality wins over new equivalents — extend in place, never add duplicate chrome (tree-header cwd row removed accordingly; recorded as drift-log D-2026-08-19-4 and the standing audit rule for remaining phases).
 - 2026-08-19 (user): the per-call change cards and the existing `TurnWrittenFiles` turn-end strip coexist deliberately — no consolidation.
+- 2026-08-19 (user): add an "MCP" button to the bottom-left toolbar (right of Skills) with a management panel — per-server toggleable enable/disable and the adapter's status surface; contract written first, implementation placed after Terminal as the final part.
 - 2026-08-19 (evidence, no user question needed): host Pi toolset has no `apply_patch`; `edit` results carry `details.patch`/`details.diff` while `write` results carry no details — fixed as the FileChangeEvent derivation table in `design.md` decision 2.
 - Artifact language: English per repo convention for openspec change artifacts (`test-plan.md` follows the repository's Chinese 最终测试计划 house format); user-facing UI strings continue through the existing en/zh-CN i18n keys.
 

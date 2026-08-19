@@ -96,7 +96,26 @@ Design-level proposal (every dependency addition requires its own exact approval
 
 **Alternative considered:** implement the terminal over SSE + POST chunks to avoid a WebSocket dependency. Rejected: half-duplex polling degrades interactive latency and still needs a new transport path; WebSocket is the honest fit.
 
-### 6. Cross-cutting placement and i18n conventions
+### 6. MCP management panel (final phase, added by user direction 2026-08-19)
+
+A fourth bottom-left configuration button "MCP" (right of Skills: 模型 / 技能 / MCP / 插件) opens a panel in the same modal pattern as ModelsConfig/SkillsConfig/PluginsConfig.
+
+Verified machinery this builds on (no new runtime):
+
+- MCP in this stack is the AILI extension `src/runtime/mcp.ts` wrapping `pi-mcp-adapter` 2.23.0; the adapter already produces a status snapshot (`McpStatusSnapshot`: per-server name, `McpServerRuntimeStatus` ∈ connected | cached | failed | needs-auth | not-connected | disabled, tool/resource counts, disabled flag; totals + connected/disabled counts) and events.
+- Per-server enable/disable already exists in the adapter's configuration layer: it persists only a `disabled` field in the project Pi layer, and enabling writes an explicit `disabled: false` only when a lower-precedence source is disabled — the same semantics as the adapter's own `/mcp enable|disable` commands. The adapter's own messaging states the effect timing honestly: config change applies after `/reload` (session reload), not an instant live restart.
+- The web already has a bounded, redacted, read-only MCP projection (`src/web/runtime-projection.ts`, `McpServerProjectionV1`: handle/label/state/lazy/toolCount/errorCategory). The panel consumes a management-shaped projection (name, status, toolCount, resourceCount, disabled) derived from the same snapshot owner — extending the projection owner, never bypassing it, and never exposing command/args/env/credentials.
+
+Design:
+
+- Button + panel are pure presentation over the existing snapshot and adapter persistence; toggles call the adapter's enable/disable path (direct API or its command path, whichever the extension exposes cleanly — implementation choice bounded to the adapter as the single config authority).
+- The panel surfaces the adapter's honest effect timing (takes effect on reload/session restart) instead of claiming live restart; it may link to the existing reload affordance but never auto-reloads.
+- Reading status stays passive (no connection of lazy/disconnected servers); enable is an explicit user action and therefore outside the prior change's "do not connect merely to inspect" boundary.
+- Delivered after Terminal as the final part of this change (user direction 2026-08-19).
+
+**Alternative considered:** extend the existing read-only `McpServerProjectionV1` with mutation fields and manage state client-side. Rejected: the projection is an inspection contract; management actions must flow through the adapter's persistence path, not widen the projection's authority.
+
+### 7. Cross-cutting placement and i18n conventions
 
 - Pure logic modules (FileChangeEvent derivation, InteractionHost mapping, terminal session bookkeeping) get unit tests under `tests/unit/` (existing convention: `tests/unit/questionnaire.test.ts`). Web component tests stay colocated as `.test.mjs` next to their components (existing convention: `ChatWindow.questionnaire.test.mjs` et al.). Browser-level verification artifacts go under `artifacts/test-results/browser/` per the project placement rules.
 - All new user-facing strings land in both `en` and `zh-CN` i18n message catalogs in the same change slice, including the terminal label, chip labels, change-card operation labels, and shelf queue indicator.

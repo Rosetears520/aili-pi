@@ -9,7 +9,8 @@ The AILI Web UI is currently a chat page plus tool-output surfaces: questionnair
 - Consolidate the two existing independent diff implementations (`AiliFileDiff` and the `patch.ts`/`SplitPatchView` path) into one shared `ChangeDiffView` renderer with `inline` and `full` variants, so the timeline inline diff, the file viewer diff mode, and the Changes workspace render from one component (unified only inline; unified and split in full).
 - Compose the existing FileExplorer/FileViewer/Changes pieces into one Workspace: a session-cwd file tree with git modified/added/deleted status, a read-only CodeView with syntax highlighting, line numbers, copy, go-to-line, and tabs, and a full DiffView; wire cross-surface navigation (tree file click to CodeView, changed file to DiffView, timeline file name to CodeView, "Show full diff" to the full DiffView).
 - Add a user-controlled browser terminal (WebSocket to a server-spawned PTY, session-cwd default, ANSI, Ctrl+C, resize, reconnect/cleanup), labeled as user-controlled and explicitly separated from the agent bash tool and agent permission semantics; single terminal first, multi-terminal later.
-- Deliver in the accepted phase order — Phase 1 Interaction Shelf, Phase 2 shared diff + inline change events, Phase 3 Workspace, Phase 4 terminal — and start this change's BUILD only after `integrate-pi-web-ui-and-upstream-extensions` has been closed out, because both changes touch the same WebUI surfaces.
+- Add an MCP management panel behind a new "MCP" button in the bottom-left configuration toolbar (right of Skills): truthful per-server status from the existing `pi-mcp-adapter` snapshot and per-server enable/disable persisted through the adapter's own configuration layer, with explicit-user-action-only semantics.
+- Deliver in the accepted phase order — Phase 1 Interaction Shelf, Phase 2 shared diff + inline change events, Phase 3 Workspace, Phase 4 terminal, Phase 5 MCP panel — and start this change's BUILD only after `integrate-pi-web-ui-and-upstream-extensions` has been closed out, because both changes touch the same WebUI surfaces.
 - Use PiChamber (primary) plus pi-gui, OpenPi, and pi-diff (auxiliary) as interaction and architecture references only: semantic/interaction-level absorption, no code copying, no dependency on those projects, and no second filesystem, Git/change-tracking, skill, permission, subagent, or Agent runtime.
 
 ## Capabilities
@@ -20,6 +21,7 @@ The AILI Web UI is currently a chat page plus tool-output surfaces: questionnair
 - `webui-inline-file-change-events`: Tool-result-derived `FileChangeEvent` model and default-collapsed timeline change cards with capped unified diff and explicit tool-details disclosure.
 - `webui-shared-diff-rendering`: One shared `ChangeDiffView` renderer with inline/full variants replacing both existing diff implementations, fed only by existing tool-result and git data sources.
 - `webui-workspace-surfaces`: Session-cwd file tree with git status, read-only CodeView, and full DiffView composed as one workspace with cross-surface navigation.
+- `webui-mcp-management`: Bottom-left MCP button and panel: bounded per-server status projection, adapter-layer enable/disable toggles, no second config authority, delivered last.
 - `webui-user-terminal`: User-controlled PTY terminal over WebSocket with explicit agent/bash separation, lifecycle cleanup, inherited access-security boundaries, and separately approved dependencies.
 
 ### Modified Capabilities

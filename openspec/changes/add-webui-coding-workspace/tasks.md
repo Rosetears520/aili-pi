@@ -68,11 +68,23 @@
   - Acceptance: the terminal is not an auth or path bypass.
   - Verify: security-focused integration test mirroring the existing fail-closed checks.
 
-## 6. Convergence and final verification
+## 6. MCP management panel (final part — added by user direction 2026-08-19)
 
-- [ ] 6.1 Run the full accepted verification set for this change: root `npm run typecheck`, `npm test`, `npm run build:web`, the new unit/component/integration suites, and a manual browser pass over the five phases' acceptance flows (shelf interactions, inline change cards on a real edit turn, workspace navigation round-trip, skill chip round-trip, terminal lifecycle).
+- [ ] 6.1 Add the MCP button to the bottom-left configuration toolbar (right of Skills) and the MCP panel shell in the existing config-panel pattern, fed by a bounded per-server status projection (name, status, tool/resource counts, disabled) derived from the adapter snapshot.
+  - Acceptance: the button opens/closes the panel like the other config panels; every configured server is listed with truthful state; no configuration, args, env, or credentials are exposed; listing never connects a lazy/disconnected server.
+  - Verify: colocated component tests for button placement, projection rendering, and redaction; manual browser check against a live adapter snapshot.
+- [ ] 6.2 Wire per-server enable/disable through the adapter's configuration-layer persistence (same semantics as `/mcp enable|disable`), surfacing the adapter's honest effect timing (applies on reload/session restart) without auto-reload.
+  - Acceptance: toggles persist through the adapter path only (no second config authority); enabling honors precedence (explicit false only when a lower layer is disabled); the UI states the timing honestly.
+  - Verify: unit/integration test of the toggle payload against the adapter persistence path; manual toggle + reload round-trip.
+- [ ] 6.3 Add MCP panel strings to the en/zh-CN i18n catalogs.
+  - Acceptance: same as earlier phases.
+  - Verify: i18n key presence check in both catalogs.
+
+## 7. Convergence and final verification
+
+- [ ] 7.1 Run the full accepted verification set for this change: root `npm run typecheck`, `npm test`, `npm run build:web`, the new unit/component/integration suites, and a manual browser pass over the five phases' acceptance flows (shelf interactions, inline change cards on a real edit turn, workspace navigation round-trip, skill chip round-trip, terminal lifecycle).
   - Acceptance: all green with no unexplained failures; known unrelated flakes recorded as such.
   - Verify: verification evidence recorded in the progress ledger with commands and outcomes.
-- [ ] 6.2 Confirm contract-level non-goals still hold: no second runtime of any kind, no dependency beyond the approved terminal set, no permission semantic change, and Phases 1–4 deliverable independently of Phase 5.
+- [ ] 7.2 Confirm contract-level non-goals still hold: no second runtime of any kind, no dependency beyond the approved terminal set, no permission semantic change, and Phases 1–4 deliverable independently of Phase 5.
   - Acceptance: negative assertions pass against the final tree.
   - Verify: targeted greps/inventory checks recorded in the ledger.
