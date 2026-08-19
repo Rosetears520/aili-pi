@@ -109,3 +109,11 @@ contract=new capability webui-mcp-management (specs/webui-mcp-management/spec.md
 key-facts-grounding=adapter snapshot states and persistence semantics read from node_modules/pi-mcp-adapter/{types,commands,config}.ts; effect timing from adapter's own messaging ("run /mcp enable, then /reload"); web's existing read-only redacted projection McpServerProjectionV1 in src/web/runtime-projection.ts is the inspection baseline the panel extends without bypassing
 verification=openspec validate --strict PASS (after fixing a self-inflicted duplicate design-decision insertion, deduped and amended)
 next_action=Phase 5 Terminal remains the next implementation target and needs per-dependency exact approvals (node-pty, ws, @xterm/xterm + fit addon) before any installation; MCP implementation follows Terminal
+
+[2026-08-20T00:05:00Z] BUILD add-webui-coding-workspace ROUND-14 (task 5.1 dependency approvals recorded)
+evidence=user-approval (AskUserQuestion 2026-08-20, three itemized approvals)
+disposition=accepted
+approvals=(1) node-pty@^1 → dependencies: 服务端 PTY（批准：批准（推荐））;(2) ws@^8 → dependencies: WebSocket 服务端（批准：批准（推荐））;(3) @xterm/xterm@^5 + @xterm/addon-fit@^1 → dependencies: 前端终端组件（批准：批准（推荐））
+environment-note=this agent session has no outbound network (registry.npmjs.org unreachable even unsandboxed; WebFetch to registry times out) — the npm install must be executed by the user in their own terminal; exact-resolved versions will be recorded in package-lock at install time and verified by this agent afterwards
+attachment-design-note=bin/pi-web.js spawns the Next server (no custom-server hook), so the approved ws server will bind its own managed loopback port, start lazily from the terminal manager, and enforce the same web access policy (loopback default; fail-closed non-loopback with auth/Origin checks) on the WebSocket upgrade itself
+next_action=user runs: npm install node-pty@^1 ws@^8 "@xterm/xterm@^5" "@xterm/addon-fit@^1"   → then this agent verifies installability (require + version probe), then implements tasks 5.2-5.4
