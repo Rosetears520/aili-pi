@@ -1,8 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { AiliFileDiff, type DiffView } from "@/components/aili/AiliFileDiff";
 import type { GitStatusResponse } from "@/lib/git-types";
+import { useResizablePanel } from "@/hooks/useResizablePanel";
+
+const CHANGES_LIST_MIN_WIDTH = 200;
+const CHANGES_LIST_MAX_WIDTH = 560;
+const CHANGES_LIST_DEFAULT_WIDTH = 340;
 
 interface RemoteCompare {
   readonly available: boolean;
@@ -48,6 +53,22 @@ export default function ChangesPage() {
   const [patch, setPatch] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Draggable splitter between the file list and the diff, sharing the
+  // sidebar's resizable-panel machinery (pointer drag, arrow keys, persisted
+  // width). The live width is written to --aili-changes-list-width.
+  const listWidthRef = useRef(CHANGES_LIST_DEFAULT_WIDTH);
+  const listResizer = useResizablePanel({
+    ariaLabel: "Resize file list",
+    cssVariable: "--aili-changes-list-width",
+    defaultWidth: CHANGES_LIST_DEFAULT_WIDTH,
+    getMaxWidth: () => Math.floor(window.innerWidth / 2),
+    growthDirection: "right",
+    maxWidth: CHANGES_LIST_MAX_WIDTH,
+    minWidth: CHANGES_LIST_MIN_WIDTH,
+    storageKey: "aili-changes-list-width",
+    widthRef: listWidthRef,
+  });
 
   const repositoryRoot = scope === "working" ? status?.repositoryRoot ?? null : remote?.repositoryRoot ?? null;
 
@@ -181,7 +202,12 @@ export default function ChangesPage() {
         <button type="button" className="aili-changes-refresh" onClick={() => window.close()} title="Close tab">✕</button>
       </header>
       <div className="aili-changes-body">
-        <div className="aili-changes-list">
+        <div
+          ref={listResizer.panelRef}
+          id="aili-changes-list"
+          className={`aili-changes-list${listResizer.isResizing ? " is-resizing" : ""}`}
+          style={{ "--aili-changes-list-width": `${listResizer.width}px` } as CSSProperties}
+        >
           {loading && <p className="aili-inspector-empty">Loading…</p>}
           {!loading && files.length === 0 && (
             <p className="aili-inspector-empty">
@@ -204,6 +230,12 @@ export default function ChangesPage() {
             );
           })}
         </div>
+        <div
+          {...listResizer.separatorProps}
+          aria-controls="aili-changes-list"
+          className={`panel-resize-handle aili-changes-resize-handle${listResizer.isResizing ? " is-resizing" : ""}`}
+          title="Drag or arrow keys to resize · double-click to reset"
+        />
         <div className="aili-changes-diff">
           {error && <p className="aili-inspector-error" role="alert">{error}</p>}
           {selected && patch !== null && <AiliFileDiff file={selected.relative} patch={patch} view={view} />}

@@ -333,6 +333,9 @@ button.extension-widget-trigger:focus-visible {
 
 :root {
   --font-mono: var(--font-noto-mono), 'JetBrains Mono', 'Fira Code', 'Consolas', ui-monospace, 'PingFang SC', 'Microsoft YaHei', monospace;
+  /* Horizontal inset of the chat column content (messages, composer, inline
+     shelves) from the scroll container edge. */
+  --chat-inline-gutter: 16px;
 }
 
 pre, code {
@@ -348,6 +351,21 @@ pre, code {
   line-height: 1.7;
   color: var(--text);
   word-break: break-word;
+}
+
+/* Chat prose keeps a small inline text gutter; code cards and tables are
+   plain blocks inside the prose box, so their edges align with the text
+   edges (GitHub-style markdown geometry). The code block's own inner
+   padding (MermaidBlock SyntaxHighlighter gutter) is intentionally
+   untouched — this is purely outer geometry. */
+.markdown-body.markdown-assistant-body {
+  --message-inline-gutter: 12px;
+  padding-inline: var(--message-inline-gutter);
+}
+
+.markdown-body.markdown-file-preview {
+  --message-inline-gutter: 32px;
+  padding: 24px var(--message-inline-gutter);
 }
 .markdown-body p { margin: 0 0 8px; }
 .markdown-body p:last-child { margin-bottom: 0; }
@@ -1222,6 +1240,18 @@ span.token.table {
   }
 }
 
+/* ============ AILI: questionnaire inline interaction shelf ============
+   The questionnaire renders as part of the conversation flow, docked above
+   the composer — not as a modal overlay. The conversation stays scrollable
+   while the runtime blocks on the answers; runtime blocking itself lives in
+   the extension layer and is unchanged. Horizontal inset follows the chat
+   column gutter; the desktop composer's extra right inset (minimap lane) is
+   applied inline by ChatWindow. */
+.questionnaire-shelf {
+  flex: 0 0 auto;
+  padding: 0 var(--chat-inline-gutter) 10px;
+}
+
 @keyframes saved-pop {
   0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.55); }
   40%  { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.25); }
@@ -1896,10 +1926,14 @@ html.dark .markdown-code-action.is-copied { color: #34d399; }
 .aili-changes-refresh:hover { background: var(--bg-hover); color: var(--text); }
 .aili-changes-body { flex: 1; min-height: 0; display: flex; }
 .aili-changes-list {
-  width: 340px; flex-shrink: 0;
+  /* Live width comes from the resize splitter (useResizablePanel writes
+     --aili-changes-list-width); 340px is the pre-splitter default. */
+  width: var(--aili-changes-list-width, 340px); flex-shrink: 0;
   border-right: 1px solid var(--border);
   overflow-y: auto; padding: 6px;
 }
+.aili-changes-list.is-resizing { overflow-y: hidden; }
+.aili-changes-resize-handle { align-self: stretch; }
 .aili-changes-diff { flex: 1; min-width: 0; overflow-y: auto; padding: 12px 16px; }
 .aili-file-row { display: flex; align-items: center; gap: 8px; }
 .aili-file-counts { display: flex; gap: 5px; flex-shrink: 0; font-family: var(--font-mono); font-size: 10px; }
@@ -1913,6 +1947,7 @@ html.dark .markdown-code-action.is-copied { color: #34d399; }
 }
 @media (max-width: 720px) {
   .aili-changes-list { width: 42vw; }
+  .aili-changes-resize-handle { display: none; }
 }
 
 /* ============ AILI file picker (single Plus button) ============ */

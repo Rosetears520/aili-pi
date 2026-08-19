@@ -1,0 +1,204 @@
+/* AILI questionnaire inline shelf — stepper, single-question body, review.
+   Card shell, option rows, and action buttons are shared with the vendored
+   aicss ApprovalCard module; only the shelf-specific pieces live here. */
+
+.progress {
+  margin-left: auto;
+  color: #a1a1a1;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.stepChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  background: transparent;
+  color: #a1a1a1;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.stepChip[data-answered="true"] {
+  border-color: transparent;
+  background: color-mix(in srgb, #3b82f6 10%, transparent);
+  color: #1a1a1a;
+}
+.stepChip[data-current="true"] {
+  border-color: transparent;
+  background: #0b0d12;
+  color: #ffffff;
+}
+.stepChip:active { transform: scale(0.98); }
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(48vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+.prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.promptHeader {
+  font-size: 10.5px;
+  font-weight: 650;
+  color: #a1a1a1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.promptText {
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.promptHint {
+  font-size: 11.5px;
+  color: #a1a1a1;
+}
+
+/* Keyboard cursor ring on an option row (click selection uses the shared
+   aicss data-selected elevation instead). */
+.optionActive {
+  box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.55);
+}
+
+.customEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.customInput {
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 7px;
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  outline: none;
+}
+.customInput:focus { border-color: rgba(59, 130, 246, 0.55); }
+.customHint {
+  font-size: 10.5px;
+  color: #a1a1a1;
+}
+
+.navBtns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.reviewTitle {
+  font-size: 11px;
+  font-weight: 650;
+  color: #a1a1a1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.reviewRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: #fafafa;
+}
+.reviewHeader {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.reviewValue {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #1a1a1a;
+  overflow-wrap: anywhere;
+}
+.reviewValue[data-empty="true"] { color: #d97706; }
+.reviewEdit {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 3px 9px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, #1a1a1a 6%, transparent);
+  color: #1a1a1a;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.reviewEdit:hover { background: color-mix(in srgb, #1a1a1a 10%, transparent); }
+.reviewEdit:active { transform: scale(0.98); }
+
+:global(html.dark) .progress { color: #737373; }
+:global(html.dark) .stepChip {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #737373;
+}
+:global(html.dark) .stepChip[data-answered="true"] {
+  background: color-mix(in srgb, #3b82f6 20%, #1a1a1a);
+  color: #f5f5f5;
+}
+:global(html.dark) .stepChip[data-current="true"] {
+  background: #f5f5f5;
+  color: #0a0a0a;
+}
+:global(html.dark) .promptHeader,
+:global(html.dark) .promptHint,
+:global(html.dark) .customHint,
+:global(html.dark) .reviewTitle { color: #737373; }
+:global(html.dark) .promptText,
+:global(html.dark) .reviewHeader,
+:global(html.dark) .reviewValue { color: #f5f5f5; }
+:global(html.dark) .optionActive { box-shadow: 0 0 0 1.5px rgba(96, 165, 250, 0.6); }
+:global(html.dark) .customInput { border-color: rgba(255, 255, 255, 0.12); color: #f5f5f5; }
+:global(html.dark) .customInput:focus { border-color: rgba(96, 165, 250, 0.6); }
+:global(html.dark) .reviewRow { background: #101010; }
+:global(html.dark) .reviewEdit {
+  background: color-mix(in srgb, #f5f5f5 6%, transparent);
+  color: #f5f5f5;
+}
+:global(html.dark) .reviewEdit:hover { background: color-mix(in srgb, #f5f5f5 10%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .stepChip,
+  .reviewEdit { transition: none; }
+}

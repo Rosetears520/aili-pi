@@ -862,7 +862,7 @@ function BlockView({ block, toolResults, isStreaming, streamingDuration, toolCal
 }
 
 function TextBlock({ block, isStreaming, cwd, onOpenFile }: { block: TextContent; isStreaming?: boolean; cwd?: string; onOpenFile?: (filePath: string) => void }) {
-  return <SafeMarkdownBody isStreaming={isStreaming} cwd={cwd} onOpenFile={onOpenFile}>{block.text}</SafeMarkdownBody>;
+  return <SafeMarkdownBody className="markdown-assistant-body" isStreaming={isStreaming} cwd={cwd} onOpenFile={onOpenFile}>{block.text}</SafeMarkdownBody>;
 }
 
 function ThinkingBlock({ block, duration, active, sessionId, entryId, blockIndex }: {
@@ -942,6 +942,68 @@ function ThinkingBlock({ block, duration, active, sessionId, entryId, blockIndex
 }
 
 
+interface QuestionnaireTranscriptRow {
+  header: string;
+  values: string[];
+}
+
+interface QuestionnaireTranscript {
+  state: "pending" | "answered" | "dismissed";
+  answered: number;
+  total: number;
+  rows: QuestionnaireTranscriptRow[];
+}
+
+/**
+ * Collapses a `questionnaire` tool call into a transcript record: the
+ * collapsed header shows "Questions answered · a/t" (or dismissed/asking)
+ * and the expanded body lists each question header with its values, so the
+ * interaction keeps provenance in the conversation instead of vanishing
+ * once the shelf closes. Prefers the structured result details; falls back
+ * to the formatted result text when details are absent.
+ */
+function summarizeQuestionnaire(block: ToolCallContent, result: ToolResultMessage | undefined, resultText: string | null): QuestionnaireTranscript {
+  const inputQuestions = Array.isArray(block.input?.questions)
+    ? (block.input.questions as Array<{ id?: unknown; header?: unknown }>)
+    : [];
+  const byId = new Map<string, { selectedOptions: string[]; customInput?: string }>();
+  let cancelled = false;
+  const details = result?.details as
+    | { answers?: Array<{ id?: unknown; selectedOptions?: unknown; customInput?: unknown }>; cancelled?: unknown }
+    | undefined;
+  if (Array.isArray(details?.answers)) {
+    cancelled = details?.cancelled === true;
+    for (const answer of details.answers) {
+      if (typeof answer?.id !== "string") continue;
+      byId.set(answer.id, {
+        selectedOptions: Array.isArray(answer.selectedOptions) ? answer.selectedOptions.filter((v): v is string => typeof v === "string") : [],
+        customInput: typeof answer.customInput === "string" ? answer.customInput : undefined,
+      });
+    }
+  } else if (resultText) {
+    cancelled = /dismissed/i.test(resultText);
+    for (const match of resultText.matchAll(/^(\S+): (.*)$/gm)) {
+      const value = match[2];
+      if (value === "Unanswered") continue;
+      byId.set(match[1], {
+        selectedOptions: value.split(", "),
+        customInput: undefined,
+      });
+    }
+  }
+  const rows: QuestionnaireTranscriptRow[] = inputQuestions.map((question, index) => {
+    const answer = typeof question.id === "string" ? byId.get(question.id) : undefined;
+    const values = [...(answer?.selectedOptions ?? []), ...(answer?.customInput ? [answer.customInput] : [])];
+    return {
+      header: typeof question.header === "string" && question.header.trim() ? question.header.trim() : `Q${index + 1}`,
+      values,
+    };
+  });
+  const answered = rows.filter((row) => row.values.length > 0).length;
+  const state: QuestionnaireTranscript["state"] = !result ? "pending" : cancelled ? "dismissed" : "answered";
+  return { state, answered, total: rows.length, rows };
+}
+
 function ToolCallBlock({ block, result, duration }: { block: ToolCallContent; result?: ToolResultMessage; duration?: number }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
@@ -956,6 +1018,17 @@ function ToolCallBlock({ block, result, duration }: { block: ToolCallContent; re
     : null;
   const resultIsEmpty = resultText === null ? false : (resultText.trim() === "(no output)" || resultText.trim() === "");
   const isError = result?.isError ?? false;
+
+  const questionnaire = block.toolName === "questionnaire"
+    ? summarizeQuestionnaire(block, result, resultText)
+    : null;
+  const questionnairePreview = questionnaire
+    ? questionnaire.state === "pending"
+      ? t("chat.questionnaireAsking")
+      : questionnaire.state === "dismissed"
+        ? t("chat.questionnaireDismissed")
+        : `✓ ${t("chat.questionnaireAnsweredSummary", { answered: questionnaire.answered, total: questionnaire.total })}`
+    : null;
 
   return (
     <div
@@ -988,8 +1061,10 @@ function ToolCallBlock({ block, result, duration }: { block: ToolCallContent; re
         <span style={{ color: isError ? "#f87171" : "#16a34a", fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 11, flexShrink: 0 }}>
           {block.toolName}
         </span>
-        <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
-          {isStreamingInput ? t("chat.generatingToolInput") : getToolPreview(block)}
+        <span style={{ color: questionnaire && questionnaire.state === "answered" ? "#16a34a" : "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+          {isStreamingInput
+            ? t("chat.generatingToolInput")
+            : questionnairePreview ?? getToolPreview(block)}
         </span>
         {duration !== undefined && (
           <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{duration}s</span>
@@ -999,8 +1074,36 @@ function ToolCallBlock({ block, result, duration }: { block: ToolCallContent; re
         </svg>
       </button>
 
+      {/* ── Expanded: questionnaire answer record ── */}
+      {expanded && questionnaire && questionnaire.rows.length > 0 && (
+        <div
+          style={{
+            borderTop: isError ? "1px solid rgba(248,113,113,0.25)" : "1px solid rgba(34,197,94,0.2)",
+            background: "var(--bg)",
+            padding: "8px 10px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 5,
+          }}
+        >
+          {questionnaire.rows.map((row, index) => (
+            <div key={`${row.header}-${index}`} style={{ display: "flex", gap: 7, fontSize: 12, lineHeight: 1.45, alignItems: "baseline" }}>
+              <span style={{ color: row.values.length > 0 ? "#16a34a" : "#d97706", fontFamily: "var(--font-mono)", fontSize: 11, flexShrink: 0 }}>
+                {row.values.length > 0 ? "[x]" : "[ ]"}
+              </span>
+              <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                <span style={{ color: "var(--accent)", fontWeight: 600 }}>{row.header}: </span>
+                <span style={{ color: "var(--text)" }}>
+                  {row.values.length > 0 ? row.values.join(", ") : t("chat.questionnaireUnanswered")}
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── Expanded: input args ── */}
-      {expanded && (isStreamingInput || !isEditTool) && (
+      {expanded && !questionnaire && (isStreamingInput || !isEditTool) && (
         <pre
           style={{
             margin: 0,
@@ -1020,7 +1123,7 @@ function ToolCallBlock({ block, result, duration }: { block: ToolCallContent; re
       )}
 
       {/* ── Paired result — only shown when expanded ── */}
-      {expanded && result && (
+      {expanded && result && !questionnaire && (
         resultDiff ? (
           <PairedDiffResult
             diff={resultDiff}

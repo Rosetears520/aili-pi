@@ -759,28 +759,6 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
         />
       )}
 
-      {extensionQuestionnaire && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 90,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-            background: "rgba(0,0,0,0.18)",
-          }}
-        >
-          <div role="dialog" aria-modal="true" style={{ width: "min(560px, 100%)", maxHeight: "80vh", overflowY: "auto" }}>
-            <AiliQuestionnaire
-              request={extensionQuestionnaire}
-              onRespond={(request, response) => void respondToExtensionUi(request, response)}
-            />
-          </div>
-        </div>
-      )}
-
       {extensionCustomUi && (
         <ExtensionCustomPanel
           request={extensionCustomUi}
@@ -1080,6 +1058,19 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
       </div>
 
       <div className="relative">
+        {extensionQuestionnaire && (
+          <div
+            className="questionnaire-shelf"
+            style={{ paddingRight: isMobile ? undefined : 52 }}
+          >
+            <div style={{ maxWidth: 820, margin: "0 auto" }}>
+              <AiliQuestionnaire
+                request={extensionQuestionnaire}
+                onRespond={(request, response) => void respondToExtensionUi(request, response)}
+              />
+            </div>
+          </div>
+        )}
         {chatInputElement}
         <ExtensionStatusBar statuses={extensionStatuses} widgets={extensionWidgets} />
       </div>
