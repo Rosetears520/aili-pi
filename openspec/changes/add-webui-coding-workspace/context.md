@@ -11,11 +11,11 @@ On 2026-08-19 the user provided a full requirements text for evolving the AILI-P
 
 ## Maintained user intent
 
-- One unified Coding Agent Workspace over the existing single AILI-Pi runtime: a composer-docked Interaction Shelf for all blocking human interaction, a FileTree/CodeView/DiffView workspace, structured default-collapsed file-change events in the reasoning timeline, collapsed skill chips, and a user terminal delivered last.
+- One unified Coding Agent Workspace over the existing single AILI-Pi runtime: a composer-docked Interaction Shelf for all blocking human interaction, a FileTree/CodeView/DiffView workspace, structured default-collapsed file-change events in the reasoning timeline, and a user terminal delivered last.
 - Change events must come exclusively from real successful tool results (edit/write/apply_patch and equivalents) with actual patch/diff data — never parsed or guessed from assistant reasoning.
 - One shared diff renderer serves the inline timeline, file viewer, and Changes surfaces; inline is unified-only, full supports unified and split.
 - The user terminal is the user's own shell ("User Terminal ≠ Agent bash tool") and must not inherit agent permission/sandbox semantics.
-- Phase order: 1 Interaction Shelf (+ Questions inline, InteractionHost base), 2 shared ChangeDiffView + inline file changes, 3 FileTree + CodeView + full DiffView (Workspace), 4 skill chips on the composer surface, 5 Terminal (PTY + WebSocket). Phase 2 may land before the full workspace because it immediately improves daily coding experience.
+- Phase order: 1 Interaction Shelf (+ Questions inline, InteractionHost base), 2 shared ChangeDiffView + inline file changes, 3 FileTree + CodeView + full DiffView (Workspace), 4 Terminal (PTY + WebSocket). Phase 2 may land before the full workspace because it immediately improves daily coding experience.
 - Reference projects are interaction/architecture references only: semantic absorption, no code copying, no Vue/Electron runtime, no dependencies added from them.
 
 ## Confirmed decisions
@@ -24,7 +24,6 @@ On 2026-08-19 the user provided a full requirements text for evolving the AILI-P
 - 2026-08-19 (user): this change is sequenced after `integrate-pi-web-ui-and-upstream-extensions` closes; no parallel BUILD on the same surfaces.
 - 2026-08-19 (user): change id `add-webui-coding-workspace`.
 - 2026-08-19 (clarification resolved during proposal): "Permission request" in the shelf means the existing permission-mode approval asks (Allow once / Allow for session / Allow forever / Deny) raised through `ctx.ui.select` by `src/vendor/pi-permission-modes/` and currently rendered as centered modals by the web ExtensionDialog. Moving them into the shelf is presentation-only; this change adds no per-tool approval runtime and changes no permission-mode semantics.
-- 2026-08-19 (user): skill chip activation reuses the existing per-cwd dormancy mechanism (`GET`/`PATCH /api/skills`); no per-session skill state layer.
 - 2026-08-19 (user): workspace takes the progressive-integration shape — keep current placements (sidebar tree, viewer pane, `/changes` tab), wire navigation, close CodeView gaps; no relayout and no new workspace route.
 - 2026-08-19 (user, BUILD-entry): final `test-plan.md` explicitly accepted; implementation authorized for the accepted tasks/specs. Task 0.1's sequencing gate was satisfied by user-approved commit `7d6906e` of the prior change's uncommitted BUILD work (18 files) plus the user's asserted browser verification, in place of a full SHIP closeout; the amendment is recorded in `tasks.md` 0.1.
 - 2026-08-19 (user, Phase 3 audit): existing functionality wins over new equivalents — extend in place, never add duplicate chrome (tree-header cwd row removed accordingly; recorded as drift-log D-2026-08-19-4 and the standing audit rule for remaining phases).

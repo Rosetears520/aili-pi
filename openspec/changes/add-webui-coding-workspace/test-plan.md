@@ -18,7 +18,6 @@
 4. **Inline change card 契约**：默认折叠行包含操作 icon/类型、文件 icon、文件名（主权重）、父路径（次权重）、`+N −M`、chevron；展开体在固定 header 之下；行数/高度封顶 + "Show full diff" 跳转；工具 JSON 仅经显式披露可见；文件名点击打开 CodeView 标签页。
 5. **共享 ChangeDiffView**：inline 变体仅 unified 且封顶；full 变体支持 unified/split 并保持 `localStorage("aili-diff-view")` 偏好与既有渲染上限；`MessageView`、`FileViewer` diff 模式、Changes 页、inline card 四个消费面全部迁移，重复实现删除。
 6. **Workspace 渐进整合**：CodeView 控件集补齐（copy、go-to-line、当前路径）；树文件→源码标签、changed→diff 标签、inline 卡 "Show full diff"→`/changes`、卡文件名→CodeView 四条导航箭头成立且不丢聊天上下文；FileTree 显式刷新与 cwd 显示；一切文件访问仍走 `/api/files` + allowed-roots。
-7. **Skill chips**：默认仅 `Skills N ▼` 摘要 chip + 已启用 chip；展开面板按 Active/Available 分组；切换走现有 `PATCH /api/skills` dormancy 路径且刷新后与 registry 一致；无并行状态存储。
 8. **Terminal**：标注 "Terminal · User controlled"；初始 cwd = 会话 cwd（allowed-roots 校验）；ANSI/Ctrl+C/resize 可用；断连/关页/停服后无孤儿 PTY；重连干净不重放；non-loopback fail-closed 同样关闭终端传输；与 agent 工具授权、权限模式、questionnaire 不变量零耦合。
 9. **阶段独立性**：Phases 1–4 在 Phase 5（及其依赖批准）之前完整可交付。
 10. **非目标负向断言**：无第二 filesystem/git/skill/permission/subagent/runtime；除批准的终端依赖集外无新增依赖；权限模式语义与「YOLO 不放宽用户问题」不变。
@@ -41,7 +40,6 @@
 | Inline change card | `src/web/components/MessageView.file-change-card.test.mjs` |
 | Diff 表征 + 共享渲染器 | `src/web/components/aili/ChangeDiffView.test.mjs`（先对现存两套渲染器写表征，再迁移） |
 | CodeView 补齐与导航 | `src/web/components/FileViewer.codeview.test.mjs`、`FileExplorer.tree-header.test.mjs` |
-| Skill chips | `src/web/components/ChatInput.skill-chips.test.mjs` |
 | Terminal 生命周期/安全 | `tests/integration/web-terminal-lifecycle.test.ts`、`tests/integration/web-terminal-security.test.ts`、`src/web/components/TerminalPanel.test.mjs` |
 | 全局回归 | `npm run typecheck`、`npm test`、`npm run build:web` |
 
@@ -55,7 +53,6 @@
 | 折叠行字段与封顶跳转（目标 4） | `MessageView.file-change-card.test.mjs` 断言行解剖、chevron 切换、封顶时 "Show full diff" 存在、披露默认隐藏 | DOM 契约可静态断言 | 不证明视觉效果（以 ASCII 契约 + 手工验收） |
 | 单一渲染器 + 四消费面迁移（目标 5） | `ChangeDiffView.test.mjs` 表征用例 + 仓库内 `SplitPatchView`/`AiliFileDiff` 旧路径 grep 为零 | 表征先行防回归，grep 锁删除 | 不证明极端大 diff 的性能上限 |
 | 导航箭头（目标 6） | `FileViewer.codeview.test.mjs` + `file-tab-state` 既有测试的 modeHint 断言 | openFileTab 是唯一入口，接线可枚举 | 不证明移动端布局体验 |
-| chips 往返一致（目标 7） | `ChatInput.skill-chips.test.mjs` 断言 GET→分组、PATCH 载荷、刷新后状态一致 | 数据流封闭（registry↔chip） | 不证明 skill 内容正确（registry 自有验证） |
 | PTY 清理与 fail-closed（目标 8） | `tests/integration/web-terminal-*.test.ts`：真实 spawn/断连/停服后进程清点；非回环无认证时升级被拒 | 生命周期与安全是服务器侧可观测行为 | 不证明所有 shell/平台组合 |
 | 阶段独立 + 负向断言（目标 9、10） | Phase 5 未实施时 Phases 1–4 全套通过；依赖/第二 runtime 的 grep 负向检查 | 契约性检查可直接执行 | — |
 
@@ -72,8 +69,7 @@
 1. **Phase 1**：触发一次权限询问、一次 confirm、一次 questionnaire —— 均出现在 composer 上方 shelf，transcript 保持可滚动/可复制，回答后 runtime 正常继续。
 2. **Phase 2**：让 agent 真实修改一个文件 —— timeline 出现默认折叠的「✎ 已编辑 … +N −M」行，展开为 unified diff，长 diff 封顶并可跳全量；raw 工具 JSON 仅在显式点开后可见。
 3. **Phase 3**：从树点击文件开 CodeView、点击 changed 文件开 diff、从 timeline 文件名跳 CodeView、从 "Show full diff" 进 Changes 页，往返不丢聊天上下文；copy 与 go-to-line 可用。
-4. **Phase 4**：composer 处 chips 默认折叠，展开见 Active/Available，启用/移除后刷新状态一致。
-5. **Phase 5**：终端可交互（ANSI、Ctrl+C、resize），标注 User controlled，关闭页面后服务器无孤儿 PTY。
+4. **Phase 5**：终端可交互（ANSI、Ctrl+C、resize），标注 User controlled，关闭页面后服务器无孤儿 PTY。
 
 ## 6. Final acceptance gate
 

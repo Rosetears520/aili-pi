@@ -84,15 +84,7 @@ Keep the current placements — `FileExplorer` in the left sidebar (cwd-bound, g
 
 **Alternative considered:** an embedded multi-pane workspace view or a separate `/workspace` route (PiChamber-style). Rejected by the user decision on 2026-08-19: progressive integration matches the text's "left FileTree + workspace CodeView/DiffView" shape with minimal disruption.
 
-### 5. Skill chips on the existing dormancy mechanism
-
-A compact chip group on the composer surface (adjacent to `AiliPermChip` in the `aili-composer-chips` row): a collapsed `Skills N ▼` summary chip, removable chips for non-dormant skills, and an expanded popover grouping Active (non-dormant) and Available (dormant) skills.
-
-- State comes from `GET /api/skills?cwd=` (the same data the slash palette uses) and toggles flow through the existing `PATCH /api/skills` dormancy path. No parallel store, no new persistence, no per-session layer (user decision 2026-08-19).
-- Activating a skill from the panel may prefill the `skill:<name>` command in the composer as an ordinary convenience; invocation itself keeps the existing command semantics.
-- The chip surface is owned by the composer area, not a permanent sidebar region.
-
-### 6. Terminal: WebSocket + PTY, proposed stack pending separate dependency approval
+### 5. Terminal: WebSocket + PTY, proposed stack pending separate dependency approval
 
 Design-level proposal (every dependency addition requires its own exact approval before BUILD touches Phase 5):
 
@@ -104,7 +96,7 @@ Design-level proposal (every dependency addition requires its own exact approval
 
 **Alternative considered:** implement the terminal over SSE + POST chunks to avoid a WebSocket dependency. Rejected: half-duplex polling degrades interactive latency and still needs a new transport path; WebSocket is the honest fit.
 
-### 7. Cross-cutting placement and i18n conventions
+### 6. Cross-cutting placement and i18n conventions
 
 - Pure logic modules (FileChangeEvent derivation, InteractionHost mapping, terminal session bookkeeping) get unit tests under `tests/unit/` (existing convention: `tests/unit/questionnaire.test.ts`). Web component tests stay colocated as `.test.mjs` next to their components (existing convention: `ChatWindow.questionnaire.test.mjs` et al.). Browser-level verification artifacts go under `artifacts/test-results/browser/` per the project placement rules.
 - All new user-facing strings land in both `en` and `zh-CN` i18n message catalogs in the same change slice, including the terminal label, chip labels, change-card operation labels, and shelf queue indicator.

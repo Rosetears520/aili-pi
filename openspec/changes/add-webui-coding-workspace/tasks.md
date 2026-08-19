@@ -53,19 +53,7 @@
   - Acceptance: the tree satisfies the FileTree requirement entirely on the existing `/api/files` + allowed-roots path with no new filesystem runtime.
   - Verify: colocated component tests for refresh and cwd display; manual check that status badges refresh.
 
-## 4. Phase 4 — Skill chips
-
-- [ ] 4.1 Add the composer skill chip group: collapsed `Skills N ▼` summary chip, removable chips for non-dormant skills, and an expanded popover with Active/Available groups fed by `GET /api/skills?cwd=`.
-  - Acceptance: the default composer view shows only the summary chip plus enabled-skill chips; the popover lists both groups from registry data.
-  - Verify: colocated component tests for collapsed default, expansion, grouping, and cwd change refresh.
-- [ ] 4.2 Wire chip toggles through the existing `PATCH /api/skills` dormancy path (enable = clear `disable-model-invocation`, remove = set it), with optional `skill:<name>` prefill on activation.
-  - Acceptance: chip state matches registry state after refresh with no parallel store; no new persistence path exists.
-  - Verify: component test asserting the PATCH payload shape and post-toggle refresh; manual browser toggle round-trip.
-- [ ] 4.3 Add chip labels and group headings to the en/zh-CN i18n catalogs.
-  - Acceptance: same as 1.4.
-  - Verify: i18n key presence check in both catalogs.
-
-## 5. Phase 5 — Terminal (gated on separate dependency approvals)
+## 5. Terminal (gated on separate dependency approvals)
 
 - [ ] 5.1 Obtain and record separate exact approvals for the terminal dependency set (`node-pty`, `ws`, `@xterm/xterm` + fit addon, or approved alternatives) bound to this phase's tasks, including a disposable WSL2 installability probe for the PTY package before any lockfile change.
   - Acceptance: every dependency operation is exactly approved or not executed; the probe result is recorded.

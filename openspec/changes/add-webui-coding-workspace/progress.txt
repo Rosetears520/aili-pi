@@ -76,3 +76,27 @@ blocker=user direction 2026-08-19: audit planned/delivered features against exis
 audit=(Phase 3 remainder: copy-contents button complements the existing download/path-copy controls — no viewer-contents copy existed before, kept; go-to-line has no pre-existing equivalent, kept with container-only scroll; changed→diff extends the existing modeHint mechanism the changes-summary rows already use. Phase 1 shelf extended the existing questionnaire shelf in place; Phase 2 consolidated two duplicate renderers. Phase 4 skill chips will extend the existing composer chips row using /api/skills GET/PATCH only — no parallel registry; Phase 5 terminal has no existing counterpart. One open overlap flagged to the user: TurnWrittenFiles turn-end strip vs the new per-call change cards)
 verification=node --test tree-header + codeview 7/7; src/web tsc clean; npm run build:web clean
 next_action=user decides on the TurnWrittenFiles overlap, re-verifies the slimmed tree (no header row), then Phase 3 commit + Phase 4
+
+[2026-08-19T23:30:00Z] BUILD add-webui-coding-workspace ROUND-10 EXECUTED (Phase 4 complete: skill chips)
+scope=tasks 4.1-4.3
+evidence=verification:ROUND10-suite
+disposition=accepted
+changed_files=src/web/components/aili/AiliSkillChips.tsx (new: composer-owned chip group — "Skills N ▾" summary chip + up to three inline active-skill chips with × dormancy disable + overflow counter; popover groups Active ✓ / Available ○ with per-skill dormancy toggles and name-click prefill; loads on mount/cwd-change and refreshes on open, same laziness contract as the slash palette; outside-click + Esc close), ChatInput.tsx (mounts AiliSkillChips beside AiliPermChip in the composer toolbar, passing cwd + insertAtCursor so use-prefill rides the existing command path), i18n en/zh (+8 skills.chips* keys), tests: ChatInput.skill-chips.test.mjs (6 cases: mount adjacency, registry-only endpoints incl. exact PATCH payload shape, compact default + 3-chip cap, group refresh-on-open, skill:<name> prefill, i18n presence)
+conflict-audit=per the user's existing-feature-wins rule (drift-log D-2026-08-19-4): chips extend the existing composer toolbar and reuse the existing /api/skills GET/PATCH and skill:<name> command semantics — no parallel registry, no new sidebar region, SkillsConfig panel untouched and remains the management surface
+verification=node --test skill-chips + ChatInput + ChatInput.dormancy 24/24; src/web tsc clean; root typecheck clean; npm run build:web clean; npm test 651 passed / 2 skipped / 1 fail = pre-existing pi-0821 flake
+next_action=user verifies in browser: composer toolbar shows "Skills N ▾" beside the perm chip (N = non-dormant count); expanding lists 已启用/可启用 groups; ○→✓ toggle makes a skill active and an inline chip appears; × on an inline chip dormants it; clicking a name prefills "skill:name " in the composer; behavior matches the skills panel after reopening
+
+[2026-08-19T23:40:00Z] BUILD add-webui-coding-workspace ROUND-11 EXECUTED (Phase 4 skill chips removed by user rejection)
+scope=material delta: drop webui-skill-chips capability entirely (interview D-07, drift-log D-2026-08-19-5)
+evidence=verification:ROUND11-removal
+disposition=accepted
+changed_files=REMOVED: src/web/components/aili/AiliSkillChips.tsx, src/web/components/ChatInput.skill-chips.test.mjs, specs/webui-skill-chips/spec.md, ChatInput mount, 8 skills.chips* i18n keys per catalog; contract writeback: proposal.md (capability + phase order + non-goal), design.md (decision 5 dropped, Terminal renumbered to 5), tasks.md (section 4 cancelled with direction quote), test-plan.md (goal/row/manual item removed), interview.md (D-07 accepted rejection), context.md (intent + decision)
+boundary=pre-existing skill surfaces untouched: slash palette skill:<name> commands, skills management panel, dormancy PATCH — this change no longer touches skill UX
+verification=node --test ChatInput suites 19/19; src/web tsc clean; root typecheck clean; npm run build:web clean; repo-wide grep for AiliSkillChips/skills.chips = 0; openspec validate --strict PASS
+next_action=Phase 5 Terminal is now the final phase; it requires per-dependency exact approvals (node-pty, ws, @xterm/xterm + fit addon) before any installation — present the dependency list for user decision when the user is ready
+
+[2026-08-19T23:45:00Z] BUILD add-webui-coding-workspace ROUND-12 EXECUTED (records cleanup)
+scope=per user direction「文档也移除了吧」: the skill-chips rejection paper trail (interview D-07, drift-log D-2026-08-19-5, tasks section-4 cancellation block, context decision/phase-order mentions, proposal non-goal narrative) is removed from the contract; numbering of remaining sections stays stable; contracts now simply exclude skill chips with no removal narrative
+evidence=openspec:validate-strict
+verification=openspec validate --strict PASS after excision
+next_action=commit docs; investigate bottom-left config buttons + existing MCP surfaces for the user's MCP panel request
