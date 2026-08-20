@@ -47,6 +47,10 @@ describe("Pi package baseline", () => {
     expect(manifest.dependencies).toEqual({
       "@narumitw/pi-codex-compact": "0.50.0",
       "@narumitw/pi-tui-kit": "0.53.0",
+      // Terminal phase (add-webui-coding-workspace, user-approved 2026-08-20):
+      // user PTY, WebSocket transport, and the xterm front-end.
+      "@xterm/addon-fit": "^0.10.0",
+      "@xterm/xterm": "^5.5.0",
       "acp-kernel": "0.0.19",
       "js-yaml": "5.2.3",
       next: "16.3.1",
@@ -54,12 +58,14 @@ describe("Pi package baseline", () => {
       "pi-mcp-adapter": "2.23.0",
       "pi-permission-modes": "2.2.0",
       "pi-quota-status": "0.3.0",
+      "node-pty": "^1.1.0",
       "pi-web-access": "0.13.0",
       "proper-lockfile": "4.1.2",
       react: "19.2.4",
       "react-dom": "19.2.4",
       "remark-frontmatter": "5.0.0",
       undici: "8.10.0",
+      "ws": "^8.21.3",
     });
     expect(manifest.dependencies).not.toHaveProperty("@agegr/pi-web");
     expect(JSON.stringify(manifest.overrides ?? {})).not.toContain("372000");

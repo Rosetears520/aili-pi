@@ -13,7 +13,7 @@
       "artifacts": [
         {
           "path": "package-lock.json",
-          "sha256": "fbf865d19020fbd8b16ab2b49506d9721236c2e23c5389077c6e2ef67a983a7c"
+          "sha256": "f009895b183ef5b18594804f435417970c6c420ed40f141161ec043014b3473d"
         },
         {
           "path": "tests/integration/extension-load.test.ts",
@@ -123,7 +123,7 @@
         },
         {
           "path": "package-lock.json",
-          "sha256": "fbf865d19020fbd8b16ab2b49506d9721236c2e23c5389077c6e2ef67a983a7c"
+          "sha256": "f009895b183ef5b18594804f435417970c6c420ed40f141161ec043014b3473d"
         },
         {
           "path": "node_modules/@earendil-works/pi-coding-agent/docs/skills.md",

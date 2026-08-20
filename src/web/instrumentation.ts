@@ -26,6 +26,55 @@ export async function register(): Promise<void> {
   const target = globalThis as unknown as RegisterGlobal;
   target[REGISTER_SYMBOL] ??= installFromInheritedChannels();
   await target[REGISTER_SYMBOL];
+  await installTerminalUpgradeHook();
+}
+
+/**
+ * User terminal transport (webui-user-terminal): the WebSocket rides the
+ * stock Next server's own port — patch http.Server.prototype.listen once and
+ * attach the terminal manager's upgrade handler to every http server that
+ * starts listening after this point. Next awaits register() before the
+ * server listens, so the patch is installed in time; the handler is
+ * path-guarded (/aili-terminal) and token/Origin/cwd fail-closed inside the
+ * terminal manager, and foreign upgrade paths keep Node's default behavior
+ * unless another listener (e.g. dev HMR) claims them.
+ */
+async function installTerminalUpgradeHook(): Promise<void> {
+  const [{ getTerminalManager }, { Server }] = await Promise.all([
+    import("./lib/terminal-manager"),
+    import("node:http"),
+  ]);
+  const manager = getTerminalManager();
+
+  // Next's start-server has ALREADY created and listened its http server by
+  // the time instrumentation register runs, so a listen-patch alone would
+  // never see it. Retro-actively take over every already-listening http
+  // server's upgrade routing...
+  for (const handle of (process as unknown as { _getActiveHandles?: () => unknown[] })._getActiveHandles?.() ?? []) {
+    if (handle instanceof Server && handle.listening) {
+      try {
+        manager.routeUpgrades(handle);
+      } catch {
+        // one unaffected server must not block the others
+      }
+    }
+  }
+
+  // ...and keep the listen patch for any http server created later (dev).
+  type PatchedServer = import("node:http").Server & { __ailiTerminalUpgradePatched?: boolean };
+  const proto = Server.prototype as PatchedServer;
+  if (proto.__ailiTerminalUpgradePatched) return;
+  proto.__ailiTerminalUpgradePatched = true;
+  const originalListen = proto.listen.bind(proto);
+  proto.listen = function patchedListen(this: PatchedServer, ...args: Parameters<import("node:http").Server["listen"]>) {
+    const result = Reflect.apply(originalListen, this, args) as ReturnType<import("node:http").Server["listen"]>;
+    try {
+      getTerminalManager().routeUpgrades(this);
+    } catch {
+      // terminal transport stays unavailable; the app server is unaffected
+    }
+    return result;
+  } as import("node:http").Server["listen"];
 }
 
 async function installFromInheritedChannels(): Promise<InstalledForegroundRuntime> {

@@ -55,16 +55,16 @@
 
 ## 5. Terminal (gated on separate dependency approvals)
 
-- [ ] 5.1 Obtain and record separate exact approvals for the terminal dependency set (`node-pty`, `ws`, `@xterm/xterm` + fit addon, or approved alternatives) bound to this phase's tasks, including a disposable WSL2 installability probe for the PTY package before any lockfile change.
+- [x] 5.1 Obtain and record separate exact approvals for the terminal dependency set (`node-pty`, `ws`, `@xterm/xterm` + fit addon, or approved alternatives) bound to this phase's tasks, including a disposable WSL2 installability probe for the PTY package before any lockfile change.
   - Acceptance: every dependency operation is exactly approved or not executed; the probe result is recorded.
   - Verify: progress ledger records approvals, probe output, and the exact install command when run.
-- [ ] 5.2 Implement the server terminal manager: WebSocket endpoint on the existing web server, PTY spawn of the user's shell with cwd = session cwd (allowed-roots validated), bounded output buffer, PTY kill on disconnect/unload/shutdown, clean reconnect with no stale replay.
+- [x] 5.2 Implement the server terminal manager: WebSocket endpoint on the existing web server, PTY spawn of the user's shell with cwd = session cwd (allowed-roots validated), bounded output buffer, PTY kill on disconnect/unload/shutdown, clean reconnect with no stale replay.
   - Acceptance: no orphaned PTYs after close/drop/shutdown; reconnect starts clean; the upgrade itself is subject to the loopback/fail-closed posture.
   - Verify: integration test under `tests/integration/` spawning a real PTY on a disposable cwd and asserting cleanup; manual WSL2 browser session.
-- [ ] 5.3 Implement the terminal surface: `@xterm/xterm` component labeled "Terminal · User controlled" (en/zh-CN), resize handling, ANSI/Ctrl+C passthrough, single instance, no wiring into agent tool authorization or permission modes.
+- [x] 5.3 Implement the terminal surface: `@xterm/xterm` component labeled "Terminal · User controlled" (en/zh-CN), resize handling, ANSI/Ctrl+C passthrough, single instance, no wiring into agent tool authorization or permission modes.
   - Acceptance: interactive shell works end to end; labeling and separation requirements hold.
   - Verify: colocated component tests for labeling and mount; manual browser verification including Ctrl+C and resize.
-- [ ] 5.4 Confirm the terminal inherits the access-security boundary: non-loopback startup without authentication leaves the terminal transport unavailable, and no path outside allowed roots is reachable.
+- [x] 5.4 Confirm the terminal inherits the access-security boundary: non-loopback startup without authentication leaves the terminal transport unavailable, and no path outside allowed roots is reachable.
   - Acceptance: the terminal is not an auth or path bypass.
   - Verify: security-focused integration test mirroring the existing fail-closed checks.
 
