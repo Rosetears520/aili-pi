@@ -1,30 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAbsolute } from "node:path";
+import { listMcpPanelServers, setMcpPanelServerDisabled } from "@/lib/mcp-panel-access";
 import { getAllowedFileRoots, isExistingFilePathAllowed, isWindowsAbsolutePath } from "@/lib/file-access";
-// Backend pending (drift-log D-2026-08-20-7): the adapter's config functions
-// ship as raw TypeScript behind a restrictive exports map; bundling the deep
-// import into the Next server needs a BFF-side placement (strip-types
-// process) instead of the webpack graph. Until then the panel reports the
-// backend as pending instead of half-working.
-const listMcpPanelServers = undefined as never;
-const setMcpPanelServerDisabled = undefined as never;
-
-// MCP management panel endpoints (webui-mcp-management): config-layer truth
-// only — per-server identity + disabled state, toggles persisted through the
-// adapter's own project-layer writer. No server definitions, commands, args,
-// env, or credentials are ever returned. Config changes apply on session
-// reload (adapter semantics); the panel must not claim live restarts.
-
-export async function GET() {
-  return NextResponse.json(
-    { error: "MCP config backend pending: the adapter config layer is not yet wired into the web server process (see openspec drift-log D-2026-08-20-7)" },
-    { status: 503, headers: { "Cache-Control": "no-store" } },
-  );
+export async function GET(request: NextRequest) {
+  const cwd = request.nextUrl.searchParams.get("cwd")?.trim() ?? "";
+  if (!cwd || (!isAbsolute(cwd) && !isWindowsAbsolutePath(cwd))) {
+    return NextResponse.json({ error: "cwd must be an absolute path" }, { status: 400 });
+  }
+  const allowedRoots = await getAllowedFileRoots();
+  if (!isExistingFilePathAllowed(cwd, allowedRoots)) {
+    return NextResponse.json({ error: "cwd is outside the allowed roots" }, { status: 403 });
+  }
+  try {
+    const list = listMcpPanelServers(undefined, cwd);
+    return NextResponse.json({ ...list, reloadHint: true }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    return NextResponse.json({ error: `mcp config unavailable: ${error instanceof Error ? error.message : String(error)}` }, { status: 500 });
+  }
 }
 
-export async function PATCH() {
-  return NextResponse.json(
-    { error: "MCP config backend pending: the adapter config layer is not yet wired into the web server process (see openspec drift-log D-2026-08-20-7)" },
-    { status: 503, headers: { "Cache-Control": "no-store" } },
-  );
+export async function PATCH(request: NextRequest) {
+  let body: { cwd?: unknown; name?: unknown; disabled?: unknown };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
+  }
+  const cwd = typeof body.cwd === "string" ? body.cwd.trim() : "";
+  const name = typeof body.name === "string" ? body.name : "";
+  if (!cwd || (!isAbsolute(cwd) && !isWindowsAbsolutePath(cwd))) {
+    return NextResponse.json({ error: "cwd must be an absolute path" }, { status: 400 });
+  }
+  if (typeof body.disabled !== "boolean") {
+    return NextResponse.json({ error: "disabled must be a boolean" }, { status: 400 });
+  }
+  const allowedRoots = await getAllowedFileRoots();
+  if (!isExistingFilePathAllowed(cwd, allowedRoots)) {
+    return NextResponse.json({ error: "cwd is outside the allowed roots" }, { status: 403 });
+  }
+  try {
+    const result = setMcpPanelServerDisabled(undefined, cwd, name, body.disabled);
+    const list = listMcpPanelServers(undefined, cwd);
+    return NextResponse.json({ ...result, servers: list.servers, reloadHint: true }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 400 });
+  }
 }

@@ -180,3 +180,11 @@ changed_files=McpConfig.tsx (panel modal: per-server rows, disabled state, toggl
 blocker=pi-mcp-adapter exports map blocks config.ts; deep TS import bundles fine under strip-types but not webpack; transpilePackages inapplicable to deep paths; Next 16 lacks defaultLoaders.swc — resume via BFF-side placement (drift-log D-2026-08-20-7)
 verification=web tsc clean; npm run build:web clean; terminal suspending docs committed earlier (38e3a3a)
 next_action=resume order per user: (1) MCP backend via foreground BFF + ungate routes + service tests + runtime-status projection, or (2) terminal input investigation per terminal-input-status.md
+
+[2026-08-20T04:10:00Z] BUILD add-webui-coding-workspace ROUND-23 EXECUTED (MCP backend live via vendored closure)
+evidence=verification:ROUND23-build
+disposition=accepted
+changed_files=src/vendor/pi-mcp-adapter-config/ (7 byte-exact adapter files + PROVENANCE.md), src/web/lib/mcp-panel-access.ts (restored; imports vendored config), app/api/mcp/route.ts (ungated: GET list + PATCH toggle with allowed-roots admission, redacted name+disabled only); exports-patch experiment removed (script/prebuild/transpilePackages); drift-log D-2026-08-20-8
+reference-check=user-requested survey confirmed the industry pattern (Claude Code /mcp panel toggle, Bifrost catalog toggle) matches our design
+verification=web tsc clean; npm run build:web clean (0 errors)
+next_action=user verifies in browser: MCP button opens panel listing configured servers with 已启用/已停用 + toggles persisting to the project Pi layer (生效于会话重载后 per hint); runtime states + service tests remain the open tail

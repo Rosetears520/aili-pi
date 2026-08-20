@@ -73,11 +73,11 @@
 
 - [ ] 6.1 Add the MCP button to the bottom-left configuration toolbar (right of Skills) and the MCP panel shell in the existing config-panel pattern, fed by a bounded per-server status projection (name, status, tool/resource counts, disabled) derived from the adapter snapshot.
   - Acceptance: the button opens/closes the panel like the other config panels; every configured server is listed with truthful state; no configuration, args, env, or credentials are exposed; listing never connects a lazy/disconnected server.
-  - Status 2026-08-20: UI shell + button + i18n delivered; the status projection is deferred with the gated backend (drift-log D-2026-08-20-7) — routes return 503 pending the BFF-side wiring of the adapter config layer.
+  - Status 2026-08-20: UI + live config-layer backend delivered (vendored adapter closure, drift-log D-2026-08-20-8); still deferred: runtime-status projection.
   - Verify: colocated component tests for button placement, projection rendering, and redaction; manual browser check against a live adapter snapshot.
 - [ ] 6.2 Wire per-server enable/disable through the adapter's configuration-layer persistence (same semantics as `/mcp enable|disable`), surfacing the adapter's honest effect timing (applies on reload/session restart) without auto-reload.
   - Acceptance: toggles persist through the adapter path only (no second config authority); enabling honors precedence (explicit false only when a lower layer is disabled); the UI states the timing honestly.
-  - Status 2026-08-20: blocked on the same BFF-side wiring (drift-log D-2026-08-20-7).
+  - Status 2026-08-20: delivered through the vendored adapter config layer (drift-log D-2026-08-20-8); service tests pending.
   - Verify: unit/integration test of the toggle payload against the adapter persistence path; manual toggle + reload round-trip.
 - [ ] 6.3 Add MCP panel strings to the en/zh-CN i18n catalogs.
   - Acceptance: same as earlier phases.
