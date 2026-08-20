@@ -172,3 +172,11 @@ evidence=user: all three ROUND-20 verification items failed (Chinese IME, direct
 disposition=suspended
 record=new file terminal-input-status.md captures the full investigation state: verified-working (transport/output/PTY/security/CJK server-side, 662-test suite), still-broken (keystrokes never reach onData; no outgoing WS frames), five real root causes fixed along the way, ranked suspected causes (focus-never-lands-on-xterm-textarea first), ruled-out list, and a five-step resume plan (activeElement inspection, .xterm-helpers textarea focus check, xterm css chunk verification, synthetic keystroke, real browser E2E). tasks 5.3 reopened with a pointer; 5.1/5.2/5.4 stay complete
 next_action=MCP management panel (tasks 6.1-6.3) per user direction「做下一阶段吧」
+
+[2026-08-20T03:40:00Z] BUILD add-webui-coding-workspace ROUND-22 (MCP panel v1: UI shell shipped, backend gated; terminal suspended per user)
+scope=tasks 6.1-6.3 partial
+disposition=partial-blocked
+changed_files=McpConfig.tsx (panel modal: per-server rows, disabled state, toggle button, reload hint, errors), AppShell.tsx (MCP button right of Skills per contract + panel mount), app/api/mcp/route.ts (allowed-roots admission; GET/PATCH gated 503 backend-pending), i18n en/zh +13 keys each; next.config.ts experiment reverted to keep the build green
+blocker=pi-mcp-adapter exports map blocks config.ts; deep TS import bundles fine under strip-types but not webpack; transpilePackages inapplicable to deep paths; Next 16 lacks defaultLoaders.swc — resume via BFF-side placement (drift-log D-2026-08-20-7)
+verification=web tsc clean; npm run build:web clean; terminal suspending docs committed earlier (38e3a3a)
+next_action=resume order per user: (1) MCP backend via foreground BFF + ungate routes + service tests + runtime-status projection, or (2) terminal input investigation per terminal-input-status.md

@@ -14,6 +14,7 @@ import { TabBar, type Tab } from "./TabBar";
 import { openFileTab, saveFileViewerState } from "./file-tab-state";
 import { ModelsConfig } from "./ModelsConfig";
 import { SkillsConfig } from "./SkillsConfig";
+import { McpConfig } from "./McpConfig";
 import { TerminalPanel } from "./TerminalPanel";
 import { PluginsConfig } from "./PluginsConfig";
 import { ProjectTrustDialog } from "./ProjectTrustDialog";
@@ -108,6 +109,7 @@ export function AppShell() {
   const [skillsConfigOpen, setSkillsConfigOpen] = useState(false);
   const [pluginsConfigOpen, setPluginsConfigOpen] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(false);
+  const [mcpConfigOpen, setMcpConfigOpen] = useState(false);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
   const [projectTrustDialogOpen, setProjectTrustDialogOpen] = useState(false);
   const [projectTrustBusy, setProjectTrustBusy] = useState(false);
@@ -979,6 +981,20 @@ export function AppShell() {
                 <path d="M12 2L2 7l10 5 10-5-10-5z" />
                 <path d="M2 17l10 5 10-5" />
                 <path d="M2 12l10 5 10-5" />
+              </svg>
+            ),
+          },
+          {
+             label: translate("mcp.open"),
+            onClick: () => setMcpConfigOpen(true),
+            disabled: !activeCwd && !selectedSession?.cwd && !newSessionCwd,
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="9" width="6" height="6" rx="1" />
+                <rect x="16" y="9" width="6" height="6" rx="1" />
+                <path d="M8 12h8" />
+                <path d="M5 9V7a2 2 0 0 1 2-2h2" />
+                <path d="M19 15v2a2 2 0 0 1-2 2h-2" />
               </svg>
             ),
           },
@@ -2367,6 +2383,9 @@ export function AppShell() {
     )}
     {skillsConfigOpen && projectTrustCwd && (
       <SkillsConfig cwd={projectTrustCwd} onClose={() => setSkillsConfigOpen(false)} />
+    )}
+    {mcpConfigOpen && (activeCwd ?? selectedSession?.cwd ?? newSessionCwd) && (
+      <McpConfig cwd={(activeCwd ?? selectedSession?.cwd ?? newSessionCwd)!} onClose={() => setMcpConfigOpen(false)} />
     )}
     {pluginsConfigOpen && projectTrustCwd && (
       <PluginsConfig
