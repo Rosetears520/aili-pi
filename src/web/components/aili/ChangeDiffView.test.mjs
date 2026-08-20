@@ -13,17 +13,21 @@ test("ChangeDiffView owns parsing through the single shared parser", () => {
   assert.ok(!/@@ -\\d/.test(source), "ChangeDiffView must not carry its own hunk regex parser");
 });
 
-test("inline variant is unified-only, tightly capped, with the full-diff handoff", () => {
+test("inline variant is unified-only inside a scroll window (no truncation)", () => {
   assert.match(source, /variant === "inline" \? "unified" : view/);
-  assert.match(source, /INLINE_MAX_ROWS = 50/);
-  assert.match(source, /onShowFull/);
-  assert.match(source, /t\("chat\.changeShowFullDiff"\)/);
+  // User direction 2026-08-20: ~12-row scroll window instead of a 50-row cap;
+  // vertical + horizontal scrolling, no full-diff handoff.
+  assert.ok(!source.includes("INLINE_MAX_ROWS"), "no inline row cap");
+  assert.ok(!source.includes("onShowFull"), "no full-diff handoff prop");
+  assert.match(source, /aili-diff-scroll/);
+  assert.match(source, /variant === "inline"\s*\? <div className="aili-diff-scroll">\{body\}<\/div>\s*: body/);
   // Inline bodies carry no card header: the timeline card owns the header row.
   assert.match(source, /variant === "full" && \(\s*<header className="aili-diff-head">/);
 });
 
 test("full variant keeps unified/split views, per-file counts, and the render cap", () => {
   assert.match(source, /FULL_MAX_ROWS = 3_000/);
+  assert.match(source, /t\("chat\.changeTruncated", \{ rows: FULL_MAX_ROWS \}\)/);
   assert.match(source, /view === "unified"/);
   assert.match(source, /className="aili-diff-body aili-split"/);
   assert.match(source, /countFileChanges/);
@@ -58,4 +62,11 @@ test("duplicate diff renderers are gone from the web tree", () => {
   assert.match(fileViewer, /import \{ parseUnifiedPatch \} from "@\/lib\/patch"/);
   assert.ok(!fileViewer.includes("AiliFileDiff"));
   assert.ok(!changesPage.includes("AiliFileDiff"));
+});
+
+test("changes page offers worktree switching without creation", () => {
+  assert.match(changesPage, /\/api\/worktrees\?cwd=/);
+  assert.match(changesPage, /aria-label="Worktrees"/);
+  assert.match(changesPage, /setCwd\(next\)/);
+  assert.ok(!/createWorktree|new-worktree/i.test(changesPage), "no worktree creation UI");
 });

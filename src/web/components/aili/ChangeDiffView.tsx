@@ -8,7 +8,6 @@ export type DiffView = "unified" | "split";
 export type ChangeDiffVariant = "inline" | "full";
 
 const FULL_MAX_ROWS = 3_000;
-const INLINE_MAX_ROWS = 50;
 
 interface UnifiedLine { old: number | null; cur: number | null; sign: "" | "+" | "-"; text: string }
 interface SplitLine { old: { ln: number; text: string } | null; neu: { ln: number; text: string } | null; kind: "ctx" | "pair" | "del" | "add" }
@@ -20,26 +19,23 @@ interface SplitLine { old: { ln: number; text: string } | null; neu: { ln: numbe
  *                     unified/split views, 3000-row render cap. Used by the
  *                     Changes page and the tool-details disclosure.
  *   variant="inline" — compact unified-only body for the timeline change card:
- *                     no card header (the card owns the header row), 50-row
- *                     cap, and an optional "Show full diff" handoff control.
+ *                     a ~12-row SCROLL window (user direction 2026-08-20 —
+ *                     no truncation, no full-diff handoff): vertical scroll
+ *                     for long diffs, horizontal scroll for long lines.
  *
  * Parsing is owned exclusively by lib/patch.ts `parseUnifiedPatch`; this
  * component never re-parses patch text and never computes change truth.
  */
-export function ChangeDiffView({ file, patch, view = "unified", variant = "full", maxRows, onShowFull }: {
+export function ChangeDiffView({ file, patch, view = "unified", variant = "full" }: {
   file?: string;
   patch: string;
   view?: DiffView;
   variant?: ChangeDiffVariant;
-  maxRows?: number;
-  /** Inline variant only: invoked by the "Show full diff" affordance. */
-  onShowFull?: () => void;
 }) {
   const { t } = useI18n();
   const files = useMemo(() => parseUnifiedPatch(patch) ?? [], [patch]);
   const counts = useMemo(() => countFileChanges(files), [files]);
   const effectiveView: DiffView = variant === "inline" ? "unified" : view;
-  const rowCap = maxRows ?? (variant === "inline" ? INLINE_MAX_ROWS : FULL_MAX_ROWS);
 
   if (files.length === 0) {
     // Unparseable patch text: keep the raw text visible rather than nothing.
@@ -66,35 +62,58 @@ export function ChangeDiffView({ file, patch, view = "unified", variant = "full"
         </header>
       )}
       {files.map((diffFile, index) => (
-        <FileRows key={index} file={diffFile} view={effectiveView} rowCap={rowCap} showLabel={variant === "inline" && files.length > 1} />
+        <FileRows
+          key={index}
+          file={diffFile}
+          view={effectiveView}
+          variant={variant}
+          showLabel={variant === "inline" && files.length > 1}
+        />
       ))}
-      {variant === "inline" && totalsCapped(files, effectiveView, rowCap) && (
-        <div className="aili-diff-truncated" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span>{t("chat.changeTruncated", { rows: rowCap })}</span>
-          {onShowFull && (
-            <button
-              type="button"
-              onClick={onShowFull}
-              style={{ border: "none", background: "none", color: "var(--accent)", cursor: "pointer", padding: 0, font: "inherit", textDecoration: "underline" }}
-            >
-              {t("chat.changeShowFullDiff")}
-            </button>
-          )}
-        </div>
-      )}
-      {variant === "full" && totalsCapped(files, effectiveView, rowCap) && (
+      {variant === "full" && files.some((file) => {
+        const { unified, split } = toRows(file);
+        return (effectiveView === "unified" ? unified.length : split.length) > FULL_MAX_ROWS;
+      }) && (
         <div className="aili-diff-truncated">
-          {t("chat.changeTruncated", { rows: rowCap })}
+          {t("chat.changeTruncated", { rows: FULL_MAX_ROWS })}
         </div>
       )}
     </div>
   );
 }
 
-function FileRows({ file, view, rowCap, showLabel }: { file: SplitDiffFile; view: DiffView; rowCap: number; showLabel: boolean }) {
+function FileRows({ file, view, variant, showLabel }: { file: SplitDiffFile; view: DiffView; variant: ChangeDiffVariant; showLabel: boolean }) {
   const { unified, split } = useMemo(() => toRows(file), [file]);
-  const capped = view === "unified" ? unified.slice(0, rowCap) : null;
-  const cappedSplit = view === "split" ? split.slice(0, rowCap) : null;
+  const capped = view === "unified" ? unified.slice(0, FULL_MAX_ROWS) : null;
+  const cappedSplit = view === "split" ? split.slice(0, FULL_MAX_ROWS) : null;
+
+  const body = view === "unified" ? (
+    <div className="aili-diff-body">
+      {capped?.map((row, index) => (
+        <div key={index} className={`aili-diff-row aili-${row.sign === "+" ? "add" : row.sign === "-" ? "del" : "ctx"}`}>
+          <span className="aili-diff-ln">{row.old ?? ""}</span>
+          <span className="aili-diff-ln">{row.cur ?? ""}</span>
+          <span className="aili-diff-sign">{row.sign || " "}</span>
+          <code>{row.text}</code>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div className="aili-diff-body aili-split">
+      {cappedSplit?.map((row, index) => (
+        <div key={index} className="aili-split-row" data-kind={row.kind}>
+          <div className={`aili-split-cell ${row.old && (row.kind === "pair" || row.kind === "del") ? "aili-split-del" : ""}`}>
+            <span className="aili-diff-ln">{row.old?.ln ?? ""}</span>
+            <code>{row.old?.text ?? ""}</code>
+          </div>
+          <div className={`aili-split-cell ${row.neu && (row.kind === "pair" || row.kind === "add") ? "aili-split-add" : ""}`}>
+            <span className="aili-diff-ln">{row.neu?.ln ?? ""}</span>
+            <code>{row.neu?.text ?? ""}</code>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -103,33 +122,9 @@ function FileRows({ file, view, rowCap, showLabel }: { file: SplitDiffFile; view
           {file.newPath ?? file.oldPath}
         </div>
       )}
-      {view === "unified" ? (
-        <div className="aili-diff-body">
-          {capped?.map((row, index) => (
-            <div key={index} className={`aili-diff-row aili-${row.sign === "+" ? "add" : row.sign === "-" ? "del" : "ctx"}`}>
-              <span className="aili-diff-ln">{row.old ?? ""}</span>
-              <span className="aili-diff-ln">{row.cur ?? ""}</span>
-              <span className="aili-diff-sign">{row.sign || " "}</span>
-              <code>{row.text}</code>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="aili-diff-body aili-split">
-          {cappedSplit?.map((row, index) => (
-            <div key={index} className="aili-split-row" data-kind={row.kind}>
-              <div className={`aili-split-cell ${row.old && (row.kind === "pair" || row.kind === "del") ? "aili-split-del" : ""}`}>
-                <span className="aili-diff-ln">{row.old?.ln ?? ""}</span>
-                <code>{row.old?.text ?? ""}</code>
-              </div>
-              <div className={`aili-split-cell ${row.neu && (row.kind === "pair" || row.kind === "add") ? "aili-split-add" : ""}`}>
-                <span className="aili-diff-ln">{row.neu?.ln ?? ""}</span>
-                <code>{row.neu?.text ?? ""}</code>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {variant === "inline"
+        ? <div className="aili-diff-scroll">{body}</div>
+        : body}
     </>
   );
 }
@@ -174,11 +169,4 @@ function countFileChanges(files: SplitDiffFile[]): { additions: number; deletion
     }
   }
   return { additions, deletions };
-}
-
-function totalsCapped(files: SplitDiffFile[], view: DiffView, rowCap: number): boolean {
-  return files.some((file) => {
-    const { unified, split } = toRows(file);
-    return (view === "unified" ? unified.length : split.length) > rowCap;
-  });
 }

@@ -196,3 +196,10 @@ changed_files=src/web/lib/mcp-panel-access.ts (rewritten: one managed file ~/.co
 rationale=user: project-layer writes feel like litter; per-project external store (OpenCode-style) felt inconsistent — global field flips are one truth, apply everywhere after session restart; TUI wiring unchanged (already reads shared chain)
 verification=web tsc clean; npm run build:web clean; vitest web-mcp-management 4/4
 next_action=user verifies: toggle in panel → cat ~/.config/mcp/mcp.json shows disabled flag; restart TUI/web session → server disabled everywhere; delete any leftover .pi/mcp.json in projects tested earlier (they would still shadow)
+
+[2026-08-20T05:30:00Z] BUILD add-webui-coding-workspace ROUND-25 EXECUTED (timeline diff UX + changes worktree switching)
+evidence=verification:ROUND25-suite
+disposition=accepted (user direction)
+changed_files=aili/ChangeDiffView.tsx (inline variant = scroll window, no cap/handoff; full keeps 3000), globals.css (+.aili-diff-scroll ~12-row window, h/v scroll, pre rows), InlineFileChange.tsx (⋯ row-end details toggle with toolDetailsOpen accent; body button + onShowFull removed), MessageView.tsx (card never replaced — details expand below; raw input shown for edits too when card present; details show raw result not duplicate diff), app/changes/page.tsx (+Worktrees select from /api/worktrees, switch-only), i18n (−chat.changeShowFullDiff), tests updated (ChangeDiffView 7 + file-change-card incl. new permanent-card/⋯ assertions + changes worktree case: 26/26 across the four files)
+verification=node --test 26/26; web tsc clean; root typecheck clean; npm run build:web clean; full npm test green (1 known pi-0821 flake class)
+next_action=user verifies: timeline card expands to a ~12-row scrollable diff (both directions), no truncation text; ⋯ opens raw details below the card and toggles back; changes page shows the Worktrees selector when >1 worktree and switching reloads that worktree's changes

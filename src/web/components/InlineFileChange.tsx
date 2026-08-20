@@ -35,11 +35,12 @@ const OPERATION_LABEL_KEY: Record<FileChangeEvent["operation"], string> = {
   rename: "chat.changeRenamed",
 };
 
-export function InlineFileChange({ event, cwd, onOpenFile, onShowToolDetails }: {
+export function InlineFileChange({ event, cwd, onOpenFile, onShowToolDetails, toolDetailsOpen = false }: {
   event: FileChangeEvent;
   cwd?: string;
   onOpenFile?: (filePath: string) => void;
   onShowToolDetails?: () => void;
+  toolDetailsOpen?: boolean;
 }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
@@ -103,6 +104,21 @@ export function InlineFileChange({ event, cwd, onOpenFile, onShowToolDetails }: 
           {event.additions > 0 && <span style={{ color: "#15a06a" }}>+{event.additions}</span>}
           {event.deletions > 0 && <span style={{ color: "#dc2626" }}>-{event.deletions}</span>}
         </span>
+        {onShowToolDetails && (
+          <button
+            type="button"
+            title={t("chat.changeViewToolDetails")}
+            aria-label={t("chat.changeViewToolDetails")}
+            aria-expanded={toolDetailsOpen}
+            onClick={(clickEvent) => {
+              clickEvent.stopPropagation();
+              onShowToolDetails();
+            }}
+            style={{ flexShrink: 0, width: 18, height: 18, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", border: "none", borderRadius: 4, background: "none", color: toolDetailsOpen ? "var(--accent)" : "var(--text-dim)", cursor: "pointer", fontSize: 13 }}
+          >
+            ⋯
+          </button>
+        )}
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--text-dim)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
           <polyline points="2 3.5 5 6.5 8 3.5" />
         </svg>
@@ -111,22 +127,9 @@ export function InlineFileChange({ event, cwd, onOpenFile, onShowToolDetails }: 
       {expanded && (
         <div style={{ borderTop: "1px solid var(--border)", background: "var(--bg)" }}>
           {patch ? (
-            <ChangeDiffView
-              patch={patch}
-              variant="inline"
-              onShowFull={cwd ? () => window.open(`/changes?cwd=${encodeURIComponent(cwd)}`, "aili-changes") : undefined}
-            />
+            <ChangeDiffView patch={patch} variant="inline" />
           ) : (
             <div style={{ padding: "8px 10px", color: "var(--text-dim)", fontSize: 12 }}>{t("chat.changeDiffUnavailable")}</div>
-          )}
-          {onShowToolDetails && (
-            <button
-              type="button"
-              onClick={onShowToolDetails}
-              style={{ margin: "0 10px 8px", padding: 0, border: "none", background: "none", color: "var(--text-dim)", fontSize: 11, cursor: "pointer", textDecoration: "underline" }}
-            >
-              {t("chat.changeViewToolDetails")}
-            </button>
           )}
         </div>
       )}

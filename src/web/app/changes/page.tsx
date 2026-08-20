@@ -54,9 +54,27 @@ export default function ChangesPage() {
   const [remote, setRemote] = useState<RemoteCompare | null>(null);
   const [diffstat, setDiffstat] = useState<Diffstat | null>(null);
   const [selected, setSelected] = useState<FileRow | null>(null);
+  // Worktree switching (user direction 2026-08-20): pick an EXISTING worktree
+  // of this repository — creation stays out of this page by contract.
+  const [worktrees, setWorktrees] = useState<{ path: string; branch: string | null; isMain: boolean }[]>([]);
+  const [currentWorktree, setCurrentWorktree] = useState<string | null>(null);
   const [patch, setPatch] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!cwd) return;
+    let cancelled = false;
+    fetch(`/api/worktrees?cwd=${encodeURIComponent(cwd)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { worktrees?: { path: string; branch: string | null; isMain: boolean }[]; currentWorktreePath?: string | null } | null) => {
+        if (cancelled || !data?.worktrees) return;
+        setWorktrees(data.worktrees);
+        setCurrentWorktree(data.currentWorktreePath ?? null);
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [cwd]);
 
   // Draggable splitter between the file list and the diff, sharing the
   // sidebar's resizable-panel machinery (pointer drag, arrow keys, persisted
@@ -192,6 +210,27 @@ export default function ChangesPage() {
     <main className="aili-changes-page" aria-label="Changes viewer">
       <header className="aili-changes-head">
         <strong>Changes</strong>
+          {worktrees.length > 1 && (
+            <select
+              aria-label="Worktrees"
+              title="Worktrees"
+              value={currentWorktree ?? ""}
+              onChange={(event) => {
+                const next = event.target.value;
+                if (!next || next === cwd) return;
+                setSelected(null);
+                setPatch(null);
+                setCwd(next);
+              }}
+              style={{ marginLeft: 10, maxWidth: 260, height: 24, padding: "0 6px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--bg-panel)", color: "var(--text)", fontSize: 11, fontFamily: "var(--font-mono)" }}
+            >
+              {worktrees.map((worktree) => (
+                <option key={worktree.path} value={worktree.path}>
+                  {worktree.isMain ? "main" : (worktree.branch ?? worktree.path.split("/").pop() ?? worktree.path)}
+                </option>
+              ))}
+            </select>
+          )}
         <span className="aili-changes-repo">{repositoryRoot ?? cwd}</span>
         {upstreamMeta && <span className="aili-changes-meta">{upstreamMeta}</span>}
         <span style={{ flex: 1 }} />

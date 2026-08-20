@@ -501,7 +501,6 @@ export const zhCNLocale: LocalePlugin = {
     "chat.changeCreated": "已创建",
     "chat.changeDeleted": "已删除",
     "chat.changeRenamed": "已重命名",
-    "chat.changeShowFullDiff": "查看完整 diff",
     "chat.changeDiffUnavailable": "diff 不可用（不在 git 工作树内，或获取失败）。",
     "chat.changeViewToolDetails": "查看工具详情",
     "chat.changeTruncated": "已截断——仅显示前 {rows} 行。",

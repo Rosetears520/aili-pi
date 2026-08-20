@@ -8,22 +8,28 @@ const events = await readFile(new URL("../lib/file-change-events.ts", import.met
 const en = await readFile(new URL("../lib/i18n/messages/en.ts", import.meta.url), "utf8");
 const zh = await readFile(new URL("../lib/i18n/messages/zh-CN.ts", import.meta.url), "utf8");
 
-test("ToolCallBlock derives the event from the real tool result and swaps in the card", () => {
+test("ToolCallBlock derives the event and renders the card permanently", () => {
   assert.match(messageView, /import \{ deriveFileChangeEvent \} from "@\/lib\/file-change-events"/);
   assert.match(messageView, /import \{ InlineFileChange \} from "\.\/InlineFileChange"/);
   // Derivation only runs on arrived, non-error results — same evidence rule as
   // turn-written-files; reasoning prose is never an input.
   assert.match(messageView, /result && !result\.isError \? deriveFileChangeEvent\(block, result, cwd\) : null/);
-  assert.match(messageView, /changeEvent && !expanded \? \(\s*<InlineFileChange/);
-  assert.match(messageView, /onShowToolDetails=\{\(\) => setExpanded\(true\)\}/);
+  // The card is never replaced by raw details (user direction 2026-08-20);
+  // the ⋯ toggle expands details BELOW it.
+  assert.match(messageView, /changeEvent \? \(\s*<InlineFileChange/);
+  assert.ok(!messageView.includes("changeEvent && !expanded"), "card must not be swapped out");
+  assert.match(messageView, /onShowToolDetails=\{\(\) => setExpanded\(\(value\) => !value\)\}/);
 });
 
-test("raw tool JSON stays behind the card's explicit details disclosure", () => {
-  // The default input pre still exists but only renders under `expanded`,
-  // which the card reaches exclusively through "View tool details".
-  const expandedInput = messageView.indexOf("{expanded && !questionnaire && (isStreamingInput || !isEditTool)");
-  assert.ok(expandedInput !== -1, "input args block must remain gated on explicit expansion");
+test("raw tool JSON stays behind the row-end ⋯ disclosure", () => {
   assert.match(card, /chat\.changeViewToolDetails/);
+  assert.match(card, /toolDetailsOpen/);
+  assert.match(card, /clickEvent\.stopPropagation\(\);\s*\n\s*onShowToolDetails\(\)/);
+  // The old underlined body button and the card↔raw swap are gone.
+  assert.ok(!/textDecoration: "underline"[\s\S]*changeViewToolDetails/.test(card));
+  // With a card present, details show RAW input/result — never a second diff.
+  assert.match(messageView, /Boolean\(changeEvent\)/);
+  assert.match(messageView, /changeEvent \? \(\s*\/\/ The card above already renders the diff/);
 });
 
 test("collapsed card row carries the full contract anatomy", () => {
@@ -39,10 +45,9 @@ test("collapsed card row carries the full contract anatomy", () => {
   assert.match(card, /transform: expanded \? "rotate\(180deg\)"/);
 });
 
-test("expanding renders the inline shared renderer with the full-diff handoff", () => {
-  assert.match(card, /<ChangeDiffView/);
-  assert.match(card, /variant="inline"/);
-  assert.match(card, /window\.open\(`\/changes\?cwd=\$\{encodeURIComponent\(cwd\)\}`, "aili-changes"\)/);
+test("expanding renders the inline shared renderer (scroll window, no handoff)", () => {
+  assert.match(card, /<ChangeDiffView patch=\{patch\} variant="inline" \/>/);
+  assert.ok(!card.includes("window.open"), "no full-diff handoff from the card");
 });
 
 test("timeline cards are git-free: tool data only, no git fetches", () => {
@@ -56,7 +61,6 @@ test("timeline cards are git-free: tool data only, no git fetches", () => {
   assert.match(card, /chat\.changeDiffUnavailable/);
   // The full-diff handoff goes to the git-backed Changes page, which is where
   // git relevance begins.
-  assert.match(card, /window\.open\(`\/changes\?cwd=\$\{encodeURIComponent\(cwd\)\}`, "aili-changes"\)/);
 });
 
 test("filename click opens the file without toggling the diff", () => {
@@ -76,7 +80,6 @@ test("change-card strings exist in both i18n catalogs", () => {
     "chat.changeCreated",
     "chat.changeDeleted",
     "chat.changeRenamed",
-    "chat.changeShowFullDiff",
     "chat.changeDiffUnavailable",
     "chat.changeViewToolDetails",
   ]) {

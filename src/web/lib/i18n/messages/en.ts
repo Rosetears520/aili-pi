@@ -501,7 +501,6 @@ export const enLocale: LocalePlugin = {
     "chat.changeCreated": "Created",
     "chat.changeDeleted": "Deleted",
     "chat.changeRenamed": "Renamed",
-    "chat.changeShowFullDiff": "Show full diff",
     "chat.changeDiffUnavailable": "Diff unavailable (not in a git worktree, or the fetch failed).",
     "chat.changeViewToolDetails": "View tool details",
     "chat.changeTruncated": "Truncated — showing first {rows} rows.",

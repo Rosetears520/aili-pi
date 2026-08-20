@@ -1559,6 +1559,16 @@ span.token.table {
    paid-locked; structure and code are AILI-owned): rounded card, dual
    line-number columns with a full-height divider, 3px left accent bar —
    solid green for additions, red hatch for deletions — dim context code. */
+.aili-diff-scroll {
+  /* Inline timeline diff window (user direction 2026-08-20): ~12 rows tall,
+     vertical scroll for long diffs, horizontal scroll for long lines — no
+     truncation, no handoff. */
+  max-height: 232px;
+  overflow: auto;
+}
+.aili-diff-scroll .aili-diff-row { width: max-content; min-width: 100%; }
+.aili-diff-scroll .aili-diff-row code { white-space: pre; }
+
 .aili-diff {
   border-radius: 10px;
   background: #fff;

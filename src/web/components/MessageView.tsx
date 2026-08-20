@@ -1047,14 +1047,16 @@ function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: To
         background: isError ? "rgba(248,113,113,0.05)" : "rgba(34,197,94,0.04)",
       }}
     >
-      {/* ── Tool call header: structured change card for real file mutations,
-             default tool header otherwise (and while details are open) ── */}
-      {changeEvent && !expanded ? (
+      {/* ── Structured change card for real file mutations; the card is NEVER
+             replaced — raw tool details expand BELOW it (user direction
+             2026-08-20: the old card↔raw swap had no discoverable way back). */}
+      {changeEvent ? (
         <InlineFileChange
           event={changeEvent}
           cwd={cwd}
           onOpenFile={onOpenFile}
-          onShowToolDetails={() => setExpanded(true)}
+          onShowToolDetails={() => setExpanded((value) => !value)}
+          toolDetailsOpen={expanded}
         />
       ) : (
       <button
@@ -1120,7 +1122,7 @@ function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: To
       )}
 
       {/* ── Expanded: input args ── */}
-      {expanded && !questionnaire && (isStreamingInput || !isEditTool) && (
+      {expanded && !questionnaire && (isStreamingInput || !isEditTool || Boolean(changeEvent)) && (
         <pre
           style={{
             margin: 0,
@@ -1141,7 +1143,15 @@ function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: To
 
       {/* ── Paired result — only shown when expanded ── */}
       {expanded && result && !questionnaire && (
-        resultDiff ? (
+        changeEvent ? (
+          // The card above already renders the diff; details show the RAW
+          // input/result record instead of a second diff view.
+          <PairedResult
+            text={resultText ?? ""}
+            isEmpty={resultIsEmpty}
+            isError={isError}
+          />
+        ) : resultDiff ? (
           <PairedDiffResult
             diff={resultDiff}
           />
