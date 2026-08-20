@@ -166,3 +166,9 @@ disposition=accepted
 fix=TerminalPanel now listens for compositionend on the xterm helper textarea and sends the committed text through the same JSON channel itself; a 120ms lastComposition guard dedupes the window where xterm's onData may also emit the same payload (no double-send when xterm's own delivery works)
 verification=web tsc clean; node --test TerminalPanel 10/10; vitest terminal suites 11/11; npm run build:web clean
 next_action=user verifies in browser: type Chinese in the terminal with the IME — committed text must appear and the command must run after Enter; also test with the IME switched to direct-English mode (base keystroke path) to confirm both paths
+
+[2026-08-20T03:00:00Z] BUILD add-webui-coding-workspace ROUND-21 (terminal input investigation SUSPENDED by user direction)
+evidence=user: all three ROUND-20 verification items failed (Chinese IME, direct English, both)
+disposition=suspended
+record=new file terminal-input-status.md captures the full investigation state: verified-working (transport/output/PTY/security/CJK server-side, 662-test suite), still-broken (keystrokes never reach onData; no outgoing WS frames), five real root causes fixed along the way, ranked suspected causes (focus-never-lands-on-xterm-textarea first), ruled-out list, and a five-step resume plan (activeElement inspection, .xterm-helpers textarea focus check, xterm css chunk verification, synthetic keystroke, real browser E2E). tasks 5.3 reopened with a pointer; 5.1/5.2/5.4 stay complete
+next_action=MCP management panel (tasks 6.1-6.3) per user direction「做下一阶段吧」

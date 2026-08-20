@@ -61,9 +61,9 @@
 - [x] 5.2 Implement the server terminal manager: WebSocket endpoint on the existing web server, PTY spawn of the user's shell with cwd = session cwd (allowed-roots validated), bounded output buffer, PTY kill on disconnect/unload/shutdown, clean reconnect with no stale replay.
   - Acceptance: no orphaned PTYs after close/drop/shutdown; reconnect starts clean; the upgrade itself is subject to the loopback/fail-closed posture.
   - Verify: integration test under `tests/integration/` spawning a real PTY on a disposable cwd and asserting cleanup; manual WSL2 browser session.
-- [x] 5.3 Implement the terminal surface: `@xterm/xterm` component labeled "Terminal · User controlled" (en/zh-CN), resize handling, ANSI/Ctrl+C passthrough, single instance, no wiring into agent tool authorization or permission modes.
+- [ ] 5.3 Implement the terminal surface: `@xterm/xterm` component labeled "Terminal · User controlled" (en/zh-CN), resize handling, ANSI/Ctrl+C passthrough, single instance, no wiring into agent tool authorization or permission modes.
   - Acceptance: interactive shell works end to end; labeling and separation requirements hold.
-  - Note 2026-08-20: the input-dead browser reports after ROUND-15..18 were NOT terminal defects — the root cause was the AiliKeybindSettings capture-state leak (fixed in ROUND-19); see drift-log D-2026-08-20-6.
+  - Suspended 2026-08-20: prompt/output/security all verified live, but keyboard input still never reaches xterm.onData in the user's browser (IME and direct keys both). Full investigation state, suspected causes, and resume steps: `terminal-input-status.md`. The compositionend fallback (ROUND-20) and keybind-leak fix (ROUND-19) remain in place.
   - Verify: colocated component tests for labeling and mount; manual browser verification including Ctrl+C and resize.
 - [x] 5.4 Confirm the terminal inherits the access-security boundary: non-loopback startup without authentication leaves the terminal transport unavailable, and no path outside allowed roots is reachable.
   - Acceptance: the terminal is not an auth or path bypass.
