@@ -125,10 +125,13 @@ export function createAiliMcpExtension(options: AiliMcpExtensionOptions = {}): E
     approval?.(pi);
     adapter(pi);
     // Feed the process-level runtime snapshot store for the web MCP panel
-    // (latest view wins; the web side validates and redacts on read).
-    const store = subscribeMcpStatus(pi);
-    pi.events.on(MCP_STATUS_EVENT, () => publishMcpRuntimeSnapshot(store.snapshot()));
-    publishMcpRuntimeSnapshot(store.snapshot());
+    // (latest view wins; the web side validates and redacts on read). Guarded:
+    // minimal harnesses (unit tests) may omit the event bus entirely.
+    if (typeof pi.events?.on === "function") {
+      const store = subscribeMcpStatus(pi);
+      pi.events.on(MCP_STATUS_EVENT, () => publishMcpRuntimeSnapshot(store.snapshot()));
+      publishMcpRuntimeSnapshot(store.snapshot());
+    }
   };
 }
 
