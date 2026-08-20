@@ -77,7 +77,7 @@
   - Verify: colocated component tests for button placement, projection rendering, and redaction; manual browser check against a live adapter snapshot.
 - [ ] 6.2 Wire per-server enable/disable through the adapter's configuration-layer persistence (same semantics as `/mcp enable|disable`), surfacing the adapter's honest effect timing (applies on reload/session restart) without auto-reload.
   - Acceptance: toggles persist through the adapter path only (no second config authority); enabling honors precedence (explicit false only when a lower layer is disabled); the UI states the timing honestly.
-  - Status 2026-08-20: delivered through the vendored adapter config layer (drift-log D-2026-08-20-8); service tests pending.
+  - Status 2026-08-20: superseded by D-2026-08-20-9 — toggles write the GLOBAL shared config's disabled field via the vendored adapter writer; service tests delivered (4/4).
   - Verify: unit/integration test of the toggle payload against the adapter persistence path; manual toggle + reload round-trip.
 - [ ] 6.3 Add MCP panel strings to the en/zh-CN i18n catalogs.
   - Acceptance: same as earlier phases.

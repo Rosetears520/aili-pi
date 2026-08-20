@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "cwd is outside the allowed roots" }, { status: 403 });
   }
   try {
-    const list = listMcpPanelServers(undefined, cwd);
+    const list = listMcpPanelServers(cwd);
     return NextResponse.json({ ...list, reloadHint: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json({ error: `mcp config unavailable: ${error instanceof Error ? error.message : String(error)}` }, { status: 500 });
@@ -39,8 +39,8 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "cwd is outside the allowed roots" }, { status: 403 });
   }
   try {
-    const result = setMcpPanelServerDisabled(undefined, cwd, name, body.disabled);
-    const list = listMcpPanelServers(undefined, cwd);
+    const result = setMcpPanelServerDisabled(name, body.disabled, cwd);
+    const list = listMcpPanelServers(cwd);
     return NextResponse.json({ ...result, servers: list.servers, reloadHint: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 400 });

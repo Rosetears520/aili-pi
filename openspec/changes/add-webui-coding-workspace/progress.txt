@@ -188,3 +188,11 @@ changed_files=src/vendor/pi-mcp-adapter-config/ (7 byte-exact adapter files + PR
 reference-check=user-requested survey confirmed the industry pattern (Claude Code /mcp panel toggle, Bifrost catalog toggle) matches our design
 verification=web tsc clean; npm run build:web clean (0 errors)
 next_action=user verifies in browser: MCP button opens panel listing configured servers with 已启用/已停用 + toggles persisting to the project Pi layer (生效于会话重载后 per hint); runtime states + service tests remain the open tail
+
+[2026-08-20T04:45:00Z] BUILD add-webui-coding-workspace ROUND-24 EXECUTED (MCP toggles → global shared-file semantics)
+evidence=verification:ROUND24-suite
+disposition=accepted (user direction)
+changed_files=src/web/lib/mcp-panel-access.ts (rewritten: one managed file ~/.config/mcp/mcp.json; redacted reads; adapter-writer toggles), route signature adjusted; interim per-project state module + extension hook removed (never committed); stray test .pi/mcp.json deleted from this repo; NEW tests/unit/web-mcp-management.test.ts 4/4 (redaction incl. no command/env/TOKEN leak, field-flip preserving other fields, name validation, zero project-dir writes)
+rationale=user: project-layer writes feel like litter; per-project external store (OpenCode-style) felt inconsistent — global field flips are one truth, apply everywhere after session restart; TUI wiring unchanged (already reads shared chain)
+verification=web tsc clean; npm run build:web clean; vitest web-mcp-management 4/4
+next_action=user verifies: toggle in panel → cat ~/.config/mcp/mcp.json shows disabled flag; restart TUI/web session → server disabled everywhere; delete any leftover .pi/mcp.json in projects tested earlier (they would still shadow)
