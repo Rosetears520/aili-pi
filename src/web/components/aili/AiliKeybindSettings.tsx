@@ -11,15 +11,25 @@ export function AiliKeybindSettings({ keybinds, onChange }: {
   const [capturing, setCapturing] = useState<WebKeybindAction | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Every close path MUST clear the capture state: a leaked capture state
+  // keeps a window-level capture-phase keydown listener running invisibly
+  // after the popover is gone, eating every keystroke on the page (the
+  // terminal and composer included) until Esc happens to be pressed.
+  const closeSettings = useCallback(() => {
+    setOpen(false);
+    setCapturing(null);
+    setError(null);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const onDocClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest(".aili-keybind-settings")) setOpen(false);
+      if (!target.closest(".aili-keybind-settings")) closeSettings();
     };
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
-  }, [open]);
+  }, [open, closeSettings]);
 
   const commit = useCallback(async (action: WebKeybindAction, binding: string | undefined) => {
     setCapturing(null);
@@ -35,11 +45,17 @@ export function AiliKeybindSettings({ keybinds, onChange }: {
   }, [keybinds, onChange]);
 
   useEffect(() => {
-    if (!capturing) return;
+    // The capture listener exists ONLY while the popover is open AND an
+    // action is being captured; invalid input (plain letters, bare modifiers)
+    // passes through untouched instead of being swallowed page-wide.
+    if (!open || !capturing) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (event.key === "Escape") { setCapturing(null); return; }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        setCapturing(null);
+        return;
+      }
       const parts: string[] = [];
       if (event.ctrlKey) parts.push("ctrl");
       if (event.altKey) parts.push("alt");
@@ -47,19 +63,21 @@ export function AiliKeybindSettings({ keybinds, onChange }: {
       if (event.metaKey) parts.push("meta");
       const key = event.key.trim().toLowerCase();
       if (!/^[a-z0-9]$/.test(key) || parts.length === 0) return;
+      event.preventDefault();
+      event.stopPropagation();
       const normalized = normalizeKeybinding([...parts, key].join("+"));
       void commit(capturing, normalized);
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [capturing, commit]);
+  }, [open, capturing, commit]);
 
   return (
     <div className="aili-keybind-settings" style={{ position: "relative", flexShrink: 0 }}>
       <button
         type="button"
         className="aili-icon-button"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => { if (open) closeSettings(); else setOpen(true); }}
         title="Keyboard shortcuts"
         aria-label="Keyboard shortcuts"
         aria-expanded={open}

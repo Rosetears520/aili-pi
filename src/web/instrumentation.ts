@@ -65,7 +65,7 @@ async function installTerminalUpgradeHook(): Promise<void> {
   const proto = Server.prototype as PatchedServer;
   if (proto.__ailiTerminalUpgradePatched) return;
   proto.__ailiTerminalUpgradePatched = true;
-  const originalListen = proto.listen.bind(proto);
+  const originalListen = proto.listen;
   proto.listen = function patchedListen(this: PatchedServer, ...args: Parameters<import("node:http").Server["listen"]>) {
     const result = Reflect.apply(originalListen, this, args) as ReturnType<import("node:http").Server["listen"]>;
     try {

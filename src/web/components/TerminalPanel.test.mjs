@@ -95,3 +95,14 @@ test("terminal strings exist in both i18n catalogs", () => {
     assert.ok(zh.includes(`"${key}"`), `zh-CN must define ${key}`);
   }
 });
+
+test("panel sits above every app overlay and never drops input silently", () => {
+  // Extension panels reach 90/95, mobile sidebar/file panels 199-250, top
+  // overlays 500 — the terminal must clear them all.
+  assert.match(panel, /zIndex: 600/);
+  assert.ok(!panel.includes("zIndex: 70"));
+  // A dead websocket surfaces immediately instead of silently discarding
+  // keystrokes (and the input content itself is never logged).
+  assert.match(panel, /terminal input unavailable: websocket state/);
+  assert.match(panel, /setStatus\("error"\)/);
+});

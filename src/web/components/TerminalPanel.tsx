@@ -113,7 +113,15 @@ export function TerminalPanel({ cwd, onClose }: { cwd: string; onClose: () => vo
       };
 
       terminal.onData((data) => {
-        if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ t: "d", data }));
+        const readyState = socket?.readyState;
+        if (readyState !== WebSocket.OPEN) {
+          // Never drop input silently (and never log its content): surface
+          // the transport state so a dead connection is visible immediately.
+          setStatus("error");
+          setErrorDetail(`terminal input unavailable: websocket state ${readyState ?? "none"}`);
+          return;
+        }
+        socket!.send(JSON.stringify({ t: "d", data }));
       });
 
       observer = new ResizeObserver(() => {
@@ -148,7 +156,7 @@ export function TerminalPanel({ cwd, onClose }: { cwd: string; onClose: () => vo
         bottom: 16,
         width: "min(880px, 94vw)",
         height: 340,
-        zIndex: 70,
+        zIndex: 600,
         display: "flex",
         flexDirection: "column",
         border: "1px solid var(--border)",

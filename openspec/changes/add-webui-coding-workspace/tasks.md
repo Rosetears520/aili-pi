@@ -63,6 +63,7 @@
   - Verify: integration test under `tests/integration/` spawning a real PTY on a disposable cwd and asserting cleanup; manual WSL2 browser session.
 - [x] 5.3 Implement the terminal surface: `@xterm/xterm` component labeled "Terminal · User controlled" (en/zh-CN), resize handling, ANSI/Ctrl+C passthrough, single instance, no wiring into agent tool authorization or permission modes.
   - Acceptance: interactive shell works end to end; labeling and separation requirements hold.
+  - Note 2026-08-20: the input-dead browser reports after ROUND-15..18 were NOT terminal defects — the root cause was the AiliKeybindSettings capture-state leak (fixed in ROUND-19); see drift-log D-2026-08-20-6.
   - Verify: colocated component tests for labeling and mount; manual browser verification including Ctrl+C and resize.
 - [x] 5.4 Confirm the terminal inherits the access-security boundary: non-loopback startup without authentication leaves the terminal transport unavailable, and no path outside allowed roots is reachable.
   - Acceptance: the terminal is not an auth or path bypass.
