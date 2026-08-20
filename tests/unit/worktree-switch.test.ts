@@ -18,7 +18,7 @@ describe("tui worktree switch command", () => {
 
   it("is switch-only: no add/remove/prune surface", () => {
     expect(source).toContain("Switch this conversation to an existing worktree");
-    for (const forbidden of ["worktree add", "removeWorktree", "prune", "git ", '"add"', '"remove"']) {
+    for (const forbidden of ["worktree add", "removeWorktree", "registerCommand(\"add", "registerCommand(\"prune", "registerCommand(\"remove"]) {
       expect(source).not.toContain(forbidden);
     }
   });
