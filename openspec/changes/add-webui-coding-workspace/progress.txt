@@ -225,3 +225,7 @@ changed_files=src/runtime/mcp-runtime-store.ts (new: process-level snapshot stor
 semantics=one snapshot per process (config is global; all sessions share the adapter view); no snapshot until a session has run in the process — the panel honestly shows config-only then
 verification=tests/unit/web-mcp-runtime-store.test.ts 2/2 (round-trip redaction incl. command/env/TOKEN/failedAgoSeconds stripping; malformed/garbage rejection) + web-mcp-management 4/4 = 6/6; web tsc clean; root typecheck clean; npm run build:web clean; full suite green apart from the known pi-0821 flake class
 next_action=user verifies in browser: with a session running, the MCP panel rows show colored runtime states + tool counts and the header gains "N 已连接 · N 个工具"; without any session since server start the panel shows config-only (states appear after the first session boots)
+
+[2026-08-20T07:25:00Z] BUILD add-webui-coding-workspace ROUND-29 (regression guard)
+fix=the ROUND-28 snapshot subscription assumed pi.events exists; minimal harnesses (tests/unit/runtime.test.ts) omit it — guarded with typeof pi.events?.on === "function"; runtime.test 9/9 restored
+verification=full npm test: only the known pi-0821 flake + web-projection-channel (passes in isolation — same load-flake class, unrelated scope)
