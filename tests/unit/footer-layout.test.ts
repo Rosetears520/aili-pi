@@ -98,3 +98,20 @@ describe("Pi-native minimal footer layout", () => {
     expect(permissionModeLabel("Build (sandboxed)")).toBe("Build");
   });
 });
+
+describe("secondary line keeps the cwd identity under squeeze", () => {
+  it("truncates the left side instead of dropping it when the right is wide", () => {
+    const line = renderNativeFooter({
+      permissionMode: "Default",
+      mcpConnectedCount: 5,
+      mcpEnabledCount: 5,
+      clock: "20:53",
+      cwd: "aili-pi/implementer-9-1786611318131",
+      gitBranch: "feature/glm-4.7-aliyun",
+    }, 60)[1];
+    expect(line).toContain("Default");
+    expect(line).toContain("MCP 5/5");
+    // The project-prefixed cwd is truncated, not removed.
+    expect(line).toContain("aili-pi");
+  });
+});

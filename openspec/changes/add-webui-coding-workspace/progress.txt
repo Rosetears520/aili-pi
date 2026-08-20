@@ -210,3 +210,10 @@ disposition=accepted (user direction「这个漏了，这个是tui切换worktree
 changed_files=src/runtime/worktree-switch.ts (new: /worktree [branch|path] — porcelain list + select picker + upstream fork/switchSession semantics preserving the conversation; switch-only), extensions/index.ts (registration), tests/unit/worktree-switch.test.ts (4/4)
 verification=root typecheck clean; vitest worktree-switch 4/4
 next_action=user verifies in TUI: /worktree lists worktrees and switches the CURRENT conversation (history preserved, cwd moves to the target worktree); /worktree feature/x matches by branch; unknown name errors without side effects
+
+[2026-08-20T06:30:00Z] BUILD add-webui-coding-workspace ROUND-27 EXECUTED (footer project identity fix)
+evidence=verification:ROUND27-suite
+disposition=accepted (user report: 长名字把项目名挤掉——implementer-9-1786611318131 出现时 aili-pi 消失)
+changed_files=extensions/footer/index.ts (cwd label is worktree-aware: inside a linked worktree it reads git rev-parse --git-common-dir and shows "project/worktree-basename" so the main repo identity — e.g. aili-pi — always stays), extensions/footer/layout.ts (renderSecondary no longer DROPS cwd under squeeze: less-important segments pop first, then the cwd is truncated to the remaining budget with a narrow-width fallback to the old right-only line), tests/unit/footer-layout.test.ts (+1 regression: project-prefixed cwd survives truncation at width 60 with Default/MCP/clock intact)
+verification=footer-layout 13/13; root typecheck clean
+next_action=user verifies in TUI: switch to the implementer-9 worktree — the footer now reads aili-pi/implementer-9-1786611318131 (project visible, truncated not dropped on narrow widths)

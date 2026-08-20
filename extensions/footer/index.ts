@@ -1,4 +1,5 @@
-import { basename } from "node:path";
+import { basename, dirname } from "node:path";
+import { execFileSync } from "node:child_process";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { MCP_STATUS_EVENT } from "pi-mcp-adapter";
 import { subscribeMcpStatus } from "../../src/runtime/mcp.js";
@@ -76,7 +77,11 @@ export default function nativeFooter(pi: ExtensionAPI): void {
             mcpEnabledCount: mcp ? Math.max(0, mcp.servers.length - mcp.disabledCount) : 0,
             clock: timeLabel(),
             gitBranch: footerData.getGitBranch() ?? undefined,
-            cwd: basename(ctx.cwd),
+            // Worktree-aware: inside a linked worktree basename(cwd) is a
+            // machine-ish name — keep the MAIN repository's project identity
+            // visible as "project/worktree" (user report 2026-08-20: aili-pi
+            // vanished under implementer-9-1786611318131).
+            cwd: cwdFooterLabel(ctx.cwd),
           }, width);
           return lines.map((line) => theme.fg("dim", line));
         },
@@ -97,4 +102,20 @@ export default function nativeFooter(pi: ExtensionAPI): void {
   pi.on("thinking_level_select", (_event, ctx) => {
     if (activeContext === ctx) install(ctx);
   });
+}
+
+/** "project" in the main repo, "project/worktree-basename" inside one. */
+function cwdFooterLabel(cwd: string): string {
+  const leaf = basename(cwd);
+  try {
+    const commonDir = execFileSync("git", ["-C", cwd, "rev-parse", "--path-format=absolute", "--git-common-dir"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    if (!commonDir) return leaf;
+    const mainRoot = dirname(commonDir);
+    if (cwd === mainRoot) return leaf;
+    const project = basename(mainRoot);
+    if (!project || project === leaf) return leaf;
+    return `${project}/${leaf}`;
+  } catch {
+    return leaf;
+  }
 }

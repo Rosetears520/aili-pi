@@ -207,15 +207,24 @@ function renderSecondary(snapshot: NativeFooterSnapshot, width: number): string 
 
   // Branch is less important than cwd. Both are dropped before MCP/clock are
   // truncated so the live state remains visible at narrow terminal widths.
-  while (right && leftSegments.length > 0 && !fitsAligned(joinSegments(leftSegments), right, width)) {
-    if (branch) leftSegments.pop();
-    else leftSegments.shift();
+  while (right && leftSegments.length > 1 && !fitsAligned(joinSegments(leftSegments), right, width)) {
+    // Drop less-important segments first; never drop the cwd itself — the
+    // truncate fallback below keeps the project identity visible instead.
+    leftSegments.pop();
   }
 
   const left = joinSegments(leftSegments);
   if (fitsAligned(left, right, width)) return alignSides(left, right, width);
   if (!right) return truncateCell(left, width);
-  return alignSides("", fitSegments(rightSegments, width, true), width);
+  // Never drop the cwd identity entirely (user report 2026-08-20): truncate
+  // it to whatever budget remains so the project stays visible at any width.
+  const fittedRight = fitSegments(rightSegments, width, true);
+  const leftBudget = width - visibleWidth(fittedRight) - 1;
+  if (leftBudget >= 1) {
+    const withLeft = alignSides(truncateCell(left, leftBudget), fittedRight, width);
+    if (visibleWidth(withLeft) <= width) return withLeft;
+  }
+  return alignSides("", fittedRight, width);
 }
 
 export function renderNativeFooter(snapshot: NativeFooterSnapshot, width: number): [string, string] {
