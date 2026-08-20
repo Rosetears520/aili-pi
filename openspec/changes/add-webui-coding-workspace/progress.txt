@@ -203,3 +203,10 @@ disposition=accepted (user direction)
 changed_files=aili/ChangeDiffView.tsx (inline variant = scroll window, no cap/handoff; full keeps 3000), globals.css (+.aili-diff-scroll ~12-row window, h/v scroll, pre rows), InlineFileChange.tsx (⋯ row-end details toggle with toolDetailsOpen accent; body button + onShowFull removed), MessageView.tsx (card never replaced — details expand below; raw input shown for edits too when card present; details show raw result not duplicate diff), app/changes/page.tsx (+Worktrees select from /api/worktrees, switch-only), i18n (−chat.changeShowFullDiff), tests updated (ChangeDiffView 7 + file-change-card incl. new permanent-card/⋯ assertions + changes worktree case: 26/26 across the four files)
 verification=node --test 26/26; web tsc clean; root typecheck clean; npm run build:web clean; full npm test green (1 known pi-0821 flake class)
 next_action=user verifies: timeline card expands to a ~12-row scrollable diff (both directions), no truncation text; ⋯ opens raw details below the card and toggles back; changes page shows the Worktrees selector when >1 worktree and switching reloads that worktree's changes
+
+[2026-08-20T06:00:00Z] BUILD add-webui-coding-workspace ROUND-26 EXECUTED (TUI /worktree switch)
+evidence=verification:ROUND26-suite
+disposition=accepted (user direction「这个漏了，这个是tui切换worktree」)
+changed_files=src/runtime/worktree-switch.ts (new: /worktree [branch|path] — porcelain list + select picker + upstream fork/switchSession semantics preserving the conversation; switch-only), extensions/index.ts (registration), tests/unit/worktree-switch.test.ts (4/4)
+verification=root typecheck clean; vitest worktree-switch 4/4
+next_action=user verifies in TUI: /worktree lists worktrees and switches the CURRENT conversation (history preserved, cwd moves to the target worktree); /worktree feature/x matches by branch; unknown name errors without side effects

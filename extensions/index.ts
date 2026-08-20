@@ -8,6 +8,7 @@ import { registerWebCommand } from "./web/index.js";
 import { registerPiNotify } from "../src/runtime/notify.js";
 import { registerFileContext } from "./file-context/index.js";
 import { registerQuestionnaireTool } from "../src/questionnaire/index.ts";
+import { registerWorktreeSwitch } from "../src/runtime/worktree-switch.js";
 
 export default async function ailiPi(pi: ExtensionAPI): Promise<void> {
   await registerAiliRuntime(pi);
@@ -19,4 +20,5 @@ export default async function ailiPi(pi: ExtensionAPI): Promise<void> {
   registerAnalyticsCommand(pi);
   registerStampCommand(pi);
   registerWebCommand(pi);
+  registerWorktreeSwitch(pi);
 }

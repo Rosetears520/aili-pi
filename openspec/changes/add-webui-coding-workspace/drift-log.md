@@ -62,3 +62,10 @@
 - **Tool details disclosure relocated:** the old underlined body button swapped the whole card into the raw tool block with no discoverable way back (user report: 「点击好像换成左右的了，但是没有切换回来的」). The card is now NEVER replaced: a small ⋯ toggle at the collapsed row's end (stopPropagation, accent-colored when open) expands the RAW input/result BELOW the card; when a card is present the details show raw data only — never a second diff render.
 - **Changes page worktree switching:** a Worktrees `<select>` in the page header lists EXISTING worktrees of the repository (via /api/worktrees) and switching reloads the page state for that worktree's cwd; creation stays out (contract: switch-only).
 - **Discussion-only (not implemented, user note):** web history currently restores the last project instead of the launched one; an OpenCode-style workdir/tab model is the candidate direction.
+
+## D-2026-08-20-11 — TUI /worktree switch command (absorbed upstream semantics, switch-only)
+
+- **Direction:** the user re-flagged the pasted gap — 0.2.9 registers no TUI `/worktree`; only the Web had switching. 「这个漏了，这个是tui切换worktree」.
+- **Implementation:** `src/runtime/worktree-switch.ts` registers `/worktree [branch|path]` on the sole extension entry. Listing is a minimal `git worktree list --porcelain` parse; bare-arg opens a ctx.ui.select picker; switching follows upstream pi-worktree-0.50.0's session semantics (forkFrom into the target worktree, or a header-preserving fresh session when the source lacks a file, then ctx.switchSession) — the CURRENT CONVERSATION is preserved across the switch.
+- **Boundary:** switch-only — no add/remove/prune/configure surface (same boundary as the web Changes-page switcher); no worktree filesystem mutations at all.
+- **Tests:** `tests/unit/web-… tests/unit/worktree-switch.test.ts` (4 cases: registration on the single entry, switch-only negative assertions, upstream fork/switch semantics, porcelain listing + resolution order path→branch→suffix).
