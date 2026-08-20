@@ -15,9 +15,33 @@ interface McpPanelServer {
   disabled: boolean;
 }
 
+interface McpRuntimeServer {
+  name: string;
+  status: "connected" | "cached" | "failed" | "needs-auth" | "not-connected" | "disabled";
+  toolCount: number;
+  resourceCount?: number;
+}
+
+interface McpRuntimeSnapshot {
+  servers: McpRuntimeServer[];
+  totalTools: number;
+  connectedCount: number;
+  disabledCount: number;
+}
+
+const RUNTIME_STATE_KEY: Record<McpRuntimeServer["status"], string> = {
+  connected: "mcp.rt.connected",
+  cached: "mcp.rt.cached",
+  failed: "mcp.rt.failed",
+  "needs-auth": "mcp.rt.needsAuth",
+  "not-connected": "mcp.rt.notConnected",
+  disabled: "mcp.rt.disabled",
+};
+
 export function McpConfig({ cwd, onClose }: { cwd: string; onClose: () => void }) {
   const { t } = useI18n();
   const [servers, setServers] = useState<McpPanelServer[] | null>(null);
+  const [runtime, setRuntime] = useState<McpRuntimeSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyNames, setBusyNames] = useState<Set<string>>(new Set());
 
@@ -25,9 +49,10 @@ export function McpConfig({ cwd, onClose }: { cwd: string; onClose: () => void }
     setError(null);
     fetch(`/api/mcp?cwd=${encodeURIComponent(cwd)}`)
       .then(async (res) => {
-        const data = (await res.json()) as { servers?: McpPanelServer[]; error?: string };
+        const data = (await res.json()) as { servers?: McpPanelServer[]; runtime?: McpRuntimeSnapshot | null; error?: string };
         if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
         setServers(data.servers ?? []);
+        setRuntime(data.runtime ?? null);
       })
       .catch((err) => {
         setServers([]);
@@ -46,9 +71,10 @@ export function McpConfig({ cwd, onClose }: { cwd: string; onClose: () => void }
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cwd, name: server.name, disabled: !server.disabled }),
       });
-      const data = (await res.json()) as { servers?: McpPanelServer[]; error?: string };
+      const data = (await res.json()) as { servers?: McpPanelServer[]; runtime?: McpRuntimeSnapshot | null; error?: string };
       if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
       setServers(data.servers ?? []);
+      setRuntime(data.runtime ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -61,6 +87,7 @@ export function McpConfig({ cwd, onClose }: { cwd: string; onClose: () => void }
   }, [cwd]);
 
   const enabledCount = servers?.filter((server) => !server.disabled).length ?? 0;
+  const runtimeByname = new Map((runtime?.servers ?? []).map((server) => [server.name, server]));
 
   return (
     <div
@@ -81,7 +108,11 @@ export function McpConfig({ cwd, onClose }: { cwd: string; onClose: () => void }
           </button>
         </div>
         <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", color: "var(--text-dim)", fontSize: 11 }}>
-          {servers === null ? t("mcp.loading") : t("mcp.summary", { enabled: enabledCount, total: servers.length })}
+          {servers === null
+            ? t("mcp.loading")
+            : runtime
+              ? `${t("mcp.summary", { enabled: enabledCount, total: servers.length })} · ${t("mcp.rt.summary", { connected: runtime.connectedCount, tools: runtime.totalTools })}`
+              : t("mcp.summary", { enabled: enabledCount, total: servers.length })}
           <span style={{ display: "block", marginTop: 3 }}>{t("mcp.reloadHint")}</span>
         </div>
         <div style={{ maxHeight: 360, overflowY: "auto", padding: "6px 6px 10px" }}>
@@ -89,6 +120,17 @@ export function McpConfig({ cwd, onClose }: { cwd: string; onClose: () => void }
           {servers?.map((server) => (
             <div key={server.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px" }}>
               <span style={{ flex: 1, minWidth: 0, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{server.name}</span>
+              {(() => {
+                const rt = runtimeByname.get(server.name);
+                if (!rt) return null;
+                const color = rt.status === "connected" ? "#15a06a" : rt.status === "failed" || rt.status === "needs-auth" ? "#f59e0b" : "var(--text-dim)";
+                return (
+                  <span title={t("mcp.rt.tools", { count: rt.toolCount })} style={{ fontSize: 11, color, flexShrink: 0, fontFamily: "var(--font-mono)" }}>
+                    {t(RUNTIME_STATE_KEY[rt.status])}
+                    {rt.toolCount > 0 ? ` · ${rt.toolCount}t` : ""}
+                  </span>
+                );
+              })()}
               <span style={{ fontSize: 11, color: server.disabled ? "var(--text-dim)" : "#15a06a", flexShrink: 0 }}>{server.disabled ? t("mcp.stateDisabled") : t("mcp.stateEnabled")}</span>
               <button
                 type="button"

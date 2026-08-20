@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAbsolute } from "node:path";
 import { listMcpPanelServers, setMcpPanelServerDisabled } from "@/lib/mcp-panel-access";
+import { readMcpRuntimeSnapshot } from "../../../../runtime/mcp-runtime-store.ts";
 import { getAllowedFileRoots, isExistingFilePathAllowed, isWindowsAbsolutePath } from "@/lib/file-access";
 export async function GET(request: NextRequest) {
   const cwd = request.nextUrl.searchParams.get("cwd")?.trim() ?? "";
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     const list = listMcpPanelServers(cwd);
-    return NextResponse.json({ ...list, reloadHint: true }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ ...list, runtime: readMcpRuntimeSnapshot(), reloadHint: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json({ error: `mcp config unavailable: ${error instanceof Error ? error.message : String(error)}` }, { status: 500 });
   }

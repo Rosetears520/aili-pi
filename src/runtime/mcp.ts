@@ -13,6 +13,7 @@ import {
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { Action } from "pi-permission-modes/src/schema.ts";
+import { publishMcpRuntimeSnapshot } from "./mcp-runtime-store.js";
 
 export const MCP_ADAPTER_VERSION = "2.23.0";
 export const MCP_TOOL_NAMES = ["mcp", "mcpScript"] as const;
@@ -123,6 +124,11 @@ export function createAiliMcpExtension(options: AiliMcpExtensionOptions = {}): E
   return (pi) => {
     approval?.(pi);
     adapter(pi);
+    // Feed the process-level runtime snapshot store for the web MCP panel
+    // (latest view wins; the web side validates and redacts on read).
+    const store = subscribeMcpStatus(pi);
+    pi.events.on(MCP_STATUS_EVENT, () => publishMcpRuntimeSnapshot(store.snapshot()));
+    publishMcpRuntimeSnapshot(store.snapshot());
   };
 }
 
