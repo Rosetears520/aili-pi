@@ -151,6 +151,17 @@ describe("terminal manager lifecycle (real PTY over the app's own http server)",
 		await waitFor(() => !processAlive(pid));
 	});
 
+	it("echoes CJK input end to end (IME commit payload reaches the shell)", async () => {
+		const client = await openClient();
+		const marker = `你好世界-${Date.now()}`;
+		const outputDone = untilOutput(client, (text) => text.includes(marker));
+		client.send(JSON.stringify({ t: "d", data: `echo ${marker}\n` }));
+		const output = await outputDone;
+		expect(output).toContain(marker);
+		client.close();
+		await waitFor(() => manager.sessionCount === 0);
+	});
+
 	it("reconnect starts a clean session with no stale replay", async () => {
 		const first = await openClient();
 		const staleMarker = `tl-stale-${Date.now()}`;

@@ -106,3 +106,10 @@ test("panel sits above every app overlay and never drops input silently", () => 
   assert.match(panel, /terminal input unavailable: websocket state/);
   assert.match(panel, /setStatus\("error"\)/);
 });
+
+test("IME composition is sent directly and deduped against onData", () => {
+  assert.match(panel, /compositionend/);
+  assert.match(panel, /\.xterm-helpers textarea/);
+  assert.match(panel, /lastComposition/);
+  assert.match(panel, /Date\.now\(\) - lastComposition\.at < 120/);
+});

@@ -112,7 +112,25 @@ export function TerminalPanel({ cwd, onClose }: { cwd: string; onClose: () => vo
         setErrorDetail("websocket error");
       };
 
+      // IME (Chinese/Japanese/Korean) input: xterm's composition delivery to
+      // onData is unreliable (2026-08-20 user report: preedit shows, the
+      // committed text never arrives — server-side CJK echo is proven fine).
+      // Send the committed composition text ourselves and dedupe the brief
+      // window where xterm may also emit the same data.
+      let lastComposition: { text: string; at: number } | null = null;
+      const helpersTextarea = bodyRef.current.querySelector<HTMLTextAreaElement>(".xterm-helpers textarea");
+      helpersTextarea?.addEventListener("compositionend", (event) => {
+        const text = (event as CompositionEvent).data;
+        if (!text) return;
+        lastComposition = { text, at: Date.now() };
+        if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ t: "d", data: text }));
+      });
+
       terminal.onData((data) => {
+        if (lastComposition && data === lastComposition.text && Date.now() - lastComposition.at < 120) {
+          lastComposition = null;
+          return;
+        }
         const readyState = socket?.readyState;
         if (readyState !== WebSocket.OPEN) {
           // Never drop input silently (and never log its content): surface
