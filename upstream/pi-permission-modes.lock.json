@@ -23,7 +23,7 @@
   "adaptedFiles": [
     {
       "path": "src/vendor/pi-permission-modes/index.ts",
-      "sha256": "99a96beb53d0002a7763081bf5d5cb765565bd530cb9a202f6b45a90b5f0ee2c"
+      "sha256": "80f3fe306d2e9ac4ef421fa07af8b5cfea1331a32964649e398d8005c7141398"
     },
     {
       "path": "src/vendor/pi-permission-modes/resolve.ts",
@@ -40,13 +40,15 @@
     "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.84.2 can derive current PI_* session environment values.",
     "The adapted sandbox BashOperations wrapper injects Pi's resolved five-variable session environment as a shell-safe prelude because pi-permission-modes@2.2.0 ignores BashOperations.options.env.",
     "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime.",
-    "Formal persistent children compose their exact two owning-file denyWrite paths into each sandboxed command while preserving the active profile, network rules, and blocked-host diagnostics."
+    "Formal persistent children compose their exact two owning-file denyWrite paths into each sandboxed command while preserving the active profile, network rules, and blocked-host diagnostics.",
+    "On Linux, runtime-facing denyRead entries resolve existing symbolic links to their real targets while logical policy/display paths and missing entries remain unchanged across controller and persistent custom configs."
   ],
   "generatedBy": "scripts/sync-permission-modes.ts",
   "verification": [
     "npm run verify:permission-modes",
     "tests/unit/permission-patterns.test.ts",
     "tests/integration/permission-modes.test.ts",
-    "tests/unit/persistent-agent-child-sandbox.test.ts"
+    "tests/unit/persistent-agent-child-sandbox.test.ts",
+    "tests/integration/permission-sandbox.test.ts"
   ]
 }

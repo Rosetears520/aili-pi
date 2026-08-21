@@ -50,7 +50,8 @@
 import { Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { createBashToolDefinition, getAgentDir } from "@earendil-works/pi-coding-agent";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import path from "node:path";
 import { askWithSession, SessionApprovals } from "pi-permission-modes/src/approvals.ts";
 import { sandboxAwarenessPrompt } from "pi-permission-modes/src/awareness.ts";
@@ -64,12 +65,16 @@ import {
   persistModeRule,
   profileToConfig,
   stockDefaultsFile,
+  type SandboxConfig,
 } from "pi-permission-modes/src/config-load.ts";
 import type { PermState } from "pi-permission-modes/src/modes.ts";
 import { type NetAskResult, NetworkSession, isHostAllowed, normalizeDomain } from "pi-permission-modes/src/network.ts";
 import { isOutside, isProtectedWrite } from "pi-permission-modes/src/paths.ts";
 import { decide, decideBashCommand, mostRestrictive } from "./resolve.ts";
-import { createSandboxedBashOps, SandboxController } from "pi-permission-modes/src/sandbox.ts";
+import {
+  createSandboxedBashOps as vendorCreateSandboxedBashOps,
+  SandboxController as VendorSandboxController,
+} from "pi-permission-modes/src/sandbox.ts";
 import { composePersistentAgentSandboxConfig, installPersistentAgentSandboxProvider } from "../../runtime/persistent-agents/child-sandbox.js";
 import {
   type Action,
@@ -77,10 +82,52 @@ import {
   PLAN_PROMPT_SENTINEL,
   type PermissionModeConfig,
   planModeSystemPrompt,
+  type SandboxProfile,
   type Surface,
 } from "pi-permission-modes/src/schema.ts";
 import { createShowPlanTool } from "pi-permission-modes/src/show-plan.ts";
 import { updateStatus } from "pi-permission-modes/src/status.ts";
+
+function runtimeDenyReadPath(logicalPath: string): string {
+  if (process.platform !== "linux") return logicalPath;
+  const expandedPath = logicalPath === "~"
+    ? homedir()
+    : logicalPath.startsWith("~/")
+      ? path.join(homedir(), logicalPath.slice(2))
+      : logicalPath;
+  try {
+    return realpathSync(expandedPath);
+  } catch {
+    return logicalPath;
+  }
+}
+
+function runtimeSandboxProfile(profile: SandboxProfile): SandboxProfile {
+  return { ...profile, denyRead: profile.denyRead?.map(runtimeDenyReadPath) };
+}
+
+function runtimeSandboxConfig(config: Partial<SandboxConfig> | undefined): Partial<SandboxConfig> | undefined {
+  const denyRead = config?.filesystem?.denyRead;
+  if (!denyRead) return config;
+  return {
+    ...config,
+    filesystem: { ...config.filesystem, denyRead: denyRead.map(runtimeDenyReadPath) },
+  };
+}
+
+export class SandboxController extends VendorSandboxController {
+  override applyProfile(profile: SandboxProfile): Promise<void> {
+    return super.applyProfile(runtimeSandboxProfile(profile));
+  }
+}
+
+export function createSandboxedBashOps(
+  manager: Parameters<typeof vendorCreateSandboxedBashOps>[0],
+  customConfig?: Partial<SandboxConfig>,
+  drainBlockedHosts?: () => string[],
+): ReturnType<typeof vendorCreateSandboxedBashOps> {
+  return vendorCreateSandboxedBashOps(manager, runtimeSandboxConfig(customConfig), drainBlockedHosts);
+}
 
 /** Built-in file tools whose `input.path` is gated against the matching surface. */
 const FILE_TOOL_SURFACE: Record<string, Surface> = {

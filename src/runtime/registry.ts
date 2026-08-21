@@ -410,12 +410,14 @@ export async function validatePermissionModeAdaptation(): Promise<string[]> {
       "The adapted sandbox BashOperations wrapper injects Pi's resolved five-variable session environment as a shell-safe prelude because pi-permission-modes@2.2.0 ignores BashOperations.options.env.",
       "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime.",
       "Formal persistent children compose their exact two owning-file denyWrite paths into each sandboxed command while preserving the active profile, network rules, and blocked-host diagnostics.",
+      "On Linux, runtime-facing denyRead entries resolve existing symbolic links to their real targets while logical policy/display paths and missing entries remain unchanged across controller and persistent custom configs.",
     ];
     const expectedVerification = [
       "npm run verify:permission-modes",
       "tests/unit/permission-patterns.test.ts",
       "tests/integration/permission-modes.test.ts",
       "tests/unit/persistent-agent-child-sandbox.test.ts",
+      "tests/integration/permission-sandbox.test.ts",
     ];
     if (
       lock.schemaVersion !== 1 ||
@@ -442,7 +444,7 @@ export async function validatePermissionModeAdaptation(): Promise<string[]> {
       errors.push("permission adaptation: upstream baseline hashes do not match the accepted 2.2.0 revision");
     }
     const expectedAdapted = {
-      "src/vendor/pi-permission-modes/index.ts": "99a96beb53d0002a7763081bf5d5cb765565bd530cb9a202f6b45a90b5f0ee2c",
+      "src/vendor/pi-permission-modes/index.ts": "80f3fe306d2e9ac4ef421fa07af8b5cfea1331a32964649e398d8005c7141398",
       "src/vendor/pi-permission-modes/resolve.ts": "f71688f847495da5122724f75c5ebe3b41066b3d3cac74cbe99f66b9906404f6",
       "licenses/pi-permission-modes-MIT.txt": "d87cb99b43f6bf8771e57be83485db11b977b9dfa21b6bd201b8d3d370bdce43",
     };

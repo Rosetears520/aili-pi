@@ -57,8 +57,20 @@ function adaptIndex(source: string): string {
     'import { createBashToolDefinition, getAgentDir } from "@earendil-works/pi-coding-agent";',
     "context-aware bash tool definition import",
   );
-  const withBashConstructor = withBashDefinition.replace(/\bcreateBashTool\(/g, "createBashToolDefinition(");
-  if ((withBashDefinition.match(/\bcreateBashTool\(/g) ?? []).length !== 2) {
+  const withDenyReadFs = replaceExactlyOnce(
+    withBashDefinition,
+    'import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";',
+    'import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";',
+    "denyRead realpath import",
+  );
+  const withDenyReadOs = replaceExactlyOnce(
+    withDenyReadFs,
+    'import path from "node:path";',
+    'import { homedir } from "node:os";\nimport path from "node:path";',
+    "denyRead home expansion import",
+  );
+  const withBashConstructor = withDenyReadOs.replace(/\bcreateBashTool\(/g, "createBashToolDefinition(");
+  if ((withDenyReadOs.match(/\bcreateBashTool\(/g) ?? []).length !== 2) {
     throw new Error(`expected 2 createBashTool calls in pi-permission-modes@${VERSION}`);
   }
   const withBashContext = replaceExactlyOnce(
@@ -115,12 +127,78 @@ function piSessionEnvironmentPrelude(env: NodeJS.ProcessEnv): string {
   const withChildSandboxImport = replaceExactlyOnce(
     withEnvironmentPrelude,
     'import { SandboxController } from "pi-permission-modes/src/sandbox.ts";',
-    `import { createSandboxedBashOps, SandboxController } from "pi-permission-modes/src/sandbox.ts";
+    `import {
+  createSandboxedBashOps as vendorCreateSandboxedBashOps,
+  SandboxController as VendorSandboxController,
+} from "pi-permission-modes/src/sandbox.ts";
 import { composePersistentAgentSandboxConfig, installPersistentAgentSandboxProvider } from "../../runtime/persistent-agents/child-sandbox.js";`,
     "persistent Agent child sandbox bridge import",
   );
-  const withChildSandboxProvider = replaceExactlyOnce(
+  const withSandboxConfigType = replaceExactlyOnce(
     withChildSandboxImport,
+    "  stockDefaultsFile,\n} from \"pi-permission-modes/src/config-load.ts\";",
+    "  stockDefaultsFile,\n  type SandboxConfig,\n} from \"pi-permission-modes/src/config-load.ts\";",
+    "sandbox config type import",
+  );
+  const withSandboxProfileType = replaceExactlyOnce(
+    withSandboxConfigType,
+    "  planModeSystemPrompt,\n  type Surface,",
+    "  planModeSystemPrompt,\n  type SandboxProfile,\n  type Surface,",
+    "sandbox profile type import",
+  );
+  const withDenyReadCompatibility = replaceExactlyOnce(
+    withSandboxProfileType,
+    `import { updateStatus } from "pi-permission-modes/src/status.ts";
+
+/** Built-in file tools whose \`input.path\` is gated against the matching surface. */`,
+    `import { updateStatus } from "pi-permission-modes/src/status.ts";
+
+function runtimeDenyReadPath(logicalPath: string): string {
+  if (process.platform !== "linux") return logicalPath;
+  const expandedPath = logicalPath === "~"
+    ? homedir()
+    : logicalPath.startsWith("~/")
+      ? path.join(homedir(), logicalPath.slice(2))
+      : logicalPath;
+  try {
+    return realpathSync(expandedPath);
+  } catch {
+    return logicalPath;
+  }
+}
+
+function runtimeSandboxProfile(profile: SandboxProfile): SandboxProfile {
+  return { ...profile, denyRead: profile.denyRead?.map(runtimeDenyReadPath) };
+}
+
+function runtimeSandboxConfig(config: Partial<SandboxConfig> | undefined): Partial<SandboxConfig> | undefined {
+  const denyRead = config?.filesystem?.denyRead;
+  if (!denyRead) return config;
+  return {
+    ...config,
+    filesystem: { ...config.filesystem, denyRead: denyRead.map(runtimeDenyReadPath) },
+  };
+}
+
+export class SandboxController extends VendorSandboxController {
+  override applyProfile(profile: SandboxProfile): Promise<void> {
+    return super.applyProfile(runtimeSandboxProfile(profile));
+  }
+}
+
+export function createSandboxedBashOps(
+  manager: Parameters<typeof vendorCreateSandboxedBashOps>[0],
+  customConfig?: Partial<SandboxConfig>,
+  drainBlockedHosts?: () => string[],
+): ReturnType<typeof vendorCreateSandboxedBashOps> {
+  return vendorCreateSandboxedBashOps(manager, runtimeSandboxConfig(customConfig), drainBlockedHosts);
+}
+
+/** Built-in file tools whose \`input.path\` is gated against the matching surface. */`,
+    "Linux denyRead symlink compatibility wrappers",
+  );
+  const withChildSandboxProvider = replaceExactlyOnce(
+    withDenyReadCompatibility,
     "  const sandbox = new SandboxController();",
     `  const sandbox = new SandboxController();
   installPersistentAgentSandboxProvider({
@@ -195,9 +273,10 @@ async function expectedOutputs(): Promise<Record<string, string>> {
       "The adapted sandbox BashOperations wrapper injects Pi's resolved five-variable session environment as a shell-safe prelude because pi-permission-modes@2.2.0 ignores BashOperations.options.env.",
       "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime.",
       "Formal persistent children compose their exact two owning-file denyWrite paths into each sandboxed command while preserving the active profile, network rules, and blocked-host diagnostics.",
+      "On Linux, runtime-facing denyRead entries resolve existing symbolic links to their real targets while logical policy/display paths and missing entries remain unchanged across controller and persistent custom configs.",
     ],
     generatedBy: "scripts/sync-permission-modes.ts",
-    verification: ["npm run verify:permission-modes", "tests/unit/permission-patterns.test.ts", "tests/integration/permission-modes.test.ts", "tests/unit/persistent-agent-child-sandbox.test.ts"],
+    verification: ["npm run verify:permission-modes", "tests/unit/permission-patterns.test.ts", "tests/integration/permission-modes.test.ts", "tests/unit/persistent-agent-child-sandbox.test.ts", "tests/integration/permission-sandbox.test.ts"],
   };
 
   return {
