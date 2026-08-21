@@ -40,7 +40,7 @@
       "artifacts": [
         {
           "path": "src/runtime/persistent-agents/production.ts",
-          "sha256": "16f1faf12a7875d8f45c46d9d61620fa2772f7bc14c6de3498461ae6fcc558bb"
+          "sha256": "be258a005020976ee423b3e206b46e8594e6f219e3c2147b76c45676726b4c40"
         },
         {
           "path": "src/runtime/persistent-agents/runtime.ts",

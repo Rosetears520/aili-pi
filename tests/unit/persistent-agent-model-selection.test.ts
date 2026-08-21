@@ -85,13 +85,35 @@ describe("direct-parent model resolution", () => {
   };
 
   it("keeps user-owned precedence above a confirmed one-shot and records source-aware inheritance", async () => {
-    expect(await resolveModelChoice(base, catalog())).toMatchObject({ canonical: "provider/instance", layer: "instance", source: "instance-override", modelSource: "instance-override", oneShot: false, thinking: "medium" });
+    // Per-field resolution: the instance layer provides the model while the
+    // confirmed one-shot still provides its thinking.
+    expect(await resolveModelChoice(base, catalog())).toMatchObject({ canonical: "provider/instance", layer: "instance", source: "instance-override", modelSource: "instance-override", oneShot: false, thinking: "high", thinkingSource: "user-one-shot" });
     expect(await resolveModelChoice({ ...base, instance: undefined }, catalog())).toMatchObject({ canonical: "provider/project", layer: "project-role", source: "project-role-override", modelSource: "project-role-override" });
     expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined }, catalog())).toMatchObject({ canonical: "provider/user", layer: "user-role", source: "user-role-override", modelSource: "user-role-override" });
     expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined }, catalog())).toMatchObject({ canonical: "provider/one", layer: "one-shot", source: "confirmed-one-shot", modelSource: "user-one-shot", oneShot: true, thinking: "high", thinkingSource: "user-one-shot" });
     expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "high", speedTier: "priority" } }, catalog())).toMatchObject({ canonical: "provider/parent", source: "inherited-parent", modelSource: "inherited-parent", thinking: "high", thinkingSource: "inherited-parent", speedTier: "priority" });
     expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, parent: undefined }, catalog())).toMatchObject({ canonical: "provider/profile", layer: "profile", source: "profile-fallback", modelSource: "profile-fallback" });
     expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, profile: undefined }, catalog())).toMatchObject({ canonical: "provider/parent", layer: "runtime-fallback", source: "runtime-fallback", modelSource: "runtime-fallback" });
+  });
+
+  it("applies a direct user-turn instruction above every persistent layer", async () => {
+    expect(await resolveModelChoice({ ...base, directUserTurn: { model: "provider/one" } }, catalog())).toMatchObject({
+      canonical: "provider/one",
+      layer: "direct-user-turn",
+      source: "direct-user-turn",
+      modelSource: "direct-user-turn",
+      oneShot: false,
+      persistent: false,
+    });
+    // A thinking-only current-turn instruction outranks persistent thinking
+    // while the persistent layer keeps providing the model.
+    expect(await resolveModelChoice({ ...base, instance: { model: "provider/instance", thinking: "low" }, directUserTurn: { thinking: "high" } }, catalog())).toMatchObject({
+      canonical: "provider/instance",
+      layer: "instance",
+      modelSource: "instance-override",
+      thinking: "high",
+      thinkingSource: "direct-user-turn",
+    });
   });
 
   it("resolves an explicit bare model through Parent provider first and otherwise requires one candidate", async () => {
@@ -192,7 +214,7 @@ describe("current-turn model authority", () => {
 
 describe("model-facing task confirmation", () => {
   it("requires fresh UI confirmation and never turns a denied or headless request into an override", async () => {
-    const parent = { canonical: "provider/parent" };
+    const parent = { canonical: "provider/parent", thinking: "medium" as const };
     await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: false, confirm: async () => "confirm" })).resolves.toBeUndefined();
     await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "deny" })).resolves.toBeUndefined();
     await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "dismiss" })).resolves.toBeUndefined();
@@ -201,6 +223,20 @@ describe("model-facing task confirmation", () => {
     await expect(confirmTaskModelRequest({ model: "provider/parent" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
     await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: false, confirm: async () => "confirm" })).resolves.toBeUndefined();
     await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toEqual({ model: "provider/one" });
+  });
+
+  it("confirms thinking-only requests with a first-class path", async () => {
+    const parent = { canonical: "provider/parent", thinking: "medium" as const };
+    const seen: string[] = [];
+    await expect(confirmTaskModelRequest({ thinking: "high" }, parent, {
+      hasUI: true,
+      confirm: async ({ requested }) => { seen.push(requested); return "confirm"; },
+    })).resolves.toEqual({ thinking: "high" });
+    expect(seen).toEqual(["provider/parent thinking=high"]);
+    // Same-level thinking as the parent needs no confirmation.
+    await expect(confirmTaskModelRequest({ thinking: "medium" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
+    // Denied thinking-only stays rejected.
+    await expect(confirmTaskModelRequest({ thinking: "high" }, parent, { hasUI: true, confirm: async () => "deny" })).resolves.toBeUndefined();
   });
 });
 

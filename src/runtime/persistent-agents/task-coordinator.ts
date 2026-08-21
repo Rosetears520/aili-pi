@@ -22,7 +22,7 @@ import {
   type FormalContinuationAudit,
   type NormalizedTaskItem,
 } from "./task-schema.js";
-import type { CurrentTurnModelAuthority, ModelChoiceSource, ResolvedModelChoice, ThinkingSource } from "./model-selection.js";
+import type { CurrentTurnModelAuthority, ModelChoiceSource, ResolvedModelChoice, SubagentModelDecision, ThinkingSource } from "./model-selection.js";
 import { boundedDisplayText } from "./task-hub-renderer.js";
 
 export interface TaskExecutionOutput {
@@ -160,6 +160,8 @@ export interface TaskExecutorInput {
   parentResolution?: ResolvedModelChoice;
   /** Frozen current-turn authority captured before this task was allocated. */
   currentTurnModelAuthority?: CurrentTurnModelAuthority;
+  /** Structured model/thinking request decision recorded at dispatch. */
+  modelDecision?: SubagentModelDecision;
 }
 
 export interface OutputTruncation {
@@ -226,6 +228,8 @@ export interface TaskAcceptedResult {
   parentSpeedTier?: string | null;
   parentSource?: string | null;
   model: { requested?: string; requestedThinking?: string; provider?: string; model?: string; thinking?: string; speedTier?: string; layer?: string; modelSource?: string; thinkingSource?: string };
+  /** Structured model/thinking request decision recorded at dispatch. */
+  modelDecision?: SubagentModelDecision;
   outputRef: string;
   historyRef: string;
   deliveryRequired: true;
@@ -304,6 +308,8 @@ export interface TaskPreflightResult {
   choice?: ResolvedModelChoice;
   parentResolution?: ResolvedModelChoice;
   currentTurnModelAuthority?: CurrentTurnModelAuthority;
+  /** Structured model/thinking request decision recorded at dispatch. */
+  modelDecision?: SubagentModelDecision;
 }
 
 export interface TaskCoordinatorOptions {
@@ -329,6 +335,7 @@ interface CreatedTask {
   modelChoice?: ResolvedModelChoice;
   parentResolution?: ResolvedModelChoice;
   currentTurnModelAuthority?: CurrentTurnModelAuthority;
+  modelDecision?: SubagentModelDecision;
   effectiveAsync: boolean;
   reason: TaskAcceptedResult["effectiveModeReason"] | "requested-sync" | "role-blocking" | "nested-sync";
   formalProtection?: FormalTaskProtection;
@@ -571,6 +578,7 @@ export class TaskCoordinator {
             turn: state.turns[task.turnId]?.state ?? "queued",
           },
           model: { requested: task.item.model, requestedThinking: task.item.thinking, ...(task.modelChoice ?? {}) },
+          ...(task.modelDecision ? { modelDecision: task.modelDecision } : {}),
           outputRef: `agent://${task.agentId}`,
           historyRef: `history://${task.agentId}`,
           deliveryRequired: true,
@@ -704,6 +712,11 @@ export class TaskCoordinator {
       ?? ancestry?.currentTurnModelAuthority
       ?? ancestry?.currentTurnAuthority
       ?? ancestry?.authority;
+    const modelDecision = preflightResult.modelDecision;
+    const modelDecisionMetadata = modelDecision ? {
+      overrideDecision: modelDecision.overrideDecision,
+      ...(modelDecision.reason === undefined ? {} : { modelRequestReason: modelDecision.reason }),
+    } : {};
     const before = this.options.journal.getState();
     const agentId = allocateAgentId(item.name ?? role.name, [...Object.keys(before.agents), ...Object.keys(before.releasedAgents)], ancestry?.parentAgentId);
     const jobId = nextNumericId("job", Object.keys(before.jobs));
@@ -789,6 +802,7 @@ export class TaskCoordinator {
         effectiveModeReason: reason,
         workspace: item.workspace,
         writeScope: item.writeScope,
+        ...modelDecisionMetadata,
         ...formalMetadata,
       },
     };
@@ -824,6 +838,7 @@ export class TaskCoordinator {
         effectiveModeReason: reason,
         outputRef: `agent://${agentId}`,
         historyRef: `history://${agentId}`,
+        ...modelDecisionMetadata,
         ...formalMetadata,
       },
     };
@@ -831,7 +846,7 @@ export class TaskCoordinator {
     await this.options.journal.append({ kind: "job.created", agentId, jobId, payload: { record: job } });
     await this.options.journal.append({ kind: "turn.created", agentId, jobId, turnId, payload: { record: turn } });
 
-    const run = (context: ScheduledExecutionContext) => this.runLifecycle({ item, role, agentId, jobId, turnId, depth, modelChoice, parentResolution, currentTurnModelAuthority, effectiveAsync, reason, formalProtection, context });
+    const run = (context: ScheduledExecutionContext) => this.runLifecycle({ item, role, agentId, jobId, turnId, depth, modelChoice, parentResolution, currentTurnModelAuthority, modelDecision, effectiveAsync, reason, formalProtection, context });
     const onCancelBeforeStart = () => this.cancelBeforeStart(agentId, jobId, turnId, role, item, effectiveAsync, reason);
     const handle = ancestry
       ? this.scheduler.runNested(jobId, ancestry.inheritedPermit, run)
@@ -852,7 +867,7 @@ export class TaskCoordinator {
     void settlement.catch(() => undefined);
     const normalizedHandle: ScheduledHandle<NormalizedTaskSettlement> = { ...handle, result: settlement };
     this.handles.set(jobId, normalizedHandle);
-    return { item, role, agentId, jobId, turnId, depth, modelChoice, parentResolution, currentTurnModelAuthority, effectiveAsync, reason, formalProtection, handle: normalizedHandle };
+    return { item, role, agentId, jobId, turnId, depth, modelChoice, parentResolution, currentTurnModelAuthority, modelDecision, effectiveAsync, reason, formalProtection, handle: normalizedHandle };
   }
 
   private async begin(agentId: string, jobId: string, turnId: string): Promise<void> {
@@ -863,7 +878,7 @@ export class TaskCoordinator {
   }
 
   private async runLifecycle(args: Omit<CreatedTask, "handle"> & { context: ScheduledExecutionContext }): Promise<NormalizedTaskSettlement> {
-    const { agentId, jobId, turnId, role, item, modelChoice, parentResolution, currentTurnModelAuthority, effectiveAsync, reason, formalProtection, context, depth } = args;
+    const { agentId, jobId, turnId, role, item, modelChoice, parentResolution, currentTurnModelAuthority, modelDecision, effectiveAsync, reason, formalProtection, context, depth } = args;
     await this.begin(agentId, jobId, turnId);
     let status: NormalizedTaskSettlement["status"] = "completed";
     let output: TaskExecutionOutput;
@@ -872,7 +887,7 @@ export class TaskCoordinator {
       // before awaiting the turn so interval evidence never reports completion
       // itself as the first activity.
       await this.options.journal.append({ kind: "turn.audit", agentId, jobId, turnId, payload: { firstActivityAt: this.clock().toISOString() } });
-      output = await this.options.execute({ agentId, jobId, turnId, item, role, modelChoice, depth, context, formalProtection, parentResolution, currentTurnModelAuthority });
+      output = await this.options.execute({ agentId, jobId, turnId, item, role, modelChoice, depth, context, formalProtection, parentResolution, currentTurnModelAuthority, modelDecision });
       if (context.signal.aborted) throw context.signal.reason ?? new ScheduledTaskCancelledError(jobId, false);
       if (output.status === "failed") status = "failed";
     } catch (error) {

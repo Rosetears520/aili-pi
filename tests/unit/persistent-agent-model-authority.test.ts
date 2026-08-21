@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCurrentTurnModelAuthority, type CurrentTurnModelCatalogEntry } from "../../src/runtime/persistent-agents/production.js";
+import { captureTaskModelRequest, parseCurrentTurnModelAuthority, type CurrentTurnModelCatalog, type CurrentTurnModelCatalogEntry } from "../../src/runtime/persistent-agents/production.js";
 
 const catalog: CurrentTurnModelCatalogEntry[] = [
   {
@@ -52,5 +52,52 @@ describe("current-turn model authority capture", () => {
     expect(parseCurrentTurnModelAuthority("Use Unknown medium for the worker.", catalog)).toEqual({ mode: "inherit-only" });
     expect(parseCurrentTurnModelAuthority("Use Terra or Sol for the worker.", catalog)).toEqual({ mode: "inherit-only" });
     expect(parseCurrentTurnModelAuthority("Do not use Terra for the worker.", catalog)).toEqual({ mode: "inherit-only" });
+  });
+});
+
+describe("structured task model request capture", () => {
+  const fakeCatalog: CurrentTurnModelCatalog = { enumerate: () => catalog };
+  const item = (extra: Record<string, unknown> = {}) => ({
+    task: "work",
+    agent: "general",
+    workspace: "auto",
+    writeScope: { paths: [], resources: [] },
+    ...extra,
+  }) as Parameters<typeof captureTaskModelRequest>[0];
+
+  it("returns absent when the task carries no model or thinking request", () => {
+    expect(captureTaskModelRequest(item(), { mode: "inherit-only" }, fakeCatalog)).toEqual({ outcome: "absent" });
+  });
+
+  it("captures syntactic requests under inherit-only for one fresh confirmation", () => {
+    expect(captureTaskModelRequest(item({ model: "openai-codex/gpt-5.6-terra", thinking: "high" }), { mode: "inherit-only" }, fakeCatalog)).toEqual({
+      outcome: "captured",
+      request: { model: "openai-codex/gpt-5.6-terra", thinking: "high" },
+    });
+    expect(captureTaskModelRequest(item({ thinking: "high" }), { mode: "inherit-only" }, fakeCatalog)).toEqual({
+      outcome: "captured",
+      request: { thinking: "high" },
+    });
+  });
+
+  it("captures authority-authorized requests with canonicalized aliases", () => {
+    const authority = { mode: "explicit" as const, allowedModels: ["openai-codex/gpt-5.6-terra"], allowedThinking: ["medium" as const] };
+    expect(captureTaskModelRequest(item({ model: "Terra", thinking: "medium" }), authority, fakeCatalog)).toEqual({
+      outcome: "captured",
+      request: { model: "openai-codex/gpt-5.6-terra", thinking: "medium" },
+    });
+  });
+
+  it("rejects unauthorized, malformed, and thinking-only-out-of-allowance requests with a reason instead of dropping them", () => {
+    const authority = { mode: "explicit" as const, allowedModels: ["openai-codex/gpt-5.6-terra"], allowedThinking: ["medium" as const] };
+    const unauthorized = captureTaskModelRequest(item({ model: "openai-codex/gpt-5.6-sol" }), authority, fakeCatalog);
+    expect(unauthorized.outcome).toBe("rejected");
+    if (unauthorized.outcome === "rejected") expect(unauthorized.reason.length).toBeGreaterThan(0);
+
+    const malformed = captureTaskModelRequest(item({ model: "not a/model!" }), { mode: "inherit-only" }, fakeCatalog);
+    expect(malformed.outcome).toBe("rejected");
+
+    const thinking = captureTaskModelRequest(item({ thinking: "high" }), authority, fakeCatalog);
+    expect(thinking.outcome).toBe("rejected");
   });
 });

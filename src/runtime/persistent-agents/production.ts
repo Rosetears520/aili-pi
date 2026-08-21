@@ -23,6 +23,8 @@ import {
   type ModelOverride,
   type ModelSource,
   type ModelThinking,
+  type SubagentModelDecision,
+  type TaskModelRequest,
   MODEL_THINKING_LEVELS,
   type ResolvedModelChoice,
   type SpeedTier,
@@ -491,35 +493,55 @@ function normalizeTaskModelReference(
   return matches[0]?.canonical ?? model;
 }
 
-function captureTaskModelRequest(
+export type TaskModelRequestCapture =
+  | { outcome: "absent" }
+  | { outcome: "captured"; request: TaskModelRequest }
+  | { outcome: "rejected"; reason: string };
+
+/** Structured capture of a model-facing task request against the current-turn
+ *  authority: absent, captured (authorized or syntactic), or rejected with a
+ *  bounded reason. Never silently drops a request. */
+export function captureTaskModelRequest(
   item: TaskExecutorInput["item"],
   authority: CurrentTurnModelAuthority,
   catalog: CurrentTurnModelCatalog,
-): { model?: string; thinking?: ModelThinking } | undefined {
-  if (item.model === undefined && item.thinking === undefined) return undefined;
-  try {
-    if (authority.mode === "inherit-only") {
-      // This is only a syntactic/untrusted request. It is not authority and
-      // still needs a fresh Parent confirmation before it can become one-shot.
+): TaskModelRequestCapture {
+  if (item.model === undefined && item.thinking === undefined) return { outcome: "absent" };
+  if (authority.mode === "inherit-only") {
+    // This is only a syntactic/untrusted request. It is not authority and
+    // still needs a fresh Parent confirmation before it can become one-shot.
+    try {
       const model = item.model === undefined
         ? undefined
         : item.model.includes("/")
           ? validateModelIdentifier(item.model).canonical
           : validateBareModel(item.model);
       return {
-        ...(model === undefined ? {} : { model }),
-        ...(item.thinking === undefined ? {} : { thinking: item.thinking }),
+        outcome: "captured",
+        request: {
+          ...(model === undefined ? {} : { model }),
+          ...(item.thinking === undefined ? {} : { thinking: item.thinking }),
+        },
       };
+    } catch (error) {
+      return { outcome: "rejected", reason: error instanceof Error ? error.message : String(error) };
     }
+  }
+  try {
     const requested = {
       ...(item.model === undefined ? {} : { model: normalizeTaskModelReference(item.model, authority, catalog) }),
       ...(item.thinking === undefined ? {} : { thinking: item.thinking }),
     };
-    return validateCurrentTurnModelRequest(requested, authority) as { model?: string; thinking?: ModelThinking } | undefined;
-  } catch {
-    // Malformed or unauthorized model-facing values are discarded; normal
-    // configured/parent resolution remains available below.
-    return undefined;
+    const validated = validateCurrentTurnModelRequest(requested, authority) as TaskModelRequest | undefined;
+    if (!validated || (validated.model === undefined && validated.thinking === undefined)) {
+      return { outcome: "rejected", reason: "current-turn authority did not authorize the requested model/thinking" };
+    }
+    return { outcome: "captured", request: validated };
+  } catch (error) {
+    // Malformed or unauthorized model-facing values are rejected explicitly;
+    // normal configured/parent resolution still proceeds below with the
+    // decision recorded for the caller.
+    return { outcome: "rejected", reason: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -888,6 +910,10 @@ export class PersistentAgentProduction {
           historyRef: `history://${controller.agentId}`,
           oneShot: choice.oneShot,
           persistent: choice.persistent,
+          ...(input?.modelDecision ? {
+            overrideDecision: input.modelDecision.overrideDecision,
+            ...(input.modelDecision.reason === undefined ? {} : { modelRequestReason: input.modelDecision.reason }),
+          } : {}),
         },
       });
     }
@@ -1037,7 +1063,7 @@ export class PersistentAgentProduction {
           ?? ancestry?.currentTurnAuthority
           ?? ancestry?.authority
           ?? state.currentTurnModelAuthority;
-        const requestedModel = captureTaskModelRequest(item, authority, catalog);
+        const requestedCapture = captureTaskModelRequest(item, authority, catalog);
         if (ancestry && !ancestry.parentResolution) {
           throw new Error(`${role.selector}: nested task is missing the frozen direct-parent model identity`);
         }
@@ -1054,26 +1080,43 @@ export class PersistentAgentProduction {
           persistent: false,
           oneShot: false,
         } : undefined);
-        let oneShot: ModelOverride | undefined;
+        let oneShot: TaskModelRequest | undefined;
         let oneShotThinking: ModelThinking | undefined;
-        if (item.model !== undefined && requestedModel?.model !== undefined) {
-          oneShot = await confirmTaskModelRequest(
-            {
-              model: requestedModel.model,
-              ...(requestedModel.thinking === undefined ? {} : { thinking: requestedModel.thinking }),
-            },
-            parent,
-            {
+        let directUserTurn: TaskModelRequest | undefined;
+        let overrideDecision: SubagentModelDecision["overrideDecision"] = "inherited";
+        let decisionReason: string | undefined;
+        if (requestedCapture.outcome === "rejected") {
+          overrideDecision = "rejected-unauthorized";
+          decisionReason = requestedCapture.reason;
+        } else if (requestedCapture.outcome === "captured") {
+          if (authority.mode !== "inherit-only") {
+            // The current-turn user instruction already validated this
+            // request; it applies directly, without a fresh confirmation,
+            // and ranks above every persistent layer.
+            directUserTurn = requestedCapture.request;
+            overrideDecision = authority.mode === "explicit" ? "accepted-direct-user" : "accepted-delegated-choice";
+          } else {
+            // Model-proposed only: one fresh Parent confirmation, including
+            // thinking-only requests (which previously were dropped here).
+            const confirmed = await confirmTaskModelRequest(requestedCapture.request, parent, {
               hasUI: parentContext.hasUI,
               confirm: async ({ parent: from, requested }) => {
                 if (!parentContext.hasUI) return "dismiss";
-                const selected = await parentContext.ui.select(`Worker model override: ${from} → ${requested}`, ["Allow once", "Deny"], { signal: parentContext.signal });
+                const selected = await parentContext.ui.select(`Worker model/thinking override: ${from} → ${requested}`, ["Allow once", "Deny"], { signal: parentContext.signal });
                 return selected === "Allow once" ? "confirm" : selected === "Deny" ? "deny" : "dismiss";
               },
-            },
-          );
-        } else if (item.model === undefined && authority.mode !== "inherit-only") {
-          oneShotThinking = requestedModel?.thinking;
+            });
+            if (confirmed) {
+              oneShot = confirmed.model !== undefined ? confirmed : undefined;
+              oneShotThinking = confirmed.thinking;
+              overrideDecision = "confirmed-model-proposal";
+            } else {
+              overrideDecision = "rejected-unauthorized";
+              decisionReason = parentContext.hasUI
+                ? "the Parent denied or dismissed the one-shot confirmation"
+                : "no Parent UI is available to confirm the model-facing request";
+            }
+          }
         }
         const configs = await new ModelConfigStore({
           globalPath: defaultGlobalModelConfigPath(),
@@ -1087,6 +1130,7 @@ export class PersistentAgentProduction {
           agentId: `preflight:${role.selector}`,
           oneShot,
           oneShotThinking,
+          directUserTurn,
           authority: oneShot?.model === undefined ? authority : undefined,
           projectTrusted: parentContext.isProjectTrusted(),
           profile: parseOverride(role.model),
@@ -1098,18 +1142,32 @@ export class PersistentAgentProduction {
           choice = await resolveAgentModel({ input: resolutionInput, journal: state.runtime.journal, configs, catalog });
         } catch (error) {
           // An unusable model-facing request must not prevent the ordinary
-          // configured/parent resolution from proceeding. Persistent user
+          // configured/parent resolution from proceeding, but the rejection
+          // is recorded instead of silently falling back. Persistent user
           // configuration errors still propagate because their layer is not
-          // one-shot.
-          if (!(oneShot?.model !== undefined && error instanceof ModelSelectionError && error.layer === "one-shot")) throw error;
+          // request-scoped.
+          if (!(error instanceof ModelSelectionError && (error.layer === "one-shot" || error.layer === "direct-user-turn"))) throw error;
+          overrideDecision = "rejected-unsupported";
+          decisionReason = error.message;
           choice = await resolveAgentModel({
-            input: { ...resolutionInput, oneShot: undefined, oneShotThinking: undefined, authority: undefined },
+            input: { ...resolutionInput, oneShot: undefined, oneShotThinking: undefined, directUserTurn: undefined, authority: undefined },
             journal: state.runtime.journal,
             configs,
             catalog,
           });
         }
-        return { choice, parentResolution: parent, currentTurnModelAuthority: authority } satisfies TaskPreflightResult;
+        const modelDecision: SubagentModelDecision | undefined = requestedCapture.outcome === "absent" ? undefined : {
+          requestedModel: item.model ?? null,
+          requestedThinking: item.thinking ?? null,
+          overrideDecision,
+          ...(decisionReason === undefined ? {} : { reason: decisionReason }),
+        };
+        return {
+          choice,
+          parentResolution: parent,
+          currentTurnModelAuthority: authority,
+          ...(modelDecision ? { modelDecision } : {}),
+        } satisfies TaskPreflightResult;
       },
       preflight: async (input) => {
         if (!input.formalProtection) return;
@@ -1456,7 +1514,18 @@ export class PersistentAgentProduction {
       return { selector, global: configs.global.roles[selector!] ?? null, project: configs.project?.roles[selector!] ?? null, diagnostics: configs.diagnostics };
     }
     if (operation !== "request" && operation !== "clear") throw new Error(`unsupported hub model operation: ${operation}`);
-    const override = operation === "clear" ? undefined : parseOverride(typeof request.model === "string" ? request.model : undefined);
+    const requestedThinking = typeof request.thinking === "string" && (MODEL_THINKING_LEVELS as readonly string[]).includes(request.thinking)
+      ? request.thinking as ModelThinking
+      : undefined;
+    if (request.thinking !== undefined && requestedThinking === undefined) throw new Error("hub model thinking must be one of off|minimal|low|medium|high|xhigh|max");
+    const override = operation === "clear"
+      ? undefined
+      : (() => {
+        const parsed = parseOverride(typeof request.model === "string" ? request.model : undefined);
+        // A thinking level rides along with the requested model; the durable
+        // configuration schema still requires the model itself.
+        return parsed ? { ...parsed, ...(requestedThinking === undefined ? {} : { thinking: requestedThinking }) } : undefined;
+      })();
     if (operation === "request" && !override) throw new Error("hub model request requires model");
     const confirmation = {
       hasUI: state.context.hasUI,

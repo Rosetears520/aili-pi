@@ -94,17 +94,20 @@ Child history cannot be deleted independently. It follows the parent session. Fo
 
 Each turn resolves in this order:
 
-1. direct-user stable Agent instance override
-2. trusted project role override
-3. user-global role override
-4. user-confirmed one-shot `task.model` request
-5. direct Parent resolved model, thinking level, and speed tier
-6. profile frontmatter fallback, only when no Parent identity exists
-7. runtime fallback
+1. direct user-turn instruction (this turn's `explicit`/`delegated-choice` authority already validated it; applies without a fresh confirmation)
+2. direct-user stable Agent instance override
+3. trusted project role override
+4. user-global role override
+5. user-confirmed one-shot `task.model`/`task.thinking` request
+6. direct Parent resolved model, thinking level, and speed tier
+7. profile frontmatter fallback, only when no Parent identity exists
+8. runtime fallback
 
-A model-facing `task.model` is never user authorization: a different requested model must show the direct Parent from/to choice and receive fresh **Allow once** confirmation before any Agent/job/turn allocation. No UI, dismissal, expiry, rejection, a matching request, or no Parent identity does not apply that request. Direct-user config remains higher priority than an accepted one-shot. Nested children inherit their direct Persistent Parent, not the root Main. The effective record exposes a source such as `confirmed-one-shot`, `instance-override`, `project-role-override`, `user-role-override`, `inherited-parent`, `profile-fallback`, or `runtime-fallback`.
+Model and thinking resolve per field: each field takes the first layer that provides it, so a persistent model override never shadows an authorized current-turn thinking instruction and vice versa.
 
-Thinking is inherited and passed to the actual child session; an incompatible level fails rather than silently switching model or level. Fast is a separate `standard|priority` service tier, not a model alias: supported Codex payloads may receive `service_tier: "priority"`; unsupported models remain unchanged. Real provider payload proof remains separately operation-gated. Direct users enable it with `/codex-fast true` and disable it with `/codex-fast false`; they can run `/aili-agent-model <global|project|instance> <selector|agent-id> <provider/model|clear> [thinking]`; model-facing persistent requests through `hub model` require a fresh interactive confirmation every time. Project model configuration is ignored and cannot be written before project trust is active.
+A model-facing `task.model` is never user authorization: a different requested model must show the direct Parent from/to choice and receive fresh **Allow once** confirmation before any Agent/job/turn allocation. No UI, dismissal, expiry, rejection, a matching request, or no Parent identity does not apply that request — but the rejection is always recorded (`rejected-unauthorized` with a bounded reason in the accepted result, job/turn metadata, and turn audit); nothing is silently dropped. Thinking-only requests follow the same confirmation path as model requests. Direct-user config remains higher priority than an accepted one-shot; a direct user-turn instruction outranks both. Nested children inherit their direct Persistent Parent, not the root Main. The effective record exposes a source such as `direct-user-turn`, `confirmed-one-shot`, `instance-override`, `project-role-override`, `user-role-override`, `inherited-parent`, `profile-fallback`, or `runtime-fallback`.
+
+Thinking is inherited and passed to the actual child session; an incompatible level fails rather than silently switching model or level. Fast is a separate `standard|priority` service tier, not a model alias: supported Codex payloads may receive `service_tier: "priority"`; unsupported models remain unchanged. Real provider payload proof remains separately operation-gated. Direct users enable it with `/codex-fast true` and disable it with `/codex-fast false`; they can run `/aili-agent-model <global|project|instance> <selector|agent-id> <provider/model|clear> [thinking]`; model-facing persistent requests through `hub model` accept a `thinking` level alongside the model and require a fresh interactive confirmation every time. Project model configuration is ignored and cannot be written before project trust is active.
 
 ## Workspaces and permissions
 

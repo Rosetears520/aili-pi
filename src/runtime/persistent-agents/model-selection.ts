@@ -7,13 +7,27 @@ import type { CoordinatorJournal } from "./storage.js";
 import { assertNoCredentialMaterial } from "./permission.js";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 
-export type ModelLayer = "one-shot" | "instance" | "project-role" | "user-role" | "profile" | "parent-fallback" | "runtime-fallback";
+export type ModelLayer = "direct-user-turn" | "one-shot" | "instance" | "project-role" | "user-role" | "profile" | "parent-fallback" | "runtime-fallback";
 /** Compatibility source retained for existing audit consumers. */
-export type ModelSource = "confirmed-one-shot" | "user-one-shot" | "instance-override" | "project-role-override" | "user-role-override" | "inherited-parent" | "profile-fallback" | "runtime-fallback";
-export type ModelChoiceSource = "user-one-shot" | "confirmed-one-shot" | "instance-override" | "project-role-override" | "user-role-override" | "inherited-parent" | "profile-fallback" | "runtime-fallback";
+export type ModelSource = "direct-user-turn" | "confirmed-one-shot" | "user-one-shot" | "instance-override" | "project-role-override" | "user-role-override" | "inherited-parent" | "profile-fallback" | "runtime-fallback";
+export type ModelChoiceSource = "direct-user-turn" | "user-one-shot" | "confirmed-one-shot" | "instance-override" | "project-role-override" | "user-role-override" | "inherited-parent" | "profile-fallback" | "runtime-fallback";
 export type ThinkingSource = ModelChoiceSource | "model-default";
 export type ModelThinking = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 export type SpeedTier = "standard" | "priority";
+
+/** Structured outcome of a model/thinking request at any dispatch boundary. */
+export interface SubagentModelDecision {
+  requestedModel: string | null;
+  requestedThinking: ModelThinking | null;
+  overrideDecision:
+    | "accepted-direct-user"
+    | "accepted-delegated-choice"
+    | "confirmed-model-proposal"
+    | "rejected-unauthorized"
+    | "rejected-unsupported"
+    | "inherited";
+  reason?: string;
+}
 
 export interface ModelOverride {
   model: string;
@@ -531,7 +545,11 @@ export interface ResolveModelInput {
   selector: string;
   agentId: string;
   /** Already-authorized one-shot values. Use the hard validator above first. */
-  oneShot?: ModelOverride;
+  oneShot?: TaskModelRequest;
+  /** Already-authorized current-turn user instruction (explicit or delegated
+   *  authority). Ranks above every persistent layer and applies without a
+   *  fresh confirmation. Pass through validateCurrentTurnModelRequest first. */
+  directUserTurn?: TaskModelRequest;
   instance?: ModelOverride;
   projectRole?: ModelOverride;
   projectTrusted: boolean;
@@ -617,7 +635,9 @@ export async function resolveModelChoice(input: ResolveModelInput, catalog: Mode
       : undefined;
     const authorized = validateCurrentTurnModelRequest(requested, authority);
     const authorizedModel = authorized?.model;
-    oneShot = authorizedModel === undefined ? undefined : { model: authorizedModel, thinking: authorized?.thinking };
+    oneShot = authorizedModel === undefined
+      ? (authorized?.thinking !== undefined ? { thinking: authorized.thinking } : undefined)
+      : { model: authorizedModel, ...(authorized?.thinking === undefined ? {} : { thinking: authorized.thinking }) };
     oneShotThinking = authorized?.thinking;
   } else if (oneShot && oneShotThinking !== undefined && oneShot.thinking === undefined) {
     oneShot = { ...oneShot, thinking: oneShotThinking };
@@ -625,11 +645,12 @@ export async function resolveModelChoice(input: ResolveModelInput, catalog: Mode
 
   const layers: Array<{
     layer: ModelLayer;
-    value?: ModelOverride;
+    value?: { model?: string; thinking?: ModelThinking };
     persistent: boolean;
     source: ModelSource;
     modelSource: ModelChoiceSource;
   }> = [
+    { layer: "direct-user-turn", value: input.directUserTurn, persistent: false, source: "direct-user-turn", modelSource: "direct-user-turn" },
     { layer: "instance", value: input.instance, persistent: true, source: "instance-override", modelSource: "instance-override" },
     { layer: "project-role", value: input.projectTrusted ? input.projectRole : undefined, persistent: true, source: "project-role-override", modelSource: "project-role-override" },
     { layer: "user-role", value: input.userRole, persistent: true, source: "user-role-override", modelSource: "user-role-override" },
@@ -637,20 +658,37 @@ export async function resolveModelChoice(input: ResolveModelInput, catalog: Mode
     // than the direct Parent/profile/runtime fallbacks.
     { layer: "one-shot", value: oneShot, persistent: false, source: "confirmed-one-shot", modelSource: "user-one-shot" },
   ];
-  const selected = layers.find((candidate) => candidate.value !== undefined);
-  const selectedLayer = selected ?? (oneShotThinking !== undefined ? {
+  // Model and thinking resolve per field: each takes the first layer that
+  // provides it, so a persistent model override never shadows an authorized
+  // current-turn thinking instruction and vice versa.
+  const modelLayer = layers.find((candidate) => typeof candidate.value?.model === "string" && candidate.value.model.trim().length > 0);
+  const oneShotThinkingLayer = oneShotThinking !== undefined ? {
     layer: "one-shot" as const,
+    value: { thinking: oneShotThinking } as { model?: string; thinking?: ModelThinking },
     persistent: false,
     source: "confirmed-one-shot" as const,
     modelSource: "user-one-shot" as const,
-  } : undefined);
+  } : undefined;
+  // The profile fallback only participates when no user-facing layer provided
+  // the field — mirroring its model role as the last configured source.
+  const profileThinkingLayer = input.profile?.thinking !== undefined && modelLayer === undefined ? {
+    layer: "profile" as const,
+    value: { thinking: input.profile.thinking } as { model?: string; thinking?: ModelThinking },
+    persistent: true,
+    source: "profile-fallback" as const,
+    modelSource: "profile-fallback" as const,
+  } : undefined;
+  const thinkingLayer = layers.find((candidate) => candidate.value?.thinking !== undefined)
+    ?? oneShotThinkingLayer
+    ?? profileThinkingLayer;
+  const selectedLayer = modelLayer ?? thinkingLayer;
   const fallbackLayer: ModelLayer = input.parent ? "parent-fallback" : input.profile ? "profile" : "runtime-fallback";
   const layer: ModelLayer = selectedLayer?.layer ?? fallbackLayer;
   const source: ModelSource = selectedLayer?.source
     ?? (layer === "profile" ? "profile-fallback" : layer === "runtime-fallback" ? "runtime-fallback" : "inherited-parent");
   const modelSource: ModelChoiceSource = selectedLayer?.modelSource
     ?? (layer === "profile" ? "profile-fallback" : layer === "runtime-fallback" ? "runtime-fallback" : "inherited-parent");
-  const requested = selected?.value ?? (layer === "profile" ? input.profile : undefined);
+  const requested = modelLayer?.value ?? (layer === "profile" ? input.profile : undefined);
   let fallbackParent: CatalogModel | undefined;
   let fallbackLoaded = false;
   const getFallbackParent = async (): Promise<CatalogModel | undefined> => {
@@ -679,7 +717,7 @@ export async function resolveModelChoice(input: ResolveModelInput, catalog: Mode
       throw new ModelSelectionError(layer, "explicit model is missing");
     }
     if (!requested.model.includes("/")) {
-      if (layer !== "one-shot") {
+      if (layer !== "one-shot" && layer !== "direct-user-turn") {
         throw new ModelSelectionError(layer, `explicit model '${requested.model}' must use canonical provider/model form`);
       }
       const bare = validateBareModelIdentifier(requested.model);
@@ -728,13 +766,13 @@ export async function resolveModelChoice(input: ResolveModelInput, catalog: Mode
   if (!candidate.available) throw new ModelSelectionError(layer, `${canonical} is unavailable; lower layers were not considered`);
   if (!candidate.authenticated) throw new ModelSelectionError(layer, `${canonical} is unauthenticated; lower layers were not considered`);
 
-  const explicitThinking = requested?.thinking ?? (selectedLayer?.layer === "one-shot" ? oneShotThinking : undefined);
+  const explicitThinking = thinkingLayer?.value?.thinking;
   let thinking: ModelThinking;
   let thinkingSource: ThinkingSource;
   if (explicitThinking !== undefined) {
     if (!THINKING.has(explicitThinking)) throw new ModelSelectionError(layer, `${canonical} is incompatible with thinking=${String(explicitThinking)}; lower layers were not considered`);
     thinking = explicitThinking;
-    thinkingSource = requested?.thinking !== undefined ? modelSource : "user-one-shot";
+    thinkingSource = thinkingLayer!.modelSource;
   } else {
     const inheritsDirectParent = input.parent !== undefined && (!selectedLayer || canonical === input.parent.canonical);
     if (inheritsDirectParent) {
@@ -802,24 +840,31 @@ export interface TaskModelRequestConfirmation {
 
 /** Model-facing task arguments are untrusted requests, not direct-user overrides. */
 export async function confirmTaskModelRequest(
-  requested: ModelOverride | undefined,
-  parent: Pick<ResolvedModelChoice, "canonical"> | undefined,
+  requested: TaskModelRequest | undefined,
+  parent: Pick<ResolvedModelChoice, "canonical" | "thinking"> | undefined,
   confirmation: TaskModelRequestConfirmation,
   authority?: CurrentTurnModelAuthority,
-): Promise<ModelOverride | undefined> {
+): Promise<TaskModelRequest | undefined> {
   if (!requested) return undefined;
   const validated = confirmation.authority || authority
     ? validateCurrentTurnModelRequest(requested, confirmation.authority ?? authority!)
     : requested;
-  if (!validated?.model) return undefined;
-  const effectiveRequested: ModelOverride = { model: validated.model, ...(validated.thinking === undefined ? {} : { thinking: validated.thinking }) };
+  if (!validated?.model && validated?.thinking === undefined) return undefined;
+  const effectiveRequested: TaskModelRequest = {
+    ...(validated?.model === undefined ? {} : { model: validated.model }),
+    ...(validated?.thinking === undefined ? {} : { thinking: validated.thinking }),
+  };
   // A model-facing argument never becomes authority when no direct Parent
   // identity is available to present/compare.
   if (!parent) return undefined;
-  if (effectiveRequested.model === parent.canonical && effectiveRequested.thinking === undefined) return undefined;
+  if (effectiveRequested.model !== undefined && effectiveRequested.model === parent.canonical && effectiveRequested.thinking === undefined) return undefined;
+  if (effectiveRequested.model === undefined && effectiveRequested.thinking === parent.thinking) return undefined;
   if (!confirmation.hasUI) return undefined;
+  const summary = effectiveRequested.model !== undefined
+    ? effectiveRequested.model
+    : `${parent.canonical} thinking=${effectiveRequested.thinking}`;
   try {
-    return await confirmation.confirm({ parent: parent.canonical, requested: effectiveRequested.model }) === "confirm"
+    return await confirmation.confirm({ parent: parent.canonical, requested: summary }) === "confirm"
       ? effectiveRequested
       : undefined;
   } catch {

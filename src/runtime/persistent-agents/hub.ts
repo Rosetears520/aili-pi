@@ -40,7 +40,7 @@ export const HUB_TOOL_SCHEMA = Type.Union([
   Type.Object({ action: Type.Literal("history"), agentId: Type.String({ minLength: 1 }), offset: Type.Optional(Type.Number({ minimum: 0 })), limit: Type.Optional(Type.Number({ minimum: 1 })) }, { additionalProperties: false }),
   Type.Object({ action: Type.Literal("jobs"), jobId: Type.Optional(Type.String({ minLength: 1 })) }, { additionalProperties: false }),
   Type.Object({ action: Type.Literal("cancel"), id: Type.String({ minLength: 1 }) }, { additionalProperties: false }),
-  Type.Object({ action: Type.Literal("model"), operation: Type.Union([Type.Literal("query"), Type.Literal("request"), Type.Literal("clear")]), agentId: Type.Optional(Type.String({ minLength: 1 })), selector: Type.Optional(Type.String({ minLength: 1 })), model: Type.Optional(Type.String({ minLength: 1 })) }, { additionalProperties: false }),
+  Type.Object({ action: Type.Literal("model"), operation: Type.Union([Type.Literal("query"), Type.Literal("request"), Type.Literal("clear")]), agentId: Type.Optional(Type.String({ minLength: 1 })), selector: Type.Optional(Type.String({ minLength: 1 })), model: Type.Optional(Type.String({ minLength: 1 })), thinking: Type.Optional(Type.Union([Type.Literal("off"), Type.Literal("minimal"), Type.Literal("low"), Type.Literal("medium"), Type.Literal("high"), Type.Literal("xhigh"), Type.Literal("max")])) }, { additionalProperties: false }),
 ]);
 
 export interface HubCaller {
@@ -388,7 +388,7 @@ export class HubService {
         return await resolver(agent, offset, limit);
       }
       case "model":
-        strictKeys(input, ["action", "operation", "agentId", "selector", "model"]);
+        strictKeys(input, ["action", "operation", "agentId", "selector", "model", "thinking"]);
         if (!this.options.model) throw new Error("hub model operations are unavailable");
         if (typeof input.agentId === "string" && input.agentId.trim()) {
           const agentId = requiredString(input.agentId, "hub.agentId");
