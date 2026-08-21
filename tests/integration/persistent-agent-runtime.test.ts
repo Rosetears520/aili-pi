@@ -145,7 +145,7 @@ describe("internal persistent Agent runtime wiring", () => {
       revive: async () => ({ steer() {}, sendUserMessage() {}, dispose() {} }),
     });
     const audit = { packageId: "P-01", canonicalRole: "aili.implementer", scope: "fixture scope", forbiddenScope: "outside fixture", writeScope: { paths: [], resources: [] }, acceptanceBoundary: "error remains exact", expectedEvidence: "verification:preflight; artifact:result" };
-    const response = await runtime.task.submit({ task: "must not execute", agent: "aili.implementer", async: false, formalContext: { changeId }, continuationAudit: audit });
+    const response = await runtime.task.submitTrusted({ task: "must not execute", agent: "aili.implementer", async: false, formalContext: { changeId }, continuationAudit: audit });
     expect(response.results[0]).toMatchObject({ status: "failed", error: "injected formal preflight failure", formalResultStatus: "malformed" });
     expect(executions).toBe(0);
     const agent = runtime.journal.getState().agents[response.results[0]!.agentId]!;
@@ -155,7 +155,7 @@ describe("internal persistent Agent runtime wiring", () => {
     await runtime.shutdown();
   });
 
-  it("registers only canonical internal task/hub tools and the direct-user model command", async () => {
+  it("registers only canonical internal task/formal_task/hub tools and the direct-user model command", async () => {
     const parentFile = join(scratch, "parent.jsonl");
     await writeFile(parentFile, "fixture parent\n");
     const runtime = await PersistentAgentRuntime.create({
@@ -190,7 +190,7 @@ describe("internal persistent Agent runtime wiring", () => {
         return "fast updated";
       },
     });
-    expect([...tools.keys()]).toEqual(["task", "hub"]);
+    expect([...tools.keys()]).toEqual(["task", "formal_task", "hub"]);
     expect([...tools.keys()]).not.toContain("subagent");
     expect([...tools.keys()]).not.toContain("aili_task");
     expect(commands.has("aili-agent-model")).toBe(true);
@@ -199,23 +199,23 @@ describe("internal persistent Agent runtime wiring", () => {
     const taskTool = tools.get("task");
     expect(taskTool.description).toContain("Ordinary Pi remains benefit-based");
     expect(taskTool.description).toContain("omitted agent retains general compatibility");
-    expect(taskTool.description).toContain("ROSE owns decomposition, decisions, integration, and final verification");
-    expect(taskTool.description).toContain("exact Specialized selector before duplicate direct work");
+    expect(taskTool.description).toContain("Formal package dispatch belongs to the formal_task tool");
     expect(taskTool.description).toContain("async:false for prerequisites with an immediate join");
-    expect(taskTool.description).toContain("async:true only for independent packages with a named join");
+    expect(taskTool.description).toContain("async:true only for independent work with a named join");
     expect(taskTool.description).toContain("inspect output/history before dependents");
-    expect(taskTool.description).toContain("valid pre-recorded waiver");
-    expect(taskTool.description).toContain("never write the owning formal-task-board.md/progress.txt or decide phase/verdict");
+    expect(taskTool.description).toContain("Workers never decide lifecycle phase or verdict");
+    const formalTool = tools.get("formal_task");
+    expect(formalTool.description).toContain("validated v1 formal-task-board.md/progress.txt pair");
+    expect(formalTool.description).toContain("only validates the pair and constructs the ordinary task request");
+    expect(formalTool.description).toContain("never falls back to ordinary dispatch");
+    expect(formalTool.description).toContain("ROSE owns phase, acceptance, integration, and verdict");
     expect(taskTool.promptSnippet).toContain("benefit-based direct work");
     expect(taskTool.promptSnippet).toContain("omitted agent remains general-compatible");
-    expect(taskTool.promptSnippet).toContain("exact Specialized selector with explicit async before duplicate direct work");
+    expect(taskTool.promptSnippet).toContain("Dispatch formal packages through formal_task");
     expect(taskTool.promptGuidelines).toEqual([
       expect.stringMatching(/^Ordinary routing:/),
-      expect.stringMatching(/^ROSE authority:/),
-      expect.stringMatching(/^Formal dispatch:/),
+      expect.stringMatching(/^Formal boundary:/),
       expect.stringMatching(/^Prerequisite execution:/),
-      expect.stringMatching(/^Independent async execution:/),
-      expect.stringMatching(/^Direct exception:/),
       expect.stringMatching(/^Worker boundary:/),
       expect.stringContaining("Specialized Agent catalog (generated routing cues"),
     ]);

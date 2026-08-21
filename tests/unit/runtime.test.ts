@@ -110,7 +110,7 @@ describe("AILI runtime composition", () => {
     const task = harness.registeredToolDefinitions.find((tool) => tool.name === "task")!;
     const catalogGuideline = task.promptGuidelines?.at(-1) ?? "";
     expect(task.description).toContain("Delegate bounded work to parent-scoped persistent AILI Agents");
-    expect(task.promptSnippet).toContain("exact Specialized selector with explicit async");
+    expect(task.promptSnippet).toContain("Dispatch formal packages through formal_task");
     expect(catalogGuideline).toContain("Specialized Agent catalog (generated routing cues");
     expect(catalogGuideline).toContain(`aili.code-scout — ${profiles.find((profile) => profile.selector === "aili.code-scout")!.description}`);
     expect(catalogGuideline).toContain("use=Files, symbols, call paths");

@@ -111,6 +111,14 @@ const ItemFields = {
   workspace: Type.Optional(Type.Union([Type.Literal("auto"), Type.Literal("shared"), Type.Literal("isolated")])),
   writeScope: Type.Optional(WriteScopeSchema),
   cwd: Type.Optional(Type.String({ minLength: 1 })),
+};
+
+// Formal identity fields are internal: the model-facing surface dispatches
+// formal packages through the dedicated formal_task adapter, and only trusted
+// internal callers (that adapter, nested formal children, the ROSE planner)
+// may submit requests carrying them.
+const FORMAL_ITEM_FIELDS = {
+  ...ItemFields,
   formalContext: Type.Optional(FormalContextSchema),
   continuationAudit: Type.Optional(FORMAL_CONTINUATION_AUDIT_SCHEMA),
 };
@@ -123,7 +131,16 @@ export const TASK_TOOL_SCHEMA = Type.Union([
   }, { additionalProperties: false }),
 ]);
 
+export const FORMAL_TASK_REQUEST_SCHEMA = Type.Union([
+  Type.Object(FORMAL_ITEM_FIELDS, { additionalProperties: false }),
+  Type.Object({
+    context: Type.Optional(Type.String()),
+    tasks: Type.Array(Type.Object(FORMAL_ITEM_FIELDS, { additionalProperties: false }), { minItems: 1 }),
+  }, { additionalProperties: false }),
+]);
+
 const ITEM_KEYS = new Set(Object.keys(ItemFields));
+const FORMAL_ITEM_KEYS = new Set(Object.keys(FORMAL_ITEM_FIELDS));
 const BATCH_KEYS = new Set(["context", "tasks"]);
 
 function record(value: unknown, label: string): Record<string, unknown> {
@@ -263,10 +280,11 @@ function normalizeItem(
   index: number,
   roleBySelector: Map<string, RoleProfile>,
   sharedContext?: string,
+  allowedKeys: Set<string> = ITEM_KEYS,
 ): NormalizedTaskItem {
   const label = `task item ${index + 1}`;
   const item = record(raw, label);
-  rejectUnknownKeys(item, ITEM_KEYS, label);
+  rejectUnknownKeys(item, allowedKeys, label);
   const task = optionalString(item.task, `${label}.task`);
   if (!task) throw new Error(`${label}.task is required`);
   const hasExplicitAgent = Object.prototype.hasOwnProperty.call(item, "agent");
@@ -323,10 +341,11 @@ function normalizeItem(
   };
 }
 
-export function validateTaskRequest(raw: unknown, profiles: RoleProfile[]): NormalizedTaskRequest {
+export function validateTaskRequest(raw: unknown, profiles: RoleProfile[], options: { formal?: boolean } = {}): NormalizedTaskRequest {
   const input = record(raw, "task input");
   const roleBySelector = new Map(profiles.map((profile) => [profile.selector, profile]));
   if (roleBySelector.size !== profiles.length) throw new Error("role catalog contains duplicate selectors");
+  const itemKeys = options.formal ? FORMAL_ITEM_KEYS : ITEM_KEYS;
   const hasBatch = Object.prototype.hasOwnProperty.call(input, "tasks");
   if (hasBatch) {
     rejectUnknownKeys(input, BATCH_KEYS, "batch task input");
@@ -334,7 +353,14 @@ export function validateTaskRequest(raw: unknown, profiles: RoleProfile[]): Norm
     if (input.context !== undefined && typeof input.context !== "string") throw new Error("batch context must be a string");
     if (!Array.isArray(input.tasks) || input.tasks.length === 0) throw new Error("batch tasks must be a non-empty array");
     const sharedContext = typeof input.context === "string" ? input.context : undefined;
-    return { batch: true, items: input.tasks.map((item, index) => normalizeItem(item, index, roleBySelector, sharedContext)) };
+    return { batch: true, items: input.tasks.map((item, index) => normalizeItem(item, index, roleBySelector, sharedContext, itemKeys)) };
   }
-  return { batch: false, items: [normalizeItem(input, 0, roleBySelector)] };
+  return { batch: false, items: [normalizeItem(input, 0, roleBySelector, undefined, itemKeys)] };
+}
+
+/** Trusted-internal validation for formal dispatch adapters: allows the
+ *  formalContext/continuationAudit identity fields the public task schema
+ *  no longer exposes to the model. */
+export function validateFormalTaskRequest(raw: unknown, profiles: RoleProfile[]): NormalizedTaskRequest {
+  return validateTaskRequest(raw, profiles, { formal: true });
 }

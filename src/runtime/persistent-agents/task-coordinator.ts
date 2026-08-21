@@ -475,12 +475,34 @@ export class TaskCoordinator {
     parentSignalOrUpdate?: AbortSignal | TaskUpdateCallback,
     onUpdate?: TaskUpdateCallback,
   ): Promise<TaskResponse> {
+    return await this.submitValidated(raw, ancestry, parentSignalOrUpdate, onUpdate, false);
+  }
+
+  /** Trusted-internal formal dispatch (formal_task adapter, nested formal
+   *  children, the ROSE planner): accepts the formal identity fields the
+   *  public task schema no longer exposes to the model. */
+  async submitTrusted(
+    raw: unknown,
+    ancestry?: TaskAncestry,
+    parentSignalOrUpdate?: AbortSignal | TaskUpdateCallback,
+    onUpdate?: TaskUpdateCallback,
+  ): Promise<TaskResponse> {
+    return await this.submitValidated(raw, ancestry, parentSignalOrUpdate, onUpdate, true);
+  }
+
+  private async submitValidated(
+    raw: unknown,
+    ancestry: TaskAncestry | undefined,
+    parentSignalOrUpdate: AbortSignal | TaskUpdateCallback | undefined,
+    onUpdate: TaskUpdateCallback | undefined,
+    formal: boolean,
+  ): Promise<TaskResponse> {
     const parentSignal = typeof parentSignalOrUpdate === "function" ? undefined : parentSignalOrUpdate;
     const liveUpdate = typeof parentSignalOrUpdate === "function" ? parentSignalOrUpdate : onUpdate;
     await assertNoCredentialMaterial(raw, "task input");
     const prepared = await this.serializeSubmission(async () => {
       const profiles = await this.loadProfiles();
-      const request = validateTaskRequest(raw, profiles);
+      const request = validateTaskRequest(raw, profiles, { formal });
       const bySelector = new Map(profiles.map((profile) => [profile.selector, profile]));
       if (ancestry && !this.scheduler.isPermitActive(ancestry.inheritedPermit)) {
         throw new Error("nested task requires an active inherited ancestor permit");

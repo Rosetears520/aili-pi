@@ -8,6 +8,7 @@ import type { ResolvedModelChoice } from "./model-selection.js";
 import { TaskCoordinator } from "./task-coordinator.js";
 import { HUB_TOOL_SCHEMA, HubService, type HubCaller, type LiveAgentAdapter } from "./hub.js";
 import { TASK_TOOL_SCHEMA } from "./task-schema.js";
+import { buildFormalTaskDispatch, FORMAL_TASK_TOOL_SCHEMA } from "./formal-task-tool.js";
 import {
   createChildSessionManager,
   ensureSidecarLayout,
@@ -134,6 +135,11 @@ export class PersistentAgentRuntime {
   readonly hub: HubService;
   readonly delivery: AsyncDeliveryService;
   private readonly childManagers = new Map<string, SessionManager>();
+
+  /** Repository root the coordinators resolve formal board roots against. */
+  get repositoryRoot(): string {
+    return this.options.cwd;
+  }
 
   private constructor(
     private readonly options: PersistentAgentRuntimeOptions,
@@ -445,19 +451,18 @@ export interface InternalPersistentToolRegistrationOptions {
   directFastCommand?: (args: string, context: ExtensionContext) => Promise<string>;
 }
 
-const TASK_DESCRIPTION = "Delegate bounded work to parent-scoped persistent AILI Agents. Ordinary Pi remains benefit-based: direct work is valid when delegation adds no concrete benefit, and omitted agent retains general compatibility. In an active formal lifecycle, ROSE owns decomposition, decisions, integration, and final verification; dispatch each ready Agent-owned package to its exact Specialized selector before duplicate direct work. Formal calls explicitly set agent and async: use async:false for prerequisites with an immediate join, and async:true only for independent packages with a named join, then inspect output/history before dependents. Direct execution requires a valid pre-recorded waiver. Workers never write the owning formal-task-board.md/progress.txt or decide phase/verdict. Never send blocking: it is profile-only internal metadata.";
+const TASK_DESCRIPTION = "Delegate bounded work to parent-scoped persistent AILI Agents. Ordinary Pi remains benefit-based: direct work is valid when delegation adds no concrete benefit, and omitted agent retains general compatibility. Formal package dispatch belongs to the formal_task tool; do not send formalContext or continuationAudit here. Use async:false for prerequisites with an immediate join, and async:true only for independent work with a named join, then inspect output/history before dependents. Workers never decide lifecycle phase or verdict. Never send blocking: it is profile-only internal metadata.";
 
-const TASK_PROMPT_SNIPPET = "Ordinary Pi keeps benefit-based direct work and omitted agent remains general-compatible. In a formal lifecycle, dispatch the ready package's exact Specialized selector with explicit async before duplicate direct work.";
+const TASK_PROMPT_SNIPPET = "Ordinary Pi keeps benefit-based direct work and omitted agent remains general-compatible. Dispatch formal packages through formal_task; keep this tool for ordinary bounded delegation.";
 
 const TASK_PROMPT_GUIDELINES = [
   "Ordinary routing: outside a formal lifecycle, delegate only for concrete benefit; direct work remains valid and omitted agent retains general compatibility.",
-  "ROSE authority: ROSE owns formal decomposition, material decisions, result disposition, integration, final verification, phase advancement, and verdict.",
-  "Formal dispatch: ready Agent-owned packages use the exact Specialized selector in agent and explicitly set async; omitted agent/general is ordinary compatibility, not formal ownership.",
+  "Formal boundary: formal package dispatch uses the formal_task tool with the exact changeId/packageId; this task tool never carries formalContext or continuationAudit.",
   "Prerequisite execution: use async:false with Join: immediate whenever the result is needed by the next decision or package.",
-  "Independent async execution: use async:true only for independent packages with a stable named Join; collect terminal state and inspect output/history before dependents or phase gates.",
-  "Direct exception: perform Agent-owned scope directly only after a valid waiver is recorded before the work.",
   "Worker boundary: workers return evidence only; they never write the owning formal-task-board.md/progress.txt or decide lifecycle phase, acceptance, or final verdict.",
 ];
+
+const FORMAL_TASK_DESCRIPTION = "Dispatch one exact ready package from a validated v1 formal-task-board.md/progress.txt pair as a persistent AILI Agent task. The board owns the task text, exact Specialized Owner selector, execution mode, and continuation audit; this adapter only validates the pair and constructs the ordinary task request. An invalid, missing, or non-ready package fails before any Agent is allocated and never falls back to ordinary dispatch. Workers return evidence only; ROSE owns phase, acceptance, integration, and verdict.";
 
 /**
  * Canonical registration surface shared by production and deterministic tests.
@@ -480,6 +485,19 @@ export function registerPersistentAgentTools(pi: ExtensionAPI, options: Internal
     async execute(_toolCallId, params, signal, onUpdate, context) {
       const runtime = await options.runtimeForContext(context);
       const result = await runtime.task.submit(params, undefined, signal, onUpdate as unknown as TaskUpdateCallback | undefined);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
+    },
+  });
+  pi.registerTool({
+    name: "formal_task",
+    label: "Formal Task",
+    description: FORMAL_TASK_DESCRIPTION,
+    parameters: FORMAL_TASK_TOOL_SCHEMA,
+    ...TASK_RENDERERS,
+    async execute(_toolCallId, params, signal, onUpdate, context) {
+      const runtime = await options.runtimeForContext(context);
+      const request = await buildFormalTaskDispatch(runtime.repositoryRoot ?? context.cwd, params as { changeId: string; packageId: string });
+      const result = await runtime.task.submitTrusted(request, undefined, signal, onUpdate as unknown as TaskUpdateCallback | undefined);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
     },
   });

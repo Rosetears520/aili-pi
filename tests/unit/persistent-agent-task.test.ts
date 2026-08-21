@@ -5,7 +5,7 @@ import { loadRoleProfiles, type RoleProfile } from "../../src/runtime/roles.js";
 import { CoordinatorJournal, ensureSidecarLayout } from "../../src/runtime/persistent-agents/storage.js";
 import { FifoTurnScheduler } from "../../src/runtime/persistent-agents/scheduler.js";
 import { FORMAL_RESULT_FIELDS, FORMAL_RESULT_MAX_BYTES, TaskCoordinator, assertCurrentFormalRoleProfile, parseCanonicalFormalResult, renderCanonicalFormalResultInstruction, truncateTaskOutput, type TaskExecutionOutput } from "../../src/runtime/persistent-agents/task-coordinator.js";
-import { FORMAL_RUNTIME_LIMITS, TASK_TOOL_SCHEMA, validateTaskRequest } from "../../src/runtime/persistent-agents/task-schema.js";
+import { FORMAL_RUNTIME_LIMITS, FORMAL_TASK_REQUEST_SCHEMA, TASK_TOOL_SCHEMA, validateFormalTaskRequest, validateTaskRequest } from "../../src/runtime/persistent-agents/task-schema.js";
 import type { AgentRecord } from "../../src/runtime/persistent-agents/types.js";
 import type { ResolvedModelChoice } from "../../src/runtime/persistent-agents/model-selection.js";
 
@@ -153,24 +153,24 @@ describe("task schema and coordinator", () => {
     expect(validateTaskRequest({ task: "thinking", thinking: "high" }, profiles).items[0]).toMatchObject({ thinking: "high" });
     expect(() => validateTaskRequest({ task: "thinking", thinking: "turbo" }, profiles)).toThrow(/off, minimal, low, medium, high, xhigh, max/);
     expect(validateTaskRequest({ context: "shared", tasks: [{ task: "one" }, { task: "two", context: "local" }] }, profiles).items[1]?.context).toBe("shared\n\nlocal");
-    expect(validateTaskRequest({ task: "formal", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit() }, profiles).items[0]).toMatchObject({
+    expect(validateFormalTaskRequest({ task: "formal", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit() }, profiles).items[0]).toMatchObject({
       agent: "aili.implementer",
       async: false,
       formalContext: { changeId: "exact-change" },
       continuationAudit: continuationAudit(),
     });
-    expect(() => validateTaskRequest({ task: "formal", formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/explicit Specialized agent selector/);
-    expect(() => validateTaskRequest({ task: "formal", agent: "general", async: false, formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/explicit Specialized agent selector/);
-    expect(() => validateTaskRequest({ task: "formal", agent: "aili.implementer", formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/explicit boolean async/);
-    expect(() => validateTaskRequest({ task: "formal", agent: " aili.implementer ", async: true, formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/exact agent value/);
+    expect(() => validateFormalTaskRequest({ task: "formal", formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/explicit Specialized agent selector/);
+    expect(() => validateFormalTaskRequest({ task: "formal", agent: "general", async: false, formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/explicit Specialized agent selector/);
+    expect(() => validateFormalTaskRequest({ task: "formal", agent: "aili.implementer", formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/explicit boolean async/);
+    expect(() => validateFormalTaskRequest({ task: "formal", agent: " aili.implementer ", async: true, formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/exact agent value/);
     expect(() => validateTaskRequest({ task: "x", unexpected: true }, profiles)).toThrow(/unknown fields/);
-    expect(() => validateTaskRequest({ task: "x", formalContext: { changeId: "change", tasksPath: "tasks.md" } }, profiles)).toThrow(/formalContext contains unknown fields: tasksPath/);
-    expect(() => validateTaskRequest({ tasks: [{ task: "x", formalContext: { changeId: "change", phase: "BUILD" } }] }, profiles)).toThrow(/formalContext contains unknown fields: phase/);
-    expect(() => validateTaskRequest({ task: "x", formalContext: { changeId: " change " } }, profiles)).toThrow(/exact non-empty string/);
-    expect(() => validateTaskRequest({ task: "formal", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/requires an exact continuationAudit sibling/);
-    expect(() => validateTaskRequest({ task: "ordinary", continuationAudit: continuationAudit() }, profiles)).toThrow(/requires formalContext/);
-    expect(() => validateTaskRequest({ task: "formal", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit({ canonicalRole: "aili.code-scout" }) }, profiles)).toThrow(/canonicalRole must equal/);
-    expect(() => validateTaskRequest({ task: "formal", agent: "aili.implementer", async: false, writeScope: { paths: ["src"] }, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit() }, profiles)).toThrow(/writeScope must equal/);
+    expect(() => validateFormalTaskRequest({ task: "x", formalContext: { changeId: "change", tasksPath: "tasks.md" } }, profiles)).toThrow(/formalContext contains unknown fields: tasksPath/);
+    expect(() => validateFormalTaskRequest({ tasks: [{ task: "x", formalContext: { changeId: "change", phase: "BUILD" } }] }, profiles)).toThrow(/formalContext contains unknown fields: phase/);
+    expect(() => validateFormalTaskRequest({ task: "x", formalContext: { changeId: " change " } }, profiles)).toThrow(/exact non-empty string/);
+    expect(() => validateFormalTaskRequest({ task: "formal", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" } }, profiles)).toThrow(/requires an exact continuationAudit sibling/);
+    expect(() => validateFormalTaskRequest({ task: "ordinary", continuationAudit: continuationAudit() }, profiles)).toThrow(/requires formalContext/);
+    expect(() => validateFormalTaskRequest({ task: "formal", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit({ canonicalRole: "aili.code-scout" }) }, profiles)).toThrow(/canonicalRole must equal/);
+    expect(() => validateFormalTaskRequest({ task: "formal", agent: "aili.implementer", async: false, writeScope: { paths: ["src"] }, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit() }, profiles)).toThrow(/writeScope must equal/);
     expect(() => validateTaskRequest({ task: "x", blocking: true }, profiles)).toThrow(/unknown fields: blocking/);
     const publicSchema = JSON.stringify(TASK_TOOL_SCHEMA);
     expect(publicSchema).toContain("Set false to wait synchronously");
@@ -180,10 +180,14 @@ describe("task schema and coordinator", () => {
     expect(publicSchema).toContain("Optional one-shot provider/model request");
     expect(publicSchema).toContain("thinking");
     expect(publicSchema).not.toContain("gpt-5.6-terra");
-    expect(publicSchema).toContain("formalContext");
-    expect(publicSchema).toContain("changeId");
-    expect(publicSchema).toContain("continuationAudit");
-    expect(publicSchema).toContain("canonicalRole");
+    // Formal identity fields live only on the trusted internal schema.
+    expect(publicSchema).not.toContain("formalContext");
+    expect(publicSchema).not.toContain("continuationAudit");
+    const formalSchema = JSON.stringify(FORMAL_TASK_REQUEST_SCHEMA);
+    expect(formalSchema).toContain("formalContext");
+    expect(formalSchema).toContain("changeId");
+    expect(formalSchema).toContain("continuationAudit");
+    expect(formalSchema).toContain("canonicalRole");
     expect(publicSchema).not.toContain("tasksPath");
     expect(publicSchema).not.toContain("\"blocking\":");
     expect(() => validateTaskRequest({ tasks: [] }, profiles)).toThrow(/non-empty/);
@@ -240,12 +244,18 @@ describe("task schema and coordinator", () => {
       },
     });
 
-    await expect(coordinator.submit({
+    await expect(coordinator.submitTrusted({
       tasks: [
         { task: "valid formal member", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit() },
         { task: "invalid formal member", agent: "aili.code-scout", formalContext: { changeId: "exact-change" } },
       ],
     })).rejects.toThrow(/explicit boolean async/);
+    // The public schema rejects the formal identity fields outright.
+    await expect(coordinator.submit({
+      tasks: [
+        { task: "valid formal member", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit() },
+      ],
+    })).rejects.toThrow(/unknown fields: formalContext, continuationAudit/);
 
     expect(journal.getState()).toMatchObject({
       lastSequence: 0,
@@ -278,12 +288,12 @@ describe("task schema and coordinator", () => {
         },
       })],
     ] as const) {
-      expect(() => validateTaskRequest(formal(audit), profiles), name).toThrow(/single line|exceeds/);
+      expect(() => validateFormalTaskRequest(formal(audit), profiles), name).toThrow(/single line|exceeds/);
     }
-    const publicSchema = JSON.stringify(TASK_TOOL_SCHEMA);
-    expect(publicSchema).toContain(`\"maxItems\":${FORMAL_RUNTIME_LIMITS.writeScopeItems}`);
-    expect(publicSchema).toContain(`\"maxLength\":${FORMAL_RUNTIME_LIMITS.auditFieldChars}`);
-    expect(publicSchema).toContain("u001F");
+    const formalSchema = JSON.stringify(FORMAL_TASK_REQUEST_SCHEMA);
+    expect(formalSchema).toContain(`\"maxItems\":${FORMAL_RUNTIME_LIMITS.writeScopeItems}`);
+    expect(formalSchema).toContain(`\"maxLength\":${FORMAL_RUNTIME_LIMITS.auditFieldChars}`);
+    expect(formalSchema).toContain("u001F");
   });
 
   it("requires a new formal Agent when any durable RoleProfile identity field drifts", async () => {
@@ -728,7 +738,7 @@ describe("task schema and coordinator", () => {
           { task: "missing formal context", agent: "aili.code-scout", async: false },
           ancestry,
         )).rejects.toThrow(/must explicitly repeat the exact same formalContext\.changeId/);
-        await expect(coordinator.submit(
+        await expect(coordinator.submitTrusted(
           { task: "wrong formal context", agent: "aili.code-scout", async: false, formalContext: { changeId: "other-change" }, continuationAudit: continuationAudit({ canonicalRole: "aili.code-scout" }) },
           ancestry,
         )).rejects.toThrow(/must explicitly repeat the exact same formalContext\.changeId/);

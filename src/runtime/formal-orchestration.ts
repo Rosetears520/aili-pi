@@ -401,7 +401,10 @@ function waiverAudit(
   };
 }
 
-function exactTaskRequest(prepared: PreparedFormalLifecycle, taskPackage: FormalTaskPackage): FormalTaskRequest {
+export function exactTaskRequest(
+  prepared: { lifecycle: { taskIdentity: string; phase: string } },
+  taskPackage: FormalTaskPackage,
+): FormalTaskRequest {
   const selector = packageField(taskPackage, "Owner").slice("agent:".length);
   const continuationAudit: FormalContinuationAudit = {
     packageId: taskPackage.id,
@@ -430,6 +433,19 @@ function exactTaskRequest(prepared: PreparedFormalLifecycle, taskPackage: Formal
     formalContext: { changeId: prepared.lifecycle.taskIdentity },
     continuationAudit,
   };
+}
+
+/** Construct the ordinary task request for one board package. Returns
+ *  undefined when the package is not on the board. Used by the formal_task
+ *  adapter; the ROSE planner composes it through the full gate matrix. */
+export function buildFormalPackageTaskRequest(
+  board: FormalTaskBoard,
+  lifecycle: { taskIdentity: string; phase: string },
+  packageId: string,
+): FormalTaskRequest | undefined {
+  const taskPackage = board.packages.find((candidate) => candidate.id === packageId);
+  if (!taskPackage) return undefined;
+  return exactTaskRequest({ lifecycle }, taskPackage);
 }
 
 export function planFormalPackageExecution(input: FormalPackageExecutionPlanInput): FormalPackageExecutionPlan {

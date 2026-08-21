@@ -3,7 +3,8 @@ import { realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 import { loadModeConfig } from "pi-permission-modes/src/config-load.ts";
 import type { ModeDef, PermissionModeConfig } from "pi-permission-modes/src/schema.ts";
-import { TASK_TOOL_SCHEMA } from "./task-schema.js";
+import { FORMAL_TASK_REQUEST_SCHEMA, TASK_TOOL_SCHEMA } from "./task-schema.js";
+import { buildFormalTaskDispatch, FORMAL_TASK_TOOL_SCHEMA } from "./formal-task-tool.js";
 import { HUB_TOOL_SCHEMA, type HubCaller, type LiveAgentAdapter } from "./hub.js";
 import { assembleChildPrompt, computeEffectiveTools, type ParentToolSnapshot } from "./policy.js";
 import { createChildApprovalBridge, createPersistentChildSession } from "./session-factory.js";
@@ -1245,15 +1246,43 @@ export class PersistentAgentProduction {
     role: RoleProfile,
     sandboxedBash?: ToolDefinition,
   ): ToolDefinition[] {
+    // Formal children may repeat their owning formalContext on nested tasks
+    // (the ancestry rule demands the exact changeId); ordinary children get
+    // the public schema without the formal identity fields.
+    const formalChild = Boolean(input?.item.formalContext);
     const task: ToolDefinition = {
       name: "task",
       label: "Task",
-      description: "Create a nested persistent Agent synchronously within the explicit spawn/depth policy. Use the public async field if supplied; never send profile-only blocking metadata.",
-      parameters: TASK_TOOL_SCHEMA,
+      description: formalChild
+        ? "Create a nested persistent Agent synchronously within the explicit spawn/depth policy. This is a formal child: every nested task must repeat the exact owning formalContext.changeId and its continuationAudit."
+        : "Create a nested persistent Agent synchronously within the explicit spawn/depth policy. Use the public async field if supplied; never send profile-only blocking metadata.",
+      parameters: formalChild ? FORMAL_TASK_REQUEST_SCHEMA : TASK_TOOL_SCHEMA,
       ...TASK_RENDERERS,
       execute: async (_id, params, signal, onUpdate) => {
         if (!input) throw new Error("nested task is unavailable outside an inherited scheduled turn");
-        const result = await state.runtime.task.submit(params, {
+        const result = await (formalChild ? state.runtime.task.submitTrusted : state.runtime.task.submit)(params, {
+          parentAgentId: input.agentId,
+          parentSelector: role.selector,
+          parentDepth: input.depth,
+          inheritedPermit: input.context.permit,
+          ...(input.modelChoice ? { parentResolution: input.modelChoice } : {}),
+          currentTurnModelAuthority: input.currentTurnModelAuthority ?? defaultCurrentTurnModelAuthority(),
+          authority: input.currentTurnModelAuthority ?? defaultCurrentTurnModelAuthority(),
+          ...(input.item.formalContext ? { formalChangeId: input.item.formalContext.changeId } : {}),
+        }, signal, onUpdate as unknown as TaskUpdateCallback | undefined);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
+      },
+    };
+    const formalTask: ToolDefinition = {
+      name: "formal_task",
+      label: "Formal Task",
+      description: "Dispatch one exact ready package from a validated v1 formal-task-board.md/progress.txt pair as a nested persistent Agent task. Fails closed before allocation on any invalid or non-ready package.",
+      parameters: FORMAL_TASK_TOOL_SCHEMA,
+      ...TASK_RENDERERS,
+      execute: async (_id, params, signal, onUpdate) => {
+        if (!input) throw new Error("formal_task is unavailable outside an inherited scheduled turn");
+        const request = await buildFormalTaskDispatch(state.runtime.repositoryRoot, params as { changeId: string; packageId: string });
+        const result = await state.runtime.task.submitTrusted(request, {
           parentAgentId: input.agentId,
           parentSelector: role.selector,
           parentDepth: input.depth,
@@ -1277,7 +1306,7 @@ export class PersistentAgentProduction {
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
       },
     };
-    return [task, hub, ...(sandboxedBash ? [sandboxedBash] : [])];
+    return [task, formalTask, hub, ...(sandboxedBash ? [sandboxedBash] : [])];
   }
 
   private async validateFormalWorkspaceLocation(state: ParentState, lease: FormalWorkspaceLease): Promise<string> {
