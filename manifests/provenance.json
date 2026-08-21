@@ -79,18 +79,22 @@
         "acp_delegate",
         "acp_delegate_wait",
         "acp_delegate_cancel",
-        "context and compaction handlers"
+        "context and compaction handlers",
+        "createAcpPressureEvaluator decision-only pressure evaluator"
       ],
       "localChanges": [
         "added AcpOwnershipRouter so a turn-frozen canonical route gates context, system-prompt and compaction ownership before side effects",
         "disabled upstream auto-update and user-home subagent settings mutation in the AILI composition",
-        "rebuilt dist against the retained source and Pi 0.84.1"
+        "rebuilt dist against the retained source and Pi 0.84.1",
+        "added createAcpPressureEvaluator: a decision-only processTurn facade (in-memory state, renderTags none) so the AILI Codex route can reuse the exact ACP WHEN without message mutation"
       ],
       "verification": [
         "tests/unit/context-upstream-inventory.test.ts",
         "tests/unit/context-provider-router.test.ts",
         "tests/integration/context-runtime-load.test.ts",
-        "npm run typecheck"
+        "npm run typecheck",
+        "tests/unit/context-pressure.test.ts",
+        "tests/integration/codex-remote-compaction-compat.test.ts"
       ]
     },
     {

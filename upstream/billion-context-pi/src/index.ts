@@ -23,6 +23,8 @@ import { collectCoveredMessageIds, estimateTokens, lastUserMessageId } from "./t
 import { checkForUpdate } from "./update.js";
 import { loadUserConfig, applyUserConfig } from "./user-config.js";
 import { formatSystemPromptForEvent } from "./compat.js";
+export { createAcpPressureEvaluator } from "./pressure-evaluator.js";
+export type { AcpPressureDecision, AcpPressureEvaluator } from "./pressure-evaluator.js";
 
 type AgentMessage = SessionMessageEntry["message"];
 

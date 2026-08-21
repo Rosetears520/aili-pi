@@ -5,7 +5,8 @@ import type {
 import { hasApi, type Api, type Model } from "@earendil-works/pi-ai";
 import { createCodexCompactExtension } from "@narumitw/pi-codex-compact/src/codex-compact.js";
 import { createCodexCompactSettingsRuntime, type CodexCompactSettingsRuntime } from "@narumitw/pi-codex-compact/src/settings.js";
-import { createAcpExtension } from "../../upstream/billion-context-pi/dist/index.js";
+import { createAcpExtension, createAcpPressureEvaluator, type AcpPressureEvaluator } from "../../upstream/billion-context-pi/dist/index.js";
+import { wireContextPressure } from "./context-pressure.js";
 
 export const BILLION_CONTEXT_VERSION = "0.1.34";
 export const CODEX_COMPACT_VERSION = "0.50.0";
@@ -95,6 +96,7 @@ export function forcePiOwnedCodexRetry(
 export interface ProviderRoutedContextOptions {
   settingsRuntime?: ReturnType<typeof createCodexCompactSettingsRuntime>;
   fetch?: typeof globalThis.fetch;
+  pressureEvaluator?: AcpPressureEvaluator;
 }
 
 export function createProviderRoutedContextExtension(options: ProviderRoutedContextOptions = {}): ExtensionFactory {
@@ -113,8 +115,19 @@ export function createProviderRoutedContextExtension(options: ProviderRoutedCont
     const acp = createAcpExtension({ autoUpdate: false }, {
       ownsContext: (ctx) => owns(ctx, "billion-context"),
     });
+    // Same auto-update posture as the ACP composition: the evaluator makes no
+    // network calls of its own, but its adapter config mirrors the extension's.
+    const pressureEvaluator = options.pressureEvaluator ?? createAcpPressureEvaluator({ autoUpdate: false });
 
     acp(pi);
+    // The pressure wiring must register before codex(pi): its threshold gate
+    // cancels Pi auto-compaction by short-circuiting later handlers, and the
+    // codex-compact handler must not have already performed remote compaction
+    // for a threshold event the ACP WHEN policy owns.
+    wireContextPressure(pi, {
+      ownsCodexContext: (ctx) => owns(ctx, "codex-remote-v2"),
+      evaluator: pressureEvaluator,
+    });
     codex(pi);
     pi.on("agent_end", () => router.endTurn());
     pi.on("session_before_switch", () => router.endTurn());
