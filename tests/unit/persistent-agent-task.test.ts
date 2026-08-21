@@ -49,6 +49,18 @@ function deferred<T>() {
   return { promise, resolve: resolvePromise, reject: rejectPromise };
 }
 
+// AbortSignal never replays a past abort to late addEventListener callers, so
+// executor fixtures must treat an already-aborted signal as settled now.
+function abortRace(signal: AbortSignal): Promise<never> {
+  return new Promise<never>((_, reject) => {
+    if (signal.aborted) {
+      reject(new Error("fixture aborted by parent signal"));
+      return;
+    }
+    signal.addEventListener("abort", () => reject(new Error("fixture aborted by parent signal")), { once: true });
+  });
+}
+
 async function fixtureJournal(parentId = "parent-1") {
   const parentFile = join(scratch, `${parentId}.jsonl`);
   await writeFile(parentFile, "fixture parent\n");
@@ -557,6 +569,145 @@ describe("task schema and coordinator", () => {
     coordinator = fixture.coordinator;
     await coordinator.submit({ task: "specialized parent", agent: "aili.code-scout", async: false });
     expect(denied).toBe(true);
+  });
+
+  it("keeps an accepted top-level async task running when the submitting parent signal aborts", async () => {
+    const gate = deferred<TaskExecutionOutput>();
+    const delivered: string[] = [];
+    const { coordinator, journal } = await fixtureCoordinator({
+      execute: async () => await gate.promise,
+      onAsyncSettled: async (result) => { delivered.push(result.jobId); },
+    });
+    const controller = new AbortController();
+    const accepted = await coordinator.submit({ task: "background" }, undefined, controller.signal);
+    expect(accepted.results[0]).toMatchObject({ status: "accepted", async: true });
+
+    controller.abort();
+    expect(journal.getState().jobs["job-1"].state).not.toBe("aborted");
+
+    gate.resolve({ output: "background done" });
+    const settled = await coordinator.getSettlement("job-1");
+    expect(settled).toMatchObject({ status: "completed", output: "background done" });
+    await vi.waitFor(() => expect(delivered).toEqual(["job-1"]));
+  });
+
+  it("still cancels a top-level sync task when the parent signal aborts", async () => {
+    const gate = deferred<TaskExecutionOutput>();
+    const { coordinator, journal } = await fixtureCoordinator({
+      execute: async (input) => await Promise.race([gate.promise, abortRace(input.context.signal)]),
+    });
+    const controller = new AbortController();
+    const pending = coordinator.submit({ task: "join", async: false }, undefined, controller.signal);
+    controller.abort();
+    const response = await pending;
+    expect(response.results[0]).toMatchObject({
+      status: "aborted",
+      lifecycle: { agent: "aborted", job: "aborted", turn: "aborted" },
+    });
+    expect(journal.getState().jobs["job-1"].state).toBe("aborted");
+    gate.resolve({ output: "unblocked" });
+  });
+
+  it("cancels only the synchronous item of a mixed batch when the parent signal aborts", async () => {
+    const gate = deferred<TaskExecutionOutput>();
+    const delivered: string[] = [];
+    const { coordinator, scheduler, journal } = await fixtureCoordinator({
+      capacity: 1,
+      execute: async (input) => await Promise.race([gate.promise, abortRace(input.context.signal)]),
+      onAsyncSettled: async (result) => { delivered.push(result.jobId); },
+    });
+    const controller = new AbortController();
+    const pending = coordinator.submit({
+      context: "shared",
+      tasks: [
+        { task: "background", async: true },
+        { task: "join", async: false },
+      ],
+    }, undefined, controller.signal);
+    await vi.waitFor(() => expect(scheduler.stats().queued).toEqual(["job-2"]));
+
+    controller.abort();
+    const response = await pending;
+    expect(response.results[0]).toMatchObject({ status: "accepted", async: true });
+    expect(response.results[1]).toMatchObject({ status: "aborted" });
+    expect(journal.getState().jobs["job-2"].state).toBe("aborted");
+    expect(journal.getState().jobs["job-1"].state).not.toBe("aborted");
+
+    gate.resolve({ output: "background done" });
+    const settled = await coordinator.getSettlement("job-1");
+    expect(settled).toMatchObject({ status: "completed", output: "background done" });
+    await vi.waitFor(() => expect(delivered).toEqual(["job-1"]));
+  });
+
+  it("keeps nested tasks cancellable through their parent task's turn signal", async () => {
+    let coordinator!: TaskCoordinator;
+    const fixture = await fixtureCoordinator({
+      profiles: await loadRoleProfiles(),
+      execute: async (input) => {
+        if (input.depth === 0) {
+          const nested = coordinator.submit(
+            { task: "nested join", agent: "aili.code-scout" },
+            {
+              parentAgentId: input.agentId,
+              parentSelector: input.role.selector,
+              parentDepth: input.depth,
+              inheritedPermit: input.context.permit,
+            },
+            input.context.signal,
+          );
+          const nestedResult = await nested;
+          return { output: `outer after nested ${nestedResult.results[0]?.status ?? "unsettled"}` };
+        }
+        return await Promise.race([deferred<TaskExecutionOutput>().promise, abortRace(input.context.signal)]);
+      },
+    });
+    coordinator = fixture.coordinator;
+    const outer = coordinator.submit({ task: "parent", async: false });
+    await vi.waitFor(() => expect(fixture.journal.getState().turns["turn-2"]).toBeDefined());
+
+    expect(await coordinator.cancel("job-1")).toBe("running");
+    const response = await outer;
+    expect(response.results[0]).toMatchObject({ status: "aborted" });
+    expect(await coordinator.getSettlement("job-2")).toMatchObject({ status: "aborted" });
+    expect(fixture.journal.getState().jobs["job-1"].state).toBe("aborted");
+    expect(fixture.journal.getState().jobs["job-2"].state).toBe("aborted");
+  });
+
+  it("does not discard a generated async result when the parent signal aborts at the completion boundary", async () => {
+    const executed = deferred<void>();
+    const persistenceGate = deferred<void>();
+    const { coordinator } = await fixtureCoordinator({
+      execute: async () => {
+        executed.resolve();
+        return { output: "already produced" };
+      },
+      onSettled: async () => { await persistenceGate.promise; },
+    });
+    const controller = new AbortController();
+    const accepted = await coordinator.submit({ task: "background" }, undefined, controller.signal);
+    expect(accepted.results[0]).toMatchObject({ status: "accepted" });
+
+    await executed.promise;
+    controller.abort();
+    persistenceGate.resolve();
+
+    const settled = await coordinator.getSettlement("job-1");
+    expect(settled).toMatchObject({ status: "completed", output: "already produced" });
+  });
+
+  it("creates and runs a top-level async task under an already-aborted signal while sync is cancelled immediately", async () => {
+    const { coordinator } = await fixtureCoordinator({
+      execute: async ({ item }) => ({ output: `done:${item.task}` }),
+    });
+    const controller = new AbortController();
+    controller.abort();
+
+    const asyncResponse = await coordinator.submit({ task: "background" }, undefined, controller.signal);
+    expect(asyncResponse.results[0]).toMatchObject({ status: "accepted", async: true });
+    expect(await coordinator.getSettlement("job-1")).toMatchObject({ status: "completed", output: "done:background" });
+
+    const syncResponse = await coordinator.submit({ task: "join", async: false }, undefined, controller.signal);
+    expect(syncResponse.results[0]).toMatchObject({ status: "aborted" });
   });
 
   it("requires nested formal work to repeat the exact inherited formalContext before allocation", async () => {

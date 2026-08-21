@@ -519,14 +519,26 @@ export class TaskCoordinator {
     if (prepared.created.length === 1) this.emitLiveSnapshot(prepared.created[0]!, liveUpdate);
     else this.emitLiveBatch(prepared.created, liveUpdate);
 
+    // The submitting turn's signal owns only the tasks that join its
+    // lifecycle: synchronous top-level tasks and every nested task (nested
+    // work runs under its own parent Agent's turn signal). Accepted top-level
+    // async tasks outlive the submitting turn; only explicit hub cancel,
+    // runtime/session shutdown, scheduler close, or their own failure may end
+    // them. `ancestry !== undefined` is defensive redundancy while nested
+    // items are forced synchronous — nesting always binds the ancestor
+    // lifecycle, so it stays in the parent-bound subset explicitly.
+    const parentBoundTasks = prepared.created.filter(
+      (task) => !task.effectiveAsync || ancestry !== undefined,
+    );
+
     let abortListener: (() => void) | undefined;
-    if (parentSignal) {
+    if (parentSignal && parentBoundTasks.length > 0) {
       abortListener = () => {
-        for (const task of prepared.created) void this.cancel(task.jobId);
+        for (const task of parentBoundTasks) void this.cancel(task.jobId);
       };
       parentSignal.addEventListener("abort", abortListener, { once: true });
       if (parentSignal.aborted) abortListener();
-      void Promise.allSettled(prepared.created.map((task) => task.handle.result)).then(() => {
+      void Promise.allSettled(parentBoundTasks.map((task) => task.handle.result)).then(() => {
         if (abortListener) parentSignal.removeEventListener("abort", abortListener);
       });
     }

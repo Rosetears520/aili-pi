@@ -42,6 +42,7 @@ interface QueueEntry<T> {
 export class FifoTurnScheduler {
   private readonly queue: Array<QueueEntry<unknown>> = [];
   private readonly running = new Map<string, QueueEntry<unknown>>();
+  private readonly nestedRunning = new Map<string, { controller: AbortController }>();
   private readonly known = new Set<string>();
   private readonly permitTokens = new Set<symbol>();
   private readonly nestedTails = new Map<symbol, Promise<void>>();
@@ -101,13 +102,16 @@ export class FifoTurnScheduler {
         nested: true,
       });
     });
+    this.nestedRunning.set(jobId, { controller });
     const result = operation.then(
       (value) => {
         state = "settled";
+        this.nestedRunning.delete(jobId);
         return value;
       },
       (error) => {
         state = controller.signal.aborted ? "cancelled" : "settled";
+        this.nestedRunning.delete(jobId);
         throw error;
       },
     );
@@ -133,6 +137,11 @@ export class FifoTurnScheduler {
       running.controller.abort(new ScheduledTaskCancelledError(jobId, false));
       return "running";
     }
+    const nested = this.nestedRunning.get(jobId);
+    if (nested) {
+      nested.controller.abort(new ScheduledTaskCancelledError(jobId, false));
+      return "running";
+    }
     return "not-found";
   }
 
@@ -154,6 +163,7 @@ export class FifoTurnScheduler {
     this.closed = true;
     for (const entry of [...this.queue]) await this.cancel(entry.jobId);
     for (const entry of this.running.values()) entry.controller.abort(new ScheduledTaskCancelledError(entry.jobId, false));
+    for (const [jobId, entry] of this.nestedRunning) entry.controller.abort(new ScheduledTaskCancelledError(jobId, false));
   }
 
   private drain(): void {

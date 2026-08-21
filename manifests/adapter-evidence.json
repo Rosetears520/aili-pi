@@ -68,7 +68,7 @@
         },
         {
           "path": "tests/unit/persistent-agent-task.test.ts",
-          "sha256": "888910c1fc1bc3bdc9502e7bb270f0f106dfeab362e53a007ecf239653fc923f"
+          "sha256": "13faa5a66c149779a28315aa30b06ba1f25accb58a1436fde4677b5181fcee84"
         },
         {
           "path": "tests/unit/persistent-agent-hub.test.ts",
