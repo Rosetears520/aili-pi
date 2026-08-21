@@ -246,6 +246,8 @@ export const zhCNLocale: LocalePlugin = {
     "chat.steer": "引导",
     "chat.followUp": "后续消息",
     "chat.send": "发送",
+    "chat.showRaw": "显示原始 JSON",
+    "chat.hideRaw": "收起原始 JSON",
     "chat.expandEditor": "展开全屏编辑",
     "chat.minimizeEditor": "缩小",
     "chat.editMessage": "编辑消息",

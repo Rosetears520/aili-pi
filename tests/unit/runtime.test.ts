@@ -20,7 +20,7 @@ function command(name: string, source = "prompt") {
 
 async function runtimeHarness(
   commands = LIFECYCLE_PROMPTS.map((name) => command(name)),
-  activeTools = ["read", "grep", "find", "ls", "write", "edit", "bash", "task"],
+  activeTools = ["read", "grep", "find", "ls", "write", "edit", "bash", "sub"],
 ) {
   const beforeStart: BeforeStartHandler[] = [];
   const registeredCommands: string[] = [];
@@ -97,7 +97,7 @@ describe("AILI runtime composition", () => {
     expect(harness.registeredShortcuts).toContain("alt+m");
     expect(harness.registeredShortcuts).not.toContain("ctrl+shift+alt+a");
     expect(harness.registeredTools).toEqual(expect.arrayContaining([
-      "task", "hub", "mcp", "mcpScript", "compress", "decompress", "search_context", "acp_status", "web_search", "fetch_content", "get_search_content",
+      "sub", "hub", "mcp", "mcpScript", "compress", "decompress", "search_context", "acp_status", "web_search", "fetch_content", "get_search_content",
     ]));
     expect(harness.registeredTools.filter((name) => name.startsWith("aili_compact") || [
       "aili_decompress", "aili_prune", "aili_search_context", "aili_context_recap",
@@ -107,7 +107,7 @@ describe("AILI runtime composition", () => {
     expect(harness.registeredTools).not.toContain("aili_task");
 
     const profiles = await loadRoleProfiles();
-    const task = harness.registeredToolDefinitions.find((tool) => tool.name === "task")!;
+    const task = harness.registeredToolDefinitions.find((tool) => tool.name === "sub")!;
     const catalogGuideline = task.promptGuidelines?.at(-1) ?? "";
     expect(task.description).toContain("Delegate bounded work to parent-scoped persistent AILI Agents");
     expect(task.promptSnippet).toContain("Dispatch formal packages through formal_task");
@@ -138,7 +138,7 @@ describe("AILI runtime composition", () => {
     expect(result?.systemPrompt).toContain("delegation_policy=benefit-based");
     expect(result?.systemPrompt).toContain("Agents improve efficiency and preserve parent context");
     expect(result?.systemPrompt).toContain("ordinary direct work remains valid when delegation has no concrete benefit");
-    expect(result?.systemPrompt).toContain("omitted task.agent retains general compatibility");
+    expect(result?.systemPrompt).toContain("omitted sub.agent retains general compatibility");
     expect(result?.systemPrompt).not.toContain("delegation_gate=");
     expect(result?.systemPrompt).toContain("permission_runtime=pi-permission-modes");
     expect(result?.systemPrompt).not.toContain("<!-- AILI-PI:ROSE:START -->");
@@ -241,7 +241,7 @@ describe("AILI runtime composition", () => {
     expect(LIFECYCLE_AGENT_GUIDANCE_MAX_CHARS).toBe(16_384);
   });
 
-  it("omits task and lifecycle catalog guidance when task is inactive", async () => {
+  it("omits sub and lifecycle catalog guidance when sub is inactive", async () => {
     const harness = await runtimeHarness(
       LIFECYCLE_PROMPTS.map((name) => command(name)),
       ["read", "grep", "find", "ls", "write", "edit", "bash"],

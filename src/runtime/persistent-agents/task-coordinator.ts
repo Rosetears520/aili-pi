@@ -205,6 +205,8 @@ export interface NormalizedTaskSettlement {
   deliveryRequired: boolean;
   limits: { maxRuntimeMs: 0; softRequestBudget: 0 };
   formalResultStatus?: FormalResultEvidenceStatus;
+  /** Structured model/thinking request decision recorded at dispatch. */
+  modelDecision?: SubagentModelDecision;
 }
 
 export interface TaskAcceptedResult {
@@ -607,7 +609,8 @@ export class TaskCoordinator {
           limits: { maxRuntimeMs: 0, softRequestBudget: 0 },
         };
       }
-      return await task.handle.result;
+      const settled = await task.handle.result;
+      return task.modelDecision ? { ...settled, modelDecision: task.modelDecision } : settled;
     }));
     return { batch: prepared.request.batch, results };
   }

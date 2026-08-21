@@ -65,6 +65,114 @@ afterEach(async () => {
 });
 
 describe("production persistent Agent controlled path", () => {
+  it("auto-approves a model override under yolo bypass mode with an audited decision", async () => {
+    vi.stubEnv("PI_PERMISSION_MODE", "yolo");
+    const cwd = join(scratch, "yolo-project");
+    const sessionDir = join(scratch, "yolo-sessions");
+    const agentDir = join(scratch, "home", ".pi", "agent");
+    await Promise.all([mkdir(cwd, { recursive: true }), mkdir(sessionDir, { recursive: true }), mkdir(agentDir, { recursive: true })]);
+    const secondaryModelId = "controlled-persistent-agent-yolo";
+    const requestedCanonical = `${providerName}/${secondaryModelId}`;
+
+    const providerConfig = {
+      name: "Controlled persistent Agent fixture",
+      api,
+      baseUrl: model.baseUrl,
+      apiKey: "fixture-key",
+      streamSimple: (selected: Model<any>, context: Context, _options?: SimpleStreamOptions) => {
+        const isChild = context.systemPrompt?.includes("# General Agent") === true;
+        if (isChild) {
+          return assistantStream(selected, [{ type: "text", text: "{\"status\":\"completed\"}" }], "stop");
+        }
+        const hasTaskResult = context.messages.some((message) => message.role === "toolResult" && message.toolName === "sub");
+        if (!hasTaskResult) {
+          return assistantStream(selected, [{
+            type: "toolCall",
+            id: "yolo-model-call",
+            name: "sub",
+            arguments: { task: "Report one line.", agent: "general", async: false, model: requestedCanonical },
+          }], "toolUse");
+        }
+        return assistantStream(selected, [{ type: "text", text: "Yolo child completed." }], "stop");
+      },
+      models: [
+        {
+          id: model.id,
+          name: model.name,
+          api,
+          reasoning: false,
+          input: ["text" as const],
+          cost: model.cost,
+          contextWindow: model.contextWindow,
+          maxTokens: model.maxTokens,
+        },
+        {
+          id: secondaryModelId,
+          name: "Controlled yolo override fixture",
+          api,
+          reasoning: false,
+          input: ["text" as const],
+          cost: model.cost,
+          contextWindow: model.contextWindow,
+          maxTokens: model.maxTokens,
+        },
+      ],
+    };
+    const childModelRuntime = await ModelRuntime.create({
+      authPath: join(scratch, "yolo-child-auth.json"),
+      modelsPath: null,
+      allowModelNetwork: false,
+    });
+    childModelRuntime.registerProvider(providerName, providerConfig);
+    const persistentExtension: ExtensionFactory = async (pi) => {
+      pi.registerProvider(providerName, providerConfig);
+      await new PersistentAgentProduction(pi, { childModelRuntime }).register();
+      await permissionModes(persistentTaskAwarePermissionApi(pi));
+    };
+    const settings = SettingsManager.inMemory({}, { projectTrusted: true });
+    const loader = new DefaultResourceLoader({
+      cwd,
+      agentDir,
+      settingsManager: settings,
+      extensionFactories: [{ name: "aili-controlled-persistent-runtime", factory: persistentExtension, hidden: true }],
+      noExtensions: true,
+      noSkills: true,
+      noPromptTemplates: true,
+      noThemes: true,
+      noContextFiles: true,
+      systemPrompt: "Use sub exactly once.",
+    });
+    await loader.reload();
+    expect(loader.getExtensions().errors).toEqual([]);
+    const manager = SessionManager.create(cwd, sessionDir, { id: "yolo-parent" });
+    const created = await createAgentSession({
+      cwd,
+      agentDir,
+      model,
+      resourceLoader: loader,
+      settingsManager: settings,
+      sessionManager: manager,
+      tools: ["sub"],
+      thinkingLevel: "off",
+    });
+    await created.session.bindExtensions({ mode: "print" });
+    // print mode has no UI: without yolo the headless request would be
+    // rejected-unauthorized; yolo must auto-approve and apply the override.
+    await created.session.prompt("Run the yolo override dispatch.", { expandPromptTemplates: false, source: "extension" });
+    const taskResult = created.session.state.messages.find((message) => message.role === "toolResult" && message.toolName === "sub");
+    expect(taskResult).toMatchObject({
+      isError: false,
+      details: {
+        results: [{
+          status: "completed",
+          requestedModel: requestedCanonical,
+          effectiveModel: requestedCanonical,
+          modelDecision: { overrideDecision: "auto-approved-bypass" },
+        }],
+      },
+    });
+  });
+
   it("admits the canonical task and completes one authenticated controlled child sandbox operation", async () => {
     await rm(persistentArtifactPath, { force: true });
     const cwd = join(scratch, "project");
@@ -80,14 +188,14 @@ describe("production persistent Agent controlled path", () => {
       apiKey: "fixture-key",
       streamSimple: (selected: Model<any>, context: Context, _options?: SimpleStreamOptions) => {
         const isChild = context.systemPrompt?.includes("# General Agent") === true;
-        const hasTaskResult = context.messages.some((message) => message.role === "toolResult" && message.toolName === "task");
+        const hasTaskResult = context.messages.some((message) => message.role === "toolResult" && message.toolName === "sub");
         const hasBashResult = context.messages.some((message) => message.role === "toolResult" && message.toolName === "bash");
         if (!isChild && !hasTaskResult) {
           providerCalls.push("parent-task");
           return assistantStream(selected, [{
             type: "toolCall",
             id: "controlled-task-call",
-            name: "task",
+            name: "sub",
             arguments: {
               task: PERSISTENT_SANDBOX_TASK_TEXT,
               agent: "general",
@@ -147,7 +255,7 @@ describe("production persistent Agent controlled path", () => {
       noPromptTemplates: true,
       noThemes: true,
       noContextFiles: true,
-      systemPrompt: "Use task exactly once.",
+      systemPrompt: "Use sub exactly once.",
     });
     await loader.reload();
     expect(loader.getExtensions().errors).toEqual([]);
@@ -159,7 +267,7 @@ describe("production persistent Agent controlled path", () => {
       resourceLoader: loader,
       settingsManager: settings,
       sessionManager: manager,
-      tools: ["task", "bash"],
+      tools: ["sub", "bash"],
       thinkingLevel: "off",
     });
     await created.session.bindExtensions({ mode: "print" });
@@ -190,7 +298,7 @@ describe("production persistent Agent controlled path", () => {
     });
     try {
       await created.session.prompt("Run the controlled persistent task.", { expandPromptTemplates: false, source: "extension" });
-      const taskResult = created.session.state.messages.find((message) => message.role === "toolResult" && message.toolName === "task");
+      const taskResult = created.session.state.messages.find((message) => message.role === "toolResult" && message.toolName === "sub");
       expect(taskResult).toMatchObject({
         isError: false,
         details: {

@@ -457,7 +457,7 @@ const TASK_PROMPT_SNIPPET = "Ordinary Pi keeps benefit-based direct work and omi
 
 const TASK_PROMPT_GUIDELINES = [
   "Ordinary routing: outside a formal lifecycle, delegate only for concrete benefit; direct work remains valid and omitted agent retains general compatibility.",
-  "Formal boundary: formal package dispatch uses the formal_task tool with the exact changeId/packageId; this task tool never carries formalContext or continuationAudit.",
+  "Formal boundary: formal package dispatch uses the formal_task tool with the exact changeId/packageId; this sub tool never carries formalContext or continuationAudit.",
   "Prerequisite execution: use async:false with Join: immediate whenever the result is needed by the next decision or package.",
   "Worker boundary: workers return evidence only; they never write the owning formal-task-board.md/progress.txt or decide lifecycle phase, acceptance, or final verdict.",
 ];
@@ -466,17 +466,17 @@ const FORMAL_TASK_DESCRIPTION = "Dispatch one exact ready package from a validat
 
 /**
  * Canonical registration surface shared by production and deterministic tests.
- * It registers only task/hub plus the direct-user model command when configured;
+ * It registers only sub/formal_task/hub plus the direct-user model command when configured;
  * no legacy compatibility alias is created.
  */
 export function registerPersistentAgentTools(pi: ExtensionAPI, options: InternalPersistentToolRegistrationOptions): void {
   const compactCatalog = renderCompactAgentCatalog(options.catalog);
   if (!compactCatalog.ok) {
-    throw new Error(`task Agent Catalog metadata is non-pass: ${compactCatalog.diagnostics.map((diagnostic) => diagnostic.code).join(", ") || "UNKNOWN"}`);
+    throw new Error(`sub Agent Catalog metadata is non-pass: ${compactCatalog.diagnostics.map((diagnostic) => diagnostic.code).join(", ") || "UNKNOWN"}`);
   }
   registerCanonicalAiliTaskTool(pi, {
-    name: "task",
-    label: "Task",
+    name: "sub",
+    label: "Sub",
     description: TASK_DESCRIPTION,
     promptSnippet: TASK_PROMPT_SNIPPET,
     promptGuidelines: [...TASK_PROMPT_GUIDELINES, compactCatalog.value],

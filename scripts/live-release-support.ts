@@ -53,7 +53,7 @@ export function observePersistentTask(messages: readonly unknown[]): PersistentT
     if (message?.role !== "assistant" || !Array.isArray(message.content)) continue;
     for (const part of message.content) {
       const call = record(part);
-      if (call?.type === "toolCall" && call.name === "task") calls.push(call);
+      if (call?.type === "toolCall" && call.name === "sub") calls.push(call);
     }
   }
   if (calls.length !== 1) return { status: "NON_PASS", reason: calls.length === 0 ? "task-call-missing" : "duplicate-task-calls" };
@@ -64,7 +64,7 @@ export function observePersistentTask(messages: readonly unknown[]): PersistentT
   if (args?.async !== false) return { status: "NON_PASS", reason: "task-call-not-synchronous", callId };
 
   const matches = messages.map(record).filter((message) => message?.role === "toolResult"
-    && message.toolName === "task" && message.toolCallId === callId);
+    && message.toolName === "sub" && message.toolCallId === callId);
   if (matches.length !== 1) return {
     status: "NON_PASS",
     reason: matches.length === 0 ? "matching-task-result-missing" : "duplicate-task-results",
@@ -109,7 +109,7 @@ export function observePersistentBoundaryTask(messages: readonly unknown[]): Per
     for (const part of message.content) {
       const call = record(part);
       if (call?.type !== "toolCall") continue;
-      if (call.name === "task") taskCalls.push(call);
+      if (call.name === "sub") taskCalls.push(call);
       if (call.name === "bash") parentBashCalls += 1;
     }
   }
@@ -167,7 +167,7 @@ export function observePersistentSandboxTask(messages: readonly unknown[], marke
     for (const part of message.content) {
       const call = record(part);
       if (call?.type !== "toolCall") continue;
-      if (call.name === "task") taskCalls.push(call);
+      if (call.name === "sub") taskCalls.push(call);
       if (call.name === "bash") parentBashCalls += 1;
     }
   }

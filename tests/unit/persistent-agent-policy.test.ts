@@ -110,19 +110,19 @@ describe("persistent child prompt and policy assembly", () => {
     const roles = await loadRoleProfiles();
     const general = roles.find((role) => role.selector === "general")!;
     const scout = roles.find((role) => role.selector === "aili.code-scout")!;
-    const taskTool = tool("task");
+    const taskTool = tool("sub");
     const webTool = tool("web_search");
-    const snapshot = parent(["read", "write", "task", "web_search", "subagent", "missing"], [taskTool, webTool, tool("subagent")]);
+    const snapshot = parent(["read", "write", "sub", "web_search", "subagent", "missing"], [taskTool, webTool, tool("subagent")]);
 
     const generalPolicy = computeEffectiveTools({
       parent: snapshot,
-      childLoadable: ["read", "write", "task", "web_search", "subagent", "missing"],
-      childDefinitions: new Map([["task", taskTool], ["web_search", webTool]]),
+      childLoadable: ["read", "write", "sub", "web_search", "subagent", "missing"],
+      childDefinitions: new Map([["sub", taskTool], ["web_search", webTool]]),
       role: general,
       currentDepth: 0,
     });
-    expect(generalPolicy.effectiveTools).toEqual(["read", "write", "task", "web_search"]);
-    expect(generalPolicy.customTools.map((definition) => definition.name)).toEqual(["task", "web_search"]);
+    expect(generalPolicy.effectiveTools).toEqual(["read", "write", "sub", "web_search"]);
+    expect(generalPolicy.customTools.map((definition) => definition.name)).toEqual(["sub", "web_search"]);
     expect(generalPolicy.unavailable).toEqual(expect.arrayContaining([
       { name: "subagent", reason: "hard-guard" },
       { name: "missing", reason: "parent-definition-missing" },
@@ -132,13 +132,13 @@ describe("persistent child prompt and policy assembly", () => {
       parent: snapshot,
       childLoadable: snapshot.active,
       role: scout,
-      callTools: ["read", "write", "task", "not-active"],
+      callTools: ["read", "write", "sub", "not-active"],
       currentDepth: 0,
     });
     expect(specialized.effectiveTools).toEqual(["read"]);
     expect(specialized.unavailable).toEqual(expect.arrayContaining([
       { name: "write", reason: "role-ceiling" },
-      { name: "task", reason: "role-ceiling" },
+      { name: "sub", reason: "role-ceiling" },
       { name: "not-active", reason: "parent-inactive" },
     ]));
   });

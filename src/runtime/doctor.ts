@@ -437,8 +437,8 @@ export async function runDoctor(
       evidence: profileErrors.length > 0
         ? `public runtime registered but profile validation failed: ${profileErrors.slice(0, 3).join("; ")}`
         : liveErrors.length > 0
-          ? `public tools=task,hub; deterministic runtime gates pass; ${liveErrors.slice(0, 2).join("; ")}`
-          : "public tools=task,hub; legacy subagent absent; deterministic and Pi 0.84.2 provider/sandbox/external-workspace lifecycle gates pass",
+          ? `public tools=sub,hub; deterministic runtime gates pass; ${liveErrors.slice(0, 2).join("; ")}`
+          : "public tools=sub,hub; legacy subagent absent; deterministic and Pi 0.84.2 provider/sandbox/external-workspace lifecycle gates pass",
     });
   } catch (error) {
     results.push({ id: "agent.framework", status: "ERROR", evidence: boundedError(error) });

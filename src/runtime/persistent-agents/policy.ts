@@ -7,7 +7,7 @@ import {
 
 const LEGACY_OR_TOP_LEVEL_ONLY_TOOLS = new Set(["subagent", "aili_task"]);
 const BUILTIN_TOOL_NAMES = new Set(["read", "bash", "edit", "write", "grep", "find", "ls"]);
-const CHILD_BRIDGE_TOOL_NAMES = new Set(["task", "hub"]);
+const CHILD_BRIDGE_TOOL_NAMES = new Set(["sub", "hub"]);
 
 export interface ParentToolSnapshot {
   active: string[];
@@ -103,7 +103,7 @@ export function computeEffectiveTools(input: ComputeEffectiveToolsInput): Effect
       report(name, "call-narrowing");
       continue;
     }
-    if (name === "task") {
+    if (name === "sub") {
       const hasSpawn = input.role.spawns.some((target) => evaluateSpawn(input.role, target, input.currentDepth, input.configuredMaxDepth).allowed);
       if (!hasSpawn) {
         report(name, "spawn-policy");

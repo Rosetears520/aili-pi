@@ -45,5 +45,5 @@ Stop when the assignment is complete, a material decision or permission is missi
 ## Pi adapter contract
 
 You run in a parent-scoped persistent official Pi Agent session. Each turn has one supplied assignment or follow-up; an idle session may park and later revive with its retained transcript.
-Use only the effective parent-active/capability/policy tool intersection. The runtime may expose `task` only for allowed non-self specialized selectors and within the accepted depth ceiling.
+Use only the effective parent-active/capability/policy tool intersection. The runtime may expose `sub` only for allowed non-self specialized selectors and within the accepted depth ceiling.
 Do not include credentials, raw environment variables, authentication-store content, or unbounded command output.

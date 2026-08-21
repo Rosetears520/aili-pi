@@ -40,11 +40,11 @@
       "artifacts": [
         {
           "path": "src/runtime/persistent-agents/production.ts",
-          "sha256": "2d70294c71f5d4c760c4cf44e054a26698f08dfaaa4bb7e33051b8ee74397fb2"
+          "sha256": "81fe0a47ef1d962ed01d479aeec1396dc8884e85ed121220c2c64bb3874be511"
         },
         {
           "path": "src/runtime/persistent-agents/runtime.ts",
-          "sha256": "cd1578926de2ce8f6b4cb0aa5555ad700d9937d2b28b33544257e4ce89202c4d"
+          "sha256": "371b0a141c7bbcb75dea3007aa34e89f90ed8692d802733d0a7a066404201da0"
         },
         {
           "path": "src/runtime/persistent-agents/session-factory.ts",
@@ -52,11 +52,11 @@
         },
         {
           "path": "src/runtime/persistent-agents/task-registration.ts",
-          "sha256": "a2a21b567db10bafadf42ff79c8c2d3a2eb89f80356659243477b23887fc5e8b"
+          "sha256": "ccf019753ae3b9e27c3686436235ebd16544c96687d1a0eeacde972d750372c5"
         },
         {
           "path": "src/runtime/native-integrations.ts",
-          "sha256": "67cd00dd3e7d3b053991fd75d4a2863551f4eae4d7d6e30973cea0fbc3556d80"
+          "sha256": "33b9a5252d74428878368406528d11f3e6170ed8731c2e7c27fc3ff9a9474413"
         },
         {
           "path": "src/runtime/persistent-agents/storage.ts",
@@ -76,27 +76,27 @@
         },
         {
           "path": "tests/unit/persistent-agent-policy.test.ts",
-          "sha256": "373e0b5f3b59340ade889cdfb646fba1a2d4b99344c247a4d76b7dcb75ee6fa8"
+          "sha256": "b2d03a1643f273de8032460ceecfb0198ca5a8cf06dfeee93407ec81759c6360"
         },
         {
           "path": "tests/integration/persistent-agent-runtime.test.ts",
-          "sha256": "c10d55458c1cad411dcc51bafafe7f67169c8f2f7fd72c583e4862800e76ff56"
+          "sha256": "40eb94bca4bcc6d6ee96d0192f05abebc3f46f6a80bf921fa9eeb6e827186ad0"
         },
         {
           "path": "tests/integration/persistent-agent-production.test.ts",
-          "sha256": "60585d93fe650914c88aad3143a04dbf6160006d45054966bf35c54727048435"
+          "sha256": "a8e091c22516c6b760d17d14c32a1869546671c3f3d3483c93eb0ebb1e1c31c1"
         },
         {
           "path": "tests/integration/persistent-agent-task-collision.test.ts",
-          "sha256": "9c986ecc9418766d344db5c16af116612631d787c95e2cfe3623f87a5a186e6c"
+          "sha256": "e57a85d90b655f5d12b812c415d16858dd6c3afffd7f7f475c67ea2dc6789cbf"
         },
         {
           "path": "tests/unit/persistent-agent-task-registration.test.ts",
-          "sha256": "8d21e642169afb9fe67469355a0cd9f7a12a018ecbc107b25f5fae7a613d30c3"
+          "sha256": "204d063a8424a4a7b3fa96fc2696f4bfbbbb15072371933258cdffee946f9a65"
         },
         {
           "path": "tests/integration/package-runtime.test.ts",
-          "sha256": "716733db584fb79812623c564fab6307c8e6f98ff5bbe453abb152558b2613cb"
+          "sha256": "61d54684ba672746e82a12f617f101cd0fd2e043e01e3ff32df2972a2a2bf733"
         }
       ]
     },

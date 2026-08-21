@@ -23,6 +23,7 @@ export interface SubagentModelDecision {
     | "accepted-direct-user"
     | "accepted-delegated-choice"
     | "confirmed-model-proposal"
+    | "auto-approved-bypass"
     | "rejected-unauthorized"
     | "rejected-unsupported"
     | "inherited";

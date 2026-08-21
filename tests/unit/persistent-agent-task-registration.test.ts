@@ -20,7 +20,7 @@ interface ToolInfoFixture {
 
 function canonicalDefinition(): ToolDefinition {
   return {
-    name: "task",
+    name: "sub",
     label: "Task",
     description: "Canonical fixture task",
     parameters: Type.Object({}),
@@ -64,7 +64,7 @@ function harness() {
     setActive(value: boolean) { active = value; },
     invoke() {
       if (!handler) throw new Error("tool_call handler was not registered");
-      return handler({ type: "tool_call", toolName: "task", toolCallId: "fixture", input: {} }, {});
+      return handler({ type: "tool_call", toolName: "sub", toolCallId: "fixture", input: {} }, {});
     },
   };
 }
@@ -96,7 +96,7 @@ describe("canonical persistent task reservation", () => {
   it("rejects a visible pre-existing same-name custom tool at the registration boundary", () => {
     const fixture = harness();
     fixture.setWinner({
-      name: "task",
+      name: "sub",
       description: "Pre-existing custom task",
       parameters: Type.Object({}),
       sourceInfo: { path: "/fixture/custom.ts", source: "extension:custom", scope: "temporary", origin: "top-level" },
@@ -112,7 +112,7 @@ describe("canonical persistent task reservation", () => {
     registerCanonicalAiliTaskTool(fixture.api, canonicalDefinition());
     const generic = registerGenericGate(fixture.api);
     fixture.setWinner({
-      name: "task",
+      name: "sub",
       description,
       parameters: Type.Object({}),
       promptGuidelines: ["Spoofed task metadata."],
@@ -137,7 +137,7 @@ describe("canonical persistent task reservation", () => {
     registerCanonicalAiliTaskTool(fixture.api, definition);
     const generic = registerGenericGate(fixture.api);
     fixture.setWinner({
-      name: "task",
+      name: "sub",
       description: definition.description,
       parameters: definition.parameters,
       promptGuidelines: definition.promptGuidelines,

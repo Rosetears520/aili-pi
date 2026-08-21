@@ -1,6 +1,6 @@
-# Persistent Agents (`task` and `hub`)
+# Persistent Agents (`sub` and `hub`)
 
-> **Availability:** The AILI-owned local runtime is the public orchestration surface. The package registers `task` and `hub` and does not register a legacy `subagent` alias. Deterministic tests and bounded local probes are recorded in `manifests/live-verification.json`; they do not establish preview publication, installed-package behavior, or real-provider behavior as PASS.
+> **Availability:** The AILI-owned local runtime is the public orchestration surface. The package registers `sub` and `hub` and does not register a legacy `subagent` alias. (`sub` was previously named `task`; sessions recorded before the rename render history with the default tool renderer.) Deterministic tests and bounded local probes are recorded in `manifests/live-verification.json`; they do not establish preview publication, installed-package behavior, or real-provider behavior as PASS.
 
 > **Release status:** Persistent Agents are part of `@rosetears/aili-pi@0.2.9`. Provider/model behavior still depends on the configured Pi environment.
 
@@ -31,7 +31,7 @@ The canonical catalog contains exactly 20 selectors:
 
 `aili.general`, `task` as a selector, and unknown selectors are invalid. The 19 specialized profiles keep their own complete role prompt and cannot spawn children. `general` may synchronously spawn an allowed non-self specialized Agent below the configured depth ceiling.
 
-## Creating Agents with `task`
+## Creating Agents with `sub`
 
 A flat request creates one new stable Agent:
 
@@ -98,7 +98,7 @@ Each turn resolves in this order:
 2. direct-user stable Agent instance override
 3. trusted project role override
 4. user-global role override
-5. user-confirmed one-shot `task.model`/`task.thinking` request
+5. user-confirmed one-shot `sub.model`/`sub.thinking` request
 6. direct Parent resolved model, thinking level, and speed tier
 7. profile frontmatter fallback, only when no Parent identity exists
 8. runtime fallback
@@ -115,7 +115,7 @@ Thinking is inherited and passed to the actual child session; an incompatible le
 
 Isolation projects the current dirty tracked/untracked baseline into a disposable worktree, returns child-only patch/branch evidence, never auto-merges, and checks that the main workspace stayed unchanged. After cleanup, history/output remain readable but that Agent cannot revive.
 
-Effective tools are always an intersection of parent-active tools, child-loadable definitions, role/capability ceilings, hard guards, and per-call narrowing. Child `task`/`hub` definitions are AILI-owned bridges, never reused parent coordinator definitions. In sandbox-required modes, an already-effective child `bash` is replaced by exact-profile operations from the one process-owned ready `pi-permission-modes` SandboxController; children cannot initialize, reconfigure, reset, or downgrade it. Missing/degraded/profile-mismatched sandboxes deny Bash, and incompatible Git-worktree `.git` files remain fail closed. Credential/auth/private-key material is denied before approval and excluded from messages/output/artifacts. Background asks suspend only that job and return to the parent UI; no UI, rejection, cancellation, shutdown, or bridge loss denies and settles the request.
+Effective tools are always an intersection of parent-active tools, child-loadable definitions, role/capability ceilings, hard guards, and per-call narrowing. Child `sub`/`hub` definitions are AILI-owned bridges, never reused parent coordinator definitions. In sandbox-required modes, an already-effective child `bash` is replaced by exact-profile operations from the one process-owned ready `pi-permission-modes` SandboxController; children cannot initialize, reconfigure, reset, or downgrade it. Missing/degraded/profile-mismatched sandboxes deny Bash, and incompatible Git-worktree `.git` files remain fail closed. Credential/auth/private-key material is denied before approval and excluded from messages/output/artifacts. Background asks suspend only that job and return to the parent UI; no UI, rejection, cancellation, shutdown, or bridge loss denies and settles the request.
 
 ## Legacy data
 

@@ -1208,7 +1208,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       case "tool_execution_update": {
         const id = event.toolCallId as string;
         const name = event.toolName as string;
-        const progress = getToolExecutionProgress(event.partialResult);
+        const progress = getToolExecutionProgress(event.partialResult, typeof name === "string" ? name : undefined);
         setAgentPhase((prev) => {
           const tools = prev?.kind === "running_tools" ? [...prev.tools] : [];
           const existing = tools.find((tool) => tool.id === id);

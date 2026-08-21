@@ -33,7 +33,7 @@ function currentTask(pi: ExtensionAPI): { available: boolean; tool?: TaskToolInf
   try {
     return {
       available: true,
-      tool: (pi.getAllTools() as TaskToolInfo[]).find((candidate) => candidate.name === "task"),
+      tool: (pi.getAllTools() as TaskToolInfo[]).find((candidate) => candidate.name === "sub"),
     };
   } catch {
     // Pi intentionally does not bind discovery methods until extension loading
@@ -103,19 +103,20 @@ function isReservedDefinition(tool: TaskToolInfo | undefined, reservation: Canon
 }
 
 /**
- * Register the sole top-level AILI task definition and reserve its exact
+ * Register the sole top-level AILI sub (subagent delegation) definition and
+ * reserve its exact
  * in-process definition and loader-owned source identity. Pi 0.84.2 exposes
  * the winning definition's schema/guideline references and immutable sourceInfo
  * through getAllTools(), so event-time policy can distinguish this registration
  * from same-name extension, SDK, or MCP tools.
  */
 export function registerCanonicalAiliTaskTool(pi: ExtensionAPI, definition: ToolDefinition): void {
-  if (definition.name !== "task") throw new Error("canonical AILI task reservation requires exact tool name task");
-  if (reservations.has(pi as object)) throw new Error("canonical AILI task is already reserved on this Extension API");
+  if (definition.name !== "sub") throw new Error("canonical AILI sub reservation requires exact tool name sub");
+  if (reservations.has(pi as object)) throw new Error("canonical AILI sub tool is already reserved on this Extension API");
 
   const before = currentTask(pi);
   if (before.available && before.tool) {
-    throw new Error("task tool collision exists before canonical AILI task registration");
+    throw new Error("sub tool collision exists before canonical AILI sub registration");
   }
 
   pi.registerTool(definition);
@@ -129,16 +130,16 @@ export function registerCanonicalAiliTaskTool(pi: ExtensionAPI, definition: Tool
   const after = currentTask(pi);
   if (after.available && (!hasCanonicalDefinitionIdentity(after.tool, reservation) || !bindSourceInfo(reservation, after.tool?.sourceInfo))) {
     reservations.delete(pi as object);
-    throw new Error("canonical AILI task did not win registration");
+    throw new Error("canonical AILI sub tool did not win registration");
   }
 }
 
-/** True only for the active, exact canonical AILI-owned winning task. */
+/** True only for the active, exact canonical AILI-owned winning sub tool. */
 export function isCanonicalAiliTaskActive(pi: ExtensionAPI): boolean {
   const reservation = reservations.get(pi as object);
   if (!reservation) return false;
   try {
-    if (!pi.getActiveTools().includes("task")) return false;
+    if (!pi.getActiveTools().includes("sub")) return false;
     const tool = currentTask(pi).tool;
     if (!reservation.sourceInfo) {
       const ownerSourceInfo = canonicalOwnerSourceInfo(pi);

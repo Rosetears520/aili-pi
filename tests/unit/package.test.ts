@@ -152,7 +152,7 @@ describe("Pi package baseline", () => {
     expect(readme).toContain("Pi-native UI");
     expect(readme).not.toContain("/rose-matrix");
     expect(readme).not.toContain("fixed-bottom editor");
-    expect(readme).toContain("public `task`/`hub` persistent Agent framework");
+    expect(readme).toContain("public `sub`/`hub` persistent Agent framework");
     expect(readme).not.toContain("@agwab/pi-subagent");
     expect(readme).toContain("npx -y rose-aili@0.4.7 install");
     expect(readme).toContain("npx -y rose-aili@0.4.7 update");

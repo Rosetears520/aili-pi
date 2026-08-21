@@ -184,7 +184,7 @@ function assistantText(session: AgentSession, fromMessageIndex = 0): string {
   return "";
 }
 
-function currentMode(config: PermissionModeConfig, context: ExtensionContext): ModeDef {
+function resolveCurrentMode(config: PermissionModeConfig, context: ExtensionContext): { name: string; mode: ModeDef } {
   let selected: string | undefined;
   for (const entry of context.sessionManager.getEntries()) {
     if (entry.type === "custom" && entry.customType === "perm-mode" && isRecord(entry.data) && typeof entry.data.mode === "string" && config.modes[entry.data.mode]) {
@@ -196,7 +196,26 @@ function currentMode(config: PermissionModeConfig, context: ExtensionContext): M
     selected = config.cycleOrder.find((name) => config.modes[name]?.sandbox.enabled && !config.modes[name]?.sandbox.writable)
       ?? config.cycleOrder.find((name) => config.modes[name]?.sandbox.enabled);
   }
-  return config.modes[selected ?? config.defaultMode] ?? config.modes[config.defaultMode]!;
+  const name = selected ?? config.defaultMode;
+  return { name, mode: config.modes[name] ?? config.modes[config.defaultMode]! };
+}
+
+function currentMode(config: PermissionModeConfig, context: ExtensionContext): ModeDef {
+  return resolveCurrentMode(config, context).mode;
+}
+
+/** The active permission-mode name, resolved exactly like the child permission
+ *  path does (session `perm-mode` entries, then PI_PERMISSION_MODE, then the
+ *  headless sandbox fallback, then the config default). */
+export function resolveCurrentPermissionModeName(context: ExtensionContext): string {
+  const config = loadModeConfig(context.cwd, getAgentDir(), () => undefined);
+  return resolveCurrentMode(config, context).name;
+}
+
+/** YOLO is the repo's bypass mode: model-facing override confirmations are
+ *  auto-approved instead of prompting. */
+export function isBypassPermissionMode(context: ExtensionContext): boolean {
+  return resolveCurrentPermissionModeName(context) === "yolo";
 }
 
 export interface CurrentTurnModelCatalogEntry extends CatalogModel {
@@ -827,11 +846,11 @@ export class PersistentAgentProduction {
       : role;
     const policy = computeEffectiveTools({
       parent,
-      childLoadable: [...BUILTIN_CHILD_TOOLS, "task", "hub", ...MCP_TOOL_NAMES],
+      childLoadable: [...BUILTIN_CHILD_TOOLS, "sub", "hub", ...MCP_TOOL_NAMES],
       childDefinitions: parent.definitions,
       role: effectiveRole,
       callTools: requestedTools,
-      hardDenied: [...(input ? [] : ["task"]), ...formalHardDenied],
+      hardDenied: [...(input ? [] : ["sub"]), ...formalHardDenied],
       currentDepth: input?.depth ?? Number(agent.metadata?.depth ?? 0),
     });
     const catalog = new ContextModelCatalog(context);
@@ -1066,7 +1085,7 @@ export class PersistentAgentProduction {
           ?? state.currentTurnModelAuthority;
         const requestedCapture = captureTaskModelRequest(item, authority, catalog);
         if (ancestry && !ancestry.parentResolution) {
-          throw new Error(`${role.selector}: nested task is missing the frozen direct-parent model identity`);
+          throw new Error(`${role.selector}: nested sub is missing the frozen direct-parent model identity`);
         }
         const parent: ResolvedModelChoice | undefined = ancestry?.parentResolution ?? (parentContext.model ? {
           provider: parentContext.model.provider,
@@ -1099,9 +1118,13 @@ export class PersistentAgentProduction {
           } else {
             // Model-proposed only: one fresh Parent confirmation, including
             // thinking-only requests (which previously were dropped here).
+            // YOLO bypass mode stands in for the user's approval and acts as
+            // the confirmation channel for headless sessions too.
+            const bypass = isBypassPermissionMode(parentContext);
             const confirmed = await confirmTaskModelRequest(requestedCapture.request, parent, {
-              hasUI: parentContext.hasUI,
+              hasUI: bypass || parentContext.hasUI,
               confirm: async ({ parent: from, requested }) => {
+                if (bypass) return "confirm";
                 if (!parentContext.hasUI) return "dismiss";
                 const selected = await parentContext.ui.select(`Worker model/thinking override: ${from} → ${requested}`, ["Allow once", "Deny"], { signal: parentContext.signal });
                 return selected === "Allow once" ? "confirm" : selected === "Deny" ? "deny" : "dismiss";
@@ -1110,7 +1133,7 @@ export class PersistentAgentProduction {
             if (confirmed) {
               oneShot = confirmed.model !== undefined ? confirmed : undefined;
               oneShotThinking = confirmed.thinking;
-              overrideDecision = "confirmed-model-proposal";
+              overrideDecision = bypass ? "auto-approved-bypass" : "confirmed-model-proposal";
             } else {
               overrideDecision = "rejected-unauthorized";
               decisionReason = parentContext.hasUI
@@ -1251,15 +1274,15 @@ export class PersistentAgentProduction {
     // the public schema without the formal identity fields.
     const formalChild = Boolean(input?.item.formalContext);
     const task: ToolDefinition = {
-      name: "task",
-      label: "Task",
+      name: "sub",
+      label: "Sub",
       description: formalChild
         ? "Create a nested persistent Agent synchronously within the explicit spawn/depth policy. This is a formal child: every nested task must repeat the exact owning formalContext.changeId and its continuationAudit."
         : "Create a nested persistent Agent synchronously within the explicit spawn/depth policy. Use the public async field if supplied; never send profile-only blocking metadata.",
       parameters: formalChild ? FORMAL_TASK_REQUEST_SCHEMA : TASK_TOOL_SCHEMA,
       ...TASK_RENDERERS,
       execute: async (_id, params, signal, onUpdate) => {
-        if (!input) throw new Error("nested task is unavailable outside an inherited scheduled turn");
+        if (!input) throw new Error("nested sub is unavailable outside an inherited scheduled turn");
         const result = await (formalChild ? state.runtime.task.submitTrusted : state.runtime.task.submit)(params, {
           parentAgentId: input.agentId,
           parentSelector: role.selector,
@@ -1557,8 +1580,9 @@ export class PersistentAgentProduction {
       })();
     if (operation === "request" && !override) throw new Error("hub model request requires model");
     const confirmation = {
-      hasUI: state.context.hasUI,
+      hasUI: isBypassPermissionMode(state.context) || state.context.hasUI,
       confirm: async (packet: { scope: "instance" | "global" | "project"; target: string; oldValue?: ModelOverride; newValue?: ModelOverride }) => {
+        if (isBypassPermissionMode(state.context)) return "confirm" as const;
         if (!state.context.hasUI) return "dismiss" as const;
         const allowed = await state.context.ui.confirm("AILI Agent model change", `scope=${packet.scope}\ntarget=${packet.target}\nold=${packet.oldValue?.model ?? "none"}\nnew=${packet.newValue?.model ?? "none"}`, { signal: state.context.signal });
         return allowed ? "confirm" as const : "deny" as const;

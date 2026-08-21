@@ -51,7 +51,7 @@ export function persistentTaskAwarePermissionApi(pi: ExtensionAPI): ExtensionAPI
       const toolName = toolEvent && typeof toolEvent === "object" && "toolName" in toolEvent
         ? (toolEvent as { toolName?: unknown }).toolName
         : undefined;
-      return toolName === "task" && isCanonicalAiliTaskActive(pi)
+      return toolName === "sub" && isCanonicalAiliTaskActive(pi)
         ? undefined
         : handler(toolEvent, context);
     });

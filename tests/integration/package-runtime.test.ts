@@ -25,7 +25,7 @@ describe("offline packaged runtime discovery", () => {
     expect(commands).not.toContain("aili-mode");
     expect(commands).not.toContain("aili-compact");
     expect(tools).toEqual(expect.arrayContaining([
-      "task", "hub", "mcp", "mcpScript", "web_search", "fetch_content", "get_search_content",
+      "sub", "hub", "mcp", "mcpScript", "web_search", "fetch_content", "get_search_content",
     ]));
     expect(tools.filter((name) => ["preview_export", "lsp_diagnostics", "lsp_fix"].includes(name))).toEqual([]);
     expect(tools).not.toContain("subagent");

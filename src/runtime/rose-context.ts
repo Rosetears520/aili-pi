@@ -39,7 +39,7 @@ function projectRuleState(event: BeforeAgentStartEvent): string {
 }
 
 function taskIsActive(pi: ExtensionAPI): boolean {
-  return pi.getActiveTools().includes("task");
+  return pi.getActiveTools().includes("sub");
 }
 
 export function renderLifecycleAgentGuidance(
@@ -53,9 +53,9 @@ export function renderLifecycleAgentGuidance(
     `- phase=${view.value.phase}`,
     "- routing=Ordinary Pi remains benefit-based and general-compatible; this active formal lifecycle requires every ready Agent-owned package to use its exact Specialized selector, ordinary benefit logic cannot replace that owner, and general is not a formal package owner.",
     "- rose_authority=ROSE owns decomposition, material decisions, result disposition, integration, final verification, phase advancement, and verdict.",
-    "- formal_dispatch=Set task.agent to the exact package selector and explicitly set task.async.",
-    "- sync=Prerequisites use task.async:false with Join: immediate.",
-    "- async=Use task.async:true only for independent packages with a stable named Join; collect terminal state and inspect output/history before dependents or phase gates.",
+    "- formal_dispatch=Set sub.agent to the exact package selector and explicitly set sub.async.",
+    "- sync=Prerequisites use sub.async:false with Join: immediate.",
+    "- async=Use sub.async:true only for independent packages with a stable named Join; collect terminal state and inspect output/history before dependents or phase gates.",
     "- waiver=Direct execution of Agent-owned scope requires a valid waiver recorded before the work.",
     "- worker_boundary=Workers return evidence only; they never write the owning formal-task-board.md/progress.txt or decide phase, acceptance, or verdict.",
     "### Relevant Specialized roles",
@@ -101,8 +101,8 @@ export function buildRoseAppendix(
   const activeTask = taskIsActive(pi);
   if (activeTask) {
     lines.push(
-      "- task_runtime=AILI-owned persistent task/hub surface (20 canonical Agent selectors; parent-scoped Pi sessions, stable Agent/job IDs, async delivery, park/revive, model overrides, tool ceilings, and credential hard denial; no legacy subagent alias)",
-      "- delegation_policy=benefit-based (Agents improve efficiency and preserve parent context; ordinary direct work remains valid when delegation has no concrete benefit; omitted task.agent retains general compatibility; no Agent call unlocks mutation)",
+      "- task_runtime=AILI-owned persistent sub/hub surface (20 canonical Agent selectors; parent-scoped Pi sessions, stable Agent/job IDs, async delivery, park/revive, model overrides, tool ceilings, and credential hard denial; no legacy subagent alias)",
+      "- delegation_policy=benefit-based (Agents improve efficiency and preserve parent context; ordinary direct work remains valid when delegation has no concrete benefit; omitted sub.agent retains general compatibility; no Agent call unlocks mutation)",
     );
   }
   lines.push(

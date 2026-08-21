@@ -1,5 +1,5 @@
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { loadStockDefaults } from "pi-permission-modes/src/config-load.ts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -122,5 +122,34 @@ describe("parent approval broker", () => {
     expect(prompts).toHaveBeenCalledTimes(2);
     expect(await handler!({ toolName: "custom", input: { password: "secret" } })).toMatchObject({ block: true, reason: expect.stringContaining("credential") });
     expect(prompts).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("current permission mode resolution", () => {
+  it("resolves the mode name from the session entries, env, and config default", async () => {
+    vi.stubEnv("HOME", join(scratch, "home"));
+    vi.stubEnv("PI_CODING_AGENT_DIR", join(scratch, "home", ".pi", "agent"));
+    const context = (entries: unknown[], hasUI = true) => ({
+      cwd: scratch,
+      hasUI,
+      sessionManager: { getEntries: () => entries },
+    }) as never;
+    try {
+      // Session entries win over the environment.
+      vi.stubEnv("PI_PERMISSION_MODE", "yolo");
+      const entry = (mode: string) => ({ type: "custom", customType: "perm-mode", data: { mode } });
+      const { isBypassPermissionMode, resolveCurrentPermissionModeName } = await import("../../src/runtime/persistent-agents/production.js");
+      expect(resolveCurrentPermissionModeName(context([entry("build")]))).toBe("build");
+      expect(isBypassPermissionMode(context([entry("build")]))).toBe(false);
+      expect(resolveCurrentPermissionModeName(context([]))).toBe("yolo");
+      expect(isBypassPermissionMode(context([]))).toBe(true);
+
+      // Without entries or env, the config default applies.
+      vi.stubEnv("PI_PERMISSION_MODE", "");
+      expect(resolveCurrentPermissionModeName(context([]))).toBe("default");
+      expect(isBypassPermissionMode(context([]))).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

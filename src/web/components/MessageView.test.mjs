@@ -182,3 +182,47 @@ test("line count alone can trigger the collapse threshold", () => {
   const html = renderMessage({ role: "user", content: manyShortLines, timestamp: Date.now() });
   assert.match(html, /aili-user-bubble-collapsed/);
 });
+
+test("renders the sub dispatch identity row from structured result details", () => {
+  const toolCallId = "call-sub-1";
+  const html = renderMessage({
+    role: "assistant",
+    provider: "openai-codex",
+    model: "gpt-5.6-terra",
+    content: [{ type: "toolCall", toolCallId, toolName: "sub", input: { task: "review the diff", agent: "aili.code-reviewer", async: false } }],
+  }, {
+    toolResults: new Map([[toolCallId, {
+      role: "toolResult",
+      toolCallId,
+      toolName: "sub",
+      content: [{ type: "text", text: "done" }],
+      modelDecision: undefined,
+      details: {
+        batch: false,
+        results: [{
+          status: "completed",
+          agentId: "Reviewer",
+          selector: "aili.code-reviewer",
+          name: "Reviewer",
+          requestedModel: "openai-codex/gpt-5.6-terra",
+          effectiveModel: "openai-codex/gpt-5.6-terra",
+          thinking: "high",
+          modelSource: "direct-user-turn",
+          lifecycle: { agent: "idle", job: "completed", turn: "completed" },
+          outputRef: "agent://Reviewer",
+        }],
+      },
+    }]]),
+  });
+  assert.match(html, /Reviewer · aili\.code-reviewer · openai-codex\/gpt-5\.6-terra · thinking=high · completed/);
+});
+
+test("renders the hub call summary in the collapsed preview", () => {
+  const html = renderMessage({
+    role: "assistant",
+    provider: "openai-codex",
+    model: "gpt-5.6-terra",
+    content: [{ type: "toolCall", toolCallId: "call-hub-1", toolName: "hub", input: { action: "send", agentId: "Reviewer", message: "hi" } }],
+  });
+  assert.match(html, /send · Reviewer/);
+});

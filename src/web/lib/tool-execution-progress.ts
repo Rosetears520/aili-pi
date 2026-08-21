@@ -1,11 +1,20 @@
+import { agentLiveProgress } from "./agent-dispatch";
+
 const MAX_PROGRESS_LENGTH = 500;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function getToolExecutionProgress(partialResult: unknown): string | null {
+export function getToolExecutionProgress(partialResult: unknown, toolName?: string): string | null {
   if (!isObject(partialResult)) return null;
+
+  // Persistent-agent live updates carry a structured TaskLiveSnapshot whose
+  // content text is raw JSON — render the identity row from details instead.
+  if (!toolName || toolName === "sub" || toolName === "task" || toolName === "formal_task") {
+    const live = agentLiveProgress(partialResult.details);
+    if (live) return live.length <= MAX_PROGRESS_LENGTH ? live : `...${live.slice(-(MAX_PROGRESS_LENGTH - 3))}`;
+  }
 
   const content = partialResult.content;
   if (!Array.isArray(content)) return null;

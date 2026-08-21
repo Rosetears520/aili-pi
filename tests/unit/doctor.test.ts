@@ -334,7 +334,7 @@ describe("doctor", () => {
       expect.objectContaining({ id: "capability.registry", status: "PASS" }),
       expect.objectContaining({ id: "optional.packs", status: "SKIP" }),
       expect.objectContaining({ id: "roles.agents", status: "PASS", evidence: expect.stringContaining("profiles=21") }),
-      expect.objectContaining({ id: "agent.framework", status: "UNVERIFIED", evidence: expect.stringContaining("public tools=task,hub") }),
+      expect.objectContaining({ id: "agent.framework", status: "UNVERIFIED", evidence: expect.stringContaining("public tools=sub,hub") }),
       expect.objectContaining({ id: "permission.native", status: "PASS" }),
       expect.objectContaining({ id: "global.resources", status: expect.stringMatching(/^(PASS|UNVERIFIED)$/) }),
       expect.objectContaining({ id: "shared.workflows", status: "ERROR", evidence: expect.stringContaining("compatibility=missing") }),

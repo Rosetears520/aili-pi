@@ -190,13 +190,13 @@ describe("internal persistent Agent runtime wiring", () => {
         return "fast updated";
       },
     });
-    expect([...tools.keys()]).toEqual(["task", "formal_task", "hub"]);
+    expect([...tools.keys()]).toEqual(["sub", "formal_task", "hub"]);
     expect([...tools.keys()]).not.toContain("subagent");
     expect([...tools.keys()]).not.toContain("aili_task");
     expect(commands.has("aili-agent-model")).toBe(true);
     expect(commands.has("codex-fast")).toBe(true);
 
-    const taskTool = tools.get("task");
+    const taskTool = tools.get("sub");
     expect(taskTool.description).toContain("Ordinary Pi remains benefit-based");
     expect(taskTool.description).toContain("omitted agent retains general compatibility");
     expect(taskTool.description).toContain("Formal package dispatch belongs to the formal_task tool");

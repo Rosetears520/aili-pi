@@ -537,7 +537,7 @@ describe("production lifecycle guidance provider seam", () => {
     let providerCalls = 0;
     const pi = {
       on: (name: string, candidate: (event: BeforeAgentStartEvent) => BeforeAgentStartEventResult) => { if (name === "before_agent_start") handler = candidate; },
-      getActiveTools: () => ["task"],
+      getActiveTools: () => ["sub"],
       getCommands: () => [],
     } as unknown as ExtensionAPI;
     registerRoseContext(pi, {

@@ -64,7 +64,7 @@ describe("Pi 0.84.2 task winner collision policy", () => {
       pi.registerTool(taskDefinition("collision", () => { calls.collision += 1; }));
     };
     const errors = await loadExtensionCollision(order === "canonical-first" ? [canonical, collision] : [collision, canonical]);
-    expect(errors).toEqual([expect.objectContaining({ error: expect.stringMatching(/Tool "task" conflicts with <inline:task-owner-0>/) })]);
+    expect(errors).toEqual([expect.objectContaining({ error: expect.stringMatching(/Tool "sub" conflicts with <inline:task-owner-0>/) })]);
     expect(calls).toEqual({ canonical: 0, collision: 0 });
   });
 
@@ -75,7 +75,7 @@ describe("Pi 0.84.2 task winner collision policy", () => {
       await permissionModes(persistentTaskAwarePermissionApi(pi));
     };
     const taskResult = await runTask([canonical], taskDefinition("sdk-collision", () => { calls.collision += 1; }));
-    expect(taskResult).toMatchObject({ toolName: "task", isError: true });
+    expect(taskResult).toMatchObject({ toolName: "sub", isError: true });
     expect(calls).toEqual({ canonical: 0, collision: 0 });
   });
 
@@ -91,11 +91,11 @@ describe("Pi 0.84.2 task winner collision policy", () => {
     );
     const clone: ExtensionFactory = (pi) => {
       pi.on("session_start", () => {
-        const exposed = pi.getAllTools().find((tool) => tool.name === "task");
+        const exposed = pi.getAllTools().find((tool) => tool.name === "sub");
         if (!exposed) throw new Error("canonical task descriptor is unavailable to clone fixture");
         pi.registerTool({
-          name: "task",
-          label: "Cloned Task",
+          name: "sub",
+          label: "Cloned Sub",
           description: exposed.description,
           parameters: exposed.parameters as ToolDefinition["parameters"],
           promptGuidelines: exposed.promptGuidelines,
@@ -110,9 +110,9 @@ describe("Pi 0.84.2 task winner collision policy", () => {
     if (order === "clone-first") {
       expect(genericCalls).toBe(1);
       expect(calls).toEqual({ canonical: 0, clone: 0 });
-      expect(result).toMatchObject({ toolName: "task", isError: true });
+      expect(result).toMatchObject({ toolName: "sub", isError: true });
     } else {
-      expect(result).toMatchObject({ toolName: "task", isError: false });
+      expect(result).toMatchObject({ toolName: "sub", isError: false });
       expect(calls).toEqual({ canonical: 1, clone: 0 });
       expect(genericCalls).toBe(0);
     }
@@ -156,8 +156,8 @@ async function loadExtensionCollision(runtimeExtensions: ExtensionFactory[]) {
 
 function taskDefinition(owner: string, invoked: () => void): ToolDefinition {
   return {
-    name: "task",
-    label: "Task",
+    name: "sub",
+    label: "Sub",
     description: `${owner} task fixture`,
     parameters: Type.Object({}),
     promptGuidelines: [`Use the ${owner} task fixture.`],
@@ -181,7 +181,7 @@ async function runTask(runtimeExtensions: ExtensionFactory[], customTask?: ToolD
       apiKey: "fixture-key",
       streamSimple: (selected: Model<any>, context: Context) => context.messages.some((message) => message.role === "toolResult")
         ? assistantStream(selected, [{ type: "text", text: "done" }], "stop")
-        : assistantStream(selected, [{ type: "toolCall", id: "task-collision-call", name: "task", arguments: {} }], "toolUse"),
+        : assistantStream(selected, [{ type: "toolCall", id: "task-collision-call", name: "sub", arguments: {} }], "toolUse"),
       models: [{
         id: model.id,
         name: model.name,
@@ -218,14 +218,14 @@ async function runTask(runtimeExtensions: ExtensionFactory[], customTask?: ToolD
     resourceLoader: loader,
     settingsManager: settings,
     sessionManager: SessionManager.create(cwd, sessionDir),
-    tools: ["task"],
+    tools: ["sub"],
     customTools: customTask ? [customTask] : [],
     thinkingLevel: "off",
   });
   try {
     if (bindExtensions) await created.session.bindExtensions({ mode: "print" });
     await created.session.prompt("Call task once.", { expandPromptTemplates: false, source: "extension" });
-    const result = created.session.state.messages.find((message) => message.role === "toolResult" && message.toolName === "task");
+    const result = created.session.state.messages.find((message) => message.role === "toolResult" && message.toolName === "sub");
     if (!result) throw new Error("controlled task result is missing");
     return result;
   } finally {

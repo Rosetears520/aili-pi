@@ -12,6 +12,16 @@ import { TurnWrittenFiles } from "./TurnWrittenFiles";
 import { InlineFileChange } from "./InlineFileChange";
 import { ChangeDiffView } from "./aili/ChangeDiffView";
 import { deriveFileChangeEvent } from "@/lib/file-change-events";
+import {
+  AGENT_DISPATCH_TOOL_NAMES,
+  agentDispatchPreview,
+  agentDispatchResultIdentities,
+  agentDispatchRow,
+  hubCallSummary,
+  hubResultRows,
+  type AgentDispatchIdentity,
+} from "@/lib/agent-dispatch";
+import { AiliAgentResultCard, isAgentResultMessage } from "./aili/AiliAgentResultCard";
 import type { WrittenFile } from "@/lib/turn-written-files";
 import { skillExpansionToCommand } from "@/lib/slash-display";
 import type {
@@ -1046,6 +1056,80 @@ function summarizeQuestionnaire(block: ToolCallContent, result: ToolResultMessag
   return { state, answered, total: rows.length, rows };
 }
 
+/** Structured details for persistent-agent dispatch tools: per-agent identity
+ *  rows (requested/effective model, thinking, sources, decision, lifecycle)
+ *  with the raw JSON behind an explicit disclosure. */
+function AgentToolPanel({ identities, hubRows, inputStr, resultText, isError }: {
+  identities: AgentDispatchIdentity[];
+  hubRows: string[];
+  inputStr: string;
+  resultText: string | null;
+  isError: boolean;
+}) {
+  const { t } = useI18n();
+  const [showRaw, setShowRaw] = useState(false);
+  const border = isError ? "1px solid rgba(248,113,113,0.25)" : "1px solid rgba(34,197,94,0.2)";
+  const rawPreStyle: React.CSSProperties = {
+    margin: 0,
+    padding: "8px 10px",
+    color: "var(--text-muted)",
+    fontSize: 11,
+    lineHeight: 1.5,
+    overflow: "auto",
+    background: "var(--bg-subtle)",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-all",
+  };
+  return (
+    <div
+      style={{
+        borderTop: border,
+        background: "var(--bg)",
+        padding: "8px 10px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+      }}
+    >
+      {identities.map((identity, index) => (
+        <div key={index} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)" }}>
+            {agentDispatchRow(identity)}
+          </div>
+          {identity.rows.map(([label, value], rowIndex) => (
+            <div key={rowIndex} style={{ display: "flex", gap: 7, fontSize: 11.5, lineHeight: 1.45 }}>
+              <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", flexShrink: 0, minWidth: 92 }}>{label}</span>
+              <span style={{ color: "var(--text)", minWidth: 0, overflowWrap: "anywhere" }}>{value}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+      {hubRows.map((row, index) => (
+        <div key={`hub-${index}`} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: index === 0 ? "var(--accent)" : "var(--text-muted)" }}>
+          {row}
+        </div>
+      ))}
+      <button
+        onClick={() => setShowRaw((value) => !value)}
+        style={{
+          alignSelf: "flex-start",
+          padding: 0,
+          background: "none",
+          border: "none",
+          color: "var(--text-muted)",
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          cursor: "pointer",
+        }}
+      >
+        {showRaw ? `▾ ${t("chat.hideRaw")}` : `▸ ${t("chat.showRaw")}`}
+      </button>
+      {showRaw && <pre style={rawPreStyle}>{inputStr}</pre>}
+      {showRaw && resultText !== null && <pre style={{ ...rawPreStyle, borderTop: border }}>{resultText}</pre>}
+    </div>
+  );
+}
+
 function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: ToolCallContent; result?: ToolResultMessage; duration?: number; cwd?: string; onOpenFile?: (filePath: string) => void }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
@@ -1069,6 +1153,16 @@ function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: To
   const questionnaire = block.toolName === "questionnaire"
     ? summarizeQuestionnaire(block, result, resultText)
     : null;
+
+  // Persistent-agent dispatch surfaces (sub/formal_task/hub) show the same
+  // identity information as the TUI: name · selector · model · thinking ·
+  // status, with structured details replacing the raw JSON dump.
+  const isDispatchTool = AGENT_DISPATCH_TOOL_NAMES.has(block.toolName);
+  const isHubTool = block.toolName === "hub";
+  const dispatchPreview = isDispatchTool ? agentDispatchPreview(block.input, result?.details) : null;
+  const hubPreview = isHubTool ? hubCallSummary(block.input) : null;
+  const dispatchIdentities = isDispatchTool ? agentDispatchResultIdentities(result?.details) : [];
+  const hubRows = isHubTool ? hubResultRows(result?.details) : [];
   const questionnairePreview = questionnaire
     ? questionnaire.state === "pending"
       ? t("chat.questionnaireAsking")
@@ -1122,7 +1216,7 @@ function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: To
         <span style={{ color: questionnaire && questionnaire.state === "answered" ? "#16a34a" : "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
           {isStreamingInput
             ? t("chat.generatingToolInput")
-            : questionnairePreview ?? getToolPreview(block)}
+            : questionnairePreview ?? dispatchPreview ?? hubPreview ?? getToolPreview(block)}
         </span>
         {duration !== undefined && (
           <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{duration}s</span>
@@ -1161,8 +1255,19 @@ function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: To
         </div>
       )}
 
+      {/* ── Expanded: persistent-agent dispatch identities ── */}
+      {expanded && (isDispatchTool || isHubTool) && (
+        <AgentToolPanel
+          identities={dispatchIdentities}
+          hubRows={hubRows}
+          inputStr={inputStr}
+          resultText={resultText}
+          isError={isError}
+        />
+      )}
+
       {/* ── Expanded: input args ── */}
-      {expanded && !questionnaire && (isStreamingInput || !isEditTool || Boolean(changeEvent)) && (
+      {expanded && !questionnaire && !isDispatchTool && !isHubTool && (isStreamingInput || !isEditTool || Boolean(changeEvent)) && (
         <pre
           style={{
             margin: 0,
@@ -1182,7 +1287,7 @@ function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: To
       )}
 
       {/* ── Paired result — only shown when expanded ── */}
-      {expanded && result && !questionnaire && (
+      {expanded && result && !questionnaire && !isDispatchTool && !isHubTool && (
         changeEvent ? (
           // The card above already renders the diff; details show the RAW
           // input/result record instead of a second diff view.
@@ -1373,6 +1478,11 @@ function CustomMessageView({ message, cwd, onOpenFile }: { message: CustomMessag
   const detailsText = hasDetails ? safeJson(message.details) : "";
   const title = formatCustomType(message.customType);
   const time = formatTime(message.timestamp);
+
+  // Async persistent-agent deliveries get a dedicated identity card.
+  if (isAgentResultMessage(message.customType)) {
+    return <AiliAgentResultCard content={text} details={message.details} />;
+  }
 
   const copyContent = () => {
     copyText(text || detailsText).then(() => {
