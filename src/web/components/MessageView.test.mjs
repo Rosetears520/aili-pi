@@ -16,6 +16,7 @@ const {
   getTokenEstimateText,
   getToolCallInputText,
   replaceUserMessageText,
+  userMessageNeedsCollapse,
 } = await jiti.import("./MessageView.tsx");
 const { I18nProvider } = await jiti.import("../hooks/useI18n.tsx");
 
@@ -150,4 +151,34 @@ test("renders custom-message images as buttons that open a larger preview", () =
 
   assert.match(html, /<button[^>]+aria-label="Preview image"[^>]*>/);
   assert.match(html, /<img[^>]+src="data:image\/png;base64,YWJj"/);
+});
+
+test("long user messages collapse by default behind an expand toggle", () => {
+  const longText = `${"x".repeat(60)}\n`.repeat(12).trim();
+  assert.equal(userMessageNeedsCollapse(longText), true);
+
+  const html = renderMessage({ role: "user", content: longText, timestamp: Date.now() });
+
+  assert.match(html, /aili-user-bubble-collapsed/);
+  assert.match(html, /max-height:160px/);
+  assert.match(html, /aili-user-bubble-toggle/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.match(html, /&gt;Expand&lt;|>Expand</);
+});
+
+test("short user messages render without a collapse toggle", () => {
+  const html = renderMessage({ role: "user", content: "short question", timestamp: Date.now() });
+
+  assert.doesNotMatch(html, /aili-user-bubble-collapsed/);
+  assert.doesNotMatch(html, /aili-user-bubble-toggle/);
+  assert.doesNotMatch(html, /max-height:160px/);
+});
+
+test("line count alone can trigger the collapse threshold", () => {
+  const manyShortLines = Array.from({ length: 13 }, (_, i) => `line-${i}`).join("\n");
+  assert.equal(manyShortLines.length < 600, true);
+  assert.equal(userMessageNeedsCollapse(manyShortLines), true);
+
+  const html = renderMessage({ role: "user", content: manyShortLines, timestamp: Date.now() });
+  assert.match(html, /aili-user-bubble-collapsed/);
 });

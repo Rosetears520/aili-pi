@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useCallback, useEffect, useLayoutEffect, useImperativeHandle, forwardRef, KeyboardEvent } from "react";
 import { AiliBtwDialog } from "./aili/AiliBtwDialog";
+import { AiliComposerExpand } from "./aili/AiliComposerExpand";
 import { AiliFilePicker } from "./aili/AiliFilePicker";
 import { AiliPermChip } from "./aili/AiliPermChip";
 import { parsePermStatus } from "@/lib/aili-status";
@@ -119,6 +120,16 @@ const COMPOSITION_END_ENTER_GRACE_MS = 100;
 const MODEL_FILTER_THRESHOLD = 8;
 const MODEL_OPTION_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 const ANCHORED_MENU_GAP = 8;
+
+// Long drafts get a top-right expand button opening the fullscreen editor.
+const COMPOSER_EXPAND_MIN_CHARS = 400;
+const COMPOSER_EXPAND_MIN_LINES = 8;
+
+export function isComposerExpandable(value: string): boolean {
+  if (!value) return false;
+  return value.length > COMPOSER_EXPAND_MIN_CHARS
+    || value.split("\n").length > COMPOSER_EXPAND_MIN_LINES;
+}
 
 export function getUpwardMenuMaxHeight(menuBottom: number, visibleTop: number, gap = ANCHORED_MENU_GAP): number {
   return Math.max(0, Math.floor(menuBottom - visibleTop - gap));
@@ -423,6 +434,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   ));
   const trimmedValue = value.trimStart();
   const [composerFocused, setComposerFocused] = useState(false);
+  const [composerExpanded, setComposerExpanded] = useState(false);
   const [btwOpen, setBtwOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
@@ -445,6 +457,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   }, []);
   const bashMode = attachedImages.length === 0 && trimmedValue.startsWith("!");
   const bashExcluded = bashMode && trimmedValue.startsWith("!!");
+  const composerExpandBtnVisible = !composerExpanded && isComposerExpandable(value);
   const [slashMenuOpen, setSlashMenuOpen] = useState(false);
   const [slashActiveIndex, setSlashActiveIndex] = useState(0);
   const [slashMenuMaxHeight, setSlashMenuMaxHeight] = useState<number | null>(null);
@@ -844,6 +857,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     setValue(nextValue);
     setAtQuery(null);
     setHistoryMenuOpen(false);
+    setComposerExpanded(false);
     setAttachedImages((prev) => {
       prev.forEach(revokeImagePreview);
       return nextImages;
@@ -1983,6 +1997,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
           <div
             className="aili-composer"
             style={{
+              position: "relative",
               minWidth: 0,
               display: "flex",
               flexDirection: "column",
@@ -2001,6 +2016,22 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               transition: "border-color 0.15s, box-shadow 0.15s, background 0.15s",
             } as React.CSSProperties}
           >
+          {composerExpandBtnVisible && (
+            <button
+              type="button"
+              className="aili-composer-expand-btn"
+              onClick={() => setComposerExpanded(true)}
+              title={t("chat.expandEditor")}
+              aria-label={t("chat.expandEditor")}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+                <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+                <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+                <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+              </svg>
+            </button>
+          )}
           {attachedImages.length > 0 && (
             <div className="aili-composer-chips">
               {attachedImages.map((img, i) => (
@@ -2079,6 +2110,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               minHeight: 24,
               maxHeight: 200,
               overflow: "auto",
+              paddingRight: composerExpandBtnVisible ? 30 : undefined,
             }}
           />
           </div>
@@ -2771,6 +2803,27 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               }}
             />
           )}
+          <AiliComposerExpand
+            open={composerExpanded}
+            value={value}
+            onChange={(next) => {
+              valueRef.current = next;
+              setValue(next);
+              setHistoryMenuOpen(false);
+            }}
+            onSend={async () => {
+              await handleSend();
+              setComposerExpanded(false);
+            }}
+            onClose={() => {
+              setComposerExpanded(false);
+              textareaRef.current?.focus();
+            }}
+            attachments={attachedImages}
+            onRemoveAttachment={removeImage}
+            sendDisabled={isStreaming || (!value.trim() && !attachedImages.length)}
+            cwd={cwd}
+          />
         </div>
 
       </div>

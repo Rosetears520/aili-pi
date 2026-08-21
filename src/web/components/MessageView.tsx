@@ -144,9 +144,18 @@ function SafeMarkdownBody({ children, className, ...props }: React.ComponentProp
   );
 }
 
-// Cap the user "sent" bubble's height so an abnormally long message does not
-// push the conversation off screen; overflow scrolls inside the bubble.
-const USER_BUBBLE_MAX_HEIGHT = 300;
+// Long user messages collapse by default so they don't push the conversation
+// off screen; expanding reveals the full markdown render (SafeMarkdownBody
+// still guards truly oversized payloads with its own reveal gate).
+const USER_MESSAGE_COLLAPSE_MIN_CHARS = 600;
+const USER_MESSAGE_COLLAPSE_MIN_LINES = 12;
+const USER_MESSAGE_COLLAPSED_MAX_HEIGHT = 160;
+
+export function userMessageNeedsCollapse(content: string): boolean {
+  if (!content) return false;
+  return content.length > USER_MESSAGE_COLLAPSE_MIN_CHARS
+    || content.split("\n").length > USER_MESSAGE_COLLAPSE_MIN_LINES;
+}
 
 function loadThinkingContent(sessionId: string, entryId: string, blockIndex: number): Promise<string> {
   const key = `${sessionId}:${entryId}:${blockIndex}`;
@@ -325,6 +334,11 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
     ? commandText.slice(commandSeparator + 1)
     : "";
 
+  // Long non-command messages fold behind an expand toggle instead of the old
+  // fixed-height inner scroll.
+  const needsCollapse = !commandText && userMessageNeedsCollapse(content);
+  const collapsed = needsCollapse && !expanded;
+
   const time = formatTime(message.timestamp);
   const canFork = !!entryId && !!onFork;
   const copyTarget = commandText ?? content;
@@ -373,6 +387,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
     >
       <div style={{ display: "flex", alignItems: "flex-end", gap: 6, maxWidth: "85%" }}>
         <div
+          className={collapsed ? "aili-user-bubble-collapsed" : undefined}
           style={{
             flex: 1,
             minWidth: 0,
@@ -384,8 +399,7 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
             lineHeight: 1.6,
             color: "var(--text)",
             wordBreak: "break-word",
-            maxHeight: USER_BUBBLE_MAX_HEIGHT,
-            overflowY: "auto",
+            ...(collapsed ? { maxHeight: USER_MESSAGE_COLLAPSED_MAX_HEIGHT } : null),
           }}
         >
           {commandText ? (
@@ -456,6 +470,32 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
         </div>
 
       </div>
+
+      {needsCollapse && (
+        <button
+          type="button"
+          className="aili-user-bubble-toggle"
+          onClick={() => setExpanded((prev) => !prev)}
+          title={expanded ? t("i18n.collapse") : t("i18n.expand")}
+          aria-expanded={expanded}
+        >
+          {expanded ? t("i18n.collapse") : t("i18n.expand")}
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ flexShrink: 0, opacity: 0.75, transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      )}
 
       {/* Bottom row: action buttons + timestamp */}
       {(time || canFork || canNavigate || true) && (

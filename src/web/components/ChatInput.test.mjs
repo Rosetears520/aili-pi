@@ -1,14 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { register } from "node:module";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createJiti } from "jiti";
+
+register(new URL("./aicss/module-css-stub.mjs", import.meta.url));
 
 const jiti = createJiti(import.meta.url, {
   jsx: { runtime: "automatic" },
   tsconfigPaths: true,
 });
-const { ChatInput, ModelErrorBanner, ModelScopeWarningBanner, canRestoreUserMessage, filterModelOptions, getUpwardMenuMaxHeight, getUserMessageText, getUserMessageDraftImages } = await jiti.import("./ChatInput.tsx");
+const { ChatInput, ModelErrorBanner, ModelScopeWarningBanner, canRestoreUserMessage, filterModelOptions, getUpwardMenuMaxHeight, getUserMessageText, getUserMessageDraftImages, isComposerExpandable } = await jiti.import("./ChatInput.tsx");
 const { clearDraft, getDraft, mergeRestoredSubmissionDraft, mergeRestoredSubmissionText, rekeyDraft, setDraft } = await jiti.import("../lib/draft-store.ts");
 const { I18nProvider } = await jiti.import("../hooks/useI18n.tsx");
 
@@ -269,4 +272,46 @@ test("renders compact errors above the input as a wrapping alert", () => {
   assert.match(html, /&lt;html&gt;request forbidden&lt;\/html&gt;/);
   assert.match(html, /white-space:pre-wrap/);
   assert.ok(html.indexOf('role="alert"') < html.indexOf("<textarea"));
+});
+
+test("expandable threshold reacts to chars and lines, not short drafts", () => {
+  assert.equal(isComposerExpandable(""), false);
+  assert.equal(isComposerExpandable("short draft"), false);
+  assert.equal(isComposerExpandable(`${"x".repeat(64)}\n`.repeat(7).trim()), true); // 7 lines × 64 chars = 448 chars
+  assert.equal(isComposerExpandable(Array.from({ length: 9 }, (_, i) => `l${i}`).join("\n")), true); // 9 short lines
+});
+
+test("shows the top-right expand button only for long drafts", () => {
+  const longKey = "expand-long-draft";
+  const shortKey = "expand-short-draft";
+  setDraft(longKey, { value: `${"y".repeat(80)}\n`.repeat(6).trim(), images: [] });
+  setDraft(shortKey, { value: "quick note", images: [] });
+
+  const renderWithDraft = (draftKey) => renderToStaticMarkup(
+    React.createElement(
+      I18nProvider,
+      null,
+      React.createElement(ChatInput, {
+        onSend() {},
+        onAbort() {},
+        isStreaming: false,
+        draftKey,
+      }),
+    ),
+  );
+
+  try {
+    const longHtml = renderWithDraft(longKey);
+    assert.match(longHtml, /aili-composer-expand-btn/);
+    assert.match(longHtml, /aria-label="Expand editor"/);
+
+    const shortHtml = renderWithDraft(shortKey);
+    assert.doesNotMatch(shortHtml, /aili-composer-expand-btn/);
+    // The fullscreen editor mounts only after clicking expand.
+    assert.doesNotMatch(shortHtml, /aili-composer-expand-overlay/);
+    assert.doesNotMatch(longHtml, /aili-composer-expand-overlay/);
+  } finally {
+    clearDraft(longKey);
+    clearDraft(shortKey);
+  }
 });
