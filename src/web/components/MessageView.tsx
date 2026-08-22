@@ -37,56 +37,21 @@ import type {
   ToolCallContent,
   ThinkingContent,
 } from "@/lib/types";
+import {
+  ApiTelemetryTracker,
+  estimateTokens,
+  estimateUpdatedTokens,
+  type TokenEstimateCacheEntry,
+} from "../../runtime/telemetry/speed.js";
 
-// CJK chars ~1 token each (GLM/DeepSeek/GPT-o200k); other chars ~4 chars/token.
-const CJK_PATTERN = /[\u3000-\u30ff\u3400-\u9fff\uf900-\ufaff\u{20000}-\u{2fa1f}\uac00-\ud7af]/u;
-function estimateTokens(text: string): number {
-  let cjk = 0;
-  let rest = 0;
-  for (const ch of text) {
-    if (CJK_PATTERN.test(ch)) cjk++;
-    else rest++;
-  }
-  return cjk + rest / 4;
-}
-
-interface TokenEstimateCacheEntry {
-  text: string;
-  tokens: number;
-}
+// Token estimation and the tok/s algorithm live in the shared runtime
+// telemetry module so the WebUI badge and the TUI footer stay in lock-step.
 
 export function getTokenEstimateText(block: AssistantContentBlock): string | null {
   if (block.type === "text") return block.text;
   if (block.type === "thinking") return block.thinking;
   if (block.type === "toolCall") return block.rawInput ?? JSON.stringify(block.input ?? {}) ?? "";
   return null;
-}
-
-function isHighSurrogate(codeUnit: number): boolean {
-  return codeUnit >= 0xd800 && codeUnit <= 0xdbff;
-}
-
-function isLowSurrogate(codeUnit: number): boolean {
-  return codeUnit >= 0xdc00 && codeUnit <= 0xdfff;
-}
-
-function estimateUpdatedTokens(previous: TokenEstimateCacheEntry | undefined, text: string): number {
-  if (!previous || !text.startsWith(previous.text)) return estimateTokens(text);
-
-  let baseTokens = previous.tokens;
-  let suffixStart = previous.text.length;
-  // A streamed delta can complete a surrogate pair that was counted as two
-  // non-CJK code points in the previous update.
-  if (
-    suffixStart > 0
-    && suffixStart < text.length
-    && isHighSurrogate(previous.text.charCodeAt(suffixStart - 1))
-    && isLowSurrogate(text.charCodeAt(suffixStart))
-  ) {
-    baseTokens -= 1 / 4;
-    suffixStart--;
-  }
-  return baseTokens + estimateTokens(text.slice(suffixStart));
 }
 
 const MAX_THINKING_CACHE_ENTRIES = 100;
@@ -652,8 +617,8 @@ function AssistantMessageView({
   const providerError = getAssistantErrorMessage(message, { isStreaming });
   const [hovered, setHovered] = useState(false);
   const [copied, setCopied] = useState(false);
-  const streamStartRef = useRef<number | null>(null);
   const [tps, setTps] = useState<number | null>(null);
+  const speedTrackerRef = useRef(new ApiTelemetryTracker());
   const blockItemsRef = useRef(blockItems);
   blockItemsRef.current = blockItems;
   const tokenEstimateCacheRef = useRef<Map<number, TokenEstimateCacheEntry>>(new Map());
@@ -674,8 +639,12 @@ function AssistantMessageView({
     tokenEstimateCacheRef.current = nextCache;
     return total;
   }, [blockItems, isStreaming]);
-  const estimatedTokensRef = useRef(estimatedTokens);
-  estimatedTokensRef.current = estimatedTokens;
+  // The shared tracker consumes the same streamed content blocks on every
+  // surface, so this badge and the TUI footer report identical speeds.
+  const wasStreamingRef = useRef(false);
+  if (isStreaming && !wasStreamingRef.current) speedTrackerRef.current.begin();
+  wasStreamingRef.current = Boolean(isStreaming);
+  if (isStreaming) speedTrackerRef.current.observeContent(message.content, Date.now());
 
   // Streaming-based timing for thinking blocks
   const blockStartTimesRef = useRef<Map<number, number>>(new Map());
@@ -727,7 +696,7 @@ function AssistantMessageView({
         }
         return next;
       });
-      streamStartRef.current = null;
+      speedTrackerRef.current.complete(message.usage?.output, now);
       setTps(null);
       return;
     }
@@ -757,11 +726,9 @@ function AssistantMessageView({
         return changed ? next : prev;
       });
 
-      const tokens = estimatedTokensRef.current;
-      if (tokens === 0) return;
-      if (streamStartRef.current === null) streamStartRef.current = now;
-      const elapsed = (now - streamStartRef.current) / 1000;
-      if (elapsed > 0.5) setTps(tokens / elapsed);
+      // The shared tracker already holds the stream samples; the tick only
+      // refreshes the displayed 3s-window reading.
+      setTps(speedTrackerRef.current.snapshot().currentTokensPerSecond ?? null);
     };
     const id = setInterval(tick, 300);
     return () => clearInterval(id);

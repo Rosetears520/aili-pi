@@ -32,8 +32,10 @@ function harness() {
   };
   nativeFooter(pi as never);
   const emit = (event: string, context = ctx) => handlers.get(event)?.forEach((handler) => handler({ type: event }, context));
+  const emitRaw = (event: string, payload: Record<string, unknown>) =>
+    handlers.get(event)?.forEach((handler) => handler({ type: event, ...payload }, ctx));
   const emitMcp = (snapshot: McpStatusSnapshot) => eventHandlers.get(MCP_STATUS_EVENT)?.forEach((handler) => handler(snapshot));
-  return { ctx, emit, emitMcp, setFooter, factory: () => footerFactory };
+  return { ctx, emit, emitRaw, emitMcp, setFooter, factory: () => footerFactory };
 }
 
 function mcpSnapshot(): McpStatusSnapshot {
@@ -73,12 +75,51 @@ describe("Pi-native footer runtime", () => {
     const clock = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
     const lines = component.render(120);
     expect(lines[0].startsWith("openai-codex/gpt-5.6-sol")).toBe(true);
-    expect(lines[0].endsWith(`17k/272k · Wk 72% · retrying`)).toBe(true);
+    expect(lines[0].endsWith(`17k/272k (6%) · Wk 72% · retrying`)).toBe(true);
     expect(lines[1].startsWith("project · main")).toBe(true);
     expect(lines[1].endsWith(`MCP 0/0 · ${clock}`)).toBe(true);
     expect(lines.map((line: string) => visibleWidth(line))).toEqual([120, 120]);
-    expect(lines[1]).not.toContain("17k/272k");
+    expect(lines[1]).not.toContain("17k/272k (6%)");
     expect(lines.join(" ")).not.toContain("ctx 90%");
+    component.dispose();
+  });
+
+  it("streams shared telemetry into the footer speed segment", () => {
+    vi.useFakeTimers();
+    const start = new Date("2025-01-01T19:48:00Z").getTime();
+    vi.setSystemTime(start);
+    const runtime = harness();
+    runtime.emit("session_start");
+    const component = runtime.factory()!({ requestRender: vi.fn() }, { fg: (_color: string, text: string) => text }, {
+      onBranchChange: () => vi.fn(),
+      getExtensionStatuses: () => new Map(),
+      getGitBranch: () => "main",
+    });
+
+    // No speed segment while idle.
+    expect(component.render(120)[1]).not.toContain("t/s");
+
+    // Assistant message: 100 tokens at T0, another 100 at T0+1s.
+    runtime.emitRaw("message_start", { message: { role: "assistant" } });
+    runtime.emitRaw("message_update", {
+      message: { role: "assistant", content: [{ type: "text", text: "a".repeat(400) }] },
+      assistantMessageEvent: { partial: { content: [{ type: "text", text: "a".repeat(400) }] } },
+    });
+    vi.setSystemTime(start + 1_000);
+    runtime.emitRaw("message_update", {
+      message: { role: "assistant", content: [{ type: "text", text: "a".repeat(800) }] },
+      assistantMessageEvent: { partial: { content: [{ type: "text", text: "a".repeat(800) }] } },
+    });
+    vi.setSystemTime(start + 1_500);
+    expect(component.render(120)[1]).toContain("133 t/s");
+
+    // Completion swaps in the usage-backed average and total duration, then
+    // the reading disappears once the retain window passes.
+    vi.setSystemTime(start + 2_000);
+    runtime.emitRaw("message_end", { message: { role: "assistant", usage: { output: 300 }, stopReason: "stop" } });
+    expect(component.render(120)[1]).toContain("150 avg · 2.0s");
+    vi.setSystemTime(start + 2_000 + 8_001);
+    expect(component.render(120)[1]).not.toContain("avg");
     component.dispose();
   });
 

@@ -1,5 +1,14 @@
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { contextTokenLabel, normalizeCodexQuota, permissionModeLabel, renderNativeFooter } from "../../extensions/footer/layout.js";
+import {
+  contextTokenLabel,
+  contextTone,
+  normalizeCodexQuota,
+  permissionModeLabel,
+  renderNativeFooter,
+  renderNativeFooterView,
+  speedLabel,
+} from "../../extensions/footer/layout.js";
+import type { ApiTelemetrySnapshot } from "../../src/runtime/telemetry/types.js";
 import { describe, expect, it } from "vitest";
 
 const snapshot = {
@@ -22,7 +31,7 @@ describe("Pi-native minimal footer layout", () => {
   it("aligns both left/right field groups to the display-cell edges at a fixed width", () => {
     const width = 100;
     const [primary, secondary] = renderNativeFooter(snapshot, width);
-    const primaryRight = "17k/272k · Wk 72% resets Tue · retrying";
+    const primaryRight = "17k/272k (6%) · Wk 72% resets Tue · retrying";
     const secondaryLeft = "aili-pi · feature/native-ui";
     const secondaryRight = "YOLO · MCP 0/4 · 19:48";
 
@@ -39,17 +48,17 @@ describe("Pi-native minimal footer layout", () => {
 
   it("orders context before quota/retry and permission before MCP/time", () => {
     const [primary, secondary] = renderNativeFooter(snapshot, 100);
-    expect(primary.indexOf("17k/272k")).toBeLessThan(primary.indexOf("Wk 72%"));
+    expect(primary.indexOf("17k/272k (6%)")).toBeLessThan(primary.indexOf("Wk 72%"));
     expect(primary.indexOf("Wk 72%")).toBeLessThan(primary.indexOf("retrying"));
     expect(secondary.indexOf("YOLO")).toBeLessThan(secondary.indexOf("MCP 0/4"));
     expect(secondary.indexOf("MCP 0/4")).toBeLessThan(secondary.indexOf("19:48"));
-    expect(secondary).not.toContain("17k/272k");
+    expect(secondary).not.toContain("17k/272k (6%)");
   });
 
   it("drops retry, then branch and cwd as needed while retaining the essential groups", () => {
-    const narrowPrimary = renderNativeFooter(snapshot, 48)[0];
+    const narrowPrimary = renderNativeFooter(snapshot, 54)[0];
     expect(narrowPrimary).toContain("openai-codex/gpt-5.6-sol");
-    expect(narrowPrimary).toContain("17k/272k");
+    expect(narrowPrimary).toContain("17k/272k (6%)");
     expect(narrowPrimary).toContain("Wk 72%");
     expect(narrowPrimary).not.toContain("retrying");
 
@@ -72,12 +81,20 @@ describe("Pi-native minimal footer layout", () => {
     }
   });
 
-  it("formats actual context tokens compactly and omits invalid numeric usage", () => {
-    expect(contextTokenLabel(17_000, 272_000)).toBe("17k/272k");
-    expect(contextTokenLabel(9_500, 272_000)).toBe("9.5k/272k");
+  it("shows concrete context occupancy with a percentage and omits invalid numeric usage", () => {
+    expect(contextTokenLabel(17_000, 272_000)).toBe("17k/272k (6%)");
+    expect(contextTokenLabel(136_000, 272_000)).toBe("136k/272k (50%)");
+    expect(contextTokenLabel(9_500, 272_000)).toBe("9.5k/272k (3%)");
     expect(contextTokenLabel(undefined, 272_000)).toBeUndefined();
     expect(contextTokenLabel(17_000, 0)).toBeUndefined();
     expect(contextTokenLabel(Number.NaN, 272_000)).toBeUndefined();
+  });
+
+  it("escalates the context tone at the 70% and 90% occupancy thresholds", () => {
+    expect(contextTone(17_000, 272_000)).toBe("secondary");
+    expect(contextTone(200_000, 272_000)).toBe("warning");
+    expect(contextTone(250_000, 272_000)).toBe("alert");
+    expect(contextTone(undefined, 272_000)).toBe("secondary");
   });
 
   it("omits unavailable secondary data and normalizes multiline status text", () => {
@@ -113,5 +130,74 @@ describe("secondary line keeps the cwd identity under squeeze", () => {
     expect(line).toContain("MCP 5/5");
     // The project-prefixed cwd is truncated, not removed.
     expect(line).toContain("aili-pi");
+  });
+});
+
+describe("shared telemetry speed label", () => {
+  it("shows the 3s-window speed while streaming and avg+duration after completion", () => {
+    expect(speedLabel(undefined)).toBeUndefined();
+    expect(speedLabel({ status: "idle", outputTokens: 0, usageBacked: false })).toBeUndefined();
+    expect(speedLabel({ status: "starting", outputTokens: 0, usageBacked: false })).toBeUndefined();
+    expect(speedLabel({ status: "streaming", outputTokens: 120, usageBacked: false, currentTokensPerSecond: 68.4 }))
+      .toBe("68 t/s");
+    expect(speedLabel({
+      status: "completed",
+      outputTokens: 1_300,
+      usageBacked: true,
+      averageTokensPerSecond: 68.2,
+      durationMs: 18_700,
+    })).toBe("68 avg · 18.7s");
+    expect(speedLabel({ status: "completed", outputTokens: 5_000, usageBacked: true, averageTokensPerSecond: 41, durationMs: 125_000 }))
+      .toBe("41 avg · 2m05s");
+    // Errors never linger as a speed reading.
+    expect(speedLabel({ status: "error", outputTokens: 3, usageBacked: false })).toBeUndefined();
+  });
+
+  it("places the speed segment before permission on the secondary line", () => {
+    const telemetry: ApiTelemetrySnapshot = { status: "streaming", outputTokens: 40, usageBacked: false, currentTokensPerSecond: 68 };
+    const line = renderNativeFooter({ ...snapshot, telemetry }, 100)[1];
+    expect(line).toContain("68 t/s · YOLO · MCP 0/4 · 19:48");
+  });
+
+  it("keeps the speed segment inside the cell budget at narrow widths", () => {
+    const telemetry: ApiTelemetrySnapshot = { status: "streaming", outputTokens: 40, usageBacked: false, currentTokensPerSecond: 68 };
+    for (const width of [0, 1, 8, 24, 40, 80]) {
+      for (const line of renderNativeFooter({ ...snapshot, telemetry }, width)) {
+        expect(visibleWidth(line)).toBeLessThanOrEqual(Math.max(0, width));
+      }
+    }
+  });
+});
+
+describe("footer segment tones", () => {
+  it("maps each segment to a semantic tone and joins back to the plain line", () => {
+    const [primary, secondary] = renderNativeFooterView(snapshot, 100);
+    const toneOf = (segments: readonly { text: string; tone: string }[], text: string) =>
+      segments.find((segment) => segment.text === text)?.tone;
+    expect(toneOf(primary.segments, "openai-codex/gpt-5.6-sol")).toBe("primary");
+    expect(toneOf(primary.segments, "xhigh")).toBe("secondary");
+    expect(toneOf(primary.segments, "17k/272k (6%)")).toBe("secondary");
+    expect(toneOf(primary.segments, "retrying")).toBe("warning");
+    expect(toneOf(secondary.segments, "YOLO")).toBe("primary");
+    expect(toneOf(secondary.segments, "feature/native-ui")).toBe("secondary");
+    expect(toneOf(secondary.segments, "MCP 0/4")).toBe("muted");
+    expect(toneOf(secondary.segments, "19:48")).toBe("muted");
+    expect(primary.segments.map((segment) => segment.text).join("")).toBe(primary.text);
+    expect(secondary.segments.map((segment) => segment.text).join("")).toBe(secondary.text);
+  });
+
+  it("escalates context and quota segments to warning tones near their limits", () => {
+    const [primary] = renderNativeFooterView({ ...snapshot, contextTokens: 250_000, quota: "5h 95% 11:38AM (20/08)" }, 100);
+    const toneOf = (text: string) => primary.segments.find((segment) => segment.text === text)?.tone;
+    expect(toneOf("250k/272k (91%)")).toBe("alert");
+    expect(toneOf("codex 95% 08/20 11:38")).toBe("alert");
+  });
+
+  it("tones the live speed segment as secondary", () => {
+    const [, secondary] = renderNativeFooterView({
+      ...snapshot,
+      telemetry: { status: "streaming", outputTokens: 40, usageBacked: false, currentTokensPerSecond: 68 },
+    }, 100);
+    expect(secondary.segments.find((segment) => segment.text === "68 t/s")?.tone).toBe("secondary");
   });
 });
