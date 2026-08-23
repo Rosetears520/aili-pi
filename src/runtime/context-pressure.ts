@@ -33,19 +33,27 @@ function sessionKey(ctx: ExtensionContext): string {
 
 function pressureNotice(decision: AcpPressureDecision): AgentMessage {
   const usage = Math.round(decision.usage * 100);
-  const urgency = decision.emergency ? "Context pressure is critical." : "Context pressure is elevated.";
+  const text = decision.emergency
+    ? [
+      `Context pressure is critical (${usage}% used).`,
+      "Do not compact while the current step still depends on raw history.",
+      `At the earliest safe boundary, call ${CODEX_COMPACT_TOOL_NAME}(). The runtime will use Codex Remote Compaction and then resume the original task automatically.`,
+    ]
+    : [
+      `Context pressure is elevated (${usage}% used); consider compaction, but continuing without compaction is valid.`,
+      `Call ${CODEX_COMPACT_TOOL_NAME}() only when both a safe boundary exists and whole-context compaction is materially useful because older raw context is no longer needed or there is a clear benefit.`,
+      "Otherwise continue the task without compacting.",
+    ];
   return {
     role: "user",
-    content: [{
-      type: "text",
-      text: [
-        `${urgency} ACP recommends context relief (${usage}% used).`,
-        "Do not compact while the current step still depends on raw history.",
-        `At the next safe boundary, call ${CODEX_COMPACT_TOOL_NAME}(). The runtime will use Codex Remote Compaction and then resume the original task automatically.`,
-      ].join(" "),
-    }],
+    content: [{ type: "text", text: text.join(" ") }],
     timestamp: Date.now(),
   } as AgentMessage;
+}
+
+function isCompactionCancellation(error: unknown): boolean {
+  return error instanceof Error
+    && (error.name === "AbortError" || error.message === "Compaction cancelled");
 }
 
 function continuationMessage(content: string) {
@@ -156,6 +164,14 @@ export function wireContextPressure(pi: ExtensionAPI, wiring: ContextPressureWir
         onError: (error) => {
           if (pending.get(key) !== request) return;
           pending.delete(key);
+          if (isCompactionCancellation(error)) {
+            wiring.log?.("Codex context compaction was cancelled.");
+            pi.sendMessage(
+              continuationMessage("Codex context compaction was cancelled and did not complete. Continue the original task without claiming that compaction succeeded."),
+              { deliverAs: "followUp", triggerTurn: true },
+            );
+            return;
+          }
           wiring.log?.(`Codex context compaction failed: ${error.message}`);
           pi.sendMessage(
             continuationMessage("Codex context compaction failed. Continue the original task without claiming that compaction succeeded."),
@@ -166,6 +182,14 @@ export function wireContextPressure(pi: ExtensionAPI, wiring: ContextPressureWir
     } catch (error) {
       if (pending.get(key) !== request) return;
       pending.delete(key);
+      if (isCompactionCancellation(error)) {
+        wiring.log?.("Codex context compaction was cancelled.");
+        pi.sendMessage(
+          continuationMessage("Codex context compaction was cancelled and did not complete. Continue the original task without claiming that compaction succeeded."),
+          { deliverAs: "followUp", triggerTurn: true },
+        );
+        return;
+      }
       wiring.log?.(`Codex context compaction trigger failed: ${error instanceof Error ? error.message : String(error)}`);
       pi.sendMessage(
         continuationMessage("Codex context compaction could not be started. Continue the original task without claiming that compaction succeeded."),

@@ -73,16 +73,33 @@ function setup(stub = stubEvaluator()) {
 }
 
 describe("provider-routed context pressure", () => {
-  it("injects an ephemeral ACP nudge for Codex without compacting", async () => {
+  it("makes a normal Codex pressure nudge advisory", async () => {
+    const runtime = setup(stubEvaluator(decision({ shouldRelieve: true, usage: 0.23 })));
+    const { ctx, compact } = fakeCtx();
+
+    const result = await runtime.handlers.get("context")![0]!({ messages: [] }, ctx);
+    const text = result.messages[0].content[0].text;
+
+    expect(text).toContain("consider compaction");
+    expect(text).toContain("continuing without compaction is valid");
+    expect(text).toContain("only when both a safe boundary exists and whole-context compaction is materially useful");
+    expect(text).not.toContain("earliest safe boundary");
+    expect(text).not.toMatch(/must compact/i);
+    expect(compact).not.toHaveBeenCalled();
+  });
+
+  it("makes an emergency Codex pressure nudge urgent without compacting", async () => {
     const runtime = setup(stubEvaluator(decision({ shouldRelieve: true, usage: 0.9, emergency: true })));
     const { ctx, compact } = fakeCtx();
     const original = [{ role: "user", content: "keep me" }];
 
     const result = await runtime.handlers.get("context")![0]!({ messages: original }, ctx);
+    const text = result.messages[1].content[0].text;
 
     expect(result.messages).toHaveLength(2);
     expect(result.messages[0]).toBe(original[0]);
-    expect(result.messages[1].content[0].text).toContain("compact_context");
+    expect(text).toContain("Context pressure is critical");
+    expect(text).toContain("At the earliest safe boundary, call compact_context()");
     expect(compact).not.toHaveBeenCalled();
     expect(runtime.handlers.has("turn_end")).toBe(false);
   });
@@ -156,7 +173,27 @@ describe("provider-routed context pressure", () => {
     expect(runtime.sendMessage).not.toHaveBeenCalled();
   });
 
-  it("continues without exposing provider errors when deferred compaction fails", async () => {
+  it.each([
+    ["Pi cancellation", new Error("Compaction cancelled")],
+    ["AbortError", Object.assign(new Error("abort-secret-detail"), { name: "AbortError" })],
+  ])("continues after %s without labeling cancellation as failed", async (_label, error) => {
+    const runtime = setup();
+    const { ctx, compact } = fakeCtx();
+    const tool = runtime.tools.get(CODEX_COMPACT_TOOL_NAME)!;
+
+    await tool.execute("call-1", {}, undefined, undefined, ctx);
+    await runtime.handlers.get("agent_settled")![0]!({}, ctx);
+    compact.mock.calls[0]![0].onError(error);
+
+    expect(runtime.sendMessage).toHaveBeenCalledTimes(1);
+    const continuation = runtime.sendMessage.mock.calls[0]![0].content;
+    expect(continuation).toContain("was cancelled and did not complete");
+    expect(continuation).not.toContain("failed");
+    expect(continuation).not.toContain(error.message);
+    expect(runtime.sendMessage.mock.calls[0]![1]).toEqual({ deliverAs: "followUp", triggerTurn: true });
+  });
+
+  it("continues without exposing provider errors when deferred compaction genuinely fails", async () => {
     const runtime = setup();
     const { ctx, compact } = fakeCtx();
     const tool = runtime.tools.get(CODEX_COMPACT_TOOL_NAME)!;
