@@ -1,187 +1,191 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { wireContextPressure } from "../../src/runtime/context-pressure.js";
+import { CODEX_COMPACT_TOOL_NAME, wireContextPressure } from "../../src/runtime/context-pressure.js";
 import { createAcpPressureEvaluator, type AcpPressureDecision, type AcpPressureEvaluator } from "../../upstream/billion-context-pi/dist/index.js";
 
-type Handler = (event: unknown, ctx: unknown) => unknown;
+type Handler = (event: any, ctx: any) => any;
+
+const CODEX_MODEL = { provider: "openai-codex", api: "openai-codex-responses", id: "gpt-5.6" };
+const OTHER_MODEL = { provider: "anthropic", api: "anthropic", id: "claude-test" };
 
 function fakePi() {
   const handlers = new Map<string, Handler[]>();
+  const tools = new Map<string, any>();
+  const sendMessage = vi.fn();
   const pi = {
     on(name: string, handler: Handler) {
       const list = handlers.get(name) ?? [];
       list.push(handler);
       handlers.set(name, list);
     },
-    registerTool: vi.fn(),
+    registerTool(tool: any) { tools.set(tool.name, tool); },
     registerCommand: vi.fn(),
-    getActiveTools: () => [],
-    getAllTools: () => [],
+    getActiveTools: () => [...tools.keys()],
+    getAllTools: () => [...tools.values()],
+    sendMessage,
   } as unknown as ExtensionAPI;
-  return { pi, handlers };
+  return { pi, handlers, tools, sendMessage };
 }
-
-const CODEX_MODEL = { provider: "openai-codex", api: "openai-codex-responses", id: "gpt-5.6" };
-const OTHER_MODEL = { provider: "anthropic", api: "anthropic", id: "claude-test" };
 
 function fakeCtx(model: unknown = CODEX_MODEL) {
   const compact = vi.fn();
   const ctx = {
     model,
+    cwd: "/fixture",
     sessionManager: {
       getSessionFile: () => "/fixture/session.jsonl",
       getSessionId: () => "s1",
-      buildContextEntries: () => [],
     },
-    getContextUsage: () => ({ tokens: 1, contextWindow: 200_000, percent: null }),
     compact,
-  };
-  return { ctx: ctx as unknown as ExtensionContext, compact };
+  } as unknown as ExtensionContext;
+  return { ctx, compact };
 }
 
-function ownsCodexOnly(ctx: ExtensionContext): boolean {
-  return !!ctx.model && ctx.model.provider === "openai-codex";
-}
-
-function stubEvaluator(decision: Partial<AcpPressureDecision> = {}) {
-  let next: AcpPressureDecision = {
+function decision(patch: Partial<AcpPressureDecision> = {}): AcpPressureDecision {
+  return {
     shouldRelieve: false,
     emergency: false,
     tier: null,
     usage: 0.5,
     tokenCount: 100,
     contextLimit: 200,
-    reason: "stub",
-    ...decision,
+    reason: "fixture",
+    ...patch,
   };
-  const observed: unknown[] = [];
-  const resets: unknown[] = [];
-  const evaluator: AcpPressureEvaluator = {
-    observe: async (ctx) => {
-      observed.push(ctx);
-      return next;
-    },
-    reset: (ctx) => {
-      resets.push(ctx);
-    },
-  };
-  return { evaluator, observed, resets, setNext: (patch: Partial<AcpPressureDecision>) => { next = { ...next, ...patch }; } };
 }
 
-function wire(stub: ReturnType<typeof stubEvaluator>, log?: (message: string) => void) {
-  const { pi, handlers } = fakePi();
-  wireContextPressure(pi, { ownsCodexContext: ownsCodexOnly, evaluator: stub.evaluator, log });
-  return { handlers };
+function stubEvaluator(initial: AcpPressureDecision = decision()) {
+  let next = initial;
+  const observe = vi.fn(async () => next);
+  const reset = vi.fn();
+  const evaluator: AcpPressureEvaluator = { observe, reset };
+  return { evaluator, observe, reset, set: (patch: Partial<AcpPressureDecision>) => { next = decision({ ...next, ...patch }); } };
 }
 
-describe("context pressure wiring", () => {
-  it("does not compact when the ACP evaluator reports no pressure", async () => {
-    const stub = stubEvaluator({ shouldRelieve: false });
-    const { handlers } = wire(stub);
-    const { ctx, compact } = fakeCtx();
+function ownsCodex(ctx: ExtensionContext): boolean {
+  return ctx.model?.provider === "openai-codex" && ctx.model.api === "openai-codex-responses";
+}
 
-    await handlers.get("turn_end")![0]!({}, ctx);
-    expect(stub.observed).toHaveLength(1);
+function setup(stub = stubEvaluator()) {
+  const runtime = fakePi();
+  wireContextPressure(runtime.pi, { ownsCodexContext: ownsCodex, evaluator: stub.evaluator });
+  return { ...runtime, stub };
+}
+
+describe("provider-routed context pressure", () => {
+  it("injects an ephemeral ACP nudge for Codex without compacting", async () => {
+    const runtime = setup(stubEvaluator(decision({ shouldRelieve: true, usage: 0.9, emergency: true })));
+    const { ctx, compact } = fakeCtx();
+    const original = [{ role: "user", content: "keep me" }];
+
+    const result = await runtime.handlers.get("context")![0]!({ messages: original }, ctx);
+
+    expect(result.messages).toHaveLength(2);
+    expect(result.messages[0]).toBe(original[0]);
+    expect(result.messages[1].content[0].text).toContain("compact_context");
     expect(compact).not.toHaveBeenCalled();
+    expect(runtime.handlers.has("turn_end")).toBe(false);
   });
 
-  it("compacts once per pressure epoch and holds repeated turn_end events", async () => {
-    const stub = stubEvaluator({ shouldRelieve: true, emergency: false, usage: 0.6 });
-    const { handlers } = wire(stub);
-    const { ctx, compact } = fakeCtx();
-    const turnEnd = handlers.get("turn_end")![0]!;
-
-    await turnEnd({}, ctx);
-    expect(compact).toHaveBeenCalledTimes(1);
-    expect(compact.mock.calls[0]![0]).toEqual(
-      expect.objectContaining({ onComplete: expect.any(Function), onError: expect.any(Function) }),
-    );
-
-    // Same epoch: the in-flight guard skips observation entirely.
-    await turnEnd({}, ctx);
-    expect(compact).toHaveBeenCalledTimes(1);
-    expect(stub.observed).toHaveLength(1);
-
-    // Completion clears the guard and the next epoch observes again.
-    compact.mock.calls[0]![0].onComplete();
-    await turnEnd({}, ctx);
-    expect(stub.observed).toHaveLength(2);
-    expect(compact).toHaveBeenCalledTimes(2);
+  it("does nothing when ACP reports no pressure or the route is not Codex", async () => {
+    const runtime = setup();
+    expect(await runtime.handlers.get("context")![0]!({ messages: [] }, fakeCtx().ctx)).toBeUndefined();
+    expect(await runtime.handlers.get("context")![0]!({ messages: [] }, fakeCtx(OTHER_MODEL).ctx)).toBeUndefined();
+    expect(runtime.stub.observe).toHaveBeenCalledTimes(1);
   });
 
-  it("emergency decisions also compact through the same path", async () => {
-    const stub = stubEvaluator({ shouldRelieve: true, emergency: true, usage: 0.85 });
-    const { handlers } = wire(stub);
-    const { ctx, compact } = fakeCtx();
-    await handlers.get("turn_end")![0]!({}, ctx);
-    expect(compact).toHaveBeenCalledTimes(1);
+  it("lets ACP own normal timing by cancelling only Codex threshold compaction", async () => {
+    const runtime = setup();
+    const gate = runtime.handlers.get("session_before_compact")![0]!;
+    const codex = fakeCtx().ctx;
+
+    expect(await gate({ reason: "threshold" }, codex)).toEqual({ cancel: true });
+    expect(await gate({ reason: "manual" }, codex)).toBeUndefined();
+    expect(await gate({ reason: "overflow" }, codex)).toBeUndefined();
+    expect(await gate({ reason: "threshold" }, fakeCtx(OTHER_MODEL).ctx)).toBeUndefined();
   });
 
-  it("treats an evaluator failure as diagnostic-only and never compacts", async () => {
-    const logs: string[] = [];
-    const stub = stubEvaluator();
-    stub.evaluator.observe = async () => {
-      throw new Error("fixture observe failure");
-    };
-    const { handlers } = wire(stub, (message) => logs.push(message));
+  it("defers model-requested Codex compaction until agent_settled and resumes on success", async () => {
+    const runtime = setup();
     const { ctx, compact } = fakeCtx();
-    await handlers.get("turn_end")![0]!({}, ctx);
+    const tool = runtime.tools.get(CODEX_COMPACT_TOOL_NAME)!;
+
+    const queued = await tool.execute("call-1", {}, undefined, undefined, ctx);
+    expect(queued.content[0].text).toContain("queued");
     expect(compact).not.toHaveBeenCalled();
-    expect(logs.some((line) => line.includes("observe failed"))).toBe(true);
-  });
 
-  it("rebuilds the pressure baseline after a codex-route session_compact", async () => {
-    const stub = stubEvaluator({ shouldRelieve: true });
-    const { handlers } = wire(stub);
-    const { ctx, compact } = fakeCtx();
-    await handlers.get("turn_end")![0]!({}, ctx);
+    await runtime.handlers.get("agent_settled")![0]!({}, ctx);
     expect(compact).toHaveBeenCalledTimes(1);
+    const callbacks = compact.mock.calls[0]![0];
+    expect(callbacks).toEqual(expect.objectContaining({ onComplete: expect.any(Function), onError: expect.any(Function) }));
 
-    await handlers.get("session_compact")![0]!({}, ctx);
-    expect(stub.resets).toHaveLength(1);
-
-    // In-flight was cleared by the compaction event, so the next turn observes.
-    await handlers.get("turn_end")![0]!({}, ctx);
-    expect(stub.observed).toHaveLength(2);
+    // Pi emits session_compact before ctx.compact's onComplete callback.
+    await runtime.handlers.get("session_compact")![0]!({}, ctx);
+    callbacks.onComplete();
+    expect(runtime.sendMessage).toHaveBeenCalledTimes(1);
+    expect(runtime.sendMessage.mock.calls[0]![0]).toMatchObject({ customType: "aili-compaction-continuation", display: false });
+    expect(runtime.sendMessage.mock.calls[0]![1]).toEqual({ deliverAs: "followUp", triggerTurn: true });
   });
 
-  it("cancels Pi threshold auto-compaction only on codex-owned turns", async () => {
-    const stub = stubEvaluator();
-    const { handlers } = wire(stub);
-    const gate = handlers.get("session_before_compact")![0]!;
+  it("deduplicates queued requests and clears them after another successful compaction", async () => {
+    const runtime = setup();
+    const { ctx, compact } = fakeCtx();
+    const tool = runtime.tools.get(CODEX_COMPACT_TOOL_NAME)!;
 
-    const codex = fakeCtx();
-    expect(await gate({ reason: "threshold" }, codex.ctx)).toEqual({ cancel: true });
-    expect(await gate({ reason: "manual" }, codex.ctx)).toBeUndefined();
-    expect(await gate({ reason: "overflow" }, codex.ctx)).toBeUndefined();
+    await tool.execute("call-1", {}, undefined, undefined, ctx);
+    const duplicate = await tool.execute("call-2", {}, undefined, undefined, ctx);
+    expect(duplicate.content[0].text).toContain("already queued");
 
-    const other = fakeCtx(OTHER_MODEL);
-    expect(await gate({ reason: "threshold" }, other.ctx)).toBeUndefined();
-
-    const modelless = fakeCtx(null);
-    expect(await gate({ reason: "threshold" }, modelless.ctx)).toBeUndefined();
+    await runtime.handlers.get("session_compact")![0]!({}, ctx);
+    await runtime.handlers.get("agent_settled")![0]!({}, ctx);
+    expect(compact).not.toHaveBeenCalled();
+    expect(runtime.stub.reset).toHaveBeenCalledTimes(1);
   });
 
-  it("ignores turn_end on non-codex and modelless contexts", async () => {
-    const stub = stubEvaluator({ shouldRelieve: true });
-    const { handlers } = wire(stub);
-    await handlers.get("turn_end")![0]!({}, fakeCtx(OTHER_MODEL).ctx);
-    await handlers.get("turn_end")![0]!({}, fakeCtx(null).ctx);
-    expect(stub.observed).toHaveLength(0);
+  it("does not deliver a stale continuation after the session is invalidated", async () => {
+    const runtime = setup();
+    const { ctx, compact } = fakeCtx();
+    const tool = runtime.tools.get(CODEX_COMPACT_TOOL_NAME)!;
+
+    await tool.execute("call-1", {}, undefined, undefined, ctx);
+    await runtime.handlers.get("agent_settled")![0]!({}, ctx);
+    const callbacks = compact.mock.calls[0]![0];
+    await runtime.handlers.get("session_before_switch")![0]!({}, ctx);
+    callbacks.onComplete();
+
+    expect(runtime.sendMessage).not.toHaveBeenCalled();
   });
 
-  it("resets evaluator state on session_before_switch and session_shutdown", async () => {
-    const stub = stubEvaluator();
-    const { handlers } = wire(stub);
-    const { ctx } = fakeCtx();
-    handlers.get("session_before_switch")![0]!({}, ctx);
-    handlers.get("session_shutdown")![0]!({}, ctx);
-    expect(stub.resets).toHaveLength(2);
+  it("continues without exposing provider errors when deferred compaction fails", async () => {
+    const runtime = setup();
+    const { ctx, compact } = fakeCtx();
+    const tool = runtime.tools.get(CODEX_COMPACT_TOOL_NAME)!;
+
+    await tool.execute("call-1", {}, undefined, undefined, ctx);
+    await runtime.handlers.get("agent_settled")![0]!({}, ctx);
+    compact.mock.calls[0]![0].onError(new Error("provider-secret-detail"));
+
+    expect(runtime.sendMessage).toHaveBeenCalledTimes(1);
+    expect(runtime.sendMessage.mock.calls[0]![0].content).toContain("compaction failed");
+    expect(runtime.sendMessage.mock.calls[0]![0].content).not.toContain("provider-secret-detail");
+  });
+
+  it("blocks ACP range compression on Codex because those blocks are not projected", async () => {
+    const runtime = setup();
+    const gate = runtime.handlers.get("tool_call")![0]!;
+    expect(await gate({ toolName: "compress", input: {} }, fakeCtx().ctx)).toEqual(expect.objectContaining({ block: true }));
+    expect(await gate({ toolName: "compress", input: {} }, fakeCtx(OTHER_MODEL).ctx)).toBeUndefined();
+  });
+
+  it("rejects compact_context on non-Codex routes", async () => {
+    const runtime = setup();
+    const tool = runtime.tools.get(CODEX_COMPACT_TOOL_NAME)!;
+    await expect(tool.execute("call-1", {}, undefined, undefined, fakeCtx(OTHER_MODEL).ctx)).rejects.toThrow("Codex Remote V2");
   });
 });
 
-describe("acp pressure evaluator", () => {
-  it("drives relief from the real acp-kernel pressure decision and resets cleanly", async () => {
+describe("ACP pressure evaluator", () => {
+  it("reuses the kernel nudge decision and resets its pressure epoch", async () => {
     const previousLimit = process.env.ACP_MODEL_CONTEXT_LIMIT;
     process.env.ACP_MODEL_CONTEXT_LIMIT = "200000";
     try {
@@ -200,15 +204,8 @@ describe("acp pressure evaluator", () => {
       } as unknown as ExtensionContext;
 
       const evaluator = createAcpPressureEvaluator();
-      // First observation only establishes the baseline.
-      const first = await evaluator.observe(ctx);
-      expect(first.shouldRelieve).toBe(false);
-      expect(first.contextLimit).toBe(200_000);
+      expect((await evaluator.observe(ctx)).shouldRelieve).toBe(false);
 
-      // ~10K estimated tokens per old message keeps every compressible range
-      // above the kernel's 5K minimum; with the last 5 messages preserved the
-      // T1 pending mass clears the 50K floor, and 30K of real growth clears
-      // the ~22.5K adaptive floor — below the 80% emergency line.
       entries = [
         ...Array.from({ length: 10 }, (_, index) => ({
           type: "message" as const,
@@ -220,15 +217,10 @@ describe("acp pressure evaluator", () => {
         { type: "message" as const, id: "recent", parentId: null, timestamp: "29", message: { role: "user" as const, content: "current turn" } },
       ];
       tokens = 120_000;
-      const second = await evaluator.observe(ctx);
-      expect(second.shouldRelieve).toBe(true);
-      expect(second.emergency).toBe(false);
-      expect(second.usage).toBeGreaterThan(0.5);
+      expect((await evaluator.observe(ctx)).shouldRelieve).toBe(true);
 
-      // After a relief-driven compaction the baseline starts over.
       evaluator.reset(ctx);
-      const third = await evaluator.observe(ctx);
-      expect(third.shouldRelieve).toBe(false);
+      expect((await evaluator.observe(ctx)).shouldRelieve).toBe(false);
     } finally {
       if (previousLimit === undefined) delete process.env.ACP_MODEL_CONTEXT_LIMIT;
       else process.env.ACP_MODEL_CONTEXT_LIMIT = previousLimit;

@@ -33,7 +33,7 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 - License: MIT
 - Source files: upstream/billion-context-pi/** (complete tracked source tree except .git metadata)
 - Reused symbols/patterns: compress, decompress, search_context, acp_status, acp_delegate, acp_delegate_wait, acp_delegate_cancel, context and compaction handlers, createAcpPressureEvaluator decision-only pressure evaluator
-- Local changes: added AcpOwnershipRouter so a turn-frozen canonical route gates context, system-prompt and compaction ownership before side effects; disabled upstream auto-update and user-home subagent settings mutation in the AILI composition; added createAcpPressureEvaluator: a decision-only processTurn facade (in-memory state, renderTags none) so the AILI Codex route can reuse the exact ACP WHEN without message mutation; rebuilt dist against the retained source and Pi 0.84.1
+- Local changes: added AcpOwnershipRouter so a turn-frozen canonical route gates context, system-prompt and compaction ownership before side effects; disabled upstream auto-update and user-home subagent settings mutation in the AILI composition; added createAcpPressureEvaluator so the Codex route can reuse ACP pressure decisions as model-facing nudges without ACP message mutation; rebuilt dist against the retained source and Pi 0.84.1
 
 ## pi-codex-compact
 

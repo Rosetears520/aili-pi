@@ -24,9 +24,9 @@ function harness() {
 }
 
 describe("provider-routed context runtime load", () => {
-  it("registers complete ACP tools and one Codex command without AILI Compact", () => {
+  it("registers ACP tools plus the model-directed Codex compaction request", () => {
     const runtime = harness();
-    expect(runtime.tools).toEqual(expect.arrayContaining(["compress", "decompress", "search_context", "acp_status"]));
+    expect(runtime.tools).toEqual(expect.arrayContaining(["compress", "decompress", "search_context", "acp_status", "compact_context"]));
     expect(runtime.commands).toContain("codex-compact");
     expect(runtime.tools.some((name) => name.startsWith("aili_"))).toBe(false);
     expect(runtime.commands).not.toContain("aili-compact");

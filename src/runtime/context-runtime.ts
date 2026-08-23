@@ -115,15 +115,11 @@ export function createProviderRoutedContextExtension(options: ProviderRoutedCont
     const acp = createAcpExtension({ autoUpdate: false }, {
       ownsContext: (ctx) => owns(ctx, "billion-context"),
     });
-    // Same auto-update posture as the ACP composition: the evaluator makes no
-    // network calls of its own, but its adapter config mirrors the extension's.
     const pressureEvaluator = options.pressureEvaluator ?? createAcpPressureEvaluator({ autoUpdate: false });
 
     acp(pi);
-    // The pressure wiring must register before codex(pi): its threshold gate
-    // cancels Pi auto-compaction by short-circuiting later handlers, and the
-    // codex-compact handler must not have already performed remote compaction
-    // for a threshold event the ACP WHEN policy owns.
+    // Register the Codex ACP nudge and threshold gate before codex-compact so
+    // a native threshold event cannot start compaction ahead of model consent.
     wireContextPressure(pi, {
       ownsCodexContext: (ctx) => owns(ctx, "codex-remote-v2"),
       evaluator: pressureEvaluator,
