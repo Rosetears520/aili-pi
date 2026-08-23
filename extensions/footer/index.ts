@@ -32,30 +32,41 @@ function contextUsageSnapshot(ctx: ExtensionContext): { contextTokens: number | 
   };
 }
 
-function isAssistantMessage(value: unknown): value is { role: "assistant"; content?: unknown; usage?: { output?: number }; stopReason?: string } {
+function isAssistantMessage(value: unknown): value is { role: "assistant"; content?: unknown; stopReason?: string } {
   return typeof value === "object" && value !== null && (value as { role?: unknown }).role === "assistant";
 }
 
 /**
- * Shared telemetry state for the active TUI session. Stream events update it
- * in memory only — rendering happens on the lifecycle's 1 Hz change-detection
- * tick, never on the stream path itself.
+ * Shared Visible Text Speed state for the active TUI session. Stream events
+ * update it in memory only — the delta hot path is O(delta) and never touches
+ * a render; the footer redraws on the adaptive lifecycle tick (1 Hz while
+ * live, one wake per minute while idle).
  */
 const telemetry = new ApiTelemetryTracker();
 
+/** Set while a TUI footer is installed; lets stream events retune its timer. */
+let activeLifecycle: NativeFooterLifecycle | undefined;
+
 function observeTelemetryEvents(pi: ExtensionAPI): void {
   pi.on("message_start", (event) => {
-    if (isAssistantMessage(event.message)) telemetry.begin();
+    if (!isAssistantMessage(event.message)) return;
+    telemetry.begin();
+    // Idle → waiting: retune the footer timer without rendering.
+    activeLifecycle?.activityChanged();
   });
   pi.on("message_update", (event) => {
     if (!isAssistantMessage(event.message)) return;
-    const partial = (event.assistantMessageEvent as { partial?: { content?: unknown[] } } | undefined)?.partial;
-    telemetry.observeContent((partial?.content ?? event.message.content) as readonly unknown[] | undefined);
+    const streamEvent = event.assistantMessageEvent as { type?: unknown; delta?: unknown } | undefined;
+    if (streamEvent?.type === "text_delta" && typeof streamEvent.delta === "string") {
+      telemetry.observeTextDelta(streamEvent.delta);
+    }
+    // thinking/tool deltas intentionally never feed Visible Text Speed
   });
   pi.on("message_end", (event) => {
     if (!isAssistantMessage(event.message)) return;
     if (event.message.stopReason === "error" || event.message.stopReason === "aborted") telemetry.fail();
-    else telemetry.complete(event.message.usage?.output);
+    else telemetry.complete();
+    activeLifecycle?.activityChanged();
   });
 }
 
@@ -75,6 +86,7 @@ export default function nativeFooter(pi: ExtensionAPI): void {
     const ctx = activeContext;
     activeContext = undefined;
     requestMcpRender = undefined;
+    activeLifecycle = undefined;
     if (ctx?.mode === "tui") ctx.ui.setFooter(undefined);
   };
 
@@ -86,7 +98,11 @@ export default function nativeFooter(pi: ExtensionAPI): void {
     // never touches a subprocess.
     const cwdLabel = cwdFooterLabel(ctx.cwd);
     ctx.ui.setFooter((tui, theme, footerData) => {
-      const lifecycle = new NativeFooterLifecycle({ renderSignal: () => telemetry.displaySignature() });
+      const lifecycle = new NativeFooterLifecycle({
+        renderSignal: () => telemetry.displaySignature(),
+        needsFastTick: () => telemetry.needsTick(),
+      });
+      activeLifecycle = lifecycle;
       const requestRender = () => tui.requestRender();
       requestMcpRender = requestRender;
       const unsubscribeBranch = footerData.onBranchChange(requestRender);
@@ -98,6 +114,7 @@ export default function nativeFooter(pi: ExtensionAPI): void {
           if (disposed) return;
           disposed = true;
           if (requestMcpRender === requestRender) requestMcpRender = undefined;
+          if (activeLifecycle === lifecycle) activeLifecycle = undefined;
           unsubscribeBranch();
           lifecycle.stop();
         },

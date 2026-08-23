@@ -1,12 +1,14 @@
 /**
- * Runtime-neutral API speed telemetry: the single implementation of output
- * token estimation and tok/s math shared by the TUI footer and the WebUI.
- * Pure TypeScript — no Node built-ins, no DOM — so the same module instance
+ * Runtime-neutral Visible Text Speed telemetry: the single implementation of
+ * output token estimation and tok/s math shared by the TUI footer and the
+ * WebUI. Pure TypeScript — no Node built-ins, no DOM — so the same module
  * semantics hold in the Pi extension host and in the browser bundle.
  *
- * Feeding contract: both surfaces observe the same assistant stream and call
- * `observeText` with the same accumulated text (see `streamEstimateText`), so
- * identical streams produce identical snapshots on every surface.
+ * Feeding contract: both surfaces observe the same assistant stream with the
+ * same estimator over the same visible text. The TUI hot path feeds
+ * `observeTextDelta` (per-delta, O(delta) cost); the WebUI feeds
+ * `observeContent` (per-block incremental fallback). Provider usage counts
+ * never participate: the metric is visible text, not API throughput.
  */
 
 import type { ApiTelemetrySnapshot, ApiTelemetryStatus } from "./types.js";
@@ -74,21 +76,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Streamed text of one assistant content block. Tool-call arguments are
- * excluded: their partial shape differs between the pi-ai host and the web
- * wire projection, so counting them would break the "identical input on every
- * surface" contract.
+ * Visible text of one assistant content block. Thinking/reasoning and
+ * tool-call arguments never count toward Visible Text Speed.
  */
 function estimateBlockText(block: EstimateBlock): string {
   if (!isRecord(block)) return "";
   if (block.type === "text" && typeof block.text === "string") return block.text;
-  if (block.type === "thinking" && typeof block.thinking === "string") return block.thinking;
   return "";
 }
 
 interface WindowSample {
   readonly at: number;
   readonly cumulativeTokens: number;
+}
+
+interface WindowSampleNode {
+  sample: WindowSample;
+  next?: WindowSampleNode;
 }
 
 export interface ApiTelemetryTrackerOptions {
@@ -98,9 +102,10 @@ export interface ApiTelemetryTrackerOptions {
 }
 
 /**
- * One streaming assistant message's telemetry. `begin` on message start,
- * `observeText` on every stream update (cheap; no render side effects),
- * `complete`/`fail` on message end. Snapshots are computed lazily on read.
+ * One assistant turn's telemetry. `begin` when the turn starts (the tracker
+ * enters `waiting`), `observeTextDelta`/`observeContent` as visible text
+ * arrives (memory-only; never a render side effect), `complete`/`fail` when
+ * the turn ends. Snapshots are computed lazily on read.
  */
 export class ApiTelemetryTracker {
   private readonly now: () => number;
@@ -108,13 +113,16 @@ export class ApiTelemetryTracker {
   private readonly completedRetainMs: number;
   private status: ApiTelemetryStatus = "idle";
   private startedAt: number | undefined;
-  private firstTokenAt: number | undefined;
+  private firstTextAt: number | undefined;
+  private lastTextAt: number | undefined;
   private finishedAt: number | undefined;
-  /** Per-block last-seen estimates; unchanged blocks are reused by reference. */
+  /** Per-block last-seen estimates for the content fallback path. */
   private blockCaches: TokenEstimateCacheEntry[] = [];
-  private outputTokens = 0;
-  private usageBacked = false;
-  private samples: WindowSample[] = [];
+  private visibleTokens = 0;
+  private sampleHead: WindowSampleNode | undefined;
+  private sampleTail: WindowSampleNode | undefined;
+  /** Carries a split UTF-16 surrogate pair across adjacent text deltas. */
+  private pendingHighSurrogate: { value: string; at: number } | undefined;
 
   public constructor(options: ApiTelemetryTrackerOptions = {}) {
     // Resolve the global clock lazily so test fake-timer installs apply.
@@ -124,34 +132,59 @@ export class ApiTelemetryTracker {
   }
 
   public get streaming(): boolean {
-    return this.status === "starting" || this.status === "streaming";
+    return this.status === "waiting" || this.status === "streaming";
   }
 
-  /** A new assistant message started streaming. */
+  /** A new assistant turn started: waiting for the first visible text. */
   public begin(now = this.now()): void {
-    this.status = "starting";
+    this.status = "waiting";
     this.startedAt = now;
-    this.firstTokenAt = undefined;
+    this.firstTextAt = undefined;
+    this.lastTextAt = undefined;
     this.finishedAt = undefined;
     this.blockCaches = [];
-    this.outputTokens = 0;
-    this.usageBacked = false;
-    this.samples = [];
+    this.visibleTokens = 0;
+    this.sampleHead = undefined;
+    this.sampleTail = undefined;
+    this.pendingHighSurrogate = undefined;
   }
 
   /**
-   * Accumulated assistant content blocks observed. Estimation is incremental
-   * per block, so a stream update costs O(changed block), not O(message); no
-   * render or IO is ever triggered from here.
+   * TUI hot path: one visible-text delta. Cost is O(delta.length) — no
+   * accumulated-text scan, array shifting, render, or IO.
+   */
+  public observeTextDelta(delta: string, now = this.now()): void {
+    if (!this.streaming || !delta) return;
+    let text = this.pendingHighSurrogate
+      ? this.pendingHighSurrogate.value + delta
+      : delta;
+    this.pendingHighSurrogate = undefined;
+    const lastCodeUnit = text.charCodeAt(text.length - 1);
+    if (isHighSurrogate(lastCodeUnit)) {
+      this.pendingHighSurrogate = { value: text.slice(-1), at: now };
+      text = text.slice(0, -1);
+    }
+    if (!text) return;
+    this.markVisibleText(now);
+    this.visibleTokens += estimateTokens(text);
+    this.pushSample(now, this.visibleTokens);
+  }
+
+  /**
+   * WebUI / compatibility fallback: accumulated assistant content blocks.
+   * Counts text blocks only; estimation is incremental per block, so an
+   * update costs O(changed block), never O(message).
    */
   public observeContent(content: readonly EstimateBlock[] | undefined | null, now = this.now()): void {
     if (!this.streaming) return;
     const nextCaches: TokenEstimateCacheEntry[] = [];
     let total = 0;
+    let visibleTextChanged = false;
     if (Array.isArray(content)) {
       for (let index = 0; index < content.length; index++) {
         const text = estimateBlockText(content[index]!);
         const previous = index < this.blockCaches.length ? this.blockCaches[index] : undefined;
+        if ((previous?.text ?? "") !== text) visibleTextChanged = true;
         // Unchanged blocks reuse their cache entry by reference (O(1)); only
         // the growing block pays for a prefix comparison over its own length.
         const entry = previous && previous.text === text
@@ -161,42 +194,45 @@ export class ApiTelemetryTracker {
         total += entry.tokens;
       }
     }
-    this.blockCaches = nextCaches;
-    if (total <= 0) return;
-    if (this.firstTokenAt === undefined) {
-      this.firstTokenAt = now;
-      this.status = "streaming";
+    for (let index = nextCaches.length; index < this.blockCaches.length; index++) {
+      if (this.blockCaches[index]!.text) visibleTextChanged = true;
     }
-    if (total === this.outputTokens) return;
-    this.outputTokens = total;
+    this.blockCaches = nextCaches;
+    this.visibleTokens = total;
+    if (!visibleTextChanged || total <= 0) return;
+    this.markVisibleText(now);
     this.pushSample(now, total);
   }
 
-  /** Final assistant message; `finalOutputTokens` is the provider usage count. */
-  public complete(finalOutputTokens?: number, now = this.now()): void {
+  /**
+   * Turn ended normally. Provider usage counts deliberately do NOT
+   * participate: the completed reading stays on the visible-text estimate.
+   */
+  public complete(now = this.now()): void {
     if (!this.streaming) return;
+    this.flushPendingHighSurrogate();
     this.finishedAt = now;
     this.status = "completed";
-    this.applyUsage(finalOutputTokens);
-    this.pushSample(now, this.outputTokens);
+    if (this.visibleTokens > 0) this.pushSample(now, this.visibleTokens);
   }
 
   public fail(now = this.now()): void {
     if (!this.streaming) return;
     this.finishedAt = now;
     this.status = "error";
-    this.pushSample(now, this.outputTokens);
   }
 
   public reset(): void {
     this.status = "idle";
     this.startedAt = undefined;
-    this.firstTokenAt = undefined;
+    this.firstTextAt = undefined;
+    this.lastTextAt = undefined;
     this.finishedAt = undefined;
     this.blockCaches = [];
-    this.outputTokens = 0;
-    this.usageBacked = false;
-    this.samples = [];
+    this.visibleTokens = 0;
+    this.sampleHead = undefined;
+    this.sampleTail = undefined;
+    this.pendingHighSurrogate = undefined;
   }
 
   public snapshot(now = this.now()): ApiTelemetrySnapshot {
@@ -209,24 +245,24 @@ export class ApiTelemetryTracker {
     }
     if (this.status === "idle") return idleSnapshot();
 
-    const finished = this.status === "completed" || this.status === "error";
-    const end = finished ? this.finishedAt! : Math.max(now, this.startedAt ?? now);
-    const durationMs = this.startedAt !== undefined ? Math.max(0, end - this.startedAt) : undefined;
-    const averageTokensPerSecond = this.firstTokenAt !== undefined && end > this.firstTokenAt
-      ? (this.outputTokens * 1_000) / (end - this.firstTokenAt)
+    const textSpan = this.firstTextAt !== undefined && this.lastTextAt !== undefined
+      ? Math.max(0, this.lastTextAt - this.firstTextAt)
+      : undefined;
+    const averageTokensPerSecond = textSpan !== undefined && textSpan > 0
+      ? (this.visibleTokens * 1_000) / textSpan
       : undefined;
     return {
       status: this.status,
       ...(this.startedAt !== undefined ? { startedAt: this.startedAt } : {}),
-      ...(this.firstTokenAt !== undefined ? { firstTokenAt: this.firstTokenAt } : {}),
+      ...(this.firstTextAt !== undefined ? { firstTextAt: this.firstTextAt } : {}),
+      ...(this.lastTextAt !== undefined ? { lastTextAt: this.lastTextAt } : {}),
       ...(this.finishedAt !== undefined ? { finishedAt: this.finishedAt } : {}),
-      outputTokens: this.outputTokens,
-      usageBacked: this.usageBacked,
-      ...(this.streaming ? { currentTokensPerSecond: this.windowSpeed(now) } : {}),
+      visibleTokens: this.visibleTokens,
+      ...(this.status === "streaming" ? { currentTokensPerSecond: this.windowSpeed(now) } : {}),
       ...(averageTokensPerSecond !== undefined ? { averageTokensPerSecond } : {}),
-      ...(durationMs !== undefined ? { durationMs } : {}),
-      ...(this.firstTokenAt !== undefined && this.startedAt !== undefined
-        ? { ttftMs: Math.max(0, this.firstTokenAt - this.startedAt) }
+      ...(textSpan !== undefined ? { durationMs: textSpan } : {}),
+      ...(this.firstTextAt !== undefined && this.startedAt !== undefined
+        ? { ttftMs: Math.max(0, this.firstTextAt - this.startedAt) }
         : {}),
     };
   }
@@ -234,12 +270,12 @@ export class ApiTelemetryTracker {
   /**
    * Cheap change-detection signature for low-frequency UI refresh loops: two
    * equal signatures guarantee an identical footer rendering. Only values a
-   * surface actually displays participate — live average speed drifts with
+   * surface actually displays participate — the live average drifts with
    * `now` but is never rendered while streaming.
    */
   public displaySignature(now = this.now()): string {
     const snapshot = this.snapshot(now);
-    if (snapshot.status === "starting" || snapshot.status === "streaming") {
+    if (snapshot.status === "waiting" || snapshot.status === "streaming") {
       const speed = snapshot.currentTokensPerSecond !== undefined
         ? Math.round(snapshot.currentTokensPerSecond)
         : "";
@@ -252,51 +288,68 @@ export class ApiTelemetryTracker {
     return `${snapshot.status}\0${average}\0${seconds}`;
   }
 
-  /** True while a live or retained reading still needs periodic UI ticks. */
+  /** True while a live or retained reading still needs 1 Hz UI ticks. */
   public needsTick(now = this.now()): boolean {
     if (this.streaming) return true;
-    if (this.status === "completed" || this.status === "error") {
-      return this.finishedAt === undefined || now - this.finishedAt <= this.completedRetainMs;
-    }
-    return false;
+    if (this.status !== "completed" || this.finishedAt === undefined) return false;
+    const hasCompletedReading = this.visibleTokens > 0
+      && this.firstTextAt !== undefined
+      && this.lastTextAt !== undefined
+      && this.lastTextAt > this.firstTextAt;
+    return hasCompletedReading && now - this.finishedAt <= this.completedRetainMs;
   }
 
-  private applyUsage(finalOutputTokens: number | undefined): void {
-    if (typeof finalOutputTokens !== "number" || !Number.isFinite(finalOutputTokens) || finalOutputTokens <= 0) return;
-    this.outputTokens = finalOutputTokens;
-    this.usageBacked = true;
+  private flushPendingHighSurrogate(): void {
+    const pending = this.pendingHighSurrogate;
+    if (!pending) return;
+    this.pendingHighSurrogate = undefined;
+    this.markVisibleText(pending.at);
+    this.visibleTokens += estimateTokens(pending.value);
+    this.pushSample(pending.at, this.visibleTokens);
+  }
+
+  private markVisibleText(now: number): void {
+    if (this.firstTextAt === undefined) {
+      this.firstTextAt = now;
+      this.status = "streaming";
+    }
+    this.lastTextAt = now;
   }
 
   private pushSample(at: number, cumulativeTokens: number): void {
-    const last = this.samples.at(-1);
-    if (last && at <= last.at) {
+    const last = this.sampleTail;
+    if (last && at <= last.sample.at) {
       // Same-tick updates collapse into the newest cumulative value.
-      this.samples[this.samples.length - 1] = { at: last.at, cumulativeTokens };
+      last.sample = { at: last.sample.at, cumulativeTokens };
       return;
     }
-    this.samples.push({ at, cumulativeTokens });
+    const node: WindowSampleNode = { sample: { at, cumulativeTokens } };
+    if (last) last.next = node;
+    else this.sampleHead = node;
+    this.sampleTail = node;
     this.prune(at);
   }
 
   /** Keep the newest sample at or before the window cutoff plus everything after it. */
   private prune(now: number): void {
     const cutoff = now - this.windowMs;
-    let keep = 0;
-    while (keep + 1 < this.samples.length && this.samples[keep + 1]!.at <= cutoff) keep++;
-    if (keep > 0) this.samples.splice(0, keep);
+    while (this.sampleHead?.next && this.sampleHead.next.sample.at <= cutoff) {
+      this.sampleHead = this.sampleHead.next;
+    }
   }
 
   private windowSpeed(now: number): number | undefined {
-    if (this.samples.length === 0) return undefined;
-    const last = this.samples.at(-1)!;
+    const first = this.sampleHead?.sample;
+    const last = this.sampleTail?.sample;
+    if (!first || !last) return undefined;
     const cutoff = now - this.windowMs;
     if (last.at <= cutoff) return undefined;
-    const windowStart = Math.max(cutoff, this.samples[0]!.at, this.firstTokenAt ?? now);
+    const windowStart = Math.max(cutoff, first.at, this.firstTextAt ?? now);
     const span = now - windowStart;
     if (span < MIN_SPEED_SPAN_MS) return undefined;
-    // The sample at index 0 is the newest one at or before the cutoff (or the
-    // very first sample ever), so its cumulative count is the window baseline.
-    const baseline = this.samples[0]!.at <= cutoff ? this.samples[0]!.cumulativeTokens : 0;
+    // The head is the newest sample at or before the cutoff (or the very first
+    // sample ever), so its cumulative count is the window baseline.
+    const baseline = first.at <= cutoff ? first.cumulativeTokens : 0;
     const tokens = last.cumulativeTokens - baseline;
     if (tokens <= 0) return undefined;
     return (tokens * 1_000) / span;
@@ -304,5 +357,5 @@ export class ApiTelemetryTracker {
 }
 
 function idleSnapshot(): ApiTelemetrySnapshot {
-  return { status: "idle", outputTokens: 0, usageBacked: false };
+  return { status: "idle", visibleTokens: 0 };
 }

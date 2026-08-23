@@ -1,14 +1,17 @@
 /**
- * Shared API performance telemetry contract.
+ * Shared Visible Text Speed telemetry contract.
  *
- * One snapshot shape, one speed algorithm, consumed by every surface (TUI
- * footer, WebUI streaming badge). Presentation layers never recompute token
- * speed from raw stream events; they read these snapshots only.
+ * The metric is NOT API throughput: it is the generation speed of assistant
+ * text the user can currently see. Only `text` / `text_delta` content counts —
+ * thinking/reasoning, tool-call arguments, and tool results never do, and a
+ * provider usage count never overwrites the visible-text estimate. Every
+ * surface (TUI footer, WebUI badge) reads these snapshots and never recomputes
+ * speed from raw stream events.
  */
 
 export type ApiTelemetryStatus =
   | "idle"
-  | "starting"
+  | "waiting"
   | "streaming"
   | "completed"
   | "error";
@@ -16,27 +19,31 @@ export type ApiTelemetryStatus =
 export interface ApiTelemetrySnapshot {
   status: ApiTelemetryStatus;
 
-  /** Wall-clock ms of the streaming assistant message start. */
+  /** Wall-clock ms of the assistant turn start (entering `waiting`). */
   startedAt?: number;
-  /** Wall-clock ms of the first observed output text. */
-  firstTokenAt?: number;
-  /** Wall-clock ms when the message completed or failed. */
+  /** Wall-clock ms of the first visible text; absent while `waiting`. */
+  firstTextAt?: number;
+  /** Wall-clock ms of the most recent visible text. */
+  lastTextAt?: number;
+  /** Wall-clock ms when the turn completed or failed. */
   finishedAt?: number;
 
-  /** Estimated output tokens (provider usage count once a message ends). */
-  outputTokens: number;
-  /** True once a real provider usage count replaced the character estimate. */
-  usageBacked: boolean;
+  /** Estimated visible-text tokens (never replaced by provider usage). */
+  visibleTokens: number;
 
-  /** Output speed over the recent 3-second sliding window, tokens/second. */
+  /** Visible-text speed over the recent 3-second sliding window, tokens/second. */
   currentTokensPerSecond?: number;
 
-  /** Mean output speed from first token to completion, tokens/second. */
+  /**
+   * Mean visible-text speed across the actual text span:
+   * visibleTokens / (lastTextAt - firstTextAt). Reasoning time before the
+   * first character never enters this value.
+   */
   averageTokensPerSecond?: number;
 
-  /** Elapsed ms from message start to completion (or to `now` while live). */
+  /** Visible-text generation span: lastTextAt - firstTextAt. */
   durationMs?: number;
 
-  /** First-token latency in ms; absent when no output was observed. */
+  /** Latency from turn start to the first visible character. */
   ttftMs?: number;
 }

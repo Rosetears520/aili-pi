@@ -134,33 +134,37 @@ describe("secondary line keeps the cwd identity under squeeze", () => {
 });
 
 describe("shared telemetry speed label", () => {
-  it("shows the 3s-window speed while streaming and avg+duration after completion", () => {
+  it("shows the 3s-window speed while streaming and avg+text-span after completion", () => {
     expect(speedLabel(undefined)).toBeUndefined();
-    expect(speedLabel({ status: "idle", outputTokens: 0, usageBacked: false })).toBeUndefined();
-    expect(speedLabel({ status: "starting", outputTokens: 0, usageBacked: false })).toBeUndefined();
-    expect(speedLabel({ status: "streaming", outputTokens: 120, usageBacked: false, currentTokensPerSecond: 68.4 }))
+    expect(speedLabel({ status: "idle", visibleTokens: 0 })).toBeUndefined();
+    // waiting = reasoning / tool calls / first-token wait: no speed text.
+    expect(speedLabel({ status: "waiting", visibleTokens: 0 })).toBeUndefined();
+    expect(speedLabel({ status: "streaming", visibleTokens: 120, currentTokensPerSecond: 68.4 }))
       .toBe("68 t/s");
+    // No live window yet (stalled >3s or sub-500ms span): nothing.
+    expect(speedLabel({ status: "streaming", visibleTokens: 120 })).toBeUndefined();
     expect(speedLabel({
       status: "completed",
-      outputTokens: 1_300,
-      usageBacked: true,
+      visibleTokens: 1_300,
       averageTokensPerSecond: 68.2,
       durationMs: 18_700,
     })).toBe("68 avg · 18.7s");
-    expect(speedLabel({ status: "completed", outputTokens: 5_000, usageBacked: true, averageTokensPerSecond: 41, durationMs: 125_000 }))
+    expect(speedLabel({ status: "completed", visibleTokens: 5_000, averageTokensPerSecond: 41, durationMs: 125_000 }))
       .toBe("41 avg · 2m05s");
+    // A completed turn without visible text (pure tool calls) shows nothing.
+    expect(speedLabel({ status: "completed", visibleTokens: 0 })).toBeUndefined();
     // Errors never linger as a speed reading.
-    expect(speedLabel({ status: "error", outputTokens: 3, usageBacked: false })).toBeUndefined();
+    expect(speedLabel({ status: "error", visibleTokens: 3 })).toBeUndefined();
   });
 
   it("places the speed segment before permission on the secondary line", () => {
-    const telemetry: ApiTelemetrySnapshot = { status: "streaming", outputTokens: 40, usageBacked: false, currentTokensPerSecond: 68 };
+    const telemetry: ApiTelemetrySnapshot = { status: "streaming", visibleTokens: 40, currentTokensPerSecond: 68 };
     const line = renderNativeFooter({ ...snapshot, telemetry }, 100)[1];
     expect(line).toContain("68 t/s · YOLO · MCP 0/4 · 19:48");
   });
 
   it("keeps the speed segment inside the cell budget at narrow widths", () => {
-    const telemetry: ApiTelemetrySnapshot = { status: "streaming", outputTokens: 40, usageBacked: false, currentTokensPerSecond: 68 };
+    const telemetry: ApiTelemetrySnapshot = { status: "streaming", visibleTokens: 40, currentTokensPerSecond: 68 };
     for (const width of [0, 1, 8, 24, 40, 80]) {
       for (const line of renderNativeFooter({ ...snapshot, telemetry }, width)) {
         expect(visibleWidth(line)).toBeLessThanOrEqual(Math.max(0, width));
@@ -196,7 +200,7 @@ describe("footer segment tones", () => {
   it("tones the live speed segment as secondary", () => {
     const [, secondary] = renderNativeFooterView({
       ...snapshot,
-      telemetry: { status: "streaming", outputTokens: 40, usageBacked: false, currentTokensPerSecond: 68 },
+      telemetry: { status: "streaming", visibleTokens: 40, currentTokensPerSecond: 68 },
     }, 100);
     expect(secondary.segments.find((segment) => segment.text === "68 t/s")?.tone).toBe("secondary");
   });

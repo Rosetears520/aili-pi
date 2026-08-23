@@ -84,7 +84,7 @@ describe("Pi-native footer runtime", () => {
     component.dispose();
   });
 
-  it("streams shared telemetry into the footer speed segment", () => {
+  it("streams visible-text telemetry into the footer speed segment", () => {
     vi.useFakeTimers();
     const start = new Date("2025-01-01T19:48:00Z").getTime();
     vi.setSystemTime(start);
@@ -99,26 +99,65 @@ describe("Pi-native footer runtime", () => {
     // No speed segment while idle.
     expect(component.render(120)[1]).not.toContain("t/s");
 
-    // Assistant message: 100 tokens at T0, another 100 at T0+1s.
+    // Turn starts: waiting (reasoning) shows no speed text.
     runtime.emitRaw("message_start", { message: { role: "assistant" } });
     runtime.emitRaw("message_update", {
-      message: { role: "assistant", content: [{ type: "text", text: "a".repeat(400) }] },
-      assistantMessageEvent: { partial: { content: [{ type: "text", text: "a".repeat(400) }] } },
+      message: { role: "assistant" },
+      assistantMessageEvent: { type: "thinking_delta", delta: "d".repeat(2_000) },
+    });
+    expect(component.render(120)[1]).not.toContain("t/s");
+    expect(component.render(120)[1]).not.toContain("avg");
+
+    // Visible text: 100 tokens at T0, another 100 at T0+1s (text_delta only).
+    runtime.emitRaw("message_update", {
+      message: { role: "assistant" },
+      assistantMessageEvent: { type: "text_delta", delta: "a".repeat(400) },
     });
     vi.setSystemTime(start + 1_000);
     runtime.emitRaw("message_update", {
-      message: { role: "assistant", content: [{ type: "text", text: "a".repeat(800) }] },
-      assistantMessageEvent: { partial: { content: [{ type: "text", text: "a".repeat(800) }] } },
+      message: { role: "assistant" },
+      assistantMessageEvent: { type: "text_delta", delta: "a".repeat(400) },
     });
     vi.setSystemTime(start + 1_500);
     expect(component.render(120)[1]).toContain("133 t/s");
 
-    // Completion swaps in the usage-backed average and total duration, then
-    // the reading disappears once the retain window passes.
+    // Completion keeps the visible-text estimate (provider usage ignored)
+    // and reports the text generation span, not the whole turn.
     vi.setSystemTime(start + 2_000);
-    runtime.emitRaw("message_end", { message: { role: "assistant", usage: { output: 300 }, stopReason: "stop" } });
-    expect(component.render(120)[1]).toContain("150 avg · 2.0s");
+    runtime.emitRaw("message_end", { message: { role: "assistant", usage: { output: 987 }, stopReason: "stop" } });
+    expect(component.render(120)[1]).toContain("200 avg · 1.0s");
     vi.setSystemTime(start + 2_000 + 8_001);
+    expect(component.render(120)[1]).not.toContain("avg");
+    component.dispose();
+  });
+
+  it("never shows a speed reading for a pure tool-call turn", () => {
+    vi.useFakeTimers();
+    const start = new Date("2025-01-01T19:48:00Z").getTime();
+    vi.setSystemTime(start);
+    const runtime = harness();
+    runtime.emit("session_start");
+    const component = runtime.factory()!({ requestRender: vi.fn() }, { fg: (_color: string, text: string) => text }, {
+      onBranchChange: () => vi.fn(),
+      getExtensionStatuses: () => new Map(),
+      getGitBranch: () => "main",
+    });
+
+    runtime.emitRaw("message_start", { message: { role: "assistant" } });
+    for (let i = 1; i <= 4; i++) {
+      vi.setSystemTime(start + i * 500);
+      runtime.emitRaw("message_update", {
+        message: { role: "assistant" },
+        assistantMessageEvent: { type: "thinking_delta", delta: "d".repeat(500) },
+      });
+      runtime.emitRaw("message_update", {
+        message: { role: "assistant" },
+        assistantMessageEvent: { type: "toolcall_delta", delta: "{\"cmd\":\"ls\"}" },
+      });
+      expect(component.render(120)[1]).not.toContain("t/s");
+    }
+    vi.setSystemTime(start + 3_000);
+    runtime.emitRaw("message_end", { message: { role: "assistant", usage: { output: 421 }, stopReason: "toolUse" } });
     expect(component.render(120)[1]).not.toContain("avg");
     component.dispose();
   });

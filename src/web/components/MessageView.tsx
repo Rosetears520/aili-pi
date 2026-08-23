@@ -696,7 +696,9 @@ function AssistantMessageView({
         }
         return next;
       });
-      speedTrackerRef.current.complete(message.usage?.output, now);
+      // Provider usage counts deliberately stay out: the completed reading
+      // remains the visible-text estimate.
+      speedTrackerRef.current.complete(now);
       setTps(null);
       return;
     }

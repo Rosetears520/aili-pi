@@ -129,12 +129,14 @@ function formatDuration(durationMs: number): string {
 }
 
 /**
- * Speed state machine label: live 3s-window speed while streaming, average
- * speed plus duration briefly after completion, nothing once idle again.
+ * Speed state machine label: live 3s-window speed while streaming visible
+ * text, average speed plus the visible-text span briefly after completion,
+ * nothing while idle/waiting (reasoning, tool calls, first-token wait) or on
+ * error. Turns that never produced visible text show no reading at all.
  */
 export function speedLabel(telemetry: ApiTelemetrySnapshot | undefined): string | undefined {
   if (!telemetry) return undefined;
-  if (telemetry.status === "starting" || telemetry.status === "streaming") {
+  if (telemetry.status === "streaming") {
     return telemetry.currentTokensPerSecond !== undefined
       ? `${Math.round(telemetry.currentTokensPerSecond)} t/s`
       : undefined;
