@@ -27,7 +27,7 @@ export function AiliQuotaOrb({ quota }: { quota: QuotaStatusView | undefined }) 
         type="button"
         className="aili-quota-orb"
         onClick={() => setOpen((value) => !value)}
-        title={quota ? quota.lines.join(" · ") : "Quota: no data yet"}
+        title={quota ? quota.lines.join(" · ") : "Provider quota: none yet (subscription/OAuth models only; API-key models report no quota)"}
         aria-label="Provider quota"
         aria-expanded={open}
       >
@@ -38,7 +38,7 @@ export function AiliQuotaOrb({ quota }: { quota: QuotaStatusView | undefined }) 
         <div className="aili-menu aili-quota-popover" role="dialog" aria-label="Provider quota">
           {quota ? quota.lines.map((line, index) => (
             <p key={index} className="aili-quota-line">{line}</p>
-          )) : <p className="aili-quota-line">No quota data reported yet.</p>}
+          )) : <p className="aili-quota-line">No quota data yet — subscription (OAuth) models only; API-key models report none.</p>}
         </div>
       )}
     </div>

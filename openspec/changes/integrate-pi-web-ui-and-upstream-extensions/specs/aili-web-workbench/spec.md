@@ -11,6 +11,17 @@ The AILI Web workbench SHALL retain the applicable locked Pi Web behavior for se
 - **WHEN** the user chooses an in-session branch action or an independent Fork action
 - **THEN** the UI labels and executes the correct operation and does not conflate a same-file branch with a new session file
 
+### Requirement: AppShell uses one mutation owner
+Every mutation reachable from the production `AppShell` dependency graph SHALL use the AILI Runtime Gateway/BFF. Direct mutation fetches or RPC calls to legacy session, Agent, filesystem, Git, Worktree, skill/plugin/model, media, Analytics, BTW, Stamp, or MCP owners MUST NOT remain reachable from production controls.
+
+#### Scenario: Production mutation call graph is inspected
+- **WHEN** the production AppShell, hooks, components, and API handlers are traced
+- **THEN** every mutation terminates at the same Gateway admission boundary and no direct mutable service path remains
+
+#### Scenario: Compatibility route cannot bypass Gateway
+- **WHEN** an old direct mutation endpoint remains in the source tree
+- **THEN** it rejects the request or translates it into the same Gateway contract before any side effect
+
 ### Requirement: AILI runtime workbench surfaces
 The workbench SHALL provide a structured Timeline, independently collapsible or resizable navigation and inspection regions, a persistent runtime status surface, and explicit Queue Next versus Steer controls. It SHALL truthfully display current model, thinking, context tokens/window, writer state, Agent status, MCP connection count/status, Analytics, Stamp timing, BTW threads, and Worktree state when their capabilities are available.
 

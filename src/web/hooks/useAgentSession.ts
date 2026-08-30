@@ -148,8 +148,9 @@ export interface UseAgentSessionOptions {
   chatInputRef?: React.RefObject<ChatInputHandle | null>;
   onBranchDataChange?: (tree: SessionTreeNode[], activeLeafId: string | null, onLeafChange: (leafId: string | null) => void) => void;
   onSystemPromptChange?: (prompt: string | null) => void;
-  /** Registers an action that lazily starts the session and returns its system prompt. */
-  onSystemPromptLoaderChange?: (loader: (() => Promise<void>) | null) => void;
+  onSystemToolsChange?: (tools: ToolEntry[] | null) => void;
+  /** Registers a read-only action that lazily loads the session prompt and tool catalog. */
+  onSystemInfoLoaderChange?: (loader: (() => Promise<void>) | null) => void;
   onSessionStatsPanelOpen?: () => void;
   setToolPreset?: (preset: ToolPreset) => void;
 }
@@ -267,7 +268,7 @@ type SlashCommandsResponse = {
 export function useAgentSession(opts: UseAgentSessionOptions) {
   const {
     session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked,
-    modelsRefreshKey, onBranchDataChange, onSystemPromptChange, onSystemPromptLoaderChange, onSessionStatsPanelOpen,
+    modelsRefreshKey, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsPanelOpen,
   } = opts;
 
   const isNew = session === null && newSessionCwd !== null;
@@ -500,7 +501,9 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       if (!includeState) return null;
 
       try {
-        const stateRes = await fetch(`/api/sessions/${encodeURIComponent(sid)}/state`);
+        // attach=1: start the server-side agent session for idle sessions so
+        // context usage and extension statuses are available on open.
+        const stateRes = await fetch(`/api/sessions/${encodeURIComponent(sid)}/state?attach=1`);
         if (!stateRes.ok) throw new Error(`HTTP ${stateRes.status}`);
         const agentState = await stateRes.json() as { running: boolean; state?: AgentStateResponse };
         if (sessionIdRef.current !== sid) return null;
@@ -547,14 +550,16 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   const loadTools = useCallback(async (sid: string) => {
     try {
       const tools = await sendAgentCommand<ToolEntry[]>(sid, { type: "get_tools" });
-      if (tools) {
-        const { getPresetFromTools } = await import("@/lib/tool-presets");
-        setToolPresetState(getPresetFromTools(tools));
-      }
+      if (!tools || !sessionHookMountedRef.current || sessionIdRef.current !== sid) return null;
+      const { getPresetFromTools } = await import("@/lib/tool-presets");
+      setToolPresetState(getPresetFromTools(tools));
+      onSystemToolsChange?.(tools);
+      return tools;
     } catch (e) {
       console.error("Failed to load tools:", e);
+      return null;
     }
-  }, [setToolPresetState]);
+  }, [onSystemToolsChange, setToolPresetState]);
 
   const promoteNewSession = useCallback((messageCount = 0, firstMessage = "(no messages)") => {
     const sid = sessionIdRef.current;
@@ -593,6 +598,8 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       const selectedThinkingLevel = thinkingLevelOverrideRef.current;
       if (selectedModel) setPendingModel(selectedModel);
       const toolNames = getToolNamesForPreset(toolPreset);
+      const { getGatewayClient } = await import("@/gateway-client");
+      await getGatewayClient().ensureMutationSession();
       const res = await fetch("/api/agent/new", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -635,17 +642,17 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     }
   }, [isNew, newSessionCwd, toolPreset]);
 
-  // Opening the System panel is also allowed to initialize an otherwise dormant
-  // session. This is deliberately a non-prompt command: it creates no message
-  // or model run, but lets users inspect the exact prompt before sending one.
-  const loadSystemPrompt = useCallback(async () => {
+  // These panels consume only the Gateway's existing read projections.
+  const loadSystemInfo = useCallback(async () => {
     const sid = sessionIdRef.current ?? await ensureNewSession();
     if (!sid) return;
-
-    const state = await sendAgentCommand<AgentStateResponse>(sid, { type: "get_state" });
+    const [state] = await Promise.all([
+      sendAgentCommand<AgentStateResponse>(sid, { type: "get_state" }),
+      loadTools(sid),
+    ]);
     if (!sessionHookMountedRef.current || sessionIdRef.current !== sid) return;
     setSystemPrompt(state.systemPrompt ?? "");
-  }, [ensureNewSession]);
+  }, [ensureNewSession, loadTools]);
 
   const loadSlashCommands = useCallback(async () => {
     const sid = sessionIdRef.current ?? await ensureNewSession();
@@ -1865,9 +1872,9 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   }, [systemPrompt, onSystemPromptChange]);
 
   useEffect(() => {
-    onSystemPromptLoaderChange?.(loadSystemPrompt);
-    return () => onSystemPromptLoaderChange?.(null);
-  }, [loadSystemPrompt, onSystemPromptLoaderChange]);
+    onSystemInfoLoaderChange?.(loadSystemInfo);
+    return () => onSystemInfoLoaderChange?.(null);
+  }, [loadSystemInfo, onSystemInfoLoaderChange]);
 
   useEffect(() => {
     if (!onBranchDataChange) return;

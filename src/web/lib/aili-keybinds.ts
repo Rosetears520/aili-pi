@@ -90,13 +90,10 @@ export async function fetchWebKeybinds(): Promise<WebKeybinds> {
 }
 
 export async function saveWebKeybinds(next: WebKeybinds): Promise<WebKeybinds> {
-  const response = await fetch("/api/aili/keybinds", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(next),
-  });
-  if (!response.ok) throw new Error(`keybind save failed (HTTP ${response.status})`);
-  const merged = mergeKeybinds(await response.json());
+  const { getGatewayClient } = await import("../gateway-client.js");
+  const mutation = await getGatewayClient().configure("keybinds.configure", "replace", { bindings: next });
+  if (mutation.disposition !== "completed") throw new Error(mutation.reason);
+  const merged = mergeKeybinds(mutation.result);
   globalThis.localStorage?.setItem("aili-web-keybinds", JSON.stringify(merged));
   return merged;
 }

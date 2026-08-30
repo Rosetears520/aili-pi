@@ -1,0 +1,240 @@
+[2026-08-26T10:29:49Z] DEFINE PROPOSED
+evidence=artifact:openspec/changes/add-herdr-execution-backend/{proposal.md,design.md,tasks.md,specs/,context.md,test-plan.md}
+disposition=pending
+blocker=final test-plan.md not yet accepted by the user; Phase 0 herdr protocol/installer/child-launch verification (tasks 1.2-1.4) pending; BUILD not authorized
+next_action=user reviews proposal/design/specs/test-plan draft; on acceptance of test-plan.md and separate build authorization, start Phase 0 audit tasks
+
+[2026-08-26T10:32:43Z] BOARD BUILD_AUTHORIZED
+evidence=conversation:user accepted test-plan.md and authorized implementation ("直接开始做吧,可以一部分一部分的做"); test-plan.md header updated to 已接受
+disposition=accepted
+blocker=none for Phase 0/1; Phase 2 gated on task 1.2 herdr protocol verification
+next_action=execute Phase 0 audit (tasks 1.1-1.5) then Phase 1 managed backend abstraction (tasks 2.1-2.5)
+
+[2026-08-26T10:51:30Z] BUILD add-herdr-execution-backend ROUND-1 EXECUTED (Phase 0 + Phase 1)
+evidence=audit/{current-state-map.md,adrs.md,environment-verification.md,herdr-api-schema.json}; src/runtime/persistent-agents/backends/{types,registry,managed,settings}.ts; coordinator/runtime/production/storage/types/sub-schema/sub-renderer edits; tests/unit/persistent-agent-backends.test.ts (16 tests); manifests/adapter-evidence.json hashes updated via npm run sync:adapters
+disposition=executed
+blocker=none; Phase 2 may start (herdr socket API confirmed: protocol 20, schema_version 1, newline-delimited JSON, session.snapshot/events.subscribe/pane.report_metadata verified live)
+next_action=Phase 2 herdr read-only vertical slice (tasks 3.1-3.7), starting with fake-server test harness + socket client
+verification=npm run typecheck PASS; npm test 723 passed/2 skipped; npm run validate:capabilities PASS; npm run validate:generated PASS; npm run validate:package PASS; npm run test:audit-redaction PASS; npm run test:doctor PASS; zero managed-semantic regressions (existing suite green with only additive fixture fields)
+
+[2026-08-26T11:38:48Z] BUILD add-herdr-execution-backend ROUND-2 EXECUTED (Phase 2 read-only vertical slice)
+evidence=src/runtime/persistent-agents/backends/herdr/{protocol,client,naming,availability,adapter}.ts; src/runtime/persistent-agents/herdr-child/index.ts; tests/unit/herdr-backends.test.ts (7 tests incl. fake-daemon E2E); audit/{live-smoke.md,live-smoke-script.mjs}; drift-log.md (connection model, socket path, metadata keys, integration extension)
+disposition=executed
+blocker=user live verification of a real model turn on herdr (submit_turn→turn.completed proven only against fake daemon + real bridge); tasks 3.6/3.7 intentionally unchecked (real-task acceptance + mid-turn reattach deferred to Phase 3 per drift-log)
+next_action=user tests in pi: /aili-agent-backend herdr + sub with a read-only role (code-reviewer/spec-miner), observing the Herdr tab; then Phase 3
+verification=npm run typecheck PASS; npm test 730 passed/2 skipped; validate:capabilities/generated/package PASS; test:audit-redaction 19 passed; test:doctor 16 passed; real-daemon smoke PASS (workspace/tab/agent.start + real pi child bridge handshake + cleanup)
+
+[2026-08-26T11:53:23Z] BUILD add-herdr-execution-backend ROUND-3 EXECUTED (Phase 2 continuation fixes + docs)
+evidence=herdr-child settleTurn (turn_end clears pending so submit_turn is accepted again); adapter continuation path (reuses live bridge, no second agent.start; explicit failure when bridge lost); empty-tools argv guard (--no-tools); tests/unit/herdr-backends.test.ts second-turn reuse assertions; docs/persistent-agents.md "Execution backends" section
+disposition=executed
+blocker=user live verification in pi remains the next gate (submit_turn→real model turn→turn.completed proven on fake daemon + real bridge + real-daemon handshake smoke only)
+next_action=user tests per docs section: /aili-agent-backend herdr then sub with a read-only role; then Phase 3 (security bootstrap, InteractionBroker, mid-turn reattach)
+verification=npm run typecheck PASS; npm test 730 passed/2 skipped; validate:compatibility PASS
+
+[2026-08-26T12:00:30Z] BUILD add-herdr-execution-backend ROUND-4 EXECUTED (user-reported fix: /aili-agent-backend before session materialization)
+evidence=user hit ENOENT lstat on parent session jsonl at command time; root cause: directBackend created the runtime (ensureSidecarLayout) before official Pi materialized the session file, violating the documented pre-prompt invariant; fix = command is now runtime-free (sessionBackendOverrides map on PersistentAgentProduction keyed by parent path; standalone probeHerdrDaemon; runtime picks the override up lazily on first sub)
+disposition=fixed
+blocker=none; user retest of /aili-agent-backend status|herdr at fresh session start expected green
+next_action=user continues live verification; Phase 3 unchanged
+verification=npm run typecheck PASS; npm test 730 passed/2 skipped (rerun; 2 web tests flaky under parallel load, pass in isolation); validate:compatibility PASS
+
+[2026-08-26T12:06:40Z] BUILD add-herdr-execution-backend ROUND-5 EXECUTED (user-reported fix: herdr invalid_agent_argument)
+evidence=user live run failed with "herdr invalid_agent_argument: agent arguments cannot be encoded safely for the target shell"; root cause: role system prompt (Chinese/newlines) rode in argv via --append-system-prompt and herdr shell-encodes argv; fix = argv is now strictly shell-safe ASCII, role/system context merged into the turn message submitted over the bridge socket; test asserts full-argv printable-ASCII invariant
+disposition=fixed
+blocker=none; user retest expected to reach a real herdr child turn
+next_action=user continues live verification; leftover empty herdr workspace tab from the failed attempt may be closed manually
+verification=npm run typecheck PASS; herdr-backends 7/7; npm test 730 passed/2 skipped (one web flake on first pass, clean on rerun)
+
+[2026-08-26T12:37:39Z] BUILD add-herdr-execution-backend ROUND-6 EXECUTED (user-reported: surfaces must be observable in the parent's herdr window)
+evidence=user runs pi INSIDE herdr (HERDR_ENV=1); dedicated per-parent aili- workspace was invisible to them; adapter now reuses the parent's workspace (verified against snapshot, explicit failure if unseen) and focuses the new child tab there; spec Surface topology updated with two new scenarios (DEFINE write-back); drift-log records topology + argv-ASCII adaptations; project config .pi/aili/agent-backend.json set to herdr for this repo's testing; herdr-backends tests 8/8 (new parent-in-herdr case)
+disposition=executed
+blocker=none; user retest should show the child as a focused new tab in their own workspace
+next_action=user live retest; then Phase 3 (security bootstrap, InteractionBroker, mid-turn reattach, surface permits)
+verification=openspec validate --strict PASS; validate:capabilities PASS; npm test 731 passed/2 skipped; herdr-backends 8/8
+
+[2026-08-26T12:47:45Z] BUILD add-herdr-execution-backend ROUND-7 EXECUTED (user-reported: agent_pane_busy race + model guidance)
+evidence=fresh tab pane shell has not reached its prompt when agent.start fires; herdr answers agent_pane_busy; fix = bounded retry (300ms cadence, startupTimeoutMs budget) on exactly agent_pane_busy, other errors fail immediately; sub promptGuidelines gained "Delegated children are observable surfaces" line so models stop hand-rolling herdr CLI/panes to manage delegated work; fake server simulates the busy race (2 busy then ok) in the parent-in-herdr E2E test
+disposition=executed
+blocker=none; user retest expected: focused new tab in their workspace, child pi boots, real turn runs
+next_action=user live retest; then Phase 3
+verification=herdr-backends 8/8; npm test 731 passed/2 skipped; validate:compatibility PASS (runtime.ts + runtime test evidence hashes refreshed)
+
+[2026-08-26T13:07:05Z] BUILD add-herdr-execution-backend ROUND-8 EXECUTED (user-reported: false turn failure + tab sprawl)
+evidence=run-1 events.jsonl showed turn.failed "stopReason toolUse": pi fires turn_end per assistant message incl. tool-call rounds; child misclassified tool rounds as failure (parent gave up in 7s while the child kept working, pending cleared so later rounds logged as manual.input). Fix = classifyTurnEnd (toolUse/empty=progress keeps waiting; textual=completed; error/aborted=failed) + turn.progress events. One-visible-surface: identity now rides ASCII argv flags (--aili-*) so idle AILI-owned panes are reused for the next agent instead of new tabs; genuinely failed turns now shutdown the child (pane returns to shell, reusable); success keeps the child continuable
+disposition=executed
+blocker=none; user retest expected: one reused tab, parent waits through tool rounds, settled result
+next_action=user live retest; then Phase 3
+verification=herdr-backends 10/10 (classifyTurnEnd unit + pane-reuse E2E); npm test 733 passed/2 skipped; typecheck + validate:compatibility PASS
+
+[2026-08-26T13:22:30Z] BUILD add-herdr-execution-backend ROUND-9 EXECUTED (user-reported: parallel pair ENOENT + agent_pane_not_found)
+evidence=root causes: (a) pi.getFlag() is not populated during initial extension load, so a reused pane fell back to its STALE env from the previous run and the bridge came up on the old run socket (parent got ENOENT on the new path); (b) two concurrent submissions adopted the same reusable idle pane — the loser's agent.start hit agent_pane_not_found. Fixes: identity now parsed directly from process.argv (identityFromArgv, unit-tested, no registration timing); in-process pane claim set keeps concurrent submissions apart; a reused pane lost to contention (agent_pane_* errors) transparently falls back to opening a fresh tab once; child argv gains --offline (skip startup network ops that stalled behind provider fetch retries)
+disposition=executed
+blocker=none; user parallel retest expected: each concurrent child gets its own pane, sequential children share one tab
+next_action=user live retest (parallel + sequential); then Phase 3
+verification=herdr-backends 12/12 (identityFromArgv + contention-fallback E2E); npm test 735 passed/2 skipped; typecheck + validate:compatibility PASS
+
+[2026-08-26T13:34:26Z] BUILD add-herdr-execution-backend ROUND-10 EXECUTED (user-reported: parallel "run-1: duplicate run")
+evidence=two concurrent turns both read an empty runs map and allocated run-1; the loser's run.created append failed AND poisoned the journal writer chain (every later append replayed the duplicate error, so model retries also failed instantly). Fix = CoordinatorJournal.appendAllocatedRun: id allocation + run.created append as ONE serialized step on the journal tail; both backends now allocate atomically; ensureWorkspace memoized so parallel first-turns create one workspace. New parallel E2E: two children concurrently → distinct run-1/run-2 + distinct panes + one workspace + journal appendable afterwards
+disposition=executed
+blocker=none; user parallel retest expected green
+next_action=user live retest (parallel + sequential reuse); then Phase 3
+verification=herdr-backends 13/13; npm test 736 passed/2 skipped; typecheck + validate:compatibility PASS
+
+[2026-08-26T15:30:10Z] BUILD add-herdr-execution-backend ROUND-11 EXECUTED (user-reported: sequential agents must share one tab)
+evidence=user: parallel pair completed but the serial third agent opened ANOTHER tab because successful children stay alive (continuable) so their panes never look free. Fix = idle-AILI-child recycling: a new agent first recycles an idle AILI pane (shutdown its child via bridge; session file stays continuable), tab count now tracks PEAK concurrency (sequential = one tab); continuation with a dead bridge no longer fails — it drops the surface and resumes the same stable session on a fresh/recycled pane (design §12.4). Spec Surface topology rewritten (4 new scenarios); drift-log updated; test seam AILI_CHILD_NO_EXIT for in-process bridges; stateful fake daemon (auto panes, metadata merge, agent placement)
+disposition=executed
+blocker=none; user sequential retest expected: one tab total, sessions rotating through it
+next_action=user live retest; then Phase 3
+verification=herdr-backends 14/14 (new recycle E2E: 2 sequential agents, 1 tab, both panes w1:p1); openspec validate --strict PASS; npm test 737 passed/2 skipped (one known parallel-flaky sub test, passes in isolation)
+
+[2026-08-26T15:52:30Z] BUILD add-herdr-execution-backend ROUND-12 EXECUTED (user-clarified topology: parallel = pane splits inside ONE tab)
+evidence=user: parallel means one herdr tab with left/right split panes (herdr skill's pane split model), not multiple tabs. Final topology: ONE AILI tab per workspace; sequential agents recycle its panes (settled-idle children only); parallel demand splits INSIDE the tab (alternating right/down per skill guidance); pane selection serialized by an in-process lock (concurrent first turns would otherwise each open a tab); recycling decided by surface starting/busy flags, not pane display state (agent.start→first submit briefly shows idle and would get a starting sibling killed). Spec Surface topology rewritten (parallel-splits-one-tab scenario); drift-log updated; fake daemon implements pane.split
+disposition=executed
+blocker=none; user retest expected: one AILI tab always; parallel = split panes in it; sequential = same pane recycled
+next_action=user live retest; then Phase 3
+verification=herdr-backends 14/14 (parallel E2E now asserts ONE tab + one pane.split + distinct panes in the same tab); openspec validate --strict PASS; npm test 737 passed/2 skipped
+
+[2026-08-26T16:08:15Z] BUILD add-herdr-execution-backend ROUND-13 EXECUTED (user feedback: model-decided splits, herdr-skill guidance, test env isolation)
+evidence=(1) sub gains a cosmetic optional split:"right"|"down" hint (strict validation, invalid values rejected; threaded via NormalizedTaskItem.splitHint into the herdr pane.split call; default still alternates) — spec scenario updated; (2) sub guideline rewritten: herdr-mode children are visible terminals in one AILI tab, sub owns child lifecycle (never start/stop agents or close their panes), the model MAY use the herdr skill to observe/adjust layout (focus/move/resize/ratio); (3) herdr test fixtures now snapshot+clear HERDR_ENV/HERDR_WORKSPACE_ID/TAB/PANE in beforeEach (running tests from inside a herdr pane leaked host env and flipped the adapter into parent-in-herdr mode — found by the user's review subagent)
+disposition=executed
+blocker=none
+next_action=user live retest at convenience; Phase 3 remains (security bootstrap, InteractionBroker, mid-turn reattach, surface permits)
+verification=herdr-backends 14/14 (parallel E2E asserts hinted direction "down" wins); backends 18/18; openspec validate --strict PASS; npm test 738 passed/2 skipped; validate:compatibility PASS
+
+[2026-08-27T03:00:00Z] BUILD add-herdr-execution-backend PHASE-3 DECISION_ACCEPTED
+
+evidence=conversation:user selected per-Run fresh child process; read-only security-auditor and code-scout evidence
+
+disposition=accepted
+
+blocker=the exact aili.implementer dispatch was rejected because the active Herdr backend intentionally supports static read-only roles only before Phase 3 security equivalence; no Worker source changes occurred
+
+next_action=ROSE implements the bounded per-run fresh-child + immutable loadoutHash + bridge identity package directly under the capability-failure waiver; write/edit/bash remain disabled until security bootstrap and InteractionBroker pass
+
+[2026-08-27T03:30:00Z] BUILD add-herdr-execution-backend PHASE-3 SECURITY-IDENTITY PARTIAL
+
+evidence=source:adapter per-run fresh-child path, source:per-run immutable loadout v2, source:RunRecord.loadoutHash
+
+disposition=needs-follow-up
+
+blocker=typecheck passes, but focused Herdr tests are not green yet: the continuation E2E fixture still hardcodes a run-1 child bridge and times out after the implementation correctly starts run-2; the strict-resume fixture still reads the former per-agent-only loadout path and requires reconciliation with the new per-run loadout plus Agent ceiling. No write/edit/bash capability was opened.
+
+next_action=finish fixture migration for fresh run-2 bridge creation, preserve the per-Agent immutable ceiling alongside per-Run loadouts, then add runId/agentId/loadoutHash bridge handshake and move the token out of argv
+
+[2026-08-27T04:00:00Z] BUILD add-herdr-execution-backend PHASE-3 SECURITY-IDENTITY CONTINUED
+
+evidence=verification:herdr-focused-33-pass, source:bridge-run-agent-loadoutHash-status
+
+disposition=partially-accepted
+
+blocker=none for the per-Run process/loadout slice; token still rides argv and child sandbox/permission bootstrap plus InteractionBroker remain open, so write/edit/bash stay disabled
+
+verification=npm run typecheck PASS; tests/unit/herdr-backends.test.ts + persistent-agent-backends.test.ts 33/33 PASS
+
+next_action=replace argv token with a 0600 per-Run one-use token artifact, enforce socket permission failures, then implement child security state machine with ask=deny until InteractionBroker lands
+
+[2026-08-27T04:30:00Z] BUILD add-herdr-execution-backend PHASE-3 TOKEN-HARDENING EXECUTED
+
+evidence=source:per-run-0600-one-use-token, source:strict-socket-permissions, verification:herdr-focused-33-pass
+
+disposition=accepted
+
+blocker=child permission/sandbox bootstrap and InteractionBroker remain; write/edit/bash remain disabled
+
+verification=npm run typecheck PASS; focused Herdr backend tests 33/33 PASS on fresh rerun (the first parallel run exposed the existing split-direction ordering flake and the immediate rerun passed)
+
+next_action=implement child security bootstrap state machine and fail-closed ask handling, then InteractionBroker and Phase 4 ActivityBus; memory and prompt middleware require their own formal accepted contracts before BUILD
+
+[2026-08-27T05:00:00Z] BUILD add-herdr-execution-backend PHASE-3 CHILD-BOOTSTRAP EXECUTED
+
+evidence=source:verifyChildLoadout, source:one-use-token-file, source:strict-socket-mode, verification:herdr-focused-34-pass
+
+disposition=accepted
+
+blocker=InteractionBroker, sandbox/permission controller, strict-intersection resume, batch and write-role equivalence remain; mutating tools stay denied
+
+verification=npm run typecheck PASS; focused Herdr backend tests 34/34 PASS including immutable loadout identity mismatch and one-use token parsing
+
+next_action=add the single InteractionBroker authority and child bridge interaction frames; until that lands all ask decisions fail closed, then wire permission/sandbox bootstrap and proceed to ActivityBus
+
+[2026-08-27T06:00:00Z] DESIGN add-herdr-execution-backend IDLE-CHILD-LIFECYCLE PROPOSED
+
+evidence=artifact:idle-child-lifecycle-proposal.md, conversation:user requested close-when-unused and restore-on-demand behavior using pi-config/tmux as clean-room behavior reference
+
+disposition=pending-implementation
+
+blocker=none for documentation; implementation waits for next session as requested. Current per-Run identity/loadout/token/socket security remains intact and write/edit/bash stay disabled.
+
+next_action=implement settlement-triggered child shutdown + confirmed surface release + task_id/hub-send fresh-process resume, then complete InteractionBroker and ActivityBus
+
+[2026-08-28T01:00:00Z] BUILD add-herdr-execution-backend IDLE-CHILD-LIFECYCLE EXECUTED
+
+evidence=source:shutdownSettledSurface, verification:herdr-focused-34-pass
+
+disposition=accepted
+
+blocker=none for idle lifecycle; InteractionBroker bridge integration, sandbox/write roles and ActivityBus remain
+
+verification=successful and failed turns request graceful child shutdown; production waits for bridge disconnect and falls back to pane close; surface permit releases only after stop handling; stable Pi session remains for task_id/hub-send fresh-Run resume; typecheck and Herdr focused tests 34/34 pass
+
+next_action=wire interaction request/answer frames and then ActivityBus adapters/overlays/views
+
+[2026-08-28T02:00:00Z] BUILD add-herdr-execution-backend INTERACTION-ACTIVITY CONTINUED
+
+evidence=source:InteractionBroker, source:bridge interaction.requested/answer_interaction, source:ActivityBus, verification:focused-herdr-interaction-activity
+
+disposition=partially-accepted
+
+blocker=Herdr child sandbox/write-role equivalence, formal batch and Web view parity remain
+
+verification=Parent permission and Herdr questions share one InteractionBroker; child interactions have expiry, exact interaction IDs, answer frames and shutdown barrier; `/aili-agents interactions|answer|activity|inspect|focus` exists; strict-intersection resume writes loadout diff; ActivityBus emits managed/Herdr auxiliary events plus precise Herdr bridge events and computes non-mutating stalled/recovered overlays; idle child shutdown/resume tests pass. Typecheck and focused interaction/activity/Herdr tests pass.
+
+next_action=complete external-child sandbox/permission bootstrap and write roles, then batch and Web projection parity/full regression
+
+[2026-08-28T03:00:00Z] BUILD add-herdr-execution-backend PHASE-3-4 SOURCE COMPLETE / LIVE-WRITE GATE
+
+evidence=verification:full-suite-764, verification:generated-package-capability-audit-doctor, source:child-sandbox-permission, source:activity-tui-web-projection
+
+disposition=partially-accepted
+
+blocker=task 4.6 live Herdr write/bash role execution remains operation-gated and requires a reloaded Pi session; source and deterministic fake/unit coverage pass but no fresh real provider/write process was run
+
+verification=per-Run immutable security loadout includes live permission mode and sandbox profile; child initializes a private SandboxController, replaces bash with sandbox operations, enforces tool ceiling/workspace/protected/credential gates and InteractionBroker asks; static write roles are admitted; ActivityBus/InteractionBroker/strict resume/batch/TUI+Web fields/idle shutdown implemented. npm typecheck PASS; npm test 767 passed/2 skipped; capabilities/generated/package PASS; audit-redaction 19 PASS; doctor 16 PASS; four strict OpenSpec validations PASS
+
+next_action=after user reload, run one exact disposable Herdr implementer write and sandboxed bash acceptance; if it passes, mark 4.6 and the Herdr change complete
+
+[2026-08-28T06:03:00Z] BUILD add-herdr-execution-backend LIVE-WRITE ACCEPTED
+
+evidence=agent://Herdr-2, history://Herdr-2, artifact:.tmp/herdr-write-acceptance/result.txt
+
+disposition=accepted
+
+blocker=none; canonical role catalog currently exposes write/edit but no bash role, so real write/edit ran through Herdr while sandboxed bash remains covered by deterministic child SandboxController tests and ready for any future static bash role
+
+verification=real reloaded Pi session dispatched aili.implementer on backend=herdr driver=pi-cli run-17; child wrote and reread the exact two-line acceptance file; result completed with pendingInteractions=0, controlMode=aili, precise+auxiliary ActivityBus evidence, and idle overlay after settlement. Task 4.6 and all 31 Herdr tasks are complete.
+
+next_action=final convergence inspection and optional archive/SHIP; no commit/push/release authorized
+
+[2026-08-28T06:30:00Z] SHIP-EVIDENCE CONVERGENCE FOLLOW-UP
+
+evidence=artifact:agent-4 convergence review, verification:reattach-defer-test, verification:role-allowlist-and-herdr-policy-fixes
+
+disposition=accepted
+
+blocker=none in the three accepted task lists
+
+verification=resolved the reviewer blockers: Herdr resume defers Herdr reconciliation until bridge adoption, adopted completion enters SubCoordinator normal output/delivery settlement, and per-run parent reconnect token remains 0600 until settlement; Prompt role allowlist derives from role-scoped definitions rather than request self-authorization and Herdr applies policy before surface/startup; Memory recall derives its head from Pi branch ancestry and uses a token budget. Tasks remain 31/31.
+
+[2026-08-28T07:00:00Z] USER RUNTIME SEMANTICS UPDATED
+
+evidence=conversation:user requires idle child session/pane/tab closure and retry waiting
+
+disposition=accepted
+
+verification=settled child now shuts down, closes its pane and closes the AILI tab when no sibling remains; later task_id/hub-send starts a fresh Run/process/tab with the same durable Pi session. Herdr child no longer treats turn_end error as final: it records a retry/final-error candidate and waits for Pi's explicit agent_settled event, so UI states such as Retrying remain in-flight and are not interrupted. Focused Herdr tests cover tab closure/on-demand restore and agent_settled barrier.
+
+[2026-08-28T08:00:00Z] FINAL VERIFICATION
+verification=npm typecheck PASS; npm test 767 passed/2 skipped; capabilities/generated/package PASS; audit-redaction 19 PASS; doctor 16 PASS; adapter evidence/compatibility PASS; strict OpenSpec PASS; task-scoped diff check PASS. All Herdr tasks 31/31 complete.
+
+[2026-08-29] BACKEND COMMAND UX
+verification=kept `/aili-agent-backend` name; added `s=status`, `h=herdr`, `m=manage/managed`; full `status|herdr|manage|managed` remain compatible; internal backend names remain `managed|herdr`. Updated command help/docs. Focused backend tests 20/20 PASS; typecheck PASS.

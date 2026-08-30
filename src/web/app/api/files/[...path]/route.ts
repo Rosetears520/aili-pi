@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { detectSupportedImageMimeTypeFromFile } from "@earendil-works/pi-coding-agent";
 import fs from "fs";
 import path from "path";
 import {
@@ -16,7 +17,6 @@ import {
   getAudioMime,
   getDocumentMime,
   getFileExt,
-  getImageMime,
 } from "@/lib/file-types";
 import { resolveDirentIsDirectory } from "@/lib/file-dirent";
 import { isFilePathReferencedBySession } from "@/lib/session-file-references";
@@ -458,7 +458,7 @@ export async function GET(
       if (!stat?.isFile()) {
         return NextResponse.json({ error: "Not a file" }, { status: 400 });
       }
-      const imageMime = getImageMime(filePath);
+      const imageMime = await detectSupportedImageMimeTypeFromFile(filePath);
       if (imageMime) {
         if (stat.size > IMAGE_PREVIEW_MAX_BYTES) {
           return NextResponse.json({ error: "Image too large (>10MB)" }, { status: 413 });
@@ -485,7 +485,7 @@ export async function GET(
       if (!stat?.isFile()) {
         return NextResponse.json({ error: "Not a file" }, { status: 400 });
       }
-      const mime = getImageMime(filePath) || getAudioMime(filePath) || getDocumentMime(filePath) || "application/octet-stream";
+      const mime = await detectSupportedImageMimeTypeFromFile(filePath) || getAudioMime(filePath) || getDocumentMime(filePath) || "application/octet-stream";
       return streamFile(filePath, stat, mime, request.headers.get("range"), true);
     }
 
@@ -493,7 +493,7 @@ export async function GET(
       if (!stat?.isFile()) {
         return NextResponse.json({ error: "Not a file" }, { status: 400 });
       }
-      const imageMime = getImageMime(filePath);
+      const imageMime = await detectSupportedImageMimeTypeFromFile(filePath);
       const audioMime = getAudioMime(filePath);
       const documentMime = getDocumentMime(filePath);
       return NextResponse.json({

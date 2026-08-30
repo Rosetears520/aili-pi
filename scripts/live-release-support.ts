@@ -61,7 +61,8 @@ export function observePersistentTask(messages: readonly unknown[]): PersistentT
   const callId = typeof call.id === "string" && call.id.length > 0 ? call.id : undefined;
   const args = record(call.arguments);
   if (!callId) return { status: "NON_PASS", reason: "task-call-id-missing" };
-  if (args?.async !== false) return { status: "NON_PASS", reason: "task-call-not-synchronous", callId };
+  // Foreground is the sub default: a call is synchronous unless background is explicitly true.
+  if (args?.background === true) return { status: "NON_PASS", reason: "task-call-not-synchronous", callId };
 
   const matches = messages.map(record).filter((message) => message?.role === "toolResult"
     && message.toolName === "sub" && message.toolCallId === callId);
@@ -114,18 +115,10 @@ export function observePersistentBoundaryTask(messages: readonly unknown[]): Per
     }
   }
   const args = taskCalls.length === 1 ? record(taskCalls[0]?.arguments) : undefined;
-  const writeScope = record(args?.writeScope);
   const taskArgumentsExact = !!args
-    && exactObjectKeys(args, ["task", "agent", "async", "tools", "workspace", "writeScope"])
-    && args.task === PERSISTENT_BOUNDARY_TASK_TEXT
-    && args.agent === "general"
-    && args.async === false
-    && JSON.stringify(args.tools) === JSON.stringify([])
-    && args.workspace === "shared"
-    && !!writeScope
-    && exactObjectKeys(writeScope, ["paths", "resources"])
-    && JSON.stringify(writeScope.paths) === JSON.stringify([])
-    && JSON.stringify(writeScope.resources) === JSON.stringify([]);
+    && exactObjectKeys(args, ["description", "prompt", "subagent_type"])
+    && args.prompt === PERSISTENT_BOUNDARY_TASK_TEXT
+    && args.subagent_type === "general";
   const zeroParentBashCalls = parentBashCalls === 0;
   const childLifecycleCompleted = task.status === "PASS";
   const reason = task.status === "NON_PASS"
@@ -172,18 +165,10 @@ export function observePersistentSandboxTask(messages: readonly unknown[], marke
     }
   }
   const args = taskCalls.length === 1 ? record(taskCalls[0]?.arguments) : undefined;
-  const writeScope = record(args?.writeScope);
   const taskArgumentsExact = !!args
-    && exactObjectKeys(args, ["task", "agent", "async", "tools", "workspace", "writeScope"])
-    && args.task === PERSISTENT_SANDBOX_TASK_TEXT
-    && args.agent === "general"
-    && args.async === false
-    && JSON.stringify(args.tools) === JSON.stringify(["bash"])
-    && args.workspace === "shared"
-    && !!writeScope
-    && exactObjectKeys(writeScope, ["paths", "resources"])
-    && JSON.stringify(writeScope.paths) === JSON.stringify([PERSISTENT_SANDBOX_MARKER_PATH])
-    && JSON.stringify(writeScope.resources) === JSON.stringify([]);
+    && exactObjectKeys(args, ["description", "prompt", "subagent_type"])
+    && args.prompt === PERSISTENT_SANDBOX_TASK_TEXT
+    && args.subagent_type === "general";
   const zeroParentBashCalls = parentBashCalls === 0;
   const childLifecycleCompleted = task.status === "PASS";
   const markerExact = markerBody === PERSISTENT_SANDBOX_MARKER_BYTES;

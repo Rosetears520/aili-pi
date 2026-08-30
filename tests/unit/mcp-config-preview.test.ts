@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { acceptedMcpServers, previewSharedMcpConfig, writeAcceptedSharedMcpConfig } from "../../src/runtime/mcp-config.js";
+import { MEMPALACE_PATH } from "../../src/runtime/mempalace.js";
 
 const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
@@ -17,7 +18,7 @@ describe("accepted shared MCP config preview", () => {
     expect(Object.keys(preview.config.mcpServers)).toEqual(["existing", "mempalace", "context7", "playwright", "codegraph", "graphify"]);
     expect(preview.redactedText).toContain("[redacted]");
     expect(preview.redactedText).not.toContain("secret");
-    expect(acceptedMcpServers().mempalace.args).toContain("/home/rosetears/code/ai/.mempalace");
+    expect(acceptedMcpServers().mempalace.args).toContain(MEMPALACE_PATH);
   });
 
   it("blocks same-name conflicts", () => {

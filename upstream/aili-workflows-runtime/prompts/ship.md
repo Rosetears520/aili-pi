@@ -3,7 +3,7 @@ description: "AILI command: /ship"
 argument-hint: "[request]"
 ---
 
-<!-- GENERATED: aili-runtime-projections/v1; canonical_inputs: adapters/opencode/adapter.json, adapters/pi/adapter.json, core/commands/ship.md, core/governance/decision-core.md, core/governance/operating-discipline.md, core/roles/roles.json, manifests/runtime-projections.json; input_sha256: 1cd016b5661b0f65760694c7a7b058c9541182567ede9244011bc98914ca270a; do not edit directly -->
+<!-- GENERATED: aili-runtime-projections/v1; canonical_inputs: adapters/opencode/adapter.json, adapters/pi/adapter.json, core/commands/ship.md, core/governance/decision-core.md, core/governance/operating-discipline.md, core/roles/roles.json, manifests/runtime-projections.json; input_sha256: 9c904ad2321bdf9522a4fb7fea98fa3a491ea2f20fc05fe7c42d48841ea8c211; do not edit directly -->
 
 # /ship
 

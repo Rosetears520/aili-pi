@@ -11,35 +11,27 @@ The system SHALL use Pi JSONL as the only conversation-history source of truth. 
 - **WHEN** an authorized writer sends a session mutation
 - **THEN** the mutation is executed through one official Pi `AgentSession` and the resulting Pi JSONL remains authoritative
 
-### Requirement: First-acquired writer lease
-Each shared Pi session SHALL have at most one mutation writer. The first eligible TUI or Web surface to atomically acquire the lease SHALL own mutations until valid release or recovery, and every other supported observer SHALL expose the owner and a machine-readable denial reason.
+### Requirement: One Web mutation owner
+Each Web-opened Pi session SHALL have exactly one mutable runtime composition. `PrivateWebBff` and its `RuntimeHost` SHALL be the sole Web mutation owner. The real `AppShell`, hooks, components, and compatibility routes MUST NOT create another mutable `AgentSession` or directly invoke mutable Pi, filesystem, Git, Worktree, Agent, MCP, Analytics, BTW, Stamp, model/plugin/skill, or media owners.
 
-#### Scenario: Concurrent acquisition has one winner
-- **WHEN** TUI and Web concurrently attempt to acquire an unowned session
-- **THEN** exactly one acquisition succeeds and the losing surface cannot send, Steer, Compact, Branch, Fork, or perform another session mutation
+#### Scenario: Concurrent Web mutation admission has one owner
+- **WHEN** two browser clients attempt mutations for the same Web-opened session
+- **THEN** both requests are admitted or denied by the same Gateway lease generation and at most one official Pi mutation runtime executes them
 
-#### Scenario: Observer mutation is denied
-- **WHEN** a read-only observer submits a mutation
-- **THEN** the gateway rejects it before Pi invocation and returns the current writer identity class and denial reason without exposing secrets
+#### Scenario: Legacy direct mutation route is called
+- **WHEN** a caller invokes an older mutation route retained for compatibility
+- **THEN** the route either translates the request into the same Gateway mutation envelope or rejects it before side effects; it never becomes a second mutation owner
 
-### Requirement: Official Pi asymmetric attachment
-The system SHALL retain official Pi without a fork or replacement TUI. The AILI Pi Extension SHALL acquire or validate TUI ownership during `session_start` before exposing the session as usable; if Web already owns the session, the Extension SHALL request graceful shutdown or otherwise block the TUI runtime before user mutation is accepted. When stock TUI owns the writer lease, an authenticated private local projection channel SHALL permit Web to observe live read-only state. When Web owns the writer lease, stock TUI attachment to that same session MUST fail closed until Web releases or exits. The private channel MUST use mode-restricted local IPC and opaque bootstrap identity and MUST reject unauthenticated or stale peers.
+### Requirement: No stock-TUI observer or admission claim
+The system SHALL retain official Pi without a fork or replacement TUI, but this change SHALL NOT register Extension `session_start` admission, private TUI projection, TUI-writer/Web-observer, or Web-writer/stock-TUI exclusion as supported production behavior. Concurrent stock-TUI and Web mutation of the same session is unsupported and MUST NOT be represented as safely mediated by the Web Gateway.
 
-#### Scenario: TUI writer permits Web observation
-- **WHEN** stock TUI owns a session and Web opens it
-- **THEN** Web receives live read-only state and all Web mutation controls are denied
+#### Scenario: Production bundle is inspected for retired attachment paths
+- **WHEN** the active Extension and Web composition are inspected
+- **THEN** no production registration exposes the retired TUI projection endpoint or claims that stock TUI attachment is gated by the Web lease
 
-#### Scenario: Web writer rejects stock TUI attachment
-- **WHEN** Web owns a session and stock TUI attempts to attach to that session
-- **THEN** the Extension detects the conflict at session startup and shuts down or blocks the TUI runtime before it accepts user mutation, with an ownership explanation instead of pretending stock TUI is a safe observer
-
-#### Scenario: Web observer authenticates to TUI projection
-- **WHEN** Web attaches read-only to a TUI-owned session
-- **THEN** it authenticates through the private local projection channel and cannot convert that channel into mutation authority
-
-#### Scenario: Spoofed projection peer is rejected
-- **WHEN** a process presents a missing, stale, or incorrect bootstrap identity to the TUI projection endpoint
-- **THEN** the endpoint returns no session projection and does not change lease state
+#### Scenario: Web reports ownership scope
+- **WHEN** the Web UI displays mutation ownership
+- **THEN** it describes the Web runtime owner and does not imply control over an independently opened stock Pi TUI
 
 ### Requirement: Safe release and recovery
 Explicit idle release SHALL transfer ownership immediately. Unexpected disconnection SHALL retain ownership for a short bounded grace period, and an active turn SHALL remain owned until settled or durably marked interrupted after owner death is established. Recovery SHALL validate lease generation, process identity, liveness, and grace completion; force stealing MUST NOT exist.

@@ -3,6 +3,7 @@
 import { memo, useState, useRef, useEffect, useMemo } from "react";
 import { MarkdownBody } from "./MarkdownBody";
 import { ImagePreview } from "./ImagePreview";
+import { AnsiText } from "./AnsiText";
 import { copyText } from "@/lib/clipboard";
 import { useI18n } from "@/hooks/useI18n";
 import { parseCompactionSummary } from "@/lib/compaction-summary";
@@ -17,8 +18,6 @@ import {
   agentDispatchPreview,
   agentDispatchResultIdentities,
   agentDispatchRow,
-  hubCallSummary,
-  hubResultRows,
   type AgentDispatchIdentity,
 } from "@/lib/agent-dispatch";
 import { AiliAgentResultCard, isAgentResultMessage } from "./aili/AiliAgentResultCard";
@@ -1028,9 +1027,8 @@ function summarizeQuestionnaire(block: ToolCallContent, result: ToolResultMessag
 /** Structured details for persistent-agent dispatch tools: per-agent identity
  *  rows (requested/effective model, thinking, sources, decision, lifecycle)
  *  with the raw JSON behind an explicit disclosure. */
-function AgentToolPanel({ identities, hubRows, inputStr, resultText, isError }: {
+function AgentToolPanel({ identities, inputStr, resultText, isError }: {
   identities: AgentDispatchIdentity[];
-  hubRows: string[];
   inputStr: string;
   resultText: string | null;
   isError: boolean;
@@ -1071,11 +1069,6 @@ function AgentToolPanel({ identities, hubRows, inputStr, resultText, isError }: 
               <span style={{ color: "var(--text)", minWidth: 0, overflowWrap: "anywhere" }}>{value}</span>
             </div>
           ))}
-        </div>
-      ))}
-      {hubRows.map((row, index) => (
-        <div key={`hub-${index}`} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: index === 0 ? "var(--accent)" : "var(--text-muted)" }}>
-          {row}
         </div>
       ))}
       <button
@@ -1123,15 +1116,12 @@ function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: To
     ? summarizeQuestionnaire(block, result, resultText)
     : null;
 
-  // Persistent-agent dispatch surfaces (sub/formal_task/hub) show the same
+  // Persistent-agent dispatch surfaces (sub/formal_task) show the same
   // identity information as the TUI: name · selector · model · thinking ·
   // status, with structured details replacing the raw JSON dump.
   const isDispatchTool = AGENT_DISPATCH_TOOL_NAMES.has(block.toolName);
-  const isHubTool = block.toolName === "hub";
   const dispatchPreview = isDispatchTool ? agentDispatchPreview(block.input, result?.details) : null;
-  const hubPreview = isHubTool ? hubCallSummary(block.input) : null;
   const dispatchIdentities = isDispatchTool ? agentDispatchResultIdentities(result?.details) : [];
-  const hubRows = isHubTool ? hubResultRows(result?.details) : [];
   const questionnairePreview = questionnaire
     ? questionnaire.state === "pending"
       ? t("chat.questionnaireAsking")
@@ -1185,7 +1175,7 @@ function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: To
         <span style={{ color: questionnaire && questionnaire.state === "answered" ? "#16a34a" : "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
           {isStreamingInput
             ? t("chat.generatingToolInput")
-            : questionnairePreview ?? dispatchPreview ?? hubPreview ?? getToolPreview(block)}
+            : questionnairePreview ?? dispatchPreview ?? getToolPreview(block)}
         </span>
         {duration !== undefined && (
           <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{duration}s</span>
@@ -1225,10 +1215,9 @@ function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: To
       )}
 
       {/* ── Expanded: persistent-agent dispatch identities ── */}
-      {expanded && (isDispatchTool || isHubTool) && (
+      {expanded && isDispatchTool && (
         <AgentToolPanel
           identities={dispatchIdentities}
-          hubRows={hubRows}
           inputStr={inputStr}
           resultText={resultText}
           isError={isError}
@@ -1236,7 +1225,7 @@ function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: To
       )}
 
       {/* ── Expanded: input args ── */}
-      {expanded && !questionnaire && !isDispatchTool && !isHubTool && (isStreamingInput || !isEditTool || Boolean(changeEvent)) && (
+      {expanded && !questionnaire && !isDispatchTool && (isStreamingInput || !isEditTool || Boolean(changeEvent)) && (
         <pre
           style={{
             margin: 0,
@@ -1256,7 +1245,7 @@ function ToolCallBlock({ block, result, duration, cwd, onOpenFile }: { block: To
       )}
 
       {/* ── Paired result — only shown when expanded ── */}
-      {expanded && result && !questionnaire && !isDispatchTool && !isHubTool && (
+      {expanded && result && !questionnaire && !isDispatchTool && (
         changeEvent ? (
           // The card above already renders the diff; details show the RAW
           // input/result record instead of a second diff view.
@@ -1346,7 +1335,7 @@ function PairedResult({ text, isEmpty, isError }: {
           opacity: isEmpty ? 0.6 : 1,
         }}
       >
-         {isEmpty ? t("i18n.noOutput") : text}
+         {isEmpty ? t("i18n.noOutput") : <AnsiText text={text} />}
       </pre>
     </div>
   );

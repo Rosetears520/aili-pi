@@ -361,6 +361,22 @@ describe("parent-owned persistent Agent storage", () => {
     expect(resumedAgain.journal.getState().jobs["job-3"].error).toBe("graceful-shutdown:no-auto-replay");
   });
 
+  it("defers Herdr process-loss reconciliation until bridge adoption has a chance to reattach", async () => {
+    const { journal } = await CoordinatorJournal.open(layout, "parent-herdr-resume", journalOptions());
+    await journal.append({ kind: "agent.created", agentId: "Herdr", payload: { record: { ...agent("Herdr", "queued", { jobId: "job-h", turnId: "turn-h" }), backend: "herdr", driver: "pi-cli" } } });
+    await journal.append({ kind: "job.created", agentId: "Herdr", jobId: "job-h", payload: { record: job("job-h", "Herdr") } });
+    await journal.append({ kind: "turn.created", agentId: "Herdr", jobId: "job-h", turnId: "turn-h", payload: { record: turn("turn-h", "Herdr", "job-h") } });
+    await journal.append({ kind: "agent.state", agentId: "Herdr", payload: { from: "queued", to: "running" } });
+    await journal.append({ kind: "job.state", agentId: "Herdr", jobId: "job-h", payload: { from: "queued", to: "running" } });
+    await journal.append({ kind: "turn.state", agentId: "Herdr", jobId: "job-h", turnId: "turn-h", payload: { from: "queued", to: "running" } });
+    const resumed = await resumeCoordinator(layout, "parent-herdr-resume", { ...journalOptions(), deferHerdrReconcile: true });
+    expect(resumed.reconciled).toEqual([]);
+    expect(resumed.journal.getState().agents.Herdr.state).toBe("running");
+    expect(resumed.journal.getState().jobs["job-h"].state).toBe("running");
+    await reconcileUnfinishedCoordinator(resumed.journal, "process-loss", { includeAgentIds: new Set(["Herdr"]) });
+    expect(resumed.journal.getState().agents.Herdr.state).toBe("parked");
+  });
+
   it("parks on the default TTL, disables only timers at non-positive TTL, revives exact parked refs, and tears down", async () => {
     class FakeScheduler implements TimerScheduler {
       callbacks: Array<{ callback: () => void; delay: number; cleared: boolean }> = [];

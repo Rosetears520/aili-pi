@@ -7,7 +7,6 @@
 export const PERSISTENT_LIVE_IMPLEMENTATION_PATHS = [
   "src/runtime/native-integrations.ts",
   "src/runtime/persistent-agents/child-sandbox.ts",
-  "src/runtime/persistent-agents/hub.ts",
   "src/runtime/persistent-agents/live-evidence-contract.ts",
   "src/runtime/persistent-agents/model-selection.ts",
   "src/runtime/persistent-agents/output-delivery.ts",
@@ -18,9 +17,9 @@ export const PERSISTENT_LIVE_IMPLEMENTATION_PATHS = [
   "src/runtime/persistent-agents/scheduler.ts",
   "src/runtime/persistent-agents/session-factory.ts",
   "src/runtime/persistent-agents/storage.ts",
-  "src/runtime/persistent-agents/task-coordinator.ts",
-  "src/runtime/persistent-agents/task-registration.ts",
-  "src/runtime/persistent-agents/task-schema.ts",
+  "src/runtime/persistent-agents/sub-coordinator.ts",
+  "src/runtime/persistent-agents/sub-registration.ts",
+  "src/runtime/persistent-agents/sub-schema.ts",
   "src/runtime/persistent-agents/types.ts",
   "src/runtime/persistent-agents/workspace.ts",
   "src/vendor/pi-permission-modes/index.ts",
@@ -31,5 +30,5 @@ export const PERSISTENT_LIVE_IMPLEMENTATION_PATHS = [
   "tests/unit/persistent-agent-child-sandbox.test.ts",
   "tests/unit/persistent-agent-permission.test.ts",
   "tests/unit/persistent-agent-policy.test.ts",
-  "tests/unit/persistent-agent-task-registration.test.ts",
+  "tests/unit/persistent-agent-sub-registration.test.ts",
 ] as const;

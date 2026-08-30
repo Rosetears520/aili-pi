@@ -11,7 +11,7 @@ export function getToolExecutionProgress(partialResult: unknown, toolName?: stri
 
   // Persistent-agent live updates carry a structured TaskLiveSnapshot whose
   // content text is raw JSON — render the identity row from details instead.
-  if (!toolName || toolName === "sub" || toolName === "task" || toolName === "formal_task") {
+  if (!toolName || toolName === "sub") {
     const live = agentLiveProgress(partialResult.details);
     if (live) return live.length <= MAX_PROGRESS_LENGTH ? live : `...${live.slice(-(MAX_PROGRESS_LENGTH - 3))}`;
   }

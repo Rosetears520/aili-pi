@@ -6,6 +6,7 @@
   "license": "MIT",
   "bin": {
     "pi-web": "./bin/pi-web.js",
+    "pi-changes": "./bin/pi-changes.js",
     "aili-pi": "./bin/aili-pi.js"
   },
   "repository": {
@@ -27,6 +28,8 @@
     "extensions/analytics/",
     "extensions/btw/",
     "extensions/stamp/",
+    "extensions/prompt-middleware/",
+    "extensions/observational-memory/",
     "extensions/web/",
     "src/",
     "!src/web/",
@@ -35,7 +38,9 @@
     "manifests/",
     "upstream/",
     "!upstream/pi-web-0.8.9/",
+    "!upstream/pi-web-0.8.11/",
     "!upstream/billion-context-pi/AGENTS.md",
+    "!upstream/billion-context-pi/dist/",
     "!upstream/pi-extensions/",
     "!upstream/aili-workflows-runtime/AGENTS.md",
     "!upstream/aili-workflows-runtime/prompts/",
@@ -104,11 +109,10 @@
     "typebox": "*"
   },
   "devDependencies": {
-    "@earendil-works/pi-agent-core": "0.84.2",
-    "@earendil-works/pi-ai": "0.84.2",
-    "@earendil-works/pi-coding-agent": "0.84.2",
-    "@earendil-works/pi-tui": "0.84.2",
-    "@lobehub/icons": "5.6.0",
+    "@earendil-works/pi-agent-core": "0.84.4",
+    "@earendil-works/pi-ai": "0.84.4",
+    "@earendil-works/pi-coding-agent": "0.84.4",
+    "@earendil-works/pi-tui": "0.84.4",
     "@tailwindcss/postcss": "4.2.2",
     "@types/js-yaml": "4.0.9",
     "@types/node": "24.12.4",

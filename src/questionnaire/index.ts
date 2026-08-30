@@ -109,7 +109,7 @@ async function askOverGenericRpc(
 	return { questions, answers, cancelled: signal?.aborted === true };
 }
 
-async function askUser(
+export async function askUserQuestionnaire(
 	ctx: ExtensionContext,
 	questions: QuestionnaireQuestion[],
 	signal?: AbortSignal,
@@ -145,7 +145,7 @@ export function registerQuestionnaireTool(pi: ExtensionAPI): void {
 
 		async execute(_toolCallId, params, signal, _onUpdate, ctx) {
 			const questions = normalizeQuestions(params.questions as QuestionnaireQuestionInput[]);
-			const details = await askUser(ctx, questions, signal);
+			const details = await askUserQuestionnaire(ctx, questions, signal);
 			if (details.cancelled) ctx.abort();
 			return {
 				content: [{ type: "text" as const, text: formatQuestionnaireResult(details) }],

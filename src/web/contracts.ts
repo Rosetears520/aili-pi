@@ -291,11 +291,15 @@ export interface WorkbenchHistoryV1 {
   readonly schemaVersion: 1;
   readonly sessionHandle: string;
   readonly timeline: readonly TimelineItemV1[];
+  readonly hasMore: boolean;
+  readonly cursor?: string;
 }
 
 export function validateWorkbenchHistory(value: unknown): WorkbenchHistoryV1 {
   if (!record(value) || value.schemaVersion !== 1 || !safeId(value.sessionHandle)
-    || !Array.isArray(value.timeline)) throw new Error("invalid WorkbenchHistoryV1");
+    || !Array.isArray(value.timeline) || typeof value.hasMore !== "boolean"
+    || (value.cursor !== undefined && (typeof value.cursor !== "string" || !/^history-[A-Za-z0-9_-]{32,128}$/.test(value.cursor)))
+    || (value.hasMore !== (value.cursor !== undefined))) throw new Error("invalid WorkbenchHistoryV1");
   assertBoundedPublicJson(value);
   for (const item of value.timeline) validateTimeline(item);
   return freezeClone(value) as unknown as WorkbenchHistoryV1;

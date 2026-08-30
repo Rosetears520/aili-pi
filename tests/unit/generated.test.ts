@@ -122,12 +122,14 @@ describe("generated skill baseline", () => {
     expect(lock.skillCount).toBe(58);
     expect(lock.release).toMatchObject({
       package: "rose-aili",
-      version: "0.4.7",
-      npmGitHead: "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
-      tarballSha256: "0a72de82e467bcfc386e982c33db5aa153b989a136bbb0c2423156e3c41f07a0",
+      version: "0.4.8",
+      npmGitHead: "a5284ee105a084392a944aee04313dcf7c294a64",
+      tarballSha256: "cfc3b90e982900dcc17cf841066f6eee022cc2b97f27bb40e39494ac77bed910",
       protocols: {
-        agentSelection: { protocol: "aili-agent-selection/v1", sha256: "db35b7c17ba76984d9ee2d69931dfbce80c6413b90953899a9ae5cc671855224" },
-        formalTaskBoard: { protocol: "aili-task-board/v1", sha256: "3512a280b8f854da27c74af77c72709a62187be4592d53b2d7717f565975c703" },
+        agentSelection: { protocol: "aili-agent-selection/v1", sha256: "936d29442a1efc01d1fc0ed80cd319d733dafb6ff8c4c0cffbfd09ed6b2335d3" },
+      },
+      references: {
+        formalTaskNotes: { path: ".agents/skills/aili-delivery-flow/references/formal-task-board.md", sha256: "b3f74e4fea3b3dd9e35bea4d59e447d051f4a9195fbdb75f6393b19f95460bcb" },
       },
     });
     expect(lock.release.canonicalSpecialists).toHaveLength(20);

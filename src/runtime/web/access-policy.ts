@@ -284,7 +284,10 @@ export class WebAccessLifecycle {
   private issueSession(previousCookie?: string): { readonly sessionId: string; readonly setCookie: string } {
     const previousId = cookieValue(previousCookie, WEB_SESSION_COOKIE);
     if (previousId) this.sessions.delete(previousId);
-    const sessionId = randomBytes(32).toString("base64url");
+    // Keep the fixed 43-character cookie contract while ensuring the public
+    // Runtime safe-id grammar's first character is alphanumeric.
+    const randomSessionId = randomBytes(32).toString("base64url");
+    const sessionId = /^[A-Za-z0-9]/.test(randomSessionId) ? randomSessionId : `A${randomSessionId.slice(1)}`;
     const now = this.now().getTime();
     this.sessions.set(sessionId, {
       createdAt: now,

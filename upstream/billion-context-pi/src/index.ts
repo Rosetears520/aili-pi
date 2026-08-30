@@ -23,8 +23,6 @@ import { collectCoveredMessageIds, estimateTokens, lastUserMessageId } from "./t
 import { checkForUpdate } from "./update.js";
 import { loadUserConfig, applyUserConfig } from "./user-config.js";
 import { formatSystemPromptForEvent } from "./compat.js";
-export { createAcpPressureEvaluator } from "./pressure-evaluator.js";
-export type { AcpPressureDecision, AcpPressureEvaluator } from "./pressure-evaluator.js";
 
 type AgentMessage = SessionMessageEntry["message"];
 
@@ -98,11 +96,13 @@ function wireSessionLifecycle(pi: ExtensionAPI, runtime: AcpRuntime): void {
     });
     // AILI owns persistent Worker tool ceilings. The upstream settings patcher
     // is intentionally not run: production must not mutate user-home settings.
-    // Bind the TUI status widget for async delegates. The widget reads the
-    // in-memory runs Map (via runningRunsSnapshot) and renders a live list of
-    // running delegates below the editor. Only the interactive TUI has a UI;
-    // rpc/json/print have hasUI=false and the call is a no-op.
-    delegateStatusWidget.setContext(ctx, runningRunsSnapshot);
+    // The delegate widget is part of the delegation surface; a factory lock
+    // disables it along with the three delegate tools and prompt section.
+    if (runtime.adapter.delegate !== false) {
+      delegateStatusWidget.setContext(ctx, runningRunsSnapshot);
+    } else {
+      delegateStatusWidget.dispose();
+    }
   });
   pi.on("session_shutdown", () => {
     delegateStatusWidget.dispose();

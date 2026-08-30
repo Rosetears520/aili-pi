@@ -204,7 +204,7 @@ export interface CatalogModel {
   available: boolean;
   authenticated: boolean;
   thinkingLevels?: readonly ModelThinking[];
-  /** Catalog-advertised preferred thinking level for this model, when known. */
+  /** Pi's isolated-child default (Pi medium clamped to this target), when the catalog can provide it. */
   defaultThinking?: ModelThinking;
   /** Compatibility aliases used by catalog adapters. */
   thinkingDefault?: ModelThinking;
@@ -218,6 +218,100 @@ export interface ModelCatalog {
   resolveProfileFallback?(selector: string): Promise<CatalogModel | undefined>;
   resolveRuntimeFallback?(): Promise<CatalogModel | undefined>;
   resolveBare?(model: string): Promise<CatalogModel[]>;
+}
+
+/** A catalog entry enriched with the deterministic identity the sub model
+ *  resolver matches against: exact canonical form plus advertised aliases. */
+export interface SubModelCatalogEntry extends CatalogModel {
+  canonical?: string;
+  aliases?: readonly string[];
+}
+
+/** Catalog extension for strict per-turn model resolution: enumeration of the
+ *  available+authenticated entries with canonical ids and aliases. */
+export interface SubModelCatalog extends ModelCatalog {
+  enumerate?(): readonly SubModelCatalogEntry[];
+}
+
+/** Compact lookup key: `gpt5.6luna`, `gpt-5.6-luna`, and `GPT 5.6 Luna` all
+ *  normalize to `gpt56luna`. */
+export function normalizeModelKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+export type SubModelRequestErrorCode =
+  | "SUB_MODEL_UNAVAILABLE"
+  | "SUB_MODEL_AMBIGUOUS";
+
+/** Strict failure for an explicit sub.model request. Never falls back to a
+ *  different model: the whole sub call fails so the caller can decide again. */
+export class SubModelRequestError extends Error {
+  constructor(readonly code: SubModelRequestErrorCode, message: string) {
+    super(`${code}: ${message}`);
+    this.name = "SubModelRequestError";
+  }
+}
+
+function entryCanonical(entry: SubModelCatalogEntry): string {
+  return entry.canonical ?? `${entry.provider}/${entry.model}`;
+}
+
+function entryAliases(entry: SubModelCatalogEntry): readonly string[] {
+  return [...new Set([entryCanonical(entry), entry.model, ...(entry.aliases ?? [])])];
+}
+
+/**
+ * Resolve one explicit sub.model request to an exact available+authenticated
+ * catalog identity, in strict order:
+ *   1. exact canonical provider/model
+ *   2. exact model id (case-insensitive, unique)
+ *   3. exact advertised alias (case-insensitive, unique)
+ *   4. normalized compact alias (unique)
+ * Multiple matches are SUB_MODEL_AMBIGUOUS (candidates are listed so the
+ * caller can pick the canonical form); zero matches are SUB_MODEL_UNAVAILABLE.
+ * This never guesses and never substitutes a different model.
+ */
+export async function resolveSubModelIdentifier(
+  requested: string,
+  catalog: SubModelCatalog,
+): Promise<SubModelCatalogEntry> {
+  const value = requested.trim();
+  if (value.includes("/")) {
+    const canonical = validateModelIdentifier(value).canonical;
+    const resolved = await catalog.resolve(canonical);
+    if (!resolved) throw new SubModelRequestError("SUB_MODEL_UNAVAILABLE", `model '${canonical}' is not in the catalog`);
+    if (!resolved.available) throw new SubModelRequestError("SUB_MODEL_UNAVAILABLE", `model '${canonical}' is unavailable`);
+    if (!resolved.authenticated) throw new SubModelRequestError("SUB_MODEL_UNAVAILABLE", `model '${canonical}' is not authenticated`);
+    return { ...resolved, canonical: `${resolved.provider}/${resolved.model}` };
+  }
+  validateBareModelIdentifier(value);
+  const enumerated = (catalog.enumerate?.() ?? []).map((entry) => ({ ...entry, canonical: entryCanonical(entry) }));
+  const candidates = enumerated.filter((entry) => entry.available && entry.authenticated);
+  const uniqueOrAmbiguous = (matches: SubModelCatalogEntry[], how: string): SubModelCatalogEntry => {
+    if (matches.length === 1) return matches[0]!;
+    if (matches.length > 1) {
+      throw new SubModelRequestError(
+        "SUB_MODEL_AMBIGUOUS",
+        `model '${value}' matches multiple ${how}: ${matches.map((match) => entryCanonical(match)).join(", ")}`,
+      );
+    }
+    throw new SubModelRequestError("SUB_MODEL_UNAVAILABLE", `model '${value}' has no authenticated available ${how} match`);
+  };
+  const lowered = value.toLowerCase();
+  const byExactId = candidates.filter((entry) => entry.model.toLowerCase() === lowered);
+  if (byExactId.length > 0) return uniqueOrAmbiguous(byExactId, "exact model id");
+  const byExactAlias = candidates.filter((entry) => entryAliases(entry).some((alias) => alias.toLowerCase() === lowered));
+  if (byExactAlias.length > 0) return uniqueOrAmbiguous(byExactAlias, "catalog alias");
+  const compact = normalizeModelKey(value);
+  if (compact.length === 0) throw new SubModelRequestError("SUB_MODEL_UNAVAILABLE", `model '${value}' has no usable identity`);
+  const byCompact = candidates.filter((entry) => entryAliases(entry).some((alias) => normalizeModelKey(alias) === compact));
+  if (byCompact.length > 0) return uniqueOrAmbiguous(byCompact, "compact alias");
+  // Catalogs without enumeration still get the bare-id bridge.
+  if (!catalog.enumerate && catalog.resolveBare) {
+    const bare = (await catalog.resolveBare(value)).filter((entry) => entry.available && entry.authenticated);
+    return uniqueOrAmbiguous(bare.map((entry) => ({ ...entry, canonical: `${entry.provider}/${entry.model}` })), "bare model id");
+  }
+  throw new SubModelRequestError("SUB_MODEL_UNAVAILABLE", `model '${value}' resolved to no authenticated available catalog entry`);
 }
 
 export class OfficialPiModelCatalog implements ModelCatalog {
@@ -293,8 +387,21 @@ export interface CurrentTurnModelAuthority {
   allowedThinking?: readonly ModelThinking[] | ModelThinking;
   allowedCanonicalThinking?: readonly ModelThinking[] | ModelThinking;
   thinking?: readonly ModelThinking[] | ModelThinking;
+  /** Optional exact subagent selectors named by the user. Omission means all
+   *  subagents dispatched during this Parent turn. */
+  allowedSelectors?: readonly string[];
   /** Delegated-choice thinking authority defaults to inherit unless explicitly available. */
   thinkingMode?: "inherit" | "available";
+  /** Exact current-turn external CLI allowance. This is separate from model
+   * discovery; it is populated only from trusted direct-user input. */
+  allowedCli?: readonly ExternalCliId[] | ExternalCliId;
+}
+
+export type ExternalCliId = "claude-code" | "gemini-cli" | "codex-cli" | "opencode" | "grok-cli" | "agy-cli";
+export const EXTERNAL_CLI_IDS = ["claude-code", "gemini-cli", "codex-cli", "opencode", "grok-cli", "agy-cli"] as const;
+
+export function isExternalCliId(value: unknown): value is ExternalCliId {
+  return typeof value === "string" && (EXTERNAL_CLI_IDS as readonly string[]).includes(value);
 }
 
 export type TaskModelAuthority = CurrentTurnModelAuthority;
@@ -319,14 +426,16 @@ function normalizeCurrentTurnAuthority(authority: CurrentTurnModelAuthority): {
   mode: CurrentTurnModelAuthorityMode;
   allowedModels?: string[] | "available";
   allowedThinking?: ModelThinking[];
+  allowedSelectors?: string[];
   thinkingMode?: "inherit" | "available";
+  allowedCli?: ExternalCliId[];
 } {
   if (!authority || typeof authority !== "object" || Array.isArray(authority)) {
     throw new Error("current-turn model authority is required and must be an object");
   }
   const raw = authority as Record<string, unknown>;
   const unknown = Object.keys(raw).filter((key) => ![
-    "mode", "kind", "allowedModels", "allowedCanonicalModels", "models", "allowedThinking", "allowedCanonicalThinking", "thinking", "thinkingMode",
+    "mode", "kind", "allowedModels", "allowedCanonicalModels", "models", "allowedThinking", "allowedCanonicalThinking", "thinking", "allowedSelectors", "thinkingMode", "allowedCli",
   ].includes(key));
   if (unknown.length > 0) throw new Error(`current-turn model authority contains unknown fields: ${unknown.join(", ")}`);
   if (raw.mode !== undefined && raw.kind !== undefined && raw.mode !== raw.kind) {
@@ -371,8 +480,26 @@ function normalizeCurrentTurnAuthority(authority: CurrentTurnModelAuthority): {
   if (allowedThinking && new Set(allowedThinking).size !== allowedThinking.length) {
     throw new Error("current-turn model authority allowedThinking must not contain duplicates");
   }
-  if (normalizedMode === "inherit-only" && (allowedModels !== undefined || allowedThinking !== undefined)) {
-    throw new Error("inherit-only current-turn model authority cannot contain explicit allowances");
+  const selectorValues = authorityArray<unknown>(raw.allowedSelectors, "current-turn model authority allowedSelectors");
+  const allowedSelectors = selectorValues?.map((value, index) => {
+    if (typeof value !== "string" || !SELECTORS.has(value)) {
+      throw new Error(`current-turn model authority allowedSelectors[${index}] is not canonical`);
+    }
+    return value;
+  });
+  if (allowedSelectors && (allowedSelectors.length === 0 || new Set(allowedSelectors).size !== allowedSelectors.length)) {
+    throw new Error("current-turn model authority allowedSelectors must be non-empty and contain no duplicates");
+  }
+  const cliValues = authorityArray<unknown>(raw.allowedCli, "current-turn external CLI allowance");
+  const allowedCli = cliValues?.map((value, index) => {
+    if (!isExternalCliId(value)) throw new Error(`current-turn external CLI allowance[${index}] is not canonical`);
+    return value;
+  });
+  if (allowedCli && (allowedCli.length === 0 || new Set(allowedCli).size !== allowedCli.length)) {
+    throw new Error("current-turn external CLI allowance must be non-empty and contain no duplicates");
+  }
+  if (normalizedMode === "inherit-only" && (allowedModels !== undefined || allowedThinking !== undefined || allowedSelectors !== undefined)) {
+    throw new Error("inherit-only current-turn model authority cannot contain model/thinking allowances");
   }
   if (normalizedMode === "explicit" && allowedModels === undefined && allowedThinking === undefined) {
     throw new Error("explicit current-turn model authority must declare allowed models or thinking levels");
@@ -387,8 +514,21 @@ function normalizeCurrentTurnAuthority(authority: CurrentTurnModelAuthority): {
     mode: normalizedMode,
     ...(allowedModels === undefined ? {} : { allowedModels }),
     ...(allowedThinking === undefined ? {} : { allowedThinking }),
+    ...(allowedSelectors === undefined ? {} : { allowedSelectors }),
     ...(thinkingMode === undefined ? {} : { thinkingMode }),
+    ...(allowedCli === undefined ? {} : { allowedCli }),
   };
+}
+
+/** External CLI is a separately named one-turn authority. A tool argument
+ * never creates it, and an omitted cli remains ordinary Pi execution. */
+export function validateCurrentTurnCliRequest(cli: ExternalCliId | undefined, authority: CurrentTurnModelAuthority): ExternalCliId | undefined {
+  if (cli === undefined) return undefined;
+  const normalized = normalizeCurrentTurnAuthority(authority);
+  if (!normalized.allowedCli?.includes(cli)) {
+    throw new Error(`current-turn external CLI '${cli}' is not authorized; CLI availability does not grant authority`);
+  }
+  return cli;
 }
 
 /** Validate and normalize the user-owned authority itself before using it. */
@@ -396,7 +536,9 @@ export function validateCurrentTurnAuthority(authority: CurrentTurnModelAuthorit
   mode: CurrentTurnModelAuthorityMode;
   allowedModels?: string[] | "available";
   allowedThinking?: ModelThinking[];
+  allowedSelectors?: string[];
   thinkingMode?: "inherit" | "available";
+  allowedCli?: ExternalCliId[];
 } {
   return normalizeCurrentTurnAuthority(authority);
 }
@@ -605,14 +747,17 @@ export class ModelSelectionError extends Error {
 }
 
 function targetModelDefaultThinking(candidate: CatalogModel): ModelThinking {
+  // ContextModelCatalog supplies the official Pi calculation: medium clamped
+  // to the selected model. Keep the fallback deterministic for small test and
+  // compatibility catalogs that cannot expose a Pi Model instance.
   const preferred = candidate.defaultThinking
     ?? candidate.thinkingDefault
     ?? candidate.supportedDefaultThinking
     ?? candidate.defaultThinkingLevel;
   if (preferred && (!candidate.thinkingLevels || candidate.thinkingLevels.includes(preferred))) return preferred;
   if (candidate.thinkingLevels?.includes("medium")) return "medium";
-  if (candidate.thinkingLevels && candidate.thinkingLevels.length > 0) return candidate.thinkingLevels[0]!;
-  return "medium";
+  if (candidate.thinkingLevels?.includes("off")) return "off";
+  return candidate.thinkingLevels?.[0] ?? "medium";
 }
 
 export async function resolveModelChoice(input: ResolveModelInput, catalog: ModelCatalog): Promise<ResolvedModelChoice> {
@@ -640,56 +785,55 @@ export async function resolveModelChoice(input: ResolveModelInput, catalog: Mode
       ? (authorized?.thinking !== undefined ? { thinking: authorized.thinking } : undefined)
       : { model: authorizedModel, ...(authorized?.thinking === undefined ? {} : { thinking: authorized.thinking }) };
     oneShotThinking = authorized?.thinking;
-  } else if (oneShot && oneShotThinking !== undefined && oneShot.thinking === undefined) {
-    oneShot = { ...oneShot, thinking: oneShotThinking };
+  } else if (oneShotThinking !== undefined) {
+    oneShot = { ...(oneShot ?? {}), thinking: oneShot?.thinking ?? oneShotThinking };
   }
 
-  const layers: Array<{
+  type ResolutionLayer = {
     layer: ModelLayer;
     value?: { model?: string; thinking?: ModelThinking };
     persistent: boolean;
     source: ModelSource;
     modelSource: ModelChoiceSource;
-  }> = [
+  };
+  const layers: ResolutionLayer[] = [
     { layer: "direct-user-turn", value: input.directUserTurn, persistent: false, source: "direct-user-turn", modelSource: "direct-user-turn" },
     { layer: "instance", value: input.instance, persistent: true, source: "instance-override", modelSource: "instance-override" },
     { layer: "project-role", value: input.projectTrusted ? input.projectRole : undefined, persistent: true, source: "project-role-override", modelSource: "project-role-override" },
     { layer: "user-role", value: input.userRole, persistent: true, source: "user-role-override", modelSource: "user-role-override" },
-    // A confirmed one-shot is lower than user-owned configuration but higher
-    // than the direct Parent/profile/runtime fallbacks.
-    { layer: "one-shot", value: oneShot, persistent: false, source: "confirmed-one-shot", modelSource: "user-one-shot" },
+    // A confirmed model proposal is user-approved for one dispatch, but does
+    // not override persistent user-owned configuration.
+    { layer: "one-shot", value: oneShot, persistent: false, source: "confirmed-one-shot", modelSource: "confirmed-one-shot" },
   ];
-  // Model and thinking resolve per field: each takes the first layer that
-  // provides it, so a persistent model override never shadows an authorized
-  // current-turn thinking instruction and vice versa.
+  // Model and thinking resolve independently in the same authority order.
   const modelLayer = layers.find((candidate) => typeof candidate.value?.model === "string" && candidate.value.model.trim().length > 0);
-  const oneShotThinkingLayer = oneShotThinking !== undefined ? {
-    layer: "one-shot" as const,
-    value: { thinking: oneShotThinking } as { model?: string; thinking?: ModelThinking },
+  const parentThinkingLayer: ResolutionLayer | undefined = input.parent ? {
+    layer: "parent-fallback",
+    value: { thinking: input.parent.thinking },
     persistent: false,
-    source: "confirmed-one-shot" as const,
-    modelSource: "user-one-shot" as const,
+    source: "inherited-parent",
+    modelSource: "inherited-parent",
   } : undefined;
-  // The profile fallback only participates when no user-facing layer provided
-  // the field — mirroring its model role as the last configured source.
-  const profileThinkingLayer = input.profile?.thinking !== undefined && modelLayer === undefined ? {
-    layer: "profile" as const,
-    value: { thinking: input.profile.thinking } as { model?: string; thinking?: ModelThinking },
+  const profileThinkingLayer: ResolutionLayer | undefined = input.profile?.thinking !== undefined ? {
+    layer: "profile",
+    value: { thinking: input.profile.thinking },
     persistent: true,
-    source: "profile-fallback" as const,
-    modelSource: "profile-fallback" as const,
+    source: "profile-fallback",
+    modelSource: "profile-fallback",
   } : undefined;
-  const thinkingLayer = layers.find((candidate) => candidate.value?.thinking !== undefined)
-    ?? oneShotThinkingLayer
-    ?? profileThinkingLayer;
+  const configuredThinkingLayer = layers.find((candidate) => candidate.value?.thinking !== undefined);
+  // The parent fallback is selected only after the target identity is known.
+  // A model-bearing higher layer must not accidentally drag an incompatible
+  // parent thinking override to a different target.
+  let thinkingLayer = configuredThinkingLayer ?? parentThinkingLayer ?? profileThinkingLayer;
   const selectedLayer = modelLayer ?? thinkingLayer;
   const fallbackLayer: ModelLayer = input.parent ? "parent-fallback" : input.profile ? "profile" : "runtime-fallback";
   const layer: ModelLayer = selectedLayer?.layer ?? fallbackLayer;
   const source: ModelSource = selectedLayer?.source
-    ?? (layer === "profile" ? "profile-fallback" : layer === "runtime-fallback" ? "runtime-fallback" : "inherited-parent");
-  const modelSource: ModelChoiceSource = selectedLayer?.modelSource
-    ?? (layer === "profile" ? "profile-fallback" : layer === "runtime-fallback" ? "runtime-fallback" : "inherited-parent");
-  const requested = modelLayer?.value ?? (layer === "profile" ? input.profile : undefined);
+    ?? (fallbackLayer === "profile" ? "profile-fallback" : fallbackLayer === "runtime-fallback" ? "runtime-fallback" : "inherited-parent");
+  const modelSource: ModelChoiceSource = modelLayer?.modelSource
+    ?? (input.parent ? "inherited-parent" : input.profile ? "profile-fallback" : "runtime-fallback");
+  const requested = modelLayer?.value ?? (!input.parent && input.profile ? input.profile : undefined);
   let fallbackParent: CatalogModel | undefined;
   let fallbackLoaded = false;
   const getFallbackParent = async (): Promise<CatalogModel | undefined> => {
@@ -761,6 +905,14 @@ export async function resolveModelChoice(input: ResolveModelInput, catalog: Mode
     throw new ModelSelectionError(layer, requested ? `unknown explicit model ${requested.model}; lower layers were not considered` : "runtime fallback model is unavailable");
   }
   const canonical = `${candidate.provider}/${candidate.model}`;
+  const modelChangesParent = modelLayer !== undefined
+    && input.parent !== undefined
+    && canonical !== input.parent.canonical;
+  if (modelChangesParent && configuredThinkingLayer === undefined) {
+    // Profile fallback exists only without a direct Parent identity; it cannot
+    // smuggle a thinking override into a switched Parent-backed child.
+    thinkingLayer = input.parent ? undefined : profileThinkingLayer;
+  }
   if (requestedCanonical && canonical !== requestedCanonical) {
     throw new ModelSelectionError(layer, `catalog identity ${canonical} did not match explicit model ${requestedCanonical}; lower layers were not considered`);
   }
@@ -774,20 +926,12 @@ export async function resolveModelChoice(input: ResolveModelInput, catalog: Mode
     if (!THINKING.has(explicitThinking)) throw new ModelSelectionError(layer, `${canonical} is incompatible with thinking=${String(explicitThinking)}; lower layers were not considered`);
     thinking = explicitThinking;
     thinkingSource = thinkingLayer!.modelSource;
+  } else if (!input.parent && !input.profile && input.parentThinking !== undefined) {
+    thinking = input.parentThinking;
+    thinkingSource = "inherited-parent";
   } else {
-    const inheritsDirectParent = input.parent !== undefined && (!selectedLayer || canonical === input.parent.canonical);
-    if (inheritsDirectParent) {
-      // The direct parent's effective thinking is frozen and must not be
-      // replaced by a role/profile/default heuristic for nested work.
-      thinking = input.parent!.thinking;
-      thinkingSource = "inherited-parent";
-    } else if (!selectedLayer && layer === "parent-fallback") {
-      thinking = input.parentThinking ?? "medium";
-      thinkingSource = "inherited-parent";
-    } else {
-      thinking = targetModelDefaultThinking(candidate);
-      thinkingSource = selectedLayer ? "model-default" : modelSource;
-    }
+    thinking = targetModelDefaultThinking(candidate);
+    thinkingSource = "model-default";
   }
   if (!THINKING.has(thinking)) {
     throw new ModelSelectionError(layer, `${canonical} is incompatible with thinking=${String(thinking)}; lower layers were not considered`);

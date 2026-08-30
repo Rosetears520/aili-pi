@@ -9,8 +9,8 @@ const BUNDLE_URL = new URL("upstream/aili-workflows-runtime/", ROOT);
 const SUPPORTED_LOCK_SCHEMA = 1;
 const SUPPORTED_RUNTIME_SCHEMA = 1;
 const EXPECTED_PACKAGE = "rose-aili";
-const EXPECTED_VERSION = "0.4.7";
-const EXPECTED_COMMIT = "a69f3149d8f1db81726128c2819a3ccc954b9ccc";
+const EXPECTED_VERSION = "0.4.8";
+const EXPECTED_COMMIT = "a5284ee105a084392a944aee04313dcf7c294a64";
 const MAX_ARTIFACT_BYTES = 512 * 1024;
 
 export const WORKFLOW_RUNTIME_ARTIFACTS = Object.freeze({
@@ -19,7 +19,6 @@ export const WORKFLOW_RUNTIME_ARTIFACTS = Object.freeze({
   selectionMap: "selection-map.json",
   installationContract: "installation-contract.json",
   agentSelectionProtocol: "protocols/aili-agent-selection.v1.schema.json",
-  formalTaskBoardProtocol: "protocols/aili-task-board.v1.schema.json",
   packageEnvelopeProtocol: "protocols/package-envelope.schema.json",
   provenance: "provenance.json",
 } as const);
@@ -88,7 +87,7 @@ export interface WorkflowRuntimeBundle {
   roleMetadata: Readonly<RoleMetadata>;
   selectionMap: Readonly<SelectionMap>;
   installationContract: Readonly<InstallationContract>;
-  protocols: Readonly<Record<"agentSelection" | "formalTaskBoard" | "packageEnvelope", Readonly<Record<string, unknown>>>>;
+  protocols: Readonly<Record<"agentSelection" | "packageEnvelope", Readonly<Record<string, unknown>>>>;
   provenance: Readonly<RuntimeProvenance>;
 }
 
@@ -237,10 +236,9 @@ export async function loadWorkflowRuntimeBundle(options: WorkflowRuntimeBundleOp
 
   const protocols = {
     agentSelection: parseJson<Record<string, unknown>>(loaded.get(WORKFLOW_RUNTIME_ARTIFACTS.agentSelectionProtocol)!, "agent-selection protocol"),
-    formalTaskBoard: parseJson<Record<string, unknown>>(loaded.get(WORKFLOW_RUNTIME_ARTIFACTS.formalTaskBoardProtocol)!, "formal-task-board protocol"),
     packageEnvelope: parseJson<Record<string, unknown>>(loaded.get(WORKFLOW_RUNTIME_ARTIFACTS.packageEnvelopeProtocol)!, "package-envelope protocol"),
   };
-  if ([protocols.agentSelection, protocols.formalTaskBoard, protocols.packageEnvelope].some((schema) => !isRecord(schema) || typeof schema.$id !== "string")) {
+  if ([protocols.agentSelection, protocols.packageEnvelope].some((schema) => !isRecord(schema) || typeof schema.$id !== "string")) {
     throw new Error("Workflow runtime bundle protocol schema is unsupported");
   }
 

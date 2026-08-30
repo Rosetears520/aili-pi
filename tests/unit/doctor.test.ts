@@ -108,12 +108,19 @@ describe("capability registry", () => {
     expect(await validateRegistry()).toEqual([]);
     const { capabilities, compatibility } = await loadRegistry();
     expect(capabilities.capabilities.map((item) => item.id).sort()).toEqual([
-      "artifact.store", "artifact.transform", "browser.qa", "context.compaction", "mcp.runtime", "memory.provider.mempalace", "provider.retry",
+      "artifact.store", "artifact.transform", "browser.qa", "context.compaction", "mcp.runtime", "memory.observational", "memory.provider.mempalace", "prompt.middleware", "provider.retry",
       "repo.read", "repo.write", "subagent.dispatch", "web.fetch",
     ]);
     expect(compatibility.records).toHaveLength(58);
     expect(new Set(compatibility.records.map((record) => record.status))).toEqual(new Set(["optional", "native", "adapted"]));
     expect(compatibility.records.filter((record) => record.requiredCapabilities.includes("subagent.dispatch")).every((record) => record.status === "adapted" && record.unverified.length === 0)).toBe(true);
+    const localMemory = capabilities.capabilities.find((item) => item.id === "memory.observational")!;
+    const durableMemory = capabilities.capabilities.find((item) => item.id === "memory.provider.mempalace")!;
+    expect(localMemory.adapterOwner).toMatch(/default-on token\/high-value hybrid observer.*side-effect-only pre-compaction hook/);
+    expect(localMemory.risk.sideEffect).toBe("bounded-in-process-session-observation-and-recall");
+    expect(durableMemory.adapterOwner).toContain("existing session adapter");
+    expect(durableMemory.optionalPack?.enableGuidance).toMatch(/exact MemPalace 3\.7\.0.*3\.6\.0 is a mismatch\/Unverified/);
+    expect(durableMemory.optionalPack?.missingBehavior).toMatch(/fail closed.*no disk cache.*fallback store/i);
   });
 
   it("accepts current permission and dispatch evidence without requiring retired Compact live evidence", async () => {
@@ -194,14 +201,14 @@ describe("capability registry", () => {
 });
 
 describe("shared workflow doctor compatibility", () => {
-  it("accepts the exact pinned protocol references without mutating the fixture", async () => {
+  it("accepts the exact pinned protocol and formal-notes references without mutating the fixture", async () => {
     const fixture = await createSharedFixture();
     try {
       expect(await inspectSharedWorkflows(fixture.home)).toEqual({
         compatibility: "present-compatible",
         sourceMatch: "exact",
         references: { readable: 2, required: 2 },
-        protocols: { compatible: 2, required: 2 },
+        protocols: { compatible: 1, required: 1 },
         roles: { observed: 20, required: 20 },
         reasons: ["compatible"],
       });
@@ -225,7 +232,7 @@ describe("shared workflow doctor compatibility", () => {
       expect(inspection).toEqual(expect.objectContaining({
         compatibility: "present-compatible",
         sourceMatch: "modified",
-        protocols: { compatible: 2, required: 2 },
+        protocols: { compatible: 1, required: 1 },
         roles: { observed: 20, required: 20 },
       }));
       expect(inspection.sourceMatch).not.toBe("compatible-newer");
@@ -248,7 +255,7 @@ describe("shared workflow doctor compatibility", () => {
       expect(report.results).toContainEqual(expect.objectContaining({
         id: "shared.workflows",
         status: "ERROR",
-        evidence: expect.stringMatching(/compatibility=missing; source_match=unknown;.*remediation=npx -y rose-aili@0\.4\.7 install/),
+        evidence: expect.stringMatching(/compatibility=missing; source_match=unknown;.*remediation=npx -y rose-aili@0\.4\.8 install/),
       }));
       await expectFixtureUnchanged(fixture);
     } finally {
@@ -256,7 +263,7 @@ describe("shared workflow doctor compatibility", () => {
     }
   });
 
-  it("rejects unsupported protocols, invalid role inventories, and invalid board cores", async () => {
+  it("rejects unsupported protocols, invalid role inventories, and invalid formal-notes cores", async () => {
     const canonicalAgent = await readFile(AGENT_SOURCE, "utf8");
     const canonicalBoard = await readFile(BOARD_SOURCE, "utf8");
     const cases = [
@@ -279,9 +286,9 @@ describe("shared workflow doctor compatibility", () => {
     }
 
     for (const board of [
-      canonicalBoard.replaceAll("aili-task-board/v1", "aili-task-board/v2"),
-      canonicalBoard.replace("  - Next action: `<next action>`\n", ""),
-      canonicalBoard.replace("RECONCILED\n", ""),
+      canonicalBoard.replace("`formal-task-board.md` is an optional human-readable notes file", "optional notes"),
+      canonicalBoard.replace("Never parse or format-validate it", "Parse it"),
+      canonicalBoard.replace("Only the orchestrator writes `progress.txt`", "Workers may write progress"),
     ]) {
       const fixture = await createSharedFixture({ board });
       try {
@@ -308,7 +315,7 @@ describe("shared workflow doctor compatibility", () => {
       const report = await runDoctor({ getCommands: () => commands }, { home: fixture.home });
       const result = report.results.find((item) => item.id === "shared.workflows")!;
       expect(result.status).toBe("UNVERIFIED");
-      expect(result.evidence).toContain("remediation=npx -y rose-aili@0.4.7 update");
+      expect(result.evidence).toContain("remediation=npx -y rose-aili@0.4.8 update");
       expect(result.evidence).not.toContain(fixture.home);
       await expectFixtureUnchanged(fixture);
     } finally {
@@ -325,7 +332,7 @@ describe("shared workflow doctor compatibility", () => {
 
 describe("doctor", () => {
   it("reports both JSON evidence and a human non-pass without swallowing missing work", async () => {
-    const report = await runDoctor({ getCommands: () => commands }, { home: DOCTOR_HOME });
+    const report = await runDoctor({ getCommands: () => commands }, { home: DOCTOR_HOME, mempalaceInstalledVersion: "3.6.0" });
     expect(report.status).toBe("NON_PASS");
     expect(report.results).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "skill.snapshot", status: "PASS" }),
@@ -338,6 +345,8 @@ describe("doctor", () => {
       expect.objectContaining({ id: "permission.native", status: "PASS" }),
       expect.objectContaining({ id: "global.resources", status: expect.stringMatching(/^(PASS|UNVERIFIED)$/) }),
       expect.objectContaining({ id: "shared.workflows", status: "ERROR", evidence: expect.stringContaining("compatibility=missing") }),
+      expect.objectContaining({ id: "memory.observational", status: "PASS", evidence: expect.stringMatching(/local=default-on; observer=token\+high-value-managed-internal;.*pre_compaction=side-effect-only-return-undefined; compaction_change=none; disk_cache=none/) }),
+      expect.objectContaining({ id: "memory.mempalace", status: "UNVERIFIED", evidence: expect.stringMatching(/accepted=3\.7\.0; installed=3\.6\.0; compatibility=mismatch;.*bridge=existing-session-mcp-adapter; standing_authority=session-scoped; automatic_durable=fail-closed;.*live_write=not-run-unverified/) }),
       expect.objectContaining({ id: "provenance", status: "PASS" }),
     ]));
     expect(formatDoctorReport(report)).toContain("AILI doctor: NON_PASS");

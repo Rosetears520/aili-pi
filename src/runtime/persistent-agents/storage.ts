@@ -20,6 +20,16 @@ import {
   type TurnState,
   type FormalResultEvidenceRecord,
 } from "./types.js";
+import {
+  RUN_TRANSITIONS,
+  isAgentDriverKind,
+  isBackendDriverPair,
+  isExecutionBackendKind,
+  type RunControlMode,
+  type RunRecord,
+} from "./backends/types.js";
+
+const RUN_CONTROL_MODES: readonly RunControlMode[] = ["aili", "human", "mixed"];
 
 const AGENT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const AGENT_TRANSITIONS: Record<AgentState, ReadonlySet<AgentState>> = {
@@ -160,6 +170,7 @@ export function createInitialCoordinatorState(parentId: string): CoordinatorStat
     releasedAgents: {},
     jobs: {},
     turns: {},
+    runs: {},
     mailboxes: {},
     deliveries: {},
     models: {},
@@ -220,6 +231,12 @@ export function applyCoordinatorEvent(current: CoordinatorState, event: Coordina
       if (record.id !== event.agentId) throw new Error("agent.created ID mismatch");
       if (state.agents[record.id] || state.releasedAgents[record.id]) throw new Error(`${record.id}: duplicate Agent ownership`);
       if (record.state !== "queued") throw new Error(`${record.id}: new Agent must be queued`);
+      if (record.backend !== undefined) {
+        if (!isExecutionBackendKind(record.backend)) throw new Error(`${record.id}: unknown execution backend ${String(record.backend)}`);
+        if (record.driver !== undefined && (!isAgentDriverKind(record.driver) || !isBackendDriverPair(record.backend, record.driver))) {
+          throw new Error(`${record.id}: driver ${String(record.driver)} is not a supported pairing for backend ${record.backend}`);
+        }
+      }
       state.agents[record.id] = record;
       break;
     }
@@ -303,6 +320,45 @@ export function applyCoordinatorEvent(current: CoordinatorState, event: Coordina
       if (!record || record.agentId !== event.agentId) throw new Error(`${id}: unknown or mismatched turn audit owner`);
       if (record.state !== "running" && record.state !== "queued") throw new Error(`${id}: turn audit is accepted only while queued or running`);
       record.metadata = { ...(record.metadata ?? {}), ...structuredClone(event.payload) };
+      record.updatedAt = now;
+      break;
+    }
+    case "run.created": {
+      const agentId = requireString(event.agentId, "agentId");
+      const raw = clone(requireRecord(event.payload.record, "run.created.record"));
+      const record = raw as unknown as RunRecord;
+      if (!state.agents[agentId]) throw new Error(`${agentId}: unknown owning Agent`);
+      if (typeof record.runId !== "string" || record.runId.length === 0 || record.runId !== event.runId) throw new Error("run.created ID mismatch");
+      if (record.agentId !== agentId) throw new Error("run.created Agent ownership mismatch");
+      if (record.schemaVersion !== 1) throw new Error(`${record.runId}: unsupported run schemaVersion`);
+      if (!isExecutionBackendKind(record.backend) || !isAgentDriverKind(record.driver) || !isBackendDriverPair(record.backend, record.driver)) {
+        throw new Error(`${record.runId}: backend/driver pairing is not formally supported`);
+      }
+      if (record.lifecycle !== "allocated") throw new Error(`${record.runId}: new run must be allocated`);
+      if (!RUN_CONTROL_MODES.includes(record.controlMode)) throw new Error(`${record.runId}: invalid run control mode`);
+      if (record.jobId !== undefined && record.jobId !== event.jobId) throw new Error(`${record.runId}: run job ownership mismatch`);
+      if (record.turnId !== undefined && record.turnId !== event.turnId) throw new Error(`${record.runId}: run turn ownership mismatch`);
+      if (state.runs[record.runId]) throw new Error(`${record.runId}: duplicate run`);
+      state.runs[record.runId] = record;
+      break;
+    }
+    case "run.state": {
+      const id = requireString(event.runId, "runId");
+      const record = state.runs[id];
+      if (!record || record.agentId !== event.agentId) throw new Error(`${id}: unknown or mismatched run`);
+      record.lifecycle = applyStateTransition(`Run ${id}`, record.lifecycle, event.payload, RUN_TRANSITIONS);
+      record.updatedAt = now;
+      if (typeof event.payload.stopReason === "string") record.stopReason = event.payload.stopReason;
+      if (typeof event.payload.failure === "string") record.failure = event.payload.failure;
+      break;
+    }
+    case "run.control": {
+      const id = requireString(event.runId, "runId");
+      const record = state.runs[id];
+      if (!record || record.agentId !== event.agentId) throw new Error(`${id}: unknown or mismatched run`);
+      const controlMode = requireString(event.payload.controlMode, "controlMode");
+      if (!RUN_CONTROL_MODES.includes(controlMode as RunRecord["controlMode"])) throw new Error(`${id}: invalid run control mode`);
+      record.controlMode = controlMode as RunRecord["controlMode"];
       record.updatedAt = now;
       break;
     }
@@ -535,6 +591,7 @@ function validateSnapshot(snapshot: CoordinatorSnapshot, parentId: string): Coor
   const state = clone(snapshot.state);
   state.workspaceLeases ??= {};
   state.formalResultEvidence ??= {};
+  state.runs ??= {};
   const activeAgents = state.agents ?? {};
   const releasedAgents = state.releasedAgents ?? {};
   for (const id of Object.keys(activeAgents)) if (releasedAgents[id]) throw new Error(`${id}: snapshot Agent is both active and released`);
@@ -557,6 +614,16 @@ function validateSnapshot(snapshot: CoordinatorSnapshot, parentId: string): Coor
     if (turn.id !== id || (!activeAgents[turn.agentId] && !releasedAgents[turn.agentId])) throw new Error(`${id}: snapshot turn ownership mismatch`);
     if (turn.jobId && !state.jobs[turn.jobId]) throw new Error(`${id}: snapshot turn job mismatch`);
     if (!(turn.state in TURN_TRANSITIONS)) throw new Error(`${id}: snapshot turn state is invalid`);
+  }
+  for (const [id, run] of Object.entries(state.runs)) {
+    const owner = activeAgents[run.agentId] ?? releasedAgents[run.agentId];
+    if (!owner || run.runId !== id || run.schemaVersion !== 1
+      || !isExecutionBackendKind(run.backend)
+      || !isAgentDriverKind(run.driver) || !isBackendDriverPair(run.backend, run.driver)
+      || !(run.lifecycle in RUN_TRANSITIONS)
+      || !RUN_CONTROL_MODES.includes(run.controlMode)) {
+      throw new Error(`${id}: snapshot run record is invalid`);
+    }
   }
   for (const [jobId, evidence] of Object.entries(state.formalResultEvidence)) {
     const agent = activeAgents[evidence.agentId] ?? releasedAgents[evidence.agentId];
@@ -701,6 +768,42 @@ export class CoordinatorJournal {
     return operation;
   }
 
+  /** Allocates the next run id and appends its run.created event as ONE
+   *  serialized step. Parallel turns must never observe the same empty runs
+   *  map and pick the same id: a duplicate run.created would fail closed and
+   *  poison this journal's writer chain for the rest of the process. */
+  appendAllocatedRun(build: (runId: string) => { agentId: string; jobId?: string; turnId?: string; record: RunRecord }): Promise<string> {
+    const operation = this.tail.then(async () => {
+      let max = 0;
+      for (const id of Object.keys(this.state.runs ?? {})) {
+        const match = id.match(/^run-(\d+)$/);
+        if (match) max = Math.max(max, Number(match[1]));
+      }
+      const runId = `run-${max + 1}`;
+      const prepared = build(runId);
+      const event: CoordinatorEvent = {
+        schemaVersion: COORDINATOR_SCHEMA_VERSION,
+        eventId: this.nextEventId(),
+        sequence: this.state.lastSequence + 1,
+        timestamp: this.clock().toISOString(),
+        parentId: this.state.parentId,
+        kind: "run.created",
+        agentId: prepared.agentId,
+        jobId: prepared.jobId,
+        turnId: prepared.turnId,
+        runId,
+        payload: { record: { ...prepared.record, runId } },
+      };
+      const nextState = applyCoordinatorEvent(this.state, event);
+      await durableAppend(this.layout.coordinatorPath, `${JSON.stringify(event)}\n`);
+      this.state = nextState;
+      return runId;
+    });
+    this.tail = operation.then(() => undefined);
+    void this.tail.catch(() => undefined);
+    return operation;
+  }
+
   async flush(): Promise<void> {
     await this.tail;
   }
@@ -784,10 +887,13 @@ export interface ResumeCoordinatorResult {
 export async function reconcileUnfinishedCoordinator(
   journal: CoordinatorJournal,
   reason: "process-loss" | "graceful-shutdown" = "process-loss",
+  filter: { includeAgentIds?: ReadonlySet<string>; skipBackends?: ReadonlySet<string> } = {},
 ): Promise<ResumeCoordinatorResult["reconciled"]> {
   const reconciled: ResumeCoordinatorResult["reconciled"] = [];
   const initial = journal.getState();
   for (const agent of Object.values(initial.agents)) {
+    if (filter.includeAgentIds && !filter.includeAgentIds.has(agent.id)) continue;
+    if (filter.skipBackends?.has(agent.backend ?? "managed")) continue;
     if (agent.state !== "running" && agent.state !== "queued") continue;
     if (agent.currentTurnId) {
       const turn = journal.getState().turns[agent.currentTurnId];
@@ -834,11 +940,11 @@ export async function reconcileUnfinishedCoordinator(
 export async function resumeCoordinator(
   layout: SidecarLayout,
   parentId: string,
-  options: CoordinatorJournalOptions = {},
+  options: CoordinatorJournalOptions & { deferHerdrReconcile?: boolean } = {},
 ): Promise<ResumeCoordinatorResult> {
   const opened = await CoordinatorJournal.open(layout, parentId, options);
   const { journal, replay } = opened;
-  const reconciled = await reconcileUnfinishedCoordinator(journal, "process-loss");
+  const reconciled = await reconcileUnfinishedCoordinator(journal, "process-loss", { skipBackends: options.deferHerdrReconcile ? new Set(["herdr"]) : undefined });
   for (const agent of Object.values(journal.getState().agents)) {
     if (agent.state === "idle" && agent.metadata?.formalProtection !== undefined) {
       await journal.append({

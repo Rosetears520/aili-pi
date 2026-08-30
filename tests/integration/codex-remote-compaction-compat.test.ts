@@ -23,18 +23,13 @@ describe("Codex Remote V2 composition", () => {
 
   it("forces extension transport retry to zero while leaving Pi as retry owner", async () => {
     const handlers = new Map<string, Array<(...args: any[]) => any>>();
-    const registerTool = vi.fn();
     const pi = {
       on(name: string, handler: (...args: any[]) => any) { const list = handlers.get(name) ?? []; list.push(handler); handlers.set(name, list); },
-      registerTool, registerCommand: vi.fn(), getActiveTools: () => [], getAllTools: () => [], sendMessage: vi.fn(),
+      registerTool: vi.fn(), registerCommand: vi.fn(), getActiveTools: () => [], getAllTools: () => [],
     } as unknown as ExtensionAPI;
     createProviderRoutedContextExtension({ settingsRuntime: settings() })(pi);
     const compact = handlers.get("session_before_compact")!;
-    expect(compact).toHaveLength(3);
-    expect(registerTool).toHaveBeenCalledWith(expect.objectContaining({ name: "compact_context" }));
-    // ACP pressure remains model-facing; it must never compact directly from
-    // turn_end while the active agent operation is still running.
-    expect(handlers.has("turn_end")).toBe(false);
+    expect(compact).toHaveLength(2);
 
     const stream = vi.fn((..._args: any[]) => ({ async *[Symbol.asyncIterator]() { yield { type: "error", error: { errorMessage: "fixture" } }; } }));
     const model = { provider: "openai-codex", api: "openai-codex-responses", id: "gpt-5.6-sol" };
@@ -52,7 +47,6 @@ describe("Codex Remote V2 composition", () => {
     const event = { signal: new AbortController().signal, branchEntries: [], preparation: { firstKeptEntryId: "missing", tokensBefore: 1 } };
     expect(await compact[0]!(event, ctx)).toBeUndefined();
     expect(await compact[1]!(event, ctx)).toBeUndefined();
-    expect(await compact[2]!(event, ctx)).toBeUndefined();
     if (stream.mock.calls.length > 0) expect(stream.mock.calls[0]![2]).toMatchObject({ maxRetries: 0 });
   });
 });

@@ -1,4 +1,5 @@
 import {
+  assertBoundedJson,
   createMutationEnvelope,
   validateRuntimeEvent,
   validateRuntimeSnapshot,
@@ -25,6 +26,7 @@ export const AILI_BFF_ENDPOINTS = Object.freeze({
   logout: `${AILI_BFF_BASE}/auth/logout`,
   session: `${AILI_BFF_BASE}/auth/session`,
   mutate: `${AILI_BFF_BASE}/mutations`,
+  configuration: `${AILI_BFF_BASE}/configuration`,
   exportSession: (sessionHandle: string) => `${AILI_BFF_BASE}/sessions/${encodeURIComponent(sessionHandle)}/export`,
   media: (mediaHandle: string) => `${AILI_BFF_BASE}/media/${encodeURIComponent(mediaHandle)}`,
 });
@@ -37,7 +39,7 @@ export interface EventReplayV1 {
   readonly snapshotRequired?: true;
 }
 export interface SnapshotFirstV1 { readonly snapshot: RuntimeSnapshotV1; readonly replay: EventReplayV1; }
-export interface MutationResultV1 { readonly disposition: "pending" | "rejected" | "completed" | "failed" | "unknown"; readonly reason: string; readonly sequence?: number; }
+export interface MutationResultV1 { readonly disposition: "pending" | "rejected" | "completed" | "failed" | "unknown"; readonly reason: string; readonly sequence?: number; readonly result?: JsonValue; }
 export interface FetchResponseLike {
   readonly ok: boolean;
   readonly status: number;
@@ -168,6 +170,13 @@ export class GatewayClient {
     this.clientId = undefined;
   }
 
+  /** Ensures retained compatibility mutation URLs carry the same BFF session cookie. */
+  public async ensureMutationSession(): Promise<void> {
+    const current = await this.fetcher(AILI_BFF_ENDPOINTS.session, { cache: "no-store" });
+    if (current.ok) return;
+    if (!await this.bootstrapLoopback()) throw new Error("same-site-session-required");
+  }
+
   private async bootstrapLoopback(): Promise<boolean> {
     try {
       const encoded = "{}";
@@ -216,6 +225,37 @@ export class GatewayClient {
     }
   }
 
+  /** Mutates bounded settings/security state through the opaque non-AgentSession RuntimeHost. */
+  public async configure(
+    capability: "models.configure" | "plugins.configure" | "skills.configure" | "mcp.configure" | "keybinds.configure" | "project_trust.configure",
+    commandType: "replace" | "plugin_action" | "toggle_model_invocation" | "install" | "update" | "set_disabled" | "trust",
+    args: Readonly<Record<string, JsonValue>>,
+  ): Promise<MutationResultV1> {
+    let clientId = this.clientId;
+    if (!clientId) {
+      const current = await this.fetcher(AILI_BFF_ENDPOINTS.session, { cache: "no-store" });
+      const session = await json(current);
+      if (current.ok && record(session) && typeof session.clientId === "string") {
+        this.clientId = session.clientId;
+        clientId = session.clientId;
+      } else {
+        if (!await this.bootstrapLoopback()) throw new Error("same-site-session-required");
+        await this.catalog();
+        clientId = this.clientId;
+      }
+    }
+    if (!clientId) throw new Error("Load the authenticated workbench catalog before mutation");
+    const response = await this.fetcher(AILI_BFF_ENDPOINTS.configuration, { cache: "no-store" });
+    const body = await json(response);
+    if (!response.ok) throw gatewayError(response.status, body);
+    const snapshot = validateRuntimeSnapshot(body);
+    if (snapshot.capabilities[capability] !== true) throw new Error(`${capability} is unavailable`);
+    return this.sendEnvelope(createMutationEnvelope({
+      requestId: this.requestId(), clientId, snapshot, sessionLeaf: "configuration",
+      capability, commandType, arguments: args, requestedAt: this.now().toISOString(),
+    }));
+  }
+
   public async sendEnvelope(envelope: MutationEnvelopeV1): Promise<MutationResultV1> {
     const encoded = JSON.stringify(envelope);
     const response = await this.fetcher(AILI_BFF_ENDPOINTS.mutate, {
@@ -230,6 +270,11 @@ export class GatewayClient {
   }
 
   public exportUrl(sessionHandle: string): string { return AILI_BFF_ENDPOINTS.exportSession(assertHandle(sessionHandle)); }
+}
+
+let sharedGatewayClient: GatewayClient | undefined;
+export function getGatewayClient(): GatewayClient {
+  return sharedGatewayClient ??= new GatewayClient();
 }
 
 export function validateNoDirectBrowserMutationUrl(url: string): void {
@@ -250,10 +295,17 @@ function validateMutationResult(value: unknown): MutationResultV1 {
   if (!record(value) || !["pending", "rejected", "completed", "failed", "unknown"].includes(String(value.disposition))
     || typeof value.reason !== "string" || value.reason.length > 160
     || (value.sequence !== undefined && (!Number.isSafeInteger(value.sequence) || Number(value.sequence) < 1))) throw new Error("BFF returned an invalid mutation disposition");
-  return Object.freeze({ disposition: value.disposition as MutationResultV1["disposition"], reason: value.reason, ...(value.sequence === undefined ? {} : { sequence: Number(value.sequence) }) });
+  if (value.result !== undefined) assertBoundedJson(value.result);
+  return Object.freeze({ disposition: value.disposition as MutationResultV1["disposition"], reason: value.reason, ...(value.sequence === undefined ? {} : { sequence: Number(value.sequence) }), ...(value.result === undefined ? {} : { result: value.result as JsonValue }) });
 }
 async function json(response: FetchResponseLike): Promise<unknown> { try { return await response.json(); } catch { throw new Error(`BFF returned malformed JSON (HTTP ${response.status})`); } }
-function gatewayError(status: number, body: unknown): Error { return new Error(record(body) && typeof body.error === "string" ? body.error.slice(0, 240) : `AILI BFF request failed (HTTP ${status})`); }
+function gatewayError(status: number, body: unknown): Error {
+  return new Error(record(body) && typeof body.error === "string"
+    ? body.error.slice(0, 240)
+    : record(body) && typeof body.reason === "string"
+      ? body.reason.slice(0, 240)
+      : `AILI BFF request failed (HTTP ${status})`);
+}
 function assertHandle(value: string): string { if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value)) throw new Error("invalid opaque handle"); return value; }
 function jsonHeaders(): Record<string, string> { return { "Content-Type": "application/json" }; }
 function randomRequestId(): string { const id = globalThis.crypto?.randomUUID?.(); return `web-${id ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`}`; }

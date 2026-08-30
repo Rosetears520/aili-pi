@@ -5,6 +5,7 @@ import { sendAgentCommand } from "@/lib/agent-client";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { PluginPackageInfo, PluginsResponse } from "@/lib/api-types";
 import { useI18n } from "@/hooks/useI18n";
+import { getGatewayClient } from "@/gateway-client";
 
 type PluginScope = PluginPackageInfo["scope"];
 type PluginAction = "install" | "remove" | "update" | "disable" | "enable";
@@ -676,17 +677,10 @@ export function PluginsConfig({
     setActionError(null);
     setActionMessage(null);
     try {
-      const res = await fetch("/api/plugins", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, source: pkg.source, scope: pkg.scope, cwd }),
-      });
-      const next = (await res.json()) as PluginsResponse & { error?: string };
-      if (!res.ok || next.error) throw new Error(next.error ?? `HTTP ${res.status}`);
-      setData(next);
+      await getGatewayClient().configure("plugins.configure", "plugin_action", { action, source: pkg.source, scope: pkg.scope, cwd });
+      await loadPlugins();
       if (action === "remove") {
-        setSelected(next.packages[0] ? packageKey(next.packages[0]) : null);
-        if (next.packages.length === 0) setAddMode(true);
+        setSelected(null);
         setActionMessage("Package removed.");
       } else {
         const messages: Record<Exclude<PluginAction, "remove">, string> = {
@@ -702,7 +696,7 @@ export function PluginsConfig({
     } finally {
       setBusyKey(null);
     }
-  }, [cwd]);
+  }, [cwd, loadPlugins]);
 
   const installPlugin = useCallback(async () => {
     const source = normalizePluginSourceInput(installSource).trim();
@@ -713,16 +707,9 @@ export function PluginsConfig({
     setActionError(null);
     setActionMessage(null);
     try {
-      const res = await fetch("/api/plugins", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "install", source, scope: installScope, cwd }),
-      });
-      const next = (await res.json()) as PluginsResponse & { error?: string };
-      if (!res.ok || next.error) throw new Error(next.error ?? `HTTP ${res.status}`);
-      setData(next);
-      const installed = findInstalledPackage(next.packages, source, installScope);
-      setSelected(installed ? packageKey(installed) : key);
+      await getGatewayClient().configure("plugins.configure", "plugin_action", { action: "install", source, scope: installScope, cwd });
+      await loadPlugins();
+      setSelected(key);
       setAddMode(false);
       setInstallSource("");
       setActionMessage("Package installed.");
@@ -731,7 +718,7 @@ export function PluginsConfig({
     } finally {
       setBusyKey(null);
     }
-  }, [cwd, installScope, installSource]);
+  }, [cwd, installScope, installSource, loadPlugins]);
 
   const reloadSession = useCallback(async () => {
     if (!sessionId) return;

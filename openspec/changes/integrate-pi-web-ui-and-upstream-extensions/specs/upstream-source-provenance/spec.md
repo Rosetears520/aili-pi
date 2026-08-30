@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Exact locked upstream imports
-Source absorption SHALL use exact immutable revisions of `@agegr/pi-web@0.8.8`, `pi-analytics`, `pi-btw`, `pi-stamp`, and `pi-worktree` only during separately authorized BUILD operations. Each import SHALL record source URL, package version, revision, archive identity, license, copyright, and adaptation scope.
+Source absorption SHALL use active exact `@agegr/pi-web@0.8.11` tag revision `28bab3c25f5f6770c9b0b745ebbfec1c27f7b948` (npm gitHead `024be0b1154ba8a2650237a2db8bfa89124e167e`), plus the exact accepted `pi-analytics`, `pi-btw`, `pi-stamp`, and `pi-worktree` revisions, only during separately authorized BUILD operations. Each import SHALL record source URL, package version, revision, archive identity, license, copyright, adaptation scope and active/historical state. Pi Web 0.8.9 SHALL remain immutable historical evidence and neither source snapshot may enter the npm package.
 
 #### Scenario: Imported revision differs
 - **WHEN** imported source or archive identity differs from the accepted lock

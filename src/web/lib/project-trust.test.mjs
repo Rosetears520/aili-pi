@@ -80,6 +80,7 @@ test("all project resource loaders and reloads enforce project trust", async () 
   const skillsSource = await readFile(new URL("./skills-service.ts", import.meta.url), "utf8");
   const skillsInstallSource = await readFile(new URL("../app/api/skills/install/route.ts", import.meta.url), "utf8");
   const pluginsSource = await readFile(new URL("../app/api/plugins/route.ts", import.meta.url), "utf8");
+  const configurationSource = await readFile(new URL("../server/configuration-service.ts", import.meta.url), "utf8");
 
   assert.match(rpcSource, /const sessionCwd = sessionManager\.getCwd\(\)/);
   assert.match(rpcSource, /projectTrustReloadOptions\(sessionCwd, agentDir\)/);
@@ -92,26 +93,23 @@ test("all project resource loaders and reloads enforce project trust", async () 
   assert.match(modelsSource, /projectTrustReloadOptions\(cwd, agentDir\)/);
   assert.match(modelsSource, /resourceLoaderReloadOptions: trustReloadOptions/);
   assert.match(skillsSource, /loader\.reload\(projectTrustReloadOptions\(cwd, agentDir\)\)/);
-  assert.match(pluginsSource, /projectTrusted: projectTrust\.trusted/);
-  assert.match(
-    skillsInstallSource,
-    /getProjectTrustStatus\(cwd, getAgentDir\(\)\)\.trusted/,
-  );
-  assert.equal(
-    Array.from(pluginsSource.matchAll(/projectTrusted: projectTrust\.trusted/g)).length,
-    2,
-  );
-  assert.match(pluginsSource, /scope === "project" && !projectTrust\.trusted/);
+  assert.match(pluginsSource, /translateConfigurationRoute/);
+  assert.match(skillsInstallSource, /translateConfigurationRoute/);
+  assert.match(configurationSource, /getProjectTrustStatus\(cwd, getAgentDir\(\)\)\.trusted/);
+  assert.match(configurationSource, /projectTrusted: trust\.trusted/);
+  assert.match(configurationSource, /scope === "project" && !trust\.trusted/);
 });
 
 test("the trust API invalidates cached models and restricted runtimes", async () => {
   const source = await readFile(new URL("../app/api/project-trust/route.ts", import.meta.url), "utf8");
+  const configurationSource = await readFile(new URL("../server/configuration-service.ts", import.meta.url), "utf8");
   const rpcSource = await readFile(new URL("./rpc-manager.ts", import.meta.url), "utf8");
 
-  assert.match(source, /trustProject\(result\.cwd, agentDir\)/);
-  assert.match(source, /invalidateModelsCache\(\)/);
-  assert.match(source, /destroyRpcSessionsForCwd\(result\.cwd\)/);
-  assert.match(source, /hasBusyRpcSessionForCwd\(result\.cwd\)/);
+  assert.match(source, /translateConfigurationRoute/);
+  assert.match(configurationSource, /trustProject\(cwd, agentDir\)/);
+  assert.match(configurationSource, /invalidateModelsCache\(\)/);
+  assert.match(configurationSource, /rpc\.destroyRpcSessionsForCwd\(cwd\)/);
+  assert.match(configurationSource, /rpc\.hasBusyRpcSessionForCwd\(cwd\)/);
   assert.match(rpcSource, /trackStartingSession\(sessionCwd\)/);
   assert.match(rpcSource, /realpathSync\(resolvedCwd\)/);
 });

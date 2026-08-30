@@ -5,9 +5,9 @@ import { promisify } from "node:util";
 import type { CoordinatorJournal } from "./storage.js";
 import { assertSafeAgentId } from "./storage.js";
 import type { SidecarLayout } from "./types.js";
-import type { TaskWorkspaceMode, TaskWriteScope } from "./task-schema.js";
-import type { FormalContinuationAudit } from "./task-schema.js";
-import type { FormalTaskProtection, FormalWorkspaceRequest } from "./task-coordinator.js";
+import type { TaskWorkspaceMode, TaskWriteScope } from "./sub-schema.js";
+import type { FormalContinuationAudit } from "./sub-schema.js";
+import type { FormalTaskProtection, FormalWorkspaceRequest } from "./sub-coordinator.js";
 import { assertNoCredentialMaterial } from "./permission.js";
 import type { ExtensionAPI, ExtensionFactory } from "@earendil-works/pi-coding-agent";
 

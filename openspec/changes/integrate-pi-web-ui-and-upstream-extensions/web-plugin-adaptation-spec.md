@@ -2,8 +2,8 @@
 
 - 日期：2026-08-15
 - 变更：`integrate-pi-web-ui-and-upstream-extensions`（BUILD-P12-R3 之后）
-- 状态：待用户评审——本文件只盘点与提议，不含实现授权
-- 前提：Web UI 已整体采用上游 `pi-web@0.8.8` 原版应用（用户 2026-08-15 决策）
+- 状态：历史盘点，已被 D-19 正式契约取代；本文件不再作为当前实现授权或 mutation-owner 设计依据
+- 当前基线：D-20 已升级为 `pi-web@0.8.11`（tag revision `28bab3c25f5f6770c9b0b745ebbfec1c27f7b948`）和 Pi 0.84.4；本文件的 0.8.9 内容仅保留历史盘点价值，生产 AppShell mutation 仍必须统一经过 AILI Runtime Gateway/BFF
 
 ## 0. 结论摘要
 

@@ -48,7 +48,7 @@ async function fixture(options: {
 set -eu
 printf '%s\\n' "$*" >> "$FAKE_PI_LOG"
 case " $* " in
-  *" --version "*) printf '%s\\n' "${options.version ?? "0.84.2"}" ;;
+  *" --version "*) printf '%s\\n' "${options.version ?? "0.84.4"}" ;;
   *" --help "*) printf '%s\\n' '${options.help ?? "  --extension <path>\n  --no-extensions\n  --no-skills\n  --no-prompt-templates\n  --mode <mode>\n  --no-session\n  --print, -p\n  --offline\n  --list-models [search]"}' ;;
   *" --list-models "*) [ "${options.headlessFails ? "1" : "0"}" = 0 ] ;;
   *" list "*)
@@ -150,8 +150,8 @@ describe("thin Unix bootstrap", () => {
     expect(result.stdout).toContain("pi_state=installed aili_state=installed");
     expect(result.stdout).toContain("platform=linux architecture=x86_64");
     expect(result.stdout).toContain("shared_workflows_status=not-run owner=explicit-user-command");
-    expect(result.stdout).toContain("shared_workflows_install_command=npx -y rose-aili@0.4.7 install");
-    expect(result.stdout).toContain("shared_workflows_update_command=npx -y rose-aili@0.4.7 update");
+    expect(result.stdout).toContain("shared_workflows_install_command=npx -y rose-aili@0.4.8 install");
+    expect(result.stdout).toContain("shared_workflows_update_command=npx -y rose-aili@0.4.8 update");
     expect(result.stdout).toContain("pi_package_update_command=pi update npm:@rosetears/aili-pi");
     expect(result.stdout).toContain("pi_package_remove_command=pi remove npm:@rosetears/aili-pi");
     const log = await readFile(fx.log, "utf8");
@@ -427,22 +427,22 @@ describe("thin Unix bootstrap", () => {
     expect(await readFile(update.log, "utf8")).toContain("update --self");
   });
 
-  it("accepts the exact Pi 0.84.2 compatibility floor", async () => {
-    const compatible = await fixture({ version: "0.84.2" });
+  it("accepts the exact Pi 0.84.4 compatibility floor", async () => {
+    const compatible = await fixture({ version: "0.84.4" });
     const result = run(compatible.env);
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("preflight=pass pi_version=0.84.2");
+    expect(result.stdout).toContain("preflight=pass pi_version=0.84.4");
     expect(await readFile(compatible.log, "utf8")).toContain("install npm:@rosetears/aili-pi@latest");
   });
 
   it("fails before package mutation for incompatible Pi and unsupported platforms", async () => {
-    const incompatible = await fixture({ version: "0.82.0" });
+    const incompatible = await fixture({ version: "0.84.3" });
     const versionResult = run(incompatible.env);
     expect(versionResult.status).toBe(1);
     expect(versionResult.stdout).toContain("stage=pi-version-incompatible");
     expect(await readFile(incompatible.log, "utf8")).not.toContain("install npm:");
 
-    const malformed = await fixture({ version: "0.84.2-beta1" });
+    const malformed = await fixture({ version: "0.84.4-beta1" });
     expect(run(malformed.env).stdout).toContain("stage=pi-version-format");
     expect(await readFile(malformed.log, "utf8")).not.toContain("install npm:");
 

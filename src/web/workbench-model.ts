@@ -19,7 +19,10 @@ export type WorkbenchAction =
   | "delete-session"
   | "select-model"
   | "select-thinking"
+  | "replace-models-config"
   | "toggle-skill"
+  | "install-skill"
+  | "update-skill"
   | "plugin-action"
   | "worktree-add"
   | "worktree-switch"
@@ -51,7 +54,10 @@ export const ACTION_CONTRACTS: Readonly<Record<WorkbenchAction, ActionContract>>
   "delete-session": Object.freeze({ action: "delete-session", capability: "session.safe_delete", commandType: "safe_delete", label: "Delete safely", effect: "Delete only after the Runtime safe-delete preflight" }),
   "select-model": Object.freeze({ action: "select-model", capability: "pi.model", commandType: "select_model", label: "Model", effect: "Select through the provider/context owner" }),
   "select-thinking": Object.freeze({ action: "select-thinking", capability: "pi.thinking", commandType: "select_thinking", label: "Thinking", effect: "Set Pi thinking level" }),
-  "toggle-skill": Object.freeze({ action: "toggle-skill", capability: "skills.configure", commandType: "toggle_skill", label: "Skill visibility", effect: "Configure through the allowed-root gateway" }),
+  "replace-models-config": Object.freeze({ action: "replace-models-config", capability: "models.configure", commandType: "replace", label: "Models configuration", effect: "Replace through the configuration RuntimeHost" }),
+  "toggle-skill": Object.freeze({ action: "toggle-skill", capability: "skills.configure", commandType: "toggle_model_invocation", label: "Skill visibility", effect: "Configure through the allowed-root gateway" }),
+  "install-skill": Object.freeze({ action: "install-skill", capability: "skills.configure", commandType: "install", label: "Install skill", effect: "Install through the configuration RuntimeHost" }),
+  "update-skill": Object.freeze({ action: "update-skill", capability: "skills.configure", commandType: "update", label: "Update skill", effect: "Update through the configuration RuntimeHost" }),
   "plugin-action": Object.freeze({ action: "plugin-action", capability: "plugins.configure", commandType: "plugin_action", label: "Plugin action", effect: "Configure through the allowed-root gateway" }),
   "worktree-add": Object.freeze({ action: "worktree-add", capability: "worktree.mutate", commandType: "add", label: "Add Worktree", effect: "Create after repository preflight" }),
   "worktree-switch": Object.freeze({ action: "worktree-switch", capability: "worktree.mutate", commandType: "switch", label: "Switch Worktree", effect: "Switch through explicit session transition" }),

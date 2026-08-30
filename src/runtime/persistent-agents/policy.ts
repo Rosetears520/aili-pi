@@ -5,9 +5,9 @@ import {
   type RoleProfile,
 } from "../roles.js";
 
-const LEGACY_OR_TOP_LEVEL_ONLY_TOOLS = new Set(["subagent", "aili_task"]);
+const LEGACY_OR_TOP_LEVEL_ONLY_TOOLS = new Set(["subagent", "aili_task", "task", "hub"]);
 const BUILTIN_TOOL_NAMES = new Set(["read", "bash", "edit", "write", "grep", "find", "ls"]);
-const CHILD_BRIDGE_TOOL_NAMES = new Set(["sub", "hub"]);
+const CHILD_BRIDGE_TOOL_NAMES = new Set(["sub"]);
 
 export interface ParentToolSnapshot {
   active: string[];

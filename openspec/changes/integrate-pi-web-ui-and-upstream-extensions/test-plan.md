@@ -7,7 +7,7 @@
 - **实现授权**：granted，范围为本 change 已接受的 tasks/specs；依赖、源码导入、browser/server/package 等精确操作权限仍按本计划单独记录。
 - **本次行为**：依据本 change 的 `proposal.md`、`design.md`、`tasks.md`、`context.md`、`interview.md`、十一份 `specs/**/spec.md`、`AGENTS.md`、当前 `package.json`、锁定的 Pi Web 源码证据和 `DEFINE-E08-R2` plan audit 编写；截至接受时尚未运行本 change 的实现测试、浏览器、server、安装或 package 操作。
 - **独立操作门禁**：依赖/lockfile、源码导入、AIcss 源码复制、browser 安装、真实进程/server/provider/browser/WSL2/performance/disposable-Git/tarball/install probe、用户 HOME、Git、publish、release 均需在执行前取得各自精确授权并绑定 task ID、target、command class 与 evidence destination。
-- **浏览器落点**：测试源码位于 `tests/browser/`；需持久保留的 browser report/trace/screenshot 位于 `artifacts/test-results/browser/`；临时输出位于 ignored `.tmp/`。
+- **浏览器落点**：测试源码位于 `tests/browser/`；需持久保留的 browser report/trace/screenshot 位于 `artifacts/test-results/browser/`；临时输出位于 ignored `.tmp/`。这里的 browser 是 Web UI 验证环境，不授权或要求实现原生 agent-driven Browser 扩展；原生 Browser 被 D-19 延后为可选独立 change。
 
 ## 1. 测试目标与证据等级
 
@@ -16,7 +16,7 @@
 1. 证明发布物仍是一个 `@rosetears/aili-pi` Package、一个 Pi Extension entry、一个按需前台 `pi-web`，普通安装/Pi 启动不拉起 Web、不把 Web 源码放入模型上下文。
 2. 证明 `agegr/pi-web` 是唯一 Web code/function base，Codex、`pi-gui`、OpenCode 仅 reference-only。
 3. 证明 Pi JSONL 是唯一 conversation truth；浏览不创建 `AgentSession`，mutation 仅由一个官方 Pi `AgentSession` owner 执行。
-4. 证明 first-writer lease、authenticated local IPC、TUI writer→Web observer 与 Web writer→stock TUI fail-closed 的不对称合同成立。
+4. 证明真实 `AppShell` 的全部 mutation 只经过一个 AILI Runtime Gateway/BFF，Web lease 只有一个 mutation owner，旧直连 mutation 路由只能拒绝或转发，且生产包不再注册已废弃的 TUI projection/`session_start` admission。
 5. 证明 snapshot/event/mutation/disposition contracts 在 gap、stale、duplicate、collision、restart、slow-client 情况下不会误写、重放或伪成功。
 6. 证明 loopback 默认安全，non-loopback 缺 password/Host-Origin/allowed-root 任一项均在 listen 前失败；所有 mode 都受同一路径边界。
 7. 证明 Pi Web baseline workbench、AILI Timeline、Agent/MCP projection、media、responsive/accessibility 行为成立。
@@ -64,7 +64,7 @@ Exact filenames may be adjusted to the imported Pi Web source layout, but `progr
 | PKG-01 | 单 Package、单 Extension、Web 不 eager 启动/入 context | 2.2–2.5, 13.5 | package assertions、extension-load、no-listener process fixture | install/load 0 Web process；one extension；assets 仅按需 | PLANNED-A |
 | PKG-02 | foreground `pi-web`、Pi-owned `/web`、无 daemon | 2.4–2.5, 13.5 | signal/exit/repeated command/parent death tests | exactly one child；clean shutdown；无 orphan | PLANNED-A + GATED-B real process |
 | PKG-03 | readiness failure、port collision、stale address、startup failure | 2.4–2.5, 13.5 | disposable ports/processes | 不报告 false ready；stale state 被清理 | PLANNED-A + GATED-B |
-| PKG-04 | exact Pi 0.84.1 runtime compatibility，peer wildcard 仅 host exception | 2.2, 2.3 | package/lock/`npm ls`/runtime mismatch fixture | exact dev/resolved Pi；mismatch before mutation | PLANNED-A |
+| PKG-04 | exact Pi 0.84.4 runtime compatibility，peer wildcard 仅 host exception | 2.2, 2.3 | package/lock/`npm ls`/runtime mismatch fixture | exact dev/resolved Pi；mismatch before mutation | PLANNED-A |
 | SRC-01 | Pi Web sole base；四扩展 exact source；reference-only exclusions | 1.1, 2.1, 7.1, 8.1, 9.1, 10.1 | source lock/inventory/negative scans | URL/version/revision/archive/license/symbol mapping | PLANNED-A；source import GATED-B |
 | SRC-02 | imported behavior inventory gate | 2.1a, 7.5, 8.4, 9.4, 10.4, 13.6 | source command/symbol matrix | retained/safely modified/excluded disposition before adaptation | PLANNED-A after authorized import |
 
@@ -73,13 +73,13 @@ Exact filenames may be adjusted to the imported Pi Web source layout, but `progr
 | ID | Requirements / risks | Tasks | Checks | Expected evidence | Status |
 |---|---|---|---|---|---|
 | SES-01 | Pi JSONL sole truth；browse no AgentSession；one official mutation runtime | 3.2–3.3 | SessionManager fixtures、creation counters、real JSONL | browse count=0；writer count≤1；JSONL authoritative | PLANNED-A |
-| SES-02 | first-acquired writer exactly one | 4.1–4.2 | concurrency property/multi-process fixture | one atomic winner；loser 0 mutation | PLANNED-A + GATED-B real process |
-| SES-03 | release/grace/liveness/PID reuse/interruption/no steal | 4.1, 4.3 | fake clocks/process identity + crash fixtures | live owner never stolen；dead active turn interrupted before transfer | PLANNED-A + GATED-B |
-| SES-04 | TUI writer→authenticated Web observer | 3.2, 4.4, 13.3 | IPC auth/spoof/read-only matrix | valid peer receives projection；mutation denied；spoof 0 data | PLANNED-A + GATED-B |
-| SES-05 | Web writer→stock TUI fail closed at `session_start` | 4.4, 13.3 | extension startup/real Pi fixture | graceful shutdown/block before user mutation；visible owner reason | PLANNED-A + GATED-B |
+| SES-02 | one Web mutation owner | 3.2, 4.1–4.2, 6.5 | AppShell call graph、concurrent browser mutation fixture | one Gateway/lease generation；no direct mutable owner | PLANNED-A + GATED-B real process |
+| SES-03 | release/grace/liveness/PID reuse/interruption/no steal | 4.1, 4.3 | fake clocks/process identity + crash fixtures | live Web owner never stolen；dead active turn interrupted before transfer | PLANNED-A + GATED-B |
+| SES-04 | legacy mutation routes sealed | 3.2, 4.2, 6.5 | route-owner/static dependency matrix | each retained route rejects or translates to Gateway before effects | PLANNED-A |
+| SES-05 | retired TUI projection/admission absent | 4.4, 13.3 | Extension registration/call-graph negative assertions | no projection endpoint；no `session_start` Web lease gate；no stock-TUI control claim | PLANNED-A + GATED-B |
 | API-01 | snapshot/event version/epoch/sequence/cursor/gap/reset/stale | 3.1, 3.4 | contract/event state-machine tests | snapshot first；gap reset；old state ignored | PLANNED-A |
 | API-02 | bounded replay/backpressure/heartbeat/reconnect | 3.4 | slow-client, visibility, disconnect fixtures | no unbounded queue；reset-required when lagged | PLANNED-A |
-| API-03 | browser/TUI origin-specific gates | 3.2, 4.2, 5.2 | origin×command matrix | Browser Host/Origin；TUI private identity；all common gates | PLANNED-A |
+| API-03 | browser origin and route-owner gates | 3.2, 4.2, 5.2, 6.5 | origin×command×route matrix | Browser Host/Origin；one Gateway owner；legacy path cannot bypass | PLANNED-A |
 | API-04 | general idempotency/disposition | 3.5 | duplicate/collision/in-flight/expiry/restart matrix | one execution；collision deny；unknown destructive state no blind replay | PLANNED-A |
 
 ### 3.3 Web access security 与 filesystem boundary
@@ -97,7 +97,7 @@ Exact filenames may be adjusted to the imported Pi Web source layout, but `progr
 
 | ID | Requirements / risks | Tasks | Checks | Expected evidence | Status |
 |---|---|---|---|---|---|
-| WEB-01 | locked Pi Web baseline features | 6.1, 13.2 | component/API + browser baseline flows | session/project/resume/branch/fork/model/files/Git/PWA behavior | PLANNED-A + GATED-B browser |
+| WEB-01 | active locked Pi Web 0.8.11 baseline features through one mutation owner（0.8.9 historical-only） | 6.1, 6.5, 13.2 | component/API + static call graph + browser baseline flows | session/project/resume/branch/fork/model/files/Git/PWA behavior；all mutations terminate at Gateway | PLANNED-A + GATED-B browser |
 | WEB-02 | AILI Timeline、sidebars、runtime bar、Queue vs Steer | 6.2 | component + responsive browser | controls semantic distinct；material status accessible | PLANNED-A + GATED-B |
 | WEB-03 | Agent/MCP truthful projection、不 connect lazy MCP、不 widen authority | 6.3 | projection/empty/error/permission fixtures | inspect start count=0；no raw config/secret | PLANNED-A |
 | WEB-04 | Web media；不改变 WSL clipboard owner | 6.4 | bytes/bounds/model-capability + browser paste/drop/picker | invalid 0 attach；official Pi image content | PLANNED-A + GATED-B browser；WSL2 only if separately approved |
@@ -155,8 +155,8 @@ Browser operation requires separate approval. Initial supported execution target
 Minimum flows:
 
 1. Load workbench; browse JSONL without AgentSession activation.
-2. Start one Web-owned session; verify writer badge and stock-TUI conflict state.
-3. Attach Web to a TUI-owned fixture through authenticated private IPC; controls remain read-only.
+2. Start one Web-owned session; verify its Gateway writer state and that all production controls use the same mutation owner.
+3. Exercise retained legacy mutation URLs and verify they reject or translate to the Gateway before side effects; verify no TUI projection/admission surface is advertised.
 4. Disconnect/reconnect/gap/reset/slow-client and stale-run reconciliation.
 5. Session group/resume/rename/export/safe delete; Branch versus Fork.
 6. Model/provider/thinking/context status and Queue Next versus Steer.
@@ -235,8 +235,8 @@ The plan supports a BUILD/first-release completion claim only when:
 
 1. All eleven specs remain strict-valid and task traceability is current.
 2. All four absorbed capabilities pass the three-layer convergence matrix.
-3. Exactly one writer is observed in automated and approved real-process evidence.
-4. Both asymmetric ownership directions match the accepted contract.
+3. Exactly one Web mutation owner is observed in automated and approved real-process evidence.
+4. The AppShell/route call graph contains no direct mutation bypass and the retired stock-TUI projection/admission contract is absent.
 5. Security/path/secret/idempotency negative cases have zero unauthorized side effects.
 6. Analytics/Stamp crash, corruption, concurrency, cleanup, and migration cases are resolved.
 7. All fourteen component categories pass semantic, accessibility, privacy, reduced-motion, and selected performance checks.
@@ -250,7 +250,7 @@ The plan supports a BUILD/first-release completion claim only when:
 - Exact animation performance on the selected candidate browser/environment.
 - AIcss redistribution rights; fallback remains all fourteen independent AILI implementations.
 - Exact imported-file and retained TUI command inventory until authorized source import and task 2.1a disposition.
-- Real stock-Pi `session_start` shutdown/block and authenticated projection behavior until the approved process probe.
+- Real Web-process ownership and the absence of retired stock-Pi `session_start` admission/private projection behavior until the approved process probe.
 - Exact candidate package size, startup latency, and clean packed-install behavior.
 
 These are planned verification targets, not accepted current facts.

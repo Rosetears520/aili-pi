@@ -1,8 +1,8 @@
-// Field selection for persistent-agent dispatch surfaces (sub/formal_task and
-// hub), ported from the TUI's task-hub-renderer identity rows so the web shows
-// the same "name · selector · model · thinking · status" information.
+// Field selection for the persistent-agent dispatch surface (sub),
+// ported from the TUI's sub-renderer identity rows so the web shows the same
+// "name · selector · model · thinking · status" information.
 
-export const AGENT_DISPATCH_TOOL_NAMES = new Set(["sub", "task", "formal_task"]);
+export const AGENT_DISPATCH_TOOL_NAMES = new Set(["sub"]);
 
 type AnyRecord = Record<string, unknown>;
 
@@ -69,7 +69,12 @@ function resultItemIdentity(item: unknown): AgentDispatchIdentity | null {
     const line = [agent, job, turn].filter(Boolean).join(" / ");
     if (line) rows.push(["lifecycle", line]);
   }
-  for (const [key, label] of [["agentId", "agent"], ["jobId", "job"], ["turnId", "turn"], ["outputRef", "output"], ["historyRef", "history"], ["parentModel", "parent model"], ["parentThinking", "parent thinking"], ["effectiveModeReason", "mode"]] as const) {
+  const activity = record(rec.activity);
+  if (activity) rows.push(["activity", [str(activity.state), str(activity.since)].filter(Boolean).join(" · ")]);
+  if (typeof rec.pendingInteractions === "number") rows.push(["interactions", String(rec.pendingInteractions)]);
+  const surface = record(rec.surface);
+  if (surface) rows.push(["surface", [str(surface.workspace), str(surface.tab), str(surface.pane)].filter(Boolean).join(" / ")]);
+  for (const [key, label] of [["agentId", "agent"], ["jobId", "job"], ["turnId", "turn"], ["backend", "backend"], ["driver", "driver"], ["runId", "run"], ["controlMode", "control mode"], ["outputRef", "output"], ["historyRef", "history"], ["parentModel", "parent model"], ["parentThinking", "parent thinking"], ["effectiveModeReason", "mode"]] as const) {
     const value = str(rec[key]);
     if (value) rows.push([label, value]);
   }
@@ -95,15 +100,14 @@ export function agentDispatchResultIdentities(details: unknown): AgentDispatchId
 export function agentDispatchCallIdentity(input: unknown): AgentDispatchIdentity | null {
   const rec = record(input);
   if (!rec) return null;
-  const items = Array.isArray(rec.tasks) ? rec.tasks : [rec];
-  const first = record(items[0]);
-  if (!first) return null;
+  const taskId = str(rec.task_id);
+  const description = str(rec.description) ?? str(rec.prompt);
   return {
-    name: str(first.name) ?? str(first.agent) ?? "agent",
-    selector: str(first.agent) ?? "general",
-    model: str(first.model) ?? "",
-    thinking: str(first.thinking) ?? "",
-    status: "running",
+    name: taskId ? `continue ${taskId}` : description ?? "agent",
+    selector: str(rec.subagent_type) ?? "general",
+    model: str(rec.model) ?? "",
+    thinking: str(rec.thinking) ?? "",
+    status: rec.background === true ? "running · background" : "running",
     rows: [],
   };
 }
@@ -137,28 +141,4 @@ export function agentLiveProgress(details: unknown): string | null {
   }
   const identity = resultItemIdentity(rec);
   return identity ? agentDispatchRow(identity) : null;
-}
-
-export function hubCallSummary(input: unknown): string | null {
-  const rec = record(input);
-  if (!rec) return null;
-  const action = str(rec.action);
-  if (!action) return null;
-  const target = str(rec.agentId) ?? str(rec.id) ?? str(rec.selector);
-  return [action, target].filter(Boolean).join(" · ");
-}
-
-export function hubResultRows(details: unknown): string[] {
-  const rec = record(details);
-  if (!rec) return [];
-  const rows: string[] = [];
-  const identity = resultItemIdentity(rec);
-  if (identity) rows.push(agentDispatchRow(identity));
-  for (const [key, value] of Object.entries(rec)) {
-    if (Array.isArray(value)) rows.push(`${key}: ${value.length}`);
-    else if (typeof value === "string" && key !== "output" && key !== "content" && value.length <= 160) {
-      rows.push(`${key}: ${value}`);
-    }
-  }
-  return rows.slice(0, 12);
 }

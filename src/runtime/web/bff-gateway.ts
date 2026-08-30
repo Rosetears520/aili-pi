@@ -1,4 +1,4 @@
-import { validateMutationEnvelope, type MutationEnvelopeV1, type RuntimeSnapshotV1 } from "./contracts.js";
+import { validateMutationEnvelope, type JsonValue, type MutationEnvelopeV1, type RuntimeSnapshotV1 } from "./contracts.js";
 import type { EventReplayResult, RuntimeSubscription, SnapshotFirstReplay } from "./event-hub.js";
 import type { MutationAdmissionContext, MutationExecution, RuntimeHost } from "./runtime-host.js";
 import { WebAccessLifecycle, type WebRequestIdentity } from "./access-policy.js";
@@ -159,7 +159,7 @@ export class PrivateWebBff<T extends OfficialAgentSessionLike = OfficialAgentSes
     request: WebMutationRequestIdentity,
     envelope: MutationEnvelopeV1,
     execute: MutationExecution<T>,
-  ): Promise<GatewayResponse<{ readonly disposition: string; readonly reason: string; readonly sequence?: number } | { readonly error: string }>> {
+  ): Promise<GatewayResponse<{ readonly disposition: string; readonly reason: string; readonly sequence?: number; readonly result?: JsonValue } | { readonly error: string }>> {
     const access = this.lifecycle.authorizeRequest({
       host: request.host,
       origin: request.origin,
@@ -193,6 +193,7 @@ export class PrivateWebBff<T extends OfficialAgentSessionLike = OfficialAgentSes
         disposition: result.disposition.disposition,
         reason: result.disposition.reason,
         ...(result.disposition.sequence === undefined ? {} : { sequence: result.disposition.sequence }),
+        ...(result.result === undefined ? {} : { result: result.result }),
       },
       headers: PRIVATE_HEADERS,
     };

@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import { homedir } from "os";
 import path from "path";
-import { toSlashPath } from "./paths";
+import { toSlashPath } from "./paths.js";
 
 // In-memory roots that should be browsable in addition to roots derived from
 // persisted sessions. Stored on globalThis so Next.js hot-reload keeps them.

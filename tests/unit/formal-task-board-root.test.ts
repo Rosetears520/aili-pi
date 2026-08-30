@@ -6,7 +6,8 @@ import {
   initializeFormalTaskBoardRoot,
   resolveFormalTaskBoardRoot,
   type FormalTaskBoardIdentity,
-} from "../../src/runtime/formal-task-board-root.js";
+
+  formatFormalRootBlocker,} from "../../src/runtime/formal-task-board-root.js";
 
 const scratchRoots: string[] = [];
 
@@ -533,5 +534,33 @@ describe("formal OpenSpec task-board root", () => {
     expect(diagnosticCodes(result)).not.toContain("ROLLBACK_FAILED");
     expect(await exists(exact.tasksPath)).toBe(false);
     expect(await exists(exact.progressPath)).toBe(false);
+  });
+});
+
+
+describe("formatFormalRootBlocker", () => {
+  it("renders structured, model-actionable diagnostics with paths and no model suggestions", () => {
+    const text = formatFormalRootBlocker("local-career-agent-cli", {
+      status: "blocked",
+      repositoryRoot: "/repo",
+      rootPath: "/repo/openspec/changes/local-career-agent-cli",
+      tasksPath: "/repo/openspec/changes/local-career-agent-cli/formal-task-board.md",
+      progressPath: "/repo/openspec/changes/local-career-agent-cli/progress.txt",
+      diagnostics: [
+        {
+          code: "EXISTING_PAIR_INVALID",
+          message: "The existing owned pair failed formal v1 validation and was not changed.",
+          relatedCodes: ["BOARD_HEADER_MISSING", "PROGRESS_EVENT_HEADER_MALFORMED"],
+        },
+      ],
+    } as never);
+    expect(text).toContain("failed exact v1 root validation");
+    expect(text).toContain("pair files: /repo/openspec/changes/local-career-agent-cli/formal-task-board.md");
+    expect(text).toContain("- EXISTING_PAIR_INVALID:");
+    expect(text).toContain("violations: BOARD_HEADER_MISSING, PROGRESS_EVENT_HEADER_MALFORMED");
+    expect(text).toContain("do not inspect the runtime source");
+    // 结构化反馈里绝不携带模型/思考等级建议，避免误导调度方。
+    expect(text.toLowerCase()).not.toContain("model");
+    expect(text.toLowerCase()).not.toContain("thinking");
   });
 });

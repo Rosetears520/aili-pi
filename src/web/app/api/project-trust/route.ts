@@ -3,9 +3,8 @@ import { resolve } from "path";
 import { NextResponse } from "next/server";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { getAllowedFileRoots, isExistingFilePathAllowed } from "@/lib/file-access";
-import { invalidateModelsCache } from "@/lib/models-cache";
-import { getProjectTrustStatus, trustProject } from "@/lib/project-trust";
-import { destroyRpcSessionsForCwd, hasBusyRpcSessionForCwd } from "@/lib/rpc-manager";
+import { getProjectTrustStatus } from "@/lib/project-trust";
+import { translateConfigurationRoute } from "@/server/configuration-route-facade";
 
 export const dynamic = "force-dynamic";
 
@@ -38,29 +37,16 @@ export async function GET(req: Request) {
   return NextResponse.json(getProjectTrustStatus(result.cwd, getAgentDir()));
 }
 
+// Retained URL: translation only. Validation is repeated inside the Runtime-owned service.
 export async function POST(req: Request) {
-  try {
-    const body = await req.json() as { cwd?: unknown };
-    const result = await validateCwd(body.cwd);
-    if ("response" in result) return result.response;
-
-    const agentDir = getAgentDir();
-    const current = getProjectTrustStatus(result.cwd, agentDir);
-    if (!current.requiresTrust) {
-      return NextResponse.json({ error: "This project has no resources that require trust" }, { status: 409 });
-    }
-    if (hasBusyRpcSessionForCwd(result.cwd)) {
-      return NextResponse.json({ error: "Wait for the active session to finish before trusting this project" }, { status: 409 });
-    }
-
-    const status = trustProject(result.cwd, agentDir);
-    invalidateModelsCache();
-    await destroyRpcSessionsForCwd(result.cwd);
-    return NextResponse.json(status);
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : String(error) },
-      { status: 500 },
-    );
-  }
+  return translateConfigurationRoute(
+    req,
+    "project_trust.configure",
+    "trust",
+    undefined,
+    (reason) => reason === "Access denied" ? 403
+      : reason === "Directory does not exist" ? 400
+        : reason.startsWith("This project has no resources") || reason.startsWith("Wait for the active session") ? 409
+          : 500,
+  );
 }

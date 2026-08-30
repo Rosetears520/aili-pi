@@ -2,12 +2,16 @@ import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { assertSharedPromotion, mapMemPalaceScope } from "../../src/runtime/mempalace.js";
+import { MEMPALACE_PATH, MEMPALACE_VERSION, assertSharedPromotion, mapMemPalaceScope } from "../../src/runtime/mempalace.js";
 
 const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
 
 describe("MemPalace deterministic mapping", () => {
+  it("retains only the accepted provider contract version", () => {
+    expect(MEMPALACE_VERSION).toBe("3.7.0");
+  });
+
   it("maps one trusted canonical project and stable Agent deterministically", async () => {
     const root = await mkdtemp(join(tmpdir(), "aili-palace-map-"));
     roots.push(root);
@@ -15,7 +19,7 @@ describe("MemPalace deterministic mapping", () => {
     const first = await mapMemPalaceScope(input, "aili.code-scout");
     const second = await mapMemPalaceScope({ ...input, root: await realpath(root) }, "aili.code-scout");
     expect(first).toEqual(second);
-    expect(first.palace).toBe("/home/rosetears/code/ai/.mempalace");
+    expect(first.palace).toBe(MEMPALACE_PATH);
     expect(first.shared).toBe("shared");
     expect(first.wing).not.toBe(first.diary);
   });

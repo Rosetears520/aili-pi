@@ -61,6 +61,10 @@ export function applyUserConfig(adapter: AdapterConfig, user: UserAcpConfig): Ad
   return {
     ...adapter,
     ...user,
+    // An embedding factory may permanently retire delegation. User/project
+    // acp.json can disable a default, never re-enable an explicit factory
+    // false. Standalone/default factory behavior remains unchanged.
+    delegate: adapter.delegate === false ? false : (user.delegate ?? adapter.delegate),
     // coreOverrides / protectedTools / preserveRecentMessages are not overridable
     // from acp.json (keep them from the factory config).
     coreOverrides: adapter.coreOverrides,

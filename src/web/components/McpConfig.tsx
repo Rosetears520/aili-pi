@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/hooks/useI18n";
+import { getGatewayClient } from "@/gateway-client";
 
 // MCP management panel (webui-mcp-management). Config-layer truth only in v1:
 // per-server identity + disabled state from the adapter's merged config, and
@@ -66,15 +67,14 @@ export function McpConfig({ cwd, onClose }: { cwd: string; onClose: () => void }
     setBusyNames((prev) => new Set(prev).add(server.name));
     setError(null);
     try {
-      const res = await fetch("/api/mcp", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cwd, name: server.name, disabled: !server.disabled }),
-      });
-      const data = (await res.json()) as { servers?: McpPanelServer[]; runtime?: McpRuntimeSnapshot | null; error?: string };
-      if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
-      setServers(data.servers ?? []);
-      setRuntime(data.runtime ?? null);
+      const mutation = await getGatewayClient().configure(
+        "mcp.configure",
+        "set_disabled",
+        { cwd, name: server.name, disabled: !server.disabled },
+      );
+      if (mutation.disposition !== "completed") throw new Error(mutation.reason);
+      const data = mutation.result as { servers?: McpPanelServer[] } | undefined;
+      setServers(data?.servers ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

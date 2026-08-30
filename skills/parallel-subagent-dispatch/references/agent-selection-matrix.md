@@ -4,7 +4,7 @@
 - Role namespace: `canonical`
 - Selector mapping: `adapter-owned`
 
-This is the compatibility selection guide for canonical Agent role selection. The shared package/result/Board semantics are owned by `core/protocols/`; canonical role definitions are owned by `core/roles/roles.json`. This guide applies those sources to selection without becoming a runtime registry. Harness selectors, provider or model names, tool arguments, runtime paths, and complete role instructions belong to adapters, generated projections, or the canonical role source, not this file.
+This is the compatibility selection guide for canonical Agent role selection. The shared package and result semantics are owned by `core/protocols/`; canonical role definitions are owned by `core/roles/roles.json`. Optional `formal-task-board.md` notes are unparsed and own no semantics. This guide applies those sources to selection without becoming a runtime registry. Harness selectors, provider or model names, tool arguments, runtime paths, and complete role instructions belong to adapters, generated projections, or the canonical role source, not this file.
 
 ## Selection matrix
 

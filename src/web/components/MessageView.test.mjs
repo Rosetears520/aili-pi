@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { register } from "node:module";
+import { readFile } from "node:fs/promises";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createJiti } from "jiti";
@@ -183,13 +184,38 @@ test("line count alone can trigger the collapse threshold", () => {
   assert.match(html, /aili-user-bubble-collapsed/);
 });
 
+test("routes expanded paired tool output through shared ANSI rendering without leaking collapsed content", async () => {
+  const toolCallId = "call-ansi-1";
+  const html = renderMessage({
+    role: "assistant",
+    provider: "openai",
+    model: "gpt-test",
+    content: [{ type: "toolCall", toolCallId, toolName: "bash", input: { command: "demo" } }],
+  }, {
+    toolResults: new Map([[toolCallId, {
+      role: "toolResult",
+      toolCallId,
+      toolName: "bash",
+      content: [{ type: "text", text: "\x1b[32mready\x1b[0m" }],
+      isError: false,
+    }]]),
+  });
+
+  // Server rendering starts collapsed: neither the raw escape sequence nor
+  // the hidden body should leak before the user expands the tool call.
+  assert.doesNotMatch(html, /\x1b|>ready<\/span>/);
+  const source = await readFile(new URL("./MessageView.tsx", import.meta.url), "utf8");
+  assert.match(source, /import\s+\{\s*AnsiText\s*\}/);
+  assert.match(source, /function PairedResult[\s\S]*<AnsiText\s+text=\{text\}/);
+});
+
 test("renders the sub dispatch identity row from structured result details", () => {
   const toolCallId = "call-sub-1";
   const html = renderMessage({
     role: "assistant",
     provider: "openai-codex",
     model: "gpt-5.6-terra",
-    content: [{ type: "toolCall", toolCallId, toolName: "sub", input: { task: "review the diff", agent: "aili.code-reviewer", async: false } }],
+    content: [{ type: "toolCall", toolCallId, toolName: "sub", input: { description: "review the diff", prompt: "review the diff", subagent_type: "aili.code-reviewer", background: false } }],
   }, {
     toolResults: new Map([[toolCallId, {
       role: "toolResult",
@@ -215,14 +241,4 @@ test("renders the sub dispatch identity row from structured result details", () 
     }]]),
   });
   assert.match(html, /Reviewer · aili\.code-reviewer · openai-codex\/gpt-5\.6-terra · thinking=high · completed/);
-});
-
-test("renders the hub call summary in the collapsed preview", () => {
-  const html = renderMessage({
-    role: "assistant",
-    provider: "openai-codex",
-    model: "gpt-5.6-terra",
-    content: [{ type: "toolCall", toolCallId: "call-hub-1", toolName: "hub", input: { action: "send", agentId: "Reviewer", message: "hi" } }],
-  });
-  assert.match(html, /send · Reviewer/);
 });

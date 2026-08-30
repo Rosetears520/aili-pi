@@ -1,14 +1,14 @@
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { scanDeliveryIdsFromParentEntries } from "../../src/runtime/persistent-agents/output-delivery.js";
+import { readAgentHistory, readAgentOutput, scanDeliveryIdsFromParentEntries } from "../../src/runtime/persistent-agents/output-delivery.js";
 import {
   PersistentAgentRuntime,
   registerPersistentAgentTools,
   type PersistentRuntimeExecutorInput,
 } from "../../src/runtime/persistent-agents/runtime.js";
-import { TASK_TOOL_SCHEMA } from "../../src/runtime/persistent-agents/task-schema.js";
+import { SUB_TOOL_SCHEMA } from "../../src/runtime/persistent-agents/sub-schema.js";
 import { loadAgentCatalog } from "../../src/runtime/agent-catalog.js";
 import type { ResolvedModelChoice } from "../../src/runtime/persistent-agents/model-selection.js";
 
@@ -48,7 +48,7 @@ afterEach(async () => {
 });
 
 describe("internal persistent Agent runtime wiring", () => {
-  it("connects task, official child JSONL, output/history, async delivery, stable resume IDs, and no provider replay", async () => {
+  it("connects sub, official child JSONL, output/history reads, background delivery, stable resume IDs, and no provider replay", async () => {
     const parentFile = join(scratch, "parent.jsonl");
     await writeFile(parentFile, "fixture parent\n");
     const parentEntries: unknown[] = [];
@@ -73,26 +73,23 @@ describe("internal persistent Agent runtime wiring", () => {
           return "sent";
         },
       },
-      revive: async () => ({
-        steer() {},
-        sendUserMessage() {},
-        dispose() {},
-      }),
     });
 
     const runtime = await create();
-    const sync = await runtime.task.submit({ task: "sync work", name: "Scout", async: false });
-    expect(sync.results[0]).toMatchObject({ status: "completed", agentId: "Scout", outputRef: "agent://Scout", model: { provider: "fixture", model: "offline", layer: "parent-fallback", thinking: "high" } });
+    const sync = await runtime.sub.submit({ description: "Scout", prompt: "sync work", subagent_type: "general" });
+    expect(sync.results[0]).toMatchObject({ status: "completed", agentId: "Scout", taskId: "Scout", outputRef: "agent://Scout", model: { provider: "fixture", model: "offline", layer: "parent-fallback", thinking: "high" } });
     const scout = runtime.journal.getState().agents.Scout;
     expect(scout.sessionPath).toBeTruthy();
     expect(await readFile(scout.sessionPath!, "utf8")).toContain("execution-1:sync work");
-    expect(await runtime.hub.execute({ action: "output", agentId: "Scout" })).toMatchObject({ content: "execution-1:sync work" });
-    expect(await runtime.hub.execute({ action: "history", agentId: "Scout" })).toMatchObject({ content: expect.stringContaining("execution-1:sync work") });
+    expect(await readAgentOutput(runtime.layout, runtime.journal, "Scout")).toMatchObject({ content: "execution-1:sync work" });
+    expect((await readAgentHistory(runtime.layout, runtime.journal, "Scout")).content).toContain("execution-1:sync work");
     expect(parentEntries).toEqual([]);
 
-    const accepted = await runtime.task.submit({ task: "async work", name: "Worker" });
-    expect(accepted.results[0]).toMatchObject({ status: "accepted", agentId: "Worker", jobId: "job-2", model: { provider: "fixture", model: "offline", layer: "parent-fallback", thinking: "high" } });
-    await runtime.task.getSettlement("job-2");
+    // Async execution stays reachable through the trusted internal surface
+    // (the public sub schema hides background in this build).
+    const accepted = await runtime.sub.submitTrusted({ task: "async work", async: true });
+    expect(accepted.results[0]).toMatchObject({ status: "accepted", agentId: "general", taskId: "general", jobId: "job-2", model: { provider: "fixture", model: "offline", layer: "parent-fallback", thinking: "high" } });
+    await runtime.sub.getSettlement("job-2");
     expect(parentEntries).toHaveLength(1);
     expect(parentEntries[0]).toMatchObject({
       details: {
@@ -101,25 +98,48 @@ describe("internal persistent Agent runtime wiring", () => {
         effectiveModel: "fixture/offline",
         modelLayer: "parent-fallback",
         thinking: "high",
-        agentId: "Worker",
+        agentId: "general",
         jobId: "job-2",
         turnId: "turn-2",
       },
     });
-    expect(await runtime.hub.execute({ action: "jobs", jobId: "job-2" })).toMatchObject({
-      jobs: [{ display: { selector: "general", effectiveModel: "fixture/offline", modelLayer: "parent-fallback", thinking: "high", turnId: "turn-2" } }],
-    });
+    expect(runtime.journal.getState().jobs["job-2"]).toMatchObject({ state: "completed", agentId: "general" });
     expect(scanDeliveryIdsFromParentEntries(parentEntries)).toEqual(new Set(["delivery-job-2"]));
     await runtime.shutdown();
 
     const beforeResumeExecutions = executions;
     const resumed = await create();
     expect(executions).toBe(beforeResumeExecutions);
-    expect(resumed.journal.getState().agents).toMatchObject({ Scout: { state: "idle" }, Worker: { state: "idle" } });
-    const next = await resumed.task.submit({ task: "new identity", name: "Scout", async: false });
+    expect(resumed.journal.getState().agents).toMatchObject({ Scout: { state: "idle" }, general: { state: "idle" } });
+    const next = await resumed.sub.submit({ description: "Scout-2", prompt: "new identity", subagent_type: "general" });
     expect(next.results[0]).toMatchObject({ agentId: "Scout-2", jobId: "job-3" });
     expect(executions).toBe(beforeResumeExecutions + 1);
     await resumed.shutdown();
+  });
+
+  it("public sub depends on no project files: no openspec, no board, no configs", async () => {
+    // 完全空的项目目录——连 openspec/ 都不存在，也没有任何配置文件。
+    const project = join(scratch, "empty-project");
+    const sessionDir = join(scratch, "sessions");
+    await mkdir(project, { recursive: true });
+    await mkdir(sessionDir, { recursive: true });
+    const parentFile = join(sessionDir, "parent.jsonl");
+    await writeFile(parentFile, "fixture parent\n");
+    const runtime = await PersistentAgentRuntime.create({
+      parentSessionPath: parentFile,
+      parentId: "parent-empty",
+      cwd: project,
+      execute: async (input) => {
+        persistAssistant(input, "board-free result");
+        return { output: "board-free result" };
+      },
+      parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "sent" },
+    });
+    const response = await runtime.sub.submit({ description: "Scout", prompt: "work without any board", subagent_type: "general" });
+    expect(response.results[0]).toMatchObject({ status: "completed", taskId: "Scout", output: "board-free result" });
+    // 公开 sub 不在项目目录里产生或依赖任何文件（持久化都在父会话所属的 sidecar）。
+    expect(await readdir(project)).toEqual([]);
+    await runtime.shutdown();
   });
 
   it("retains a formal preflight error after registering a readable child history without executor work", async () => {
@@ -142,10 +162,9 @@ describe("internal persistent Agent runtime wiring", () => {
       preflight: async () => { throw new Error("injected formal preflight failure"); },
       execute: async () => { executions += 1; return { output: "unexpected" }; },
       parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "sent" },
-      revive: async () => ({ steer() {}, sendUserMessage() {}, dispose() {} }),
     });
     const audit = { packageId: "P-01", canonicalRole: "aili.implementer", scope: "fixture scope", forbiddenScope: "outside fixture", writeScope: { paths: [], resources: [] }, acceptanceBoundary: "error remains exact", expectedEvidence: "verification:preflight; artifact:result" };
-    const response = await runtime.task.submitTrusted({ task: "must not execute", agent: "aili.implementer", async: false, formalContext: { changeId }, continuationAudit: audit });
+    const response = await runtime.sub.submitTrusted({ task: "must not execute", agent: "aili.implementer", async: false, formalContext: { changeId }, continuationAudit: audit });
     expect(response.results[0]).toMatchObject({ status: "failed", error: "injected formal preflight failure", formalResultStatus: "malformed" });
     expect(executions).toBe(0);
     const agent = runtime.journal.getState().agents[response.results[0]!.agentId]!;
@@ -155,7 +174,7 @@ describe("internal persistent Agent runtime wiring", () => {
     await runtime.shutdown();
   });
 
-  it("registers only canonical internal task/formal_task/hub tools and the direct-user model command", async () => {
+  it("registers only the canonical internal sub tool and the direct-user commands", async () => {
     const parentFile = join(scratch, "parent.jsonl");
     await writeFile(parentFile, "fixture parent\n");
     const runtime = await PersistentAgentRuntime.create({
@@ -167,7 +186,6 @@ describe("internal persistent Agent runtime wiring", () => {
         return { output: "tool result" };
       },
       parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "sent" },
-      revive: async () => ({ steer() {}, sendUserMessage() {}, dispose() {} }),
     });
     const tools = new Map<string, any>();
     const commands = new Map<string, any>();
@@ -190,32 +208,34 @@ describe("internal persistent Agent runtime wiring", () => {
         return "fast updated";
       },
     });
-    expect([...tools.keys()]).toEqual(["sub", "formal_task", "hub"]);
+    expect([...tools.keys()]).toEqual(["sub", "hub"]);
+    expect([...tools.keys()]).not.toContain("formal_task");
     expect([...tools.keys()]).not.toContain("subagent");
     expect([...tools.keys()]).not.toContain("aili_task");
     expect(commands.has("aili-agent-model")).toBe(true);
     expect(commands.has("codex-fast")).toBe(true);
+    expect(commands.has("sub-cancel")).toBe(true);
 
     const taskTool = tools.get("sub");
-    expect(taskTool.description).toContain("Ordinary Pi remains benefit-based");
-    expect(taskTool.description).toContain("omitted agent retains general compatibility");
-    expect(taskTool.description).toContain("Formal package dispatch belongs to the formal_task tool");
-    expect(taskTool.description).toContain("async:false for prerequisites with an immediate join");
-    expect(taskTool.description).toContain("async:true only for independent work with a named join");
-    expect(taskTool.description).toContain("inspect output/history before dependents");
-    expect(taskTool.description).toContain("Workers never decide lifecycle phase or verdict");
-    const formalTool = tools.get("formal_task");
-    expect(formalTool.description).toContain("validated v1 formal-task-board.md/progress.txt pair");
-    expect(formalTool.description).toContain("only validates the pair and constructs the ordinary task request");
-    expect(formalTool.description).toContain("never falls back to ordinary dispatch");
-    expect(formalTool.description).toContain("ROSE owns phase, acceptance, integration, and verdict");
-    expect(taskTool.promptSnippet).toContain("benefit-based direct work");
-    expect(taskTool.promptSnippet).toContain("omitted agent remains general-compatible");
-    expect(taskTool.promptSnippet).toContain("Dispatch formal packages through formal_task");
+    expect(taskTool.description).toContain("Delegate one bounded turn to a persistent AILI child Agent");
+    expect(taskTool.description).toContain("task_id to continue the same child session");
+    expect(taskTool.description).toContain("issue several sub calls in the same assistant message");
+    expect(taskTool.description).toContain("Calls run foreground by default");
+    expect(taskTool.description).toContain("background:true");
+    expect(JSON.stringify(taskTool.parameters)).toContain("background");
+    expect(taskTool.description).toContain("fails this call instead of falling back");
+    expect(taskTool.description).toContain("free-form progress.txt");
+    expect(taskTool.description).toContain("formal-task-board.md is optional");
+    expect(taskTool.promptGuidelines[0]).toContain("SUB_BUSY");
+    expect(taskTool.promptSnippet).toContain("foreground by default");
+    expect(taskTool.promptSnippet).toContain("hub coordinates");
     expect(taskTool.promptGuidelines).toEqual([
+      expect.stringMatching(/^One call = one turn:/),
+      expect.stringMatching(/^Parallel foreground calls/),
+      expect.stringMatching(/^Per-turn model\/thinking:/),
+      expect.stringMatching(/^Delegated children are observable surfaces:/),
       expect.stringMatching(/^Ordinary routing:/),
-      expect.stringMatching(/^Formal boundary:/),
-      expect.stringMatching(/^Prerequisite execution:/),
+      expect.stringMatching(/^Progress:/),
       expect.stringMatching(/^Worker boundary:/),
       expect.stringContaining("Specialized Agent catalog (generated routing cues"),
     ]);
@@ -223,19 +243,28 @@ describe("internal persistent Agent runtime wiring", () => {
     expect(taskTool.promptGuidelines.at(-1)).toContain("aili.solution-architect — Repository-grounded solution-design Worker");
     expect(taskTool.promptGuidelines.at(-1)).toContain("phases(advisory)=IDEATE/DEFINE/BUILD");
     expect(taskTool.promptGuidelines.at(-1)).not.toContain("toolPolicy");
-    expect(taskTool.parameters).toBe(TASK_TOOL_SCHEMA);
+    expect(taskTool.parameters).toBe(SUB_TOOL_SCHEMA);
     expect(taskTool.renderCall).toBeTypeOf("function");
     expect(taskTool.renderResult).toBeTypeOf("function");
-    expect(tools.get("hub").renderCall).toBeTypeOf("function");
-    expect(tools.get("hub").renderResult).toBeTypeOf("function");
 
     const context = { ui: { notify() {} } } as never;
-    const taskResult = await taskTool.execute("call-1", { task: "internal", async: false }, new AbortController().signal, undefined, context);
+    const taskResult = await taskTool.execute("call-1", { description: "internal", prompt: "internal", subagent_type: "general" }, new AbortController().signal, undefined, context);
     expect(JSON.parse(taskResult.content[0].text)).toMatchObject({ results: [expect.objectContaining({ status: "completed" })] });
+    const background = await taskTool.execute("call-bg", { description: "background", prompt: "background", subagent_type: "general", background: true }, new AbortController().signal, undefined, context);
+    const accepted = JSON.parse(background.content[0].text);
+    expect(accepted.results[0]).toMatchObject({ status: "accepted", taskId: expect.any(String) });
+    const hub = tools.get("hub");
+    const jobs = await hub.execute("hub-jobs", { action: "jobs" }, new AbortController().signal, undefined, context);
+    expect(JSON.parse(jobs.content[0].text).jobs).toBeDefined();
+    const waited = await hub.execute("hub-wait", { action: "wait", task_id: accepted.results[0].taskId, timeout_ms: 5_000 }, new AbortController().signal, undefined, context);
+    expect(JSON.parse(waited.content[0].text).state).toBe("completed");
+    const output = await hub.execute("hub-output", { action: "output", task_id: accepted.results[0].taskId }, new AbortController().signal, undefined, context);
+    expect(JSON.parse(output.content[0].text).content).toContain("tool result");
     await commands.get("aili-agent-model").handler("global general provider/model", context);
     expect(directCalls).toEqual(["global general provider/model"]);
     await commands.get("codex-fast").handler("true", context);
     expect(fastCalls).toEqual(["true"]);
+    await commands.get("sub-cancel").handler("Scout", context);
     await runtime.shutdown();
   });
 
@@ -266,9 +295,8 @@ describe("internal persistent Agent runtime wiring", () => {
         return { output: "new output" };
       },
       parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "unavailable" },
-      revive: async () => ({ steer() {}, sendUserMessage() {}, dispose() {} }),
     });
-    await runtime.task.submit({ task: "new runtime only", async: false });
+    await runtime.sub.submit({ description: "new runtime only", prompt: "new runtime only", subagent_type: "general" });
     await runtime.shutdown();
 
     expect(digest(await readFile(legacyRun))).toBe(before.legacy);

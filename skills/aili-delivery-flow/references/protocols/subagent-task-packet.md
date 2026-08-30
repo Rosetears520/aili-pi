@@ -21,7 +21,7 @@ Stop when:
 ## Rules
 
 - `Package ID` names one bounded work-package identity.
-- `Role ID` is the selected canonical role. Formal Agent-owned work uses the exact Board owner; `general` is invalid.
+- `Role ID` is the selected canonical role. Formal Agent-owned work uses the exact owner derived from the accepted contract; optional Markdown notes do not assign ownership, and `general` is invalid.
 - `Assignment` names one bounded outcome.
 - `Scope` names the files, repository, cwd, or evidence sources.
 - `Forbidden scope` names explicit exclusions and operations the package must not perform.

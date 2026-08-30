@@ -81,6 +81,32 @@ export type FormalTaskBoardRootResolvedResult =
 
 export type FormalTaskBoardRootResolution = FormalTaskBoardRootResolvedResult | FormalTaskBoardRootBlockedResult;
 
+/**
+ * Render a blocked root resolution as one structured, model-actionable block:
+ * every diagnostic with its concrete violation codes, the exact pair file
+ * paths, and the next action. Deliberately carries no model/thinking
+ * suggestions — dispatch metadata stays board-owned.
+ */
+export function formatFormalRootBlocker(changeId: string, resolution: FormalTaskBoardRootBlockedResult): string {
+  const lines: string[] = [`formal_task '${changeId}' failed exact v1 root validation.`];
+  if (resolution.rootPath) lines.push(`board root: ${resolution.rootPath}`);
+  const pairFiles = [resolution.tasksPath, resolution.progressPath].filter((value): value is string => Boolean(value));
+  if (pairFiles.length > 0) lines.push(`pair files: ${pairFiles.join(", ")}`);
+  lines.push("diagnostics:");
+  for (const entry of resolution.diagnostics.slice(0, 8)) {
+    lines.push(`- ${entry.code}: ${entry.message}`);
+    if (entry.path) lines.push(`  at: ${entry.path}`);
+    if (entry.relatedCodes && entry.relatedCodes.length > 0) {
+      lines.push(`  violations: ${entry.relatedCodes.slice(0, 12).join(", ")}`);
+    }
+  }
+  lines.push(
+    "next: this is a board-pair content problem, not a tool or runtime problem — do not inspect the runtime source.",
+    "Read the pair files above, fix the listed violations against the aili-task-board/v1 contract (protocol marker, board headers, package rows, progress events), then dispatch the same changeId and packageId again.",
+  );
+  return lines.join("\n");
+}
+
 export interface FormalTaskBoardRootOperationHooks {
   beforeCreate?: (path: string, ordinal: 1 | 2) => void | Promise<void>;
 }

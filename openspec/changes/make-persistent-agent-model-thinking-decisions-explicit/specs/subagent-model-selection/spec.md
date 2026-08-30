@@ -18,6 +18,25 @@ A request validated against the current turn's `explicit` or `delegated-choice` 
 - **WHEN** the resolved model does not support the requested thinking level
 - **THEN** resolution fails with the offending source and level named; the runtime does not silently downgrade or switch models
 
+#### Scenario: User names the model for current-turn subagents
+- **WHEN** the current user message explicitly directs the Parent to use model X for the subagents dispatched in that turn and X is available and compatible
+- **THEN** matching managed and Herdr dispatches receive turn-scoped `explicit` authority for X, apply it without another prompt, and audit the source as direct user turn
+
+#### Scenario: Tool arguments exceed the user instruction
+- **WHEN** a model-generated `sub` call requests model Y or a thinking level outside the exact values and target scope named by the user
+- **THEN** the extra request is unauthorized and fails explicitly; tool arguments alone do not broaden current-turn authority
+
+#### Scenario: Requested model is unavailable
+- **WHEN** the user names a model that does not resolve to one authenticated unambiguous catalog entry
+- **THEN** dispatch fails with the availability or ambiguity reason and does not silently inherit or switch models
+
+### Requirement: Backend selection does not change model authority
+Managed and Herdr execution SHALL consume the same resolved model/thinking decision and current-turn authority. Herdr surface, driver, process, pane, or resume behavior MUST NOT independently authorize, deny, replace, or downgrade the requested model or thinking level.
+
+#### Scenario: Equivalent managed and Herdr dispatch
+- **WHEN** two otherwise equivalent subagent dispatches carry the same valid current-turn model/thinking authority but select different execution backends
+- **THEN** both resolve the same effective model/thinking identity and differ only in backend/driver execution metadata
+
 ### Requirement: Thinking-only requests are first-class at every entry
 A thinking-only request (no model) SHALL follow the same decision path as a model request at the task boundary, `hub model request` (which SHALL accept a `thinking` field) and `hub send` (which SHALL accept turn-scoped `model`/`thinking` one-shot values applied to that continuation turn only, restoring the Agent's persistent configuration afterwards).
 

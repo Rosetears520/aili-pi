@@ -27,6 +27,15 @@
 - `ModelOverride` 保持 `model: string`（配置层语义不变）；部分值只在请求层（`TaskModelRequest`）流动。
 - 既有单测的层序断言（instance > project > user > one-shot）不回归；新增 direct-user-turn 用例。
 
-## D5. 明确不做
+## D5. 用户消息到 current-turn authority 的投影
 
-- 不改 `ModelConfigStore` 的配置 schema（role 覆盖仍需 model）；不引入 TurnSubagentPreference 持久结构（本轮 authority 机制已覆盖）；不做 FleetView UI。
+- Parent dispatch adapter 在处理当前用户消息时识别明确、值域封闭的 subagent 模型指令，例如“subagent 用 `gpt-5.6-luna`”或“这些 subagent 用 `thinking=high`”。该用户指令生成仅对当前 turn 有效的 `CurrentTurnModelAuthority { mode: "explicit" }`，`allowedModels`/`allowedThinking` 只包含用户点名值；未点名字段继续继承。
+- 授权还绑定当前用户消息和目标范围（本轮全部 subagent，或用户明确点名的 selector/package）。Parent 生成的后续 `sub` 调用只有在请求值和目标范围完全匹配时才能直接应用；模型自行增加、替换或扩大 model/thinking 仍按未授权请求拒绝。
+- Herdr 与 managed 后端共享同一 preflight 决策和审计。Herdr driver 只消费已经解析的 loadout，不自行授权、拒绝或降级模型。目标模型必须存在于当前已认证目录并支持请求的 thinking；否则严格失败，不回退。
+- 该 authority 在当前用户 turn 结束后销毁，不写入 Agent、role、project 或 user 持久配置；后续消息如需继续覆盖必须再次明确指定。
+
+**Alternative considered:** 把 `sub` 工具参数视为用户授权。拒绝，因为参数由模型生成，不能证明用户意图。**Alternative considered:** 将用户指定写入 role 配置。拒绝，因为用户要求的是当轮覆盖，不应污染后续任务。
+
+## D6. 明确不做
+
+- 不改 `ModelConfigStore` 的配置 schema（role 覆盖仍需 model）；不引入持久 TurnSubagentPreference；不做 FleetView UI；不让 Herdr 维护第二套 model/thinking 权限规则。

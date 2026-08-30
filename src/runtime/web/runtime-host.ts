@@ -44,8 +44,9 @@ export interface MutationAdmissionContext {
   readonly revalidate: () => Promise<true | string> | true | string;
 }
 
-export type MutationExecution<T extends object> = (session: T, envelope: MutationEnvelopeV1) => Promise<void> | void;
-export interface RuntimeMutationResult { readonly disposition: MutationDispositionV1; readonly event?: RuntimeEventV1; }
+export interface MutationExecutionResult { readonly activeTurnContinues?: boolean; readonly result?: JsonValue; }
+export type MutationExecution<T extends object> = (session: T, envelope: MutationEnvelopeV1) => Promise<void | MutationExecutionResult> | void | MutationExecutionResult;
+export interface RuntimeMutationResult { readonly disposition: MutationDispositionV1; readonly event?: RuntimeEventV1; readonly result?: JsonValue; }
 
 /** One isolated composition root for one private Pi session identity. */
 export class RuntimeHost<T extends OfficialAgentSessionLike = OfficialAgentSessionLike> {
@@ -54,10 +55,13 @@ export class RuntimeHost<T extends OfficialAgentSessionLike = OfficialAgentSessi
   private readonly freshnessMs: number;
   private readonly eventHub: RuntimeEventHub;
   private readonly journal: MutationDispositionJournal;
+  private readonly mutationResults = new Map<string, JsonValue>();
   private readonly lazyAgent?: LazyOfficialAgentSession<T>;
   private readonly leaseOptions: Omit<SessionWriterLeaseOptions, "now">;
   private snapshotValue: RuntimeSnapshotV1;
   private writerLease?: SessionWriterLease;
+  private activeMutationCount = 0;
+  private continuedActiveTurn = false;
   private closed = false;
 
   public constructor(readonly privateSessionIdentity: string, private readonly options: RuntimeHostOptions<T>) {
@@ -135,6 +139,7 @@ export class RuntimeHost<T extends OfficialAgentSessionLike = OfficialAgentSessi
     if (!lease) return false;
     const renewed = await lease.heartbeat({ activeTurn, activeTurnId, connected: true });
     if (renewed) {
+      this.continuedActiveTurn = activeTurn;
       this.eventHub.publish("lease", "heartbeat", { owner: lease.owner, activeTurn: lease.activeTurn }, { leaseGeneration: lease.generation });
       this.updateWriterSnapshot({ state: "owned", owner: lease.owner, generation: lease.generation, activeTurn: lease.activeTurn });
     }
@@ -167,6 +172,8 @@ export class RuntimeHost<T extends OfficialAgentSessionLike = OfficialAgentSessi
     const lease = this.writerLease;
     if (!lease || !await lease.release()) return false;
     this.writerLease = undefined;
+    this.activeMutationCount = 0;
+    this.continuedActiveTurn = false;
     this.eventHub.publish("lease", "state", { writerState: "unowned" });
     this.updateWriterSnapshot({ state: "unowned", activeTurn: false });
     return true;
@@ -180,16 +187,25 @@ export class RuntimeHost<T extends OfficialAgentSessionLike = OfficialAgentSessi
     // mutation family gets the same bounded duplicate semantics. No private
     // operation is dispatched until all policy checks below pass.
     const admission = await this.journal.admit(envelope, origin);
-    if (admission.kind === "join") return { disposition: await admission.settled };
-    if (!admission.execute) return { disposition: admission.disposition };
+    if (admission.kind === "join") {
+      const disposition = await admission.settled;
+      const result = this.mutationResults.get(envelope.requestId);
+      return { disposition, ...(result === undefined ? {} : { result }) };
+    }
+    if (!admission.execute) {
+      const result = this.mutationResults.get(envelope.requestId);
+      return { disposition: admission.disposition, ...(result === undefined ? {} : { result }) };
+    }
     const denial = this.preflight(origin, envelope, context);
     if (denial) return { disposition: await this.journal.reject(envelope, origin, denial) };
     if (!this.lazyAgent) return { disposition: await this.journal.fail(envelope, origin, "official-agent-session-unavailable") };
 
     const lease = this.writerLease!;
     if (!await lease.setActiveTurn(true, `request-${envelope.requestId}`)) return { disposition: await this.journal.fail(envelope, origin, "lease-heartbeat-failed") };
+    this.activeMutationCount += 1;
     this.eventHub.publish("lease", "state", { writerState: "owned", owner: lease.owner, activeTurn: true }, { leaseGeneration: lease.generation });
     this.updateWriterSnapshot({ state: "owned", owner: lease.owner, generation: lease.generation, activeTurn: true });
+    let activeTurnContinues = false;
     try {
       const final = await context.revalidate();
       if (final !== true) return { disposition: await this.journal.fail(envelope, origin, boundedReason(final || "operation-revalidation-failed")) };
@@ -201,19 +217,33 @@ export class RuntimeHost<T extends OfficialAgentSessionLike = OfficialAgentSessi
       if (this.writerLease !== lease || lease.generation !== envelope.leaseGeneration || context.currentSessionLeaf !== envelope.sessionLeaf) {
         return { disposition: await this.journal.fail(envelope, origin, "operation-precondition-changed") };
       }
-      await execute(agent, envelope);
+      const execution = await execute(agent, envelope);
+      activeTurnContinues = execution?.activeTurnContinues === true;
+      if (activeTurnContinues) this.continuedActiveTurn = true;
+      if (execution?.result !== undefined) {
+        this.mutationResults.delete(envelope.requestId);
+        this.mutationResults.set(envelope.requestId, execution.result);
+        while (this.mutationResults.size > 1_024) this.mutationResults.delete(this.mutationResults.keys().next().value!);
+      }
       const event = this.eventHub.publish("mutation", "mutation", { requestId: envelope.requestId, capability: envelope.capability, commandType: envelope.commandType, origin }, { leaseGeneration: envelope.leaseGeneration, requestId: envelope.requestId, capability: envelope.capability });
       this.updateSnapshot(this.snapshotValue.state, this.snapshotValue.projection, this.snapshotValue.capabilities);
-      return { disposition: await this.journal.complete(envelope, origin, event.sequence), event };
+      return {
+        disposition: await this.journal.complete(envelope, origin, event.sequence),
+        event,
+        ...(execution?.result === undefined ? {} : { result: execution.result }),
+      };
     } catch (error) {
       return { disposition: await this.journal.fail(envelope, origin, boundedError(error)) };
     } finally {
-      const settledLease = await lease.setActiveTurn(false).catch(() => false);
-      if (this.writerLease === lease && settledLease) {
-        this.eventHub.publish("lease", "state", { writerState: "owned", owner: lease.owner, activeTurn: false }, { leaseGeneration: lease.generation });
-        this.updateWriterSnapshot({ state: "owned", owner: lease.owner, generation: lease.generation, activeTurn: false });
-      } else if (this.writerLease === lease) {
-        this.updateWriterSnapshot({ state: "recovering", owner: lease.owner, generation: lease.generation, activeTurn: true, denialReason: "active-turn-settlement-unverified" });
+      this.activeMutationCount = Math.max(0, this.activeMutationCount - 1);
+      if (!activeTurnContinues && this.activeMutationCount === 0 && !this.continuedActiveTurn) {
+        const settledLease = await lease.setActiveTurn(false).catch(() => false);
+        if (this.writerLease === lease && settledLease) {
+          this.eventHub.publish("lease", "state", { writerState: "owned", owner: lease.owner, activeTurn: false }, { leaseGeneration: lease.generation });
+          this.updateWriterSnapshot({ state: "owned", owner: lease.owner, generation: lease.generation, activeTurn: false });
+        } else if (this.writerLease === lease) {
+          this.updateWriterSnapshot({ state: "recovering", owner: lease.owner, generation: lease.generation, activeTurn: true, denialReason: "active-turn-settlement-unverified" });
+        }
       }
     }
   }
@@ -226,6 +256,9 @@ export class RuntimeHost<T extends OfficialAgentSessionLike = OfficialAgentSessi
     if (this.writerLease?.activeTurn) await this.writerLease.disconnect().catch(() => false);
     else await this.writerLease?.release().catch(() => false);
     this.writerLease = undefined;
+    this.activeMutationCount = 0;
+    this.continuedActiveTurn = false;
+    this.mutationResults.clear();
     await this.lazyAgent?.dispose();
     this.eventHub.close();
   }

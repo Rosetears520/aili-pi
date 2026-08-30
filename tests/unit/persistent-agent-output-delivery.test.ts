@@ -18,7 +18,7 @@ import {
 } from "../../src/runtime/persistent-agents/output-delivery.js";
 import { CoordinatorJournal, ensureSidecarLayout } from "../../src/runtime/persistent-agents/storage.js";
 import type { AgentRecord, SidecarLayout } from "../../src/runtime/persistent-agents/types.js";
-import type { NormalizedTaskSettlement } from "../../src/runtime/persistent-agents/task-coordinator.js";
+import type { NormalizedTaskSettlement } from "../../src/runtime/persistent-agents/sub-coordinator.js";
 
 let scratch = "";
 let parentFile = "";
@@ -71,10 +71,13 @@ async function createPersistedAgent(agentId = "Worker"): Promise<AgentRecord> {
 function settlement(agentId = "Worker", overrides: Partial<NormalizedTaskSettlement> = {}): NormalizedTaskSettlement {
   return {
     status: "completed",
+    taskId: agentId,
     agentId,
     jobId: "job-1",
     turnId: "turn-1",
     selector: "general",
+    backend: "managed",
+    driver: "pi-sdk",
     async: true,
     effectiveMode: "async",
     effectiveModeReason: "default-async",
@@ -256,6 +259,67 @@ describe("output/history references and parent-owned retention", () => {
     expect(journal.getState().releasedAgents.Worker.sessionPath).toBeTruthy();
     expect((await readAgentOutput(layout, journal, "Worker")).content).toContain("line-3");
     expect((await readAgentHistory(layout, journal, "Worker")).content).toContain("full child response");
+  });
+
+  it("redacts sensitive history entries in place instead of denying the whole transcript", async () => {
+    const now = "2026-07-25T03:00:00.000Z";
+    await journal.append({
+      kind: "agent.created",
+      agentId: "Redacted",
+      payload: { record: { id: "Redacted", name: "Redacted", selector: "general", state: "queued", createdAt: now, updatedAt: now } },
+    });
+    const child = SessionManager.create(scratch, layout.agentsDir, { id: "Redacted", parentSession: parentFile });
+    child.appendMessage({
+      role: "user",
+      content: "audit the fixture keys",
+      timestamp: Date.now(),
+      api: "fixture",
+      provider: "fixture",
+      model: "fixture",
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+      stopReason: "stop",
+    } as never);
+    child.appendMessage({
+      role: "assistant",
+      content: [{ type: "text", text: "api_key=super-secret-value" }],
+      timestamp: Date.now(),
+      api: "fixture",
+      provider: "fixture",
+      model: "fixture",
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+      stopReason: "stop",
+    } as never);
+    child.appendMessage({
+      role: "assistant",
+      content: [{ type: "text", text: "-----BEGIN OPENSSH PRIVATE KEY-----\nabc123\n-----END OPENSSH PRIVATE KEY-----" }],
+      timestamp: Date.now(),
+      api: "fixture",
+      provider: "fixture",
+      model: "fixture",
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+      stopReason: "stop",
+    } as never);
+    child.appendMessage({
+      role: "assistant",
+      content: [{ type: "text", text: "ordinary finding remains readable" }],
+      timestamp: Date.now(),
+      api: "fixture",
+      provider: "fixture",
+      model: "fixture",
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+      stopReason: "stop",
+    } as never);
+
+    await journal.append({ kind: "agent.session", agentId: "Redacted", payload: { path: child.getSessionFile() } });
+
+    const history = await readAgentHistory(layout, journal, "Redacted", 0, 50);
+    expect(history.content).toContain("audit the fixture keys");
+    expect(history.content).toContain("api_key=<redacted>");
+    expect(history.content).toContain("<redacted-private-key>");
+    expect(history.content).toContain("ordinary finding remains readable");
+    expect(history.content).not.toContain("super-secret-value");
+    expect(history.content).not.toContain("abc123");
+    expect(history.redactedSensitiveEntries).toBeGreaterThanOrEqual(2);
   });
 
   it("initializes forks empty, preserves orphan sidecars, and requires exact confirmed parent cascade", async () => {

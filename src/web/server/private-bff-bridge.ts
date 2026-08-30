@@ -18,18 +18,43 @@ export interface AiliBffHttpRequest {
   readonly body?: unknown;
 }
 
+export interface AiliCompatibilityMutationRequest {
+  readonly kind: "session.rename" | "session.auto_name" | "session.delete" | "agent.command";
+  readonly resourceId: string;
+  readonly host?: string;
+  readonly origin?: string;
+  readonly cookie?: string;
+  readonly arguments: Readonly<Record<string, unknown>>;
+}
+
+export interface AiliCompatibilitySessionCreateRequest {
+  readonly host?: string;
+  readonly origin?: string;
+  readonly cookie?: string;
+  readonly cwd: string;
+  readonly toolNames?: readonly string[];
+  readonly provider?: string;
+  readonly modelId?: string;
+  readonly thinkingLevel?: string;
+}
+
 export interface AiliWebBffBridge {
   dispatch(request: AiliBffHttpRequest): Promise<GatewayResponse<unknown>> | GatewayResponse<unknown>;
   openEventStream?(request: AiliBffHttpRequest): Promise<GatewayResponse<BffEventStream | { readonly error: string }>> | GatewayResponse<BffEventStream | { readonly error: string }>;
+  /** Transitional server-only facade for retained upstream mutation URLs. */
+  dispatchCompatibilityMutation?(request: AiliCompatibilityMutationRequest): Promise<GatewayResponse<unknown>> | GatewayResponse<unknown>;
+  createCompatibilitySession?(request: AiliCompatibilitySessionCreateRequest): Promise<GatewayResponse<unknown>> | GatewayResponse<unknown>;
 }
 
 export interface PrivateWebBffBridgeOptions<T extends OfficialAgentSessionLike> {
   /** Authenticated, redacted read provider owned by the Runtime composition root. */
   readonly catalog: (identity: Pick<AiliBffHttpRequest, "host" | "origin" | "cookie">) => Promise<GatewayResponse<unknown>> | GatewayResponse<unknown>;
   /** Authenticated bounded per-session history; the catalog itself stays metadata-only. */
-  readonly history?: (identity: Pick<AiliBffHttpRequest, "host" | "origin" | "cookie">, sessionHandle: string) => Promise<GatewayResponse<unknown>> | GatewayResponse<unknown>;
+  readonly history?: (identity: Pick<AiliBffHttpRequest, "host" | "origin" | "cookie">, sessionHandle: string, cursor?: string) => Promise<GatewayResponse<unknown>> | GatewayResponse<unknown>;
   /** Authenticated read-only export provider; it must not disclose a session path. */
   readonly exportSession?: (identity: Pick<AiliBffHttpRequest, "host" | "origin" | "cookie">, sessionHandle: string) => Promise<GatewayResponse<unknown>> | GatewayResponse<unknown>;
+  /** Authenticated opaque configuration Runtime snapshot (never an AgentSession). */
+  readonly configuration?: (identity: Pick<AiliBffHttpRequest, "host" | "origin" | "cookie">) => Promise<GatewayResponse<unknown>> | GatewayResponse<unknown>;
   /** Authenticated bounded media provider addressed only by an opaque handle. */
   readonly media?: (identity: Pick<AiliBffHttpRequest, "host" | "origin" | "cookie">, mediaHandle: string) => Promise<GatewayResponse<unknown>> | GatewayResponse<unknown>;
   /** The sole mutation dispatcher; it receives an admitted official Pi adapter. */
@@ -69,8 +94,11 @@ export class PrivateWebBffBridge<T extends OfficialAgentSessionLike> implements 
     if (request.method === "GET" && first === "workbench" && second === "catalog" && request.segments.length === 2) {
       return this.options.catalog(identity);
     }
+    if (request.method === "GET" && first === "configuration" && request.segments.length === 1 && this.options.configuration) {
+      return this.options.configuration(identity);
+    }
     if (request.method === "GET" && first === "sessions" && validHandle(second) && third === "history" && request.segments.length === 3 && this.options.history) {
-      return this.options.history(identity, second);
+      return this.options.history(identity, second, request.cursor);
     }
     if (request.method === "GET" && first === "sessions" && validHandle(second) && third === "connect" && request.segments.length === 3) {
       return this.bff.connect(identity, second, request.cursor);

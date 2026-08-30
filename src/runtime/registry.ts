@@ -8,7 +8,7 @@ import { resolvePermissionModesPackageRoot } from "./package-resolution.ts";
 
 const ROOT = new URL("../../", import.meta.url);
 const ROOT_PATH = fileURLToPath(ROOT);
-const SUPPORTED_PI_VERSION = "0.84.2";
+const SUPPORTED_PI_VERSION = "0.84.4";
 const PACKAGE_NAME = "@rosetears/aili-pi";
 const PACKAGE_LICENSE = "MIT";
 const PACKAGE_LICENSE_SHA256 = "50d626e331a5b05c3a574ae969762851070af5b32dbc73cc2277409eec1358f4";
@@ -119,7 +119,7 @@ export function validateRegistryData(
     const hasDependent = compatibility.records.some((skill) =>
       [...skill.requiredCapabilities, ...skill.optionalCapabilities].includes(capability.id),
     );
-    const runtimeOwnedCapability = ["memory.provider.mempalace", "context.compaction", "provider.retry"].includes(capability.id);
+    const runtimeOwnedCapability = ["memory.provider.mempalace", "memory.observational", "prompt.middleware", "context.compaction", "provider.retry", "mcp.runtime"].includes(capability.id);
     if (!hasDependent && !runtimeOwnedCapability) errors.push(`${capability.id}: no dependent skills`);
   }
   return errors;
@@ -406,7 +406,7 @@ export async function validatePermissionModeAdaptation(): Promise<string[]> {
     const expectedLocalChanges = [
       "Package-owned adapted entry redirects all unchanged sibling modules to the exact pi-permission-modes dependency while owning resolve.ts locally.",
       "matchPattern compiles its anchored glob RegExp with dotAll so * and ? include ECMAScript line terminators.",
-      "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.84.2 can derive current PI_* session environment values.",
+      "The adapted local and sandboxed bash wrappers forward ExtensionContext so Pi 0.84.4 can derive current PI_* session environment values.",
       "The adapted sandbox BashOperations wrapper injects Pi's resolved five-variable session environment as a shell-safe prelude because pi-permission-modes@2.2.0 ignores BashOperations.options.env.",
       "The process-owned SandboxController exposes its ready, exact-profile BashOperations to persistent children without allowing children to initialize, reconfigure, or reset the process-global sandbox runtime.",
       "Formal persistent children compose their exact two owning-file denyWrite paths into each sandboxed command while preserving the active profile, network rules, and blocked-host diagnostics.",

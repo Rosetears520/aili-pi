@@ -1,19 +1,22 @@
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { createAgentSessionFromServices, createAgentSessionServices, getAgentDir, initTheme, SessionManager, SettingsManager, Theme } from "@earendil-works/pi-coding-agent";
+import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import { KeybindingsManager as TuiKeybindingsManager, TUI_KEYBINDINGS } from "@earendil-works/pi-tui";
 import { randomUUID } from "crypto";
-import { existsSync, realpathSync, writeFileSync } from "fs";
-import { resolve } from "path";
+import { existsSync, readdirSync, readFileSync, realpathSync, unlinkSync, writeFileSync } from "fs";
+import { dirname, join, resolve } from "path";
 import { createAnswers, type QuestionnaireQuestion, type QuestionnaireResult } from "../../questionnaire/model.ts";
 import { validateAgentImages } from "./image-attachments";
 import { invalidateModelsCache } from "./models-cache";
+import { generateSessionTitle } from "./session-title";
 import { resolveVisibleModels, selectInitialModelScope } from "./model-scope";
 import {
   createProjectCommandBashExtension,
   createProjectCommandBashOperations,
   preferUserBashExtension,
 } from "./project-command-env";
-import { cacheSessionPath, invalidateSessionListCache } from "./session-reader";
+import { cacheSessionPath, invalidateSessionListCache, invalidateSessionPathCache, readSessionHeader } from "./session-reader";
+import { sessionPathKey } from "./session-path";
 import { getProjectTrustStatus, projectTrustReloadOptions } from "./project-trust";
 import { persistExplicitStartupPreferences } from "./startup-preferences";
 import type { SlashCommandInfo } from "@earendil-works/pi-coding-agent";
@@ -116,6 +119,21 @@ export interface RpcSessionStartOptions {
 }
 
 const CODING_TOOL_NAMES = ["read", "bash", "edit", "write", "grep", "find", "ls"];
+const MAX_PROJECTED_QUEUE_MESSAGES_PER_KIND = 100;
+const MAX_PROJECTED_QUEUE_MESSAGE_LENGTH = 4_096;
+
+function boundedQueuedText(value: unknown): string {
+  if (typeof value !== "string" || value.length > MAX_PROJECTED_QUEUE_MESSAGE_LENGTH || value.includes("\0")) {
+    throw new Error(`Queued messages must be ${MAX_PROJECTED_QUEUE_MESSAGE_LENGTH} characters or fewer`);
+  }
+  return value;
+}
+
+function projectQueuedMessages(values: readonly string[]): string[] {
+  return values
+    .slice(0, MAX_PROJECTED_QUEUE_MESSAGES_PER_KIND)
+    .map((value) => value.slice(0, MAX_PROJECTED_QUEUE_MESSAGE_LENGTH));
+}
 
 // Extensions require a complete Theme, while the web UI applies its own styling.
 class PlainTextTheme extends Theme {
@@ -408,6 +426,14 @@ export class AgentSessionWrapper {
     if (type === "prompt" || type === "steer" || type === "follow_up") {
       const imageError = validateAgentImages(command.images);
       if (imageError) throw new Error(imageError);
+      const queuedKind = type === "steer"
+        ? "steer"
+        : type === "follow_up"
+          ? "followUp"
+          : command.streamingBehavior;
+      if (queuedKind === "steer" || queuedKind === "followUp") {
+        boundedQueuedText(command.message);
+      }
     }
 
     switch (type) {
@@ -422,6 +448,12 @@ export class AgentSessionWrapper {
           }
           const promptImages = command.images as Array<{ type: "image"; data: string; mimeType: string }> | undefined;
           const streamingBehavior = command.streamingBehavior as "steer" | "followUp" | undefined;
+          if (streamingBehavior) {
+            const currentCount = streamingBehavior === "steer"
+              ? this.inner.getSteeringMessages().length
+              : this.inner.getFollowUpMessages().length;
+            if (currentCount >= MAX_PROJECTED_QUEUE_MESSAGES_PER_KIND) throw new Error(`The ${streamingBehavior} queue is full`);
+          }
           let preflightAccepted = false;
           let preflightSettled = false;
           let promptSettled = false;
@@ -520,8 +552,8 @@ export class AgentSessionWrapper {
           messageCount: 0,
           pendingMessageCount: this.inner.pendingMessageCount,
           queuedMessages: {
-            steering: [...this.inner.getSteeringMessages()],
-            followUp: [...this.inner.getFollowUpMessages()],
+            steering: projectQueuedMessages(this.inner.getSteeringMessages()),
+            followUp: projectQueuedMessages(this.inner.getFollowUpMessages()),
           },
           contextUsage: contextUsage
             ? { percent: contextUsage.percent, contextWindow: contextUsage.contextWindow, tokens: contextUsage.tokens }
@@ -629,12 +661,50 @@ export class AgentSessionWrapper {
         }
       }
 
+      case "auto_name": {
+        await this.waitForExtensionsBound();
+        const result = await generateSessionTitle(this.inner as unknown as AgentSession);
+        if (!this._alive) {
+          throw new Error("The session was closed while its title was being generated. Please try again.");
+        }
+        this.inner.setSessionName(result.title);
+        invalidateSessionListCache();
+        return result;
+      }
+
       case "set_session_name": {
         const name = (command.name as string | undefined)?.trim();
         if (!name) throw new Error("Session name cannot be empty");
         this.inner.setSessionName(name);
         invalidateSessionListCache();
         return null;
+      }
+
+      case "safe_delete": {
+        if (this.isRunning()) throw new Error("Cannot delete an active session");
+        const filePath = this.sessionFile;
+        if (!filePath || !existsSync(filePath)) throw new Error("Persisted session file is unavailable");
+        const parentSessionPath = readSessionHeader(filePath)?.parentSession;
+        const targetPathKey = sessionPathKey(filePath);
+        const directory = dirname(filePath);
+        for (const file of readdirSync(directory)) {
+          const childPath = join(directory, file);
+          if (!file.endsWith(".jsonl") || sessionPathKey(childPath) === targetPathKey) continue;
+          try {
+            const lines = readFileSync(childPath, "utf8").split("\n");
+            const header = JSON.parse(lines[0]) as { type?: string; parentSession?: string };
+            if (header.type !== "session" || !header.parentSession || sessionPathKey(header.parentSession) !== targetPathKey) continue;
+            header.parentSession = parentSessionPath;
+            lines[0] = JSON.stringify(header);
+            writeFileSync(childPath, lines.join("\n"));
+          } catch { /* malformed siblings do not block deletion of the selected session */ }
+        }
+        const deletedSessionId = this.sessionId;
+        await this.shutdown();
+        unlinkSync(filePath);
+        invalidateSessionPathCache(deletedSessionId);
+        invalidateSessionListCache();
+        return { deleted: true };
       }
 
       case "get_session_stats": {
@@ -655,20 +725,37 @@ export class AgentSessionWrapper {
 
       case "clear_queue": {
         // Full clear only: pi has no single-item dequeue, and clear+requeue
-        // races against the agent loop pulling messages mid-flight.
-        return this.inner.clearQueue();
+        // races against the agent loop pulling messages mid-flight. Preserve
+        // the official 0.84.4 RPC result shape rather than collapsing it to null.
+        const cleared = this.inner.clearQueue();
+        return {
+          steering: [...cleared.steering],
+          followUp: [...cleared.followUp],
+        };
       }
 
       case "steer": {
-        const steerImages = command.images as Array<{ type: "image"; data: string; mimeType: string }> | undefined;
-        await this.inner.steer(command.message as string, steerImages?.length ? steerImages : undefined);
-        return null;
+        const releaseAdmission = await this.acquirePromptAdmission();
+        try {
+          if (this.inner.getSteeringMessages().length >= MAX_PROJECTED_QUEUE_MESSAGES_PER_KIND) throw new Error("The steer queue is full");
+          const steerImages = command.images as Array<{ type: "image"; data: string; mimeType: string }> | undefined;
+          await this.inner.steer(command.message as string, steerImages?.length ? steerImages : undefined);
+          return null;
+        } finally {
+          releaseAdmission();
+        }
       }
 
       case "follow_up": {
-        const followImages = command.images as Array<{ type: "image"; data: string; mimeType: string }> | undefined;
-        await this.inner.followUp(command.message as string, followImages?.length ? followImages : undefined);
-        return null;
+        const releaseAdmission = await this.acquirePromptAdmission();
+        try {
+          if (this.inner.getFollowUpMessages().length >= MAX_PROJECTED_QUEUE_MESSAGES_PER_KIND) throw new Error("The followUp queue is full");
+          const followImages = command.images as Array<{ type: "image"; data: string; mimeType: string }> | undefined;
+          await this.inner.followUp(command.message as string, followImages?.length ? followImages : undefined);
+          return null;
+        } finally {
+          releaseAdmission();
+        }
       }
 
       case "get_tools": {
@@ -808,6 +895,11 @@ export class AgentSessionWrapper {
         notifyRunningChange();
       }
     }
+  }
+
+  /** RuntimeHost disposal delegates to the same wrapper-owned shutdown path. */
+  async dispose(): Promise<void> {
+    await this.shutdown();
   }
 
   async shutdown(): Promise<void> {
@@ -1734,4 +1826,34 @@ export async function startRpcSession(
 
   locks.set(sessionId, starting);
   return starting;
+}
+
+const RPC_RUNTIME_ADAPTER_SYMBOL = Symbol.for("@rosetears/aili-pi/web-rpc-runtime-adapter/v1");
+type RuntimeAdapterGlobal = Record<symbol, { open(path: string): Promise<AgentSessionWrapper> } | undefined>;
+
+/** Installs the one process-local AgentSession owner consumed by RuntimeHost. */
+export function installRuntimeGatewayAgentAdapter(): () => void {
+  const target = globalThis as unknown as RuntimeAdapterGlobal;
+  const adapter = {
+    open: async (path: string): Promise<AgentSessionWrapper> => {
+      const manager = SessionManager.open(path);
+      const cwd = manager.getCwd();
+      const sessionId = manager.getSessionId();
+      if (!cwd || !sessionId) throw new Error("Pi session runtime identity is unavailable");
+      return (await startRpcSession(sessionId, path, cwd)).session;
+    },
+    create: async (options: { cwd: string; toolNames?: readonly string[]; provider?: string; modelId?: string; thinkingLevel?: string }): Promise<AgentSessionWrapper> => {
+      const tempKey = `__new__${randomUUID()}`;
+      return (await startRpcSession(tempKey, "", options.cwd, {
+        ...(options.toolNames ? { toolNames: [...options.toolNames] } : {}),
+        ...(options.provider && options.modelId ? { initialModel: { provider: options.provider, modelId: options.modelId } } : {}),
+        ...(options.thinkingLevel ? { thinkingLevel: options.thinkingLevel as ThinkingLevel } : {}),
+      })).session;
+    },
+  };
+  if (target[RPC_RUNTIME_ADAPTER_SYMBOL]) return () => undefined;
+  target[RPC_RUNTIME_ADAPTER_SYMBOL] = adapter;
+  return () => {
+    if (target[RPC_RUNTIME_ADAPTER_SYMBOL] === adapter) target[RPC_RUNTIME_ADAPTER_SYMBOL] = undefined;
+  };
 }

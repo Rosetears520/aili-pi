@@ -50,6 +50,7 @@
 - Tests：覆盖未知 selector、bare/canonical model、全部模型继承层、batch 零分配、sync/async/delivery/hub/audit 字段一致性、凭据脱敏、无 Matrix Extension/命令/timer、Pi Working owner 未被隐藏，以及 reasoning 渐变在重复 render 与虚拟时钟推进下字节稳定。
 - Evidence：自动化可以证明无周期 timer 和确定性 ANSI 输出，但不能单独证明所有终端中的主观流畅度；若要声明卡顿已在真实 TUI 消失，仍需单独授权的长任务手工/性能验证。
 - Change relationship：本提案修改 `replace-subagent-runtime-with-persistent-agent-framework` 的 model/orchestration contract，并 supersede `improve-tui-interaction-and-wsl-image-paste` 中继续保留 Shimmer/Rain 的部分；固定编辑器和 WSL image paste 不受影响。AILI-only 摘要所有权与压缩后续跑继续由独立 change `replace-pi-native-fallback-with-aili-emergency-checkpoint` 管理，不能用本提案替代。
+- 2026-08-29 supersession：本提案尚未完成的 Agent model catalog、preflight 和 resolution transparency 范围由已接受并获 BUILD 授权的 `expose-subagent-model-capabilities` 取代，不得并行实现同一 resolver。Working animation/Reasoning 静态渐变范围仍归本提案，未被取代。
 - Rollback：安装上一已发布 package 可恢复旧动画；回滚和升级都不删除用户历史 Matrix 配置。新版本不保留双 Working owner，也不以运行时 feature flag 同时注册 Pi 原生与 Matrix widget。
 - Non-goals：不改变 Pi thinking 内容、reasoning 展开/隐藏语义、provider API、模型优先级之外的权限、固定编辑器、footer/theme、dependency/lockfile、用户 HOME、Git、publish 或 release。
 

@@ -23,7 +23,7 @@ import {
 } from "./formal-task-board-update.js";
 import type { LifecycleAgentGuidanceInput } from "./rose-context.js";
 import type { RoleProfile } from "./roles.js";
-import type { FormalContinuationAudit } from "./persistent-agents/task-schema.js";
+import type { FormalContinuationAudit } from "./persistent-agents/sub-schema.js";
 
 const WAIVER_CLASSES = new Set<string>(FORMAL_TASK_BOARD_WAIVER_CLASSES);
 const JOIN_ID_PATTERN = /^J-[A-Za-z0-9][A-Za-z0-9._-]{0,61}$/;

@@ -4,14 +4,15 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { isIP } from "node:net";
+import { createServer, isIP, type AddressInfo } from "node:net";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import type { Readable, Writable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { redactedWebDiagnostic } from "../../src/runtime/web/access-policy.js";
 
 export const WEB_COMMAND_NAME = "web" as const;
-export const SUPPORTED_PI_VERSION = "0.84.2" as const;
+export const CHANGES_COMMAND_NAME = "changes" as const;
+export const SUPPORTED_PI_VERSION = "0.84.4" as const;
 export const WEB_CHILD_READY_TIMEOUT_MS = 30_000;
 export const WEB_CHILD_STOP_TIMEOUT_MS = 5_000;
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -30,6 +31,10 @@ export interface PiCompatibilityManifest {
 interface WebLaunchOptions {
   readonly hostname: string;
   readonly port: number;
+  /** True when the port came from an explicit -p/--port request — those stay
+   *  strict (a busy explicitly-requested port is an error, never silently
+   *  moved); only the DEFAULT port may fall back to a free one. */
+  readonly portExplicit: boolean;
   readonly expectedAddress: string;
   readonly cliArguments: readonly string[];
 }
@@ -90,8 +95,11 @@ export function registerWebCommand(pi: ExtensionAPI): void {
     handler: async (args, context) => {
       try {
         await assertCompatiblePiHost();
-        const address = await ensureWebChild(parseWebLaunchOptions(args), canonicalSessionRoot(context));
-        context.ui.notify(`AILI Web is ready at ${address}`, "info");
+        let portNote = "";
+        const address = await ensureWebChild(parseWebLaunchOptions(args), canonicalSessionRoot(context), (requested, actual) => {
+          portNote = ` (port ${requested} was busy; using ${actual})`;
+        });
+        context.ui.notify(`AILI Web is ready at ${address}${portNote}`, "info");
       } catch (error) {
         context.ui.notify(`AILI Web did not start: ${redactedWebDiagnostic(error)}`, "error");
       }
@@ -102,19 +110,66 @@ export function registerWebCommand(pi: ExtensionAPI): void {
   });
 }
 
-/** Start exactly one packaged child or reuse its private-channel ready address. */
-export async function ensureWebChild(options: WebLaunchOptions, seededAllowedRoot?: string): Promise<string> {
+/**
+ * /changes (user direction 2026-08-25): start (or reuse) the SAME one web
+ * child as /web, but hand the user the changes-viewer entry URL for the
+ * session directory — the workbench UI itself never has to be opened. The
+ * handler stays inert until invoked and the shutdown listener above already
+ * owns the shared child's lifecycle.
+ */
+export function registerChangesCommand(pi: ExtensionAPI): void {
+  pi.registerCommand(CHANGES_COMMAND_NAME, {
+    description: "Start or report the Pi-owned AILI Web child and open the changes viewer",
+    handler: async (args, context) => {
+      try {
+        await assertCompatiblePiHost();
+        const sessionRoot = canonicalSessionRoot(context);
+        let portNote = "";
+        const address = await ensureWebChild(parseWebLaunchOptions(args), sessionRoot, (requested, actual) => {
+          portNote = ` (port ${requested} was busy; using ${actual})`;
+        });
+        context.ui.notify(`AILI changes viewer is ready at ${changesViewerUrl(address, sessionRoot)}${portNote}`, "info");
+      } catch (error) {
+        context.ui.notify(`AILI changes viewer did not start: ${redactedWebDiagnostic(error)}`, "error");
+      }
+    },
+  });
+}
+
+/** Changes-page entry URL for a ready web child; bare when no session root exists. */
+export function changesViewerUrl(address: string, sessionRoot?: string): string {
+  const base = address.endsWith("/") ? address.slice(0, -1) : address;
+  return sessionRoot ? `${base}/changes?cwd=${encodeURIComponent(sessionRoot)}` : `${base}/changes`;
+}
+
+/** Start exactly one packaged child or reuse its private-channel ready address.
+ *  When the launch uses the DEFAULT port and that port is already taken by a
+ *  foreign process, the child silently moves to a kernel-assigned free port
+ *  and onPortFallback reports the switch; explicitly requested ports stay strict. */
+export async function ensureWebChild(
+  options: WebLaunchOptions,
+  seededAllowedRoot?: string,
+  onPortFallback?: (requestedPort: number, actualPort: number) => void,
+): Promise<string> {
   const current = activeWebChild;
   if (current && current.controlOpen && current.livenessOpen && current.child.exitCode === null && current.child.signalCode === null) return current.ready;
   if (current) await stopWebChild();
 
-  const executable = join(ROOT, "bin", "pi-web.js");
-  const child = spawn(process.execPath, [executable, ...options.cliArguments, "--managed"], {
+  let launch = options;
+  if (!options.portExplicit && options.port === WEB_DEFAULT_PORT) {
+    const actual = await reserveWebPort(options.hostname, options.port);
+    if (actual !== options.port) {
+      launch = withWebPort(options, actual);
+      onPortFallback?.(options.port, actual);
+    }
+  }
+
+  const child = spawn(process.execPath, [join(ROOT, "bin", "pi-web.js"), ...launch.cliArguments, "--managed"], {
     cwd: process.cwd(),
     detached: false,
     shell: false,
     stdio: ["ignore", "pipe", "pipe", "pipe", "pipe", "pipe"],
-    env: inheritedWebEnvironment(options, seededAllowedRoot),
+    env: inheritedWebEnvironment(launch, seededAllowedRoot),
   });
   let identityPipe: Writable;
   let controlPipe: Readable;
@@ -140,7 +195,7 @@ export async function ensureWebChild(options: WebLaunchOptions, seededAllowedRoo
   });
   const state: ActiveWebChild = {
     child,
-    expectedAddress: options.expectedAddress,
+    expectedAddress: launch.expectedAddress,
     ready,
     livenessPipe,
     stderr: "",
@@ -234,6 +289,7 @@ export function parseWebLaunchOptions(argumentsText: string): WebLaunchOptions {
   const tokens = argumentsText.trim() ? argumentsText.trim().split(/\s+/) : [];
   let hostname = "127.0.0.1";
   let port = WEB_DEFAULT_PORT;
+  let portExplicit = false;
   for (let index = 0; index < tokens.length; index += 1) {
     const item = tokens[index]!;
     if (item === "--hostname" || item === "-H") hostname = requiredOptionValue(tokens, ++index, "hostname");
@@ -242,15 +298,53 @@ export function parseWebLaunchOptions(argumentsText: string): WebLaunchOptions {
       if (!/^[0-9]{1,5}$/.test(portText)) throw new Error("web port must be from 1 through 65535");
       port = Number(portText);
       if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error("web port must be from 1 through 65535");
+      portExplicit = true;
     } else throw new Error("unsupported /web option");
   }
   hostname = normalizeHostname(hostname);
   return Object.freeze({
     hostname,
     port,
+    portExplicit,
     expectedAddress: `http://${formatHost(hostname, port)}`,
     cliArguments: Object.freeze(["--hostname", hostname, "--port", String(port)]),
   });
+}
+
+function withWebPort(options: WebLaunchOptions, port: number): WebLaunchOptions {
+  return Object.freeze({
+    hostname: options.hostname,
+    port,
+    portExplicit: options.portExplicit,
+    expectedAddress: `http://${formatHost(options.hostname, port)}`,
+    cliArguments: Object.freeze(["--hostname", options.hostname, "--port", String(port)]),
+  });
+}
+
+/**
+ * The default web port (30141) is commonly held by a leftover server from an
+ * earlier Pi session or a standalone pi-web; failing /web and /changes with
+ * EADDRINUSE in that situation helps nobody. Probe the preferred port and,
+ * when it is busy, let the kernel assign a free loopback port instead. The
+ * probe-close-spawn window is a benign local race: a collision then still
+ * surfaces as the normal readiness failure.
+ */
+async function reserveWebPort(hostname: string, preferred: number): Promise<number> {
+  const canBind = (port: number) => new Promise<boolean>((resolve) => {
+    const probe = createServer();
+    probe.once("error", () => resolve(false));
+    probe.listen(port, hostname, () => probe.close(() => resolve(true)));
+  });
+  if (await canBind(preferred)) return preferred;
+  const askKernel = new Promise<number>((resolve, reject) => {
+    const probe = createServer();
+    probe.once("error", reject);
+    probe.listen(0, hostname, () => {
+      const address = probe.address() as AddressInfo;
+      probe.close(() => resolve(address.port));
+    });
+  });
+  return askKernel;
 }
 
 function requiredReadablePipe(child: ChildProcess, index: number): Readable {

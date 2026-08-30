@@ -4,7 +4,7 @@ import { SessionManager, type ExtensionAPI, type ToolDefinition } from "@earendi
 import { Type } from "typebox";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadRoleProfiles, type RoleProfile } from "../../src/runtime/roles.js";
-import { FORMAL_RESULT_FIELDS, renderCanonicalFormalResultInstruction } from "../../src/runtime/persistent-agents/task-coordinator.js";
+import { FORMAL_RESULT_FIELDS, renderCanonicalFormalResultInstruction } from "../../src/runtime/persistent-agents/sub-coordinator.js";
 import {
   assembleChildPrompt,
   computeEffectiveTools,

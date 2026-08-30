@@ -1,24 +1,25 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/Rosetears520/aili-workflows.git",
-  "commit": "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
+  "commit": "a5284ee105a084392a944aee04313dcf7c294a64",
   "release": {
     "package": "rose-aili",
-    "version": "0.4.7",
-    "npmGitHead": "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
-    "tarballSha256": "0a72de82e467bcfc386e982c33db5aa153b989a136bbb0c2423156e3c41f07a0",
+    "version": "0.4.8",
+    "npmGitHead": "a5284ee105a084392a944aee04313dcf7c294a64",
+    "tarballSha256": "cfc3b90e982900dcc17cf841066f6eee022cc2b97f27bb40e39494ac77bed910",
     "protocols": {
       "agentSelection": {
         "protocol": "aili-agent-selection/v1",
         "path": ".agents/skills/parallel-subagent-dispatch/references/agent-selection-matrix.md",
-        "sha256": "db35b7c17ba76984d9ee2d69931dfbce80c6413b90953899a9ae5cc671855224",
-        "bytes": 8833
-      },
-      "formalTaskBoard": {
-        "protocol": "aili-task-board/v1",
+        "sha256": "936d29442a1efc01d1fc0ed80cd319d733dafb6ff8c4c0cffbfd09ed6b2335d3",
+        "bytes": 8904
+      }
+    },
+    "references": {
+      "formalTaskNotes": {
         "path": ".agents/skills/aili-delivery-flow/references/formal-task-board.md",
-        "sha256": "3512a280b8f854da27c74af77c72709a62187be4592d53b2d7717f565975c703",
-        "bytes": 10300
+        "sha256": "b3f74e4fea3b3dd9e35bea4d59e447d051f4a9195fbdb75f6393b19f95460bcb",
+        "bytes": 2993
       }
     },
     "canonicalSpecialists": [
@@ -44,116 +45,111 @@
       "opensource-sanitizer"
     ]
   },
-  "repositoryTree": "c3d0b8d9e71a4149f8bdeba151be62ce16453729",
-  "skillTree": "a3ae306a306ebaddc0c942248b3fab455760272a",
+  "repositoryTree": "ab6235abfcc04590bb2038c2e88ed0cb03103336",
+  "skillTree": "771664584c66bfdd4525f691754aadec3eaa5558",
   "skillRoot": ".agents/skills",
   "skillCount": 58,
   "fileCount": 562,
-  "contentHash": "cce823fc0cb0b1c4d30a5b7d1a3ba8c899de088dc63ade4712b613663bb22ce5",
+  "contentHash": "8b1f2b11e26ac286efaf421eb222854178c94cfd4739bcd55279b2f4ab6d8c97",
   "runtimeBundle": {
     "sourceRoot": "generated/pi",
     "targetRoot": "upstream/aili-workflows-runtime",
-    "fileCount": 19,
-    "contentHash": "66c5d3f51b47d77b1744a89f895f5a673a24f84d80aebd5d12a3c334e33d2331",
+    "fileCount": 18,
+    "contentHash": "d9337f887c8508aa85c5b11c34bbe36b9bfe0a4d9966860967d139af01341fab",
     "files": [
       {
         "path": "AGENTS.md",
-        "sha256": "a1a8e89613f833f64d0f1f8da1205560b8fbc416e95baddf3e11ef68ed78b699",
-        "bytes": 16605
+        "sha256": "af690f3262dec200ae6f94d35726d0f5f3bce0b7519847e656a79c531f6158c5",
+        "bytes": 16645
       },
       {
         "path": "installation-contract.json",
-        "sha256": "a521249240077ce08be4ba1c20376b428d224bfa6d75ef8684988442e7e273c5",
+        "sha256": "35bb17be64991bb63eac6508488ae5024b8be5b28d7661928a3233527e21f44e",
         "bytes": 1248
       },
       {
         "path": "prompts/agents-md.md",
-        "sha256": "72d40542732b8877791f35d96c02498f655fc4898f85d2bab76f48251d0dd58d",
+        "sha256": "a3f75b6335208b3db1332c5af0e888482c610fd0b666e55ddba854dea26fb196",
         "bytes": 2077
       },
       {
         "path": "prompts/build.md",
-        "sha256": "2e85c42bec2e38687b52ef8bf5794a0ae990c54a6ee20f788009cf9e704dd64a",
-        "bytes": 1241
+        "sha256": "cda04cc9ec6e600b70957e55b133ca7dbc74e0442fa39fe8a3a4b94bfe098774",
+        "bytes": 1322
       },
       {
         "path": "prompts/define.md",
-        "sha256": "6017424310e50218d853cc45d89afa049a9c85dd361e261f49d160382e8aa315",
+        "sha256": "ce790cb658b4fad3a7a05dc97f2c6165934e5389ca0e30b556f7fb0e68e93d70",
         "bytes": 990
       },
       {
         "path": "prompts/handoff.md",
-        "sha256": "b7521e4d6512448183ad5791daa6daf18044becd7e8012d16066630e73e7a97c",
+        "sha256": "f203e9b726d2fbb0eedc6ee4849561c1fe1c350413b7201e941ba1720438ae16",
         "bytes": 2196
       },
       {
         "path": "prompts/harness-audit.md",
-        "sha256": "5f668e49974a6fd463f2ce718ca633694719f4c079e16119989a2baf3851cfd2",
+        "sha256": "2eaa2cfbd1411b76bc255282fdd67202caf1902b0ab063e0b3e8af796912397a",
         "bytes": 1761
       },
       {
         "path": "prompts/ideate.md",
-        "sha256": "5184836f1325319f3a798d2e92526209fa71627b8d5266bcbed9e5a3062df2c0",
+        "sha256": "6fee73ecac8465f38fce884210e5701dc861fa3db0b5028a108a27f8a5c313fa",
         "bytes": 923
       },
       {
         "path": "prompts/local-review.md",
-        "sha256": "0e42753af2c892f299949dc607aa2150c36248f14e38e4aa500e16c82573850a",
+        "sha256": "efe65587249601646d9a9f83ffcf15928ca7372cdb52b58f3887683094e8900e",
         "bytes": 5621
       },
       {
         "path": "prompts/retro.md",
-        "sha256": "4e0644c73f0a8def62566f77f4f2b53c79fa862bd282c7797f5fcee16f92871b",
+        "sha256": "d7361f9585ffcdf5f75a27c2bb86df82b2ec6783183b86be302d031769b6c6bb",
         "bytes": 1683
       },
       {
         "path": "prompts/security-review.md",
-        "sha256": "4ccf80cee8472b1cd768a0cb4884557eb158a313a31d84079b447adffe0eac1d",
+        "sha256": "87e7e24eba8cf8202537e625bfafb56fabeba510a102656413c152e8f5baa342",
         "bytes": 2229
       },
       {
         "path": "prompts/ship.md",
-        "sha256": "55def4e627a3e1b037ea3fc5be18f9a02b4a9ef530b4e79b034b49fdd7f26aa4",
+        "sha256": "c716a36ba6976af743c16cf0c7683249dde2b85b41077c32977630d3cfb83335",
         "bytes": 1167
       },
       {
         "path": "protocols/aili-agent-selection.v1.schema.json",
-        "sha256": "d1330eee121fcb32f8b8abe80acdafa35a1487d59f49475b715c1cd42eb6ac73",
+        "sha256": "384752375154c55df263987836a7f629d2e1c7b4dfdca42fedc33d3792fda6a3",
         "bytes": 1255
       },
       {
-        "path": "protocols/aili-task-board.v1.schema.json",
-        "sha256": "dbecae6fb0c84d9554379855b6b2abae9bae5ade65bff4e5a634a536d3669740",
-        "bytes": 1719
-      },
-      {
         "path": "protocols/package-envelope.schema.json",
-        "sha256": "3164a1476ba36949b91f033b0bb18faa8e7988e27a4b657bf5854bd789cbe037",
+        "sha256": "102576c878b37e696442a09f4645ba0d51539bf93d843188e4ef70573e0ca0e5",
         "bytes": 6434
       },
       {
         "path": "provenance.json",
-        "sha256": "b9dac127161ba9f1a9d0da63d9bc27fb47ec511f918ecc36fb902d49f988b9b3",
-        "bytes": 10399
+        "sha256": "3ae09ceb7a48e85b8b96cbbcbd5f16d8f1b03646b35745cbb20d4f42216f7cd2",
+        "bytes": 9910
       },
       {
         "path": "role-metadata.json",
-        "sha256": "45a15ccb584a2799593ab4063137d42f231a366a2e3006fcf93b62162ce4efe5",
+        "sha256": "3790736348b6a297bf5d2ebb4066e841d19bf541eca0dac1c0109f9d43d68e49",
         "bytes": 9843
       },
       {
         "path": "selection-map.json",
-        "sha256": "12c348dd896a298bdc47884aaa4aa0a413212fbacbed3e76905f5191a018d0cb",
+        "sha256": "9320550c00e836240e2a894f29b27b7078af283ef106a55b040104604780ebed",
         "bytes": 2096
       },
       {
         "path": "system.md",
-        "sha256": "00818a6ba7bd1507248b8193c4a1168bca9087eed87a166970a524ac3e1a1dd5",
-        "bytes": 17302
+        "sha256": "e5907335b19adba25ee03943d259fb80e9d19d6543e598f5fa28608b40362b01",
+        "bytes": 17342
       }
     ]
   },
-  "synchronizedAt": "2026-08-12T09:12:16+08:00",
+  "synchronizedAt": "2026-08-24T11:36:10+08:00",
   "files": [
     {
       "path": "academic-paper-review/SKILL.md",
@@ -167,18 +163,18 @@
     },
     {
       "path": "aili-delivery-flow/references/artifact-contracts.md",
-      "sha256": "d351dfb8d935e763c56b8665ac61cb1edd252f837f4b312e0beb8a32940ae7f3",
-      "bytes": 18515
+      "sha256": "e2fc1969435cc76852aea04bc92c0cdd7aaef3e9f69ad13cb086d58764ca74a6",
+      "bytes": 18296
     },
     {
       "path": "aili-delivery-flow/references/backend-routing.md",
-      "sha256": "882b02d587e2334723ac1e9543947d2af1843badb4c970a87d51e880406e1771",
-      "bytes": 9989
+      "sha256": "07006caead35c07dac2801053c2ab86ede2fb31582a050eccbcaed92476c0ce5",
+      "bytes": 10162
     },
     {
       "path": "aili-delivery-flow/references/build-execution-loop.md",
-      "sha256": "eb4bea2568237cafac40ebd547b256a522eb8a7de9bb34e9dab1a4906c5701a0",
-      "bytes": 15373
+      "sha256": "57662398cf784c0d5df493ef83c3fd025689b9840deb2c9fe62097cdbcc0b1b0",
+      "bytes": 15535
     },
     {
       "path": "aili-delivery-flow/references/build-goal-mode.md",
@@ -187,23 +183,23 @@
     },
     {
       "path": "aili-delivery-flow/references/direct-vs-delegated-work.md",
-      "sha256": "d6d85e63087b85cc434cf8fe9cecb30ba0126b2225622f2262c7d865d8b629b4",
-      "bytes": 4253
+      "sha256": "81b8b9fefdd58862568ca42e0e35f96447c3352b4442cd6d39a6d7ffb97d4e7f",
+      "bytes": 4332
     },
     {
       "path": "aili-delivery-flow/references/formal-task-board.md",
-      "sha256": "3512a280b8f854da27c74af77c72709a62187be4592d53b2d7717f565975c703",
-      "bytes": 10300
+      "sha256": "b3f74e4fea3b3dd9e35bea4d59e447d051f4a9195fbdb75f6393b19f95460bcb",
+      "bytes": 2993
     },
     {
       "path": "aili-delivery-flow/references/implementation-packages.md",
-      "sha256": "605830d5a568b411c0913c0947aff99120f6897a382ecc2239dfd7df7b5c1e99",
-      "bytes": 9661
+      "sha256": "73d0aa4de22ef8d0d8d7898a89b58d631c8a0c47c012132e6a29b1f6ccf7ae81",
+      "bytes": 9823
     },
     {
       "path": "aili-delivery-flow/references/lifecycle.md",
-      "sha256": "016f7c6e38ab8564c5d78d860f2c089fcb53162463728698c67921ceffcd0000",
-      "bytes": 26024
+      "sha256": "a575f7bcd9d15b53160a4be9554475732f0ea735f7b9c7c91df59f58ed84d11f",
+      "bytes": 26665
     },
     {
       "path": "aili-delivery-flow/references/protocols/acceptance-test-plan.md",
@@ -257,8 +253,8 @@
     },
     {
       "path": "aili-delivery-flow/references/protocols/subagent-task-packet.md",
-      "sha256": "32e9c009dd9d58f4651d36bc42223be0501d7d32b37d0b57e5ab724e37726881",
-      "bytes": 3717
+      "sha256": "9dc6d5d585a6f7b1eb6c5d07023997e67fa567a44c572ec8ffc1af890a3bb706",
+      "bytes": 3799
     },
     {
       "path": "aili-delivery-flow/references/protocols/worktree-context.md",
@@ -282,8 +278,8 @@
     },
     {
       "path": "aili-delivery-flow/SKILL.md",
-      "sha256": "4fe6ef6221b78141419b45fd67c3ec424a40146fac11a39ae42a2874f1cede8b",
-      "bytes": 16319
+      "sha256": "31eb493f93abcec9f2c1d4e8f6b07a8a7d00e1c8071a70fbd50ee766d082c321",
+      "bytes": 16552
     },
     {
       "path": "android-native-dev/references/accessibility.md",
@@ -1757,8 +1753,8 @@
     },
     {
       "path": "parallel-subagent-dispatch/references/agent-selection-matrix.md",
-      "sha256": "db35b7c17ba76984d9ee2d69931dfbce80c6413b90953899a9ae5cc671855224",
-      "bytes": 8833
+      "sha256": "936d29442a1efc01d1fc0ed80cd319d733dafb6ff8c4c0cffbfd09ed6b2335d3",
+      "bytes": 8904
     },
     {
       "path": "parallel-subagent-dispatch/SKILL.md",
@@ -2487,8 +2483,8 @@
     },
     {
       "path": "requirements-grilling/SKILL.md",
-      "sha256": "a579838da63c9f47524396d9f894520854870a088c0ab01353b9f14d5df34c36",
-      "bytes": 44484
+      "sha256": "b885400ef69c5cf9ccc05aac7ab9e66f97dda14850de7ad7d342f2615015d0ad",
+      "bytes": 44603
     },
     {
       "path": "review-pipeline/SKILL.md",
@@ -2983,7 +2979,7 @@
     },
     {
       "name": "aili-delivery-flow",
-      "sourceHash": "03b21b6fccabc3e2f18495443a1435c235be2ee74a2374c85adf634228648404",
+      "sourceHash": "49e0131177f39d8763ad190d53acb9f8476e42947d24d84af5ccd45f4050c901",
       "files": [
         "references/artifact-contracts.md",
         "references/backend-routing.md",
@@ -3523,7 +3519,7 @@
     },
     {
       "name": "parallel-subagent-dispatch",
-      "sourceHash": "eef484aa6f70ee787b7f032668bae285dffa133dd5157a7fe6dc24ab70dc0f50",
+      "sourceHash": "407746eab6727c4828ce2dce8ee9d041dff89937ac9937e80a2a5f02ed03efb6",
       "files": [
         "references/agent-selection-matrix.md",
         "SKILL.md"
@@ -3693,7 +3689,7 @@
     },
     {
       "name": "requirements-grilling",
-      "sourceHash": "364b5d497a7f1f9571adce621b63a8593a4ea00d6935a1c9e415c414d46e3d41",
+      "sourceHash": "26396302c168730d84efed49f2d1d27a1827ac566760f3816ac2b0c4ac81e349",
       "files": [
         "references/ADR-FORMAT.md",
         "references/CONTEXT-FORMAT.md",

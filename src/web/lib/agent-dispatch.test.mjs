@@ -8,12 +8,11 @@ const jiti = createJiti(import.meta.url, {
 });
 const {
   AGENT_DISPATCH_TOOL_NAMES,
+  agentDispatchCallIdentity,
   agentDispatchPreview,
   agentDispatchResultIdentities,
   agentDispatchRow,
   agentLiveProgress,
-  hubCallSummary,
-  hubResultRows,
 } = await jiti.import("./agent-dispatch.ts");
 
 const RESULT_DETAILS = {
@@ -33,6 +32,13 @@ const RESULT_DETAILS = {
     modelSource: "user-one-shot",
     thinkingSource: "user-one-shot",
     effectiveModeReason: "requested-sync",
+    backend: "herdr",
+    driver: "pi-cli",
+    runId: "run-1",
+    controlMode: "aili",
+    pendingInteractions: 1,
+    activity: { state: "active", since: "2026-08-28T00:00:00.000Z" },
+    surface: { workspace: "w1", tab: "t1", pane: "p1" },
     lifecycle: { agent: "idle", job: "completed", turn: "completed" },
     modelDecision: { overrideDecision: "auto-approved-bypass" },
     outputRef: "agent://Reviewer",
@@ -40,20 +46,25 @@ const RESULT_DETAILS = {
   }],
 };
 
-test("dispatch tool names include the rename and the legacy name", () => {
+test("dispatch tool names cover sub only", () => {
   assert.equal(AGENT_DISPATCH_TOOL_NAMES.has("sub"), true);
-  assert.equal(AGENT_DISPATCH_TOOL_NAMES.has("task"), true);
-  assert.equal(AGENT_DISPATCH_TOOL_NAMES.has("formal_task"), true);
+  assert.equal(AGENT_DISPATCH_TOOL_NAMES.has("task"), false);
+  assert.equal(AGENT_DISPATCH_TOOL_NAMES.has("formal_task"), false);
   assert.equal(AGENT_DISPATCH_TOOL_NAMES.has("hub"), false);
 });
 
 test("preview falls back to call arguments while running", () => {
-  const preview = agentDispatchPreview({ task: "review", agent: "aili.code-reviewer", model: "openai-codex/gpt-5.6-terra", thinking: "high", async: false }, undefined);
-  assert.equal(preview, "aili.code-reviewer · aili.code-reviewer · openai-codex/gpt-5.6-terra · thinking=high · running");
+  const preview = agentDispatchPreview({ description: "review", prompt: "review the diff", subagent_type: "aili.code-reviewer", model: "openai-codex/gpt-5.6-terra", thinking: "high", background: true }, undefined);
+  assert.equal(preview, "review · aili.code-reviewer · openai-codex/gpt-5.6-terra · thinking=high · running · background");
+});
+
+test("preview marks task_id continuations", () => {
+  const preview = agentDispatchPreview({ task_id: "task-7", description: "review", subagent_type: "aili.code-reviewer" }, undefined);
+  assert.equal(preview, "continue task-7 · aili.code-reviewer · running");
 });
 
 test("preview renders the identity row from result details", () => {
-  const preview = agentDispatchPreview({ task: "review" }, RESULT_DETAILS);
+  const preview = agentDispatchPreview({ description: "review" }, RESULT_DETAILS);
   assert.equal(preview, "Reviewer · aili.code-reviewer · openai-codex/gpt-5.6-terra · thinking=high · completed");
 });
 
@@ -72,6 +83,9 @@ test("expanded rows carry model provenance and the override decision", () => {
   assert.ok(rows.some(([label, value]) => label === "override decision" && value === "auto-approved-bypass"));
   assert.ok(rows.some(([label, value]) => label === "lifecycle" && value === "idle / completed / completed"));
   assert.ok(rows.some(([label]) => label === "output"));
+  assert.ok(rows.some(([label, value]) => label === "backend" && value === "herdr"));
+  assert.ok(rows.some(([label, value]) => label === "activity" && value.startsWith("active")));
+  assert.ok(rows.some(([label, value]) => label === "surface" && value === "w1 / t1 / p1"));
   assert.equal(agentDispatchRow(identities[0]).endsWith("completed"), true);
 });
 
@@ -87,12 +101,4 @@ test("live progress prefers the structured snapshot over raw JSON", () => {
   assert.equal(live, "Reviewer · aili.code-reviewer · openai-codex/gpt-5.6-terra · thinking=high · running");
   assert.equal(agentLiveProgress({ batch: true, status: "running", results: [{}, {}] }), "batch 2 · running");
   assert.equal(agentLiveProgress(undefined), null);
-});
-
-test("hub call summary and result rows", () => {
-  assert.equal(hubCallSummary({ action: "send", agentId: "Reviewer", message: "hi" }), "send · Reviewer");
-  assert.equal(hubCallSummary({}), null);
-  const rows = hubResultRows({ status: "delivered", messageId: "m-1", messages: [1, 2] });
-  assert.ok(rows.includes("status: delivered"));
-  assert.ok(rows.includes("messages: 2"));
 });

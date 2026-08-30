@@ -14,14 +14,19 @@ test("agent command HTTP rejections are distinguishable from transport failures"
     globalThis.fetch = originalFetch;
   });
 
-  globalThis.fetch = async () => new Response(
-    JSON.stringify({
-      error: "Authentication failed",
-      code: "prompt_rejected",
-      accepted: false,
-    }),
-    { status: 500, headers: { "Content-Type": "application/json" } },
-  );
+  globalThis.fetch = async (input) => {
+    if (String(input) === "/api/runtime/v1/auth/session") {
+      return new Response(JSON.stringify({ authenticated: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    return new Response(
+      JSON.stringify({
+        error: "Authentication failed",
+        code: "prompt_rejected",
+        accepted: false,
+      }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
+  };
 
   await assert.rejects(
     sendAgentCommand("session-id", { type: "prompt", message: "hello" }),
@@ -37,7 +42,10 @@ test("agent command HTTP rejections are distinguishable from transport failures"
   );
 
   const transportError = new TypeError("connection reset");
-  globalThis.fetch = async () => {
+  globalThis.fetch = async (input) => {
+    if (String(input) === "/api/runtime/v1/auth/session") {
+      return new Response(JSON.stringify({ authenticated: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
     throw transportError;
   };
 

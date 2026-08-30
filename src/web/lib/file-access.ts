@@ -1,11 +1,11 @@
 import { readdirSync } from "fs";
 import { homedir } from "os";
 import path from "path";
-import { getAdditionalAllowedRoots, getStartupAllowedRoots, normalizeSlashes } from "./allowed-roots";
-import { isExistingPathWithinRoots, isPathWithinRoots } from "./path-security";
-import { listAllSessions } from "./session-reader";
-export { allowFileRoot, normalizeSlashes } from "./allowed-roots";
-export { isWindowsAbsolutePath } from "./paths";
+import { getAdditionalAllowedRoots, getStartupAllowedRoots, normalizeSlashes } from "./allowed-roots.js";
+import { isExistingPathWithinRoots, isPathWithinRoots } from "./path-security.js";
+import { listAllSessions } from "./session-reader.js";
+export { allowFileRoot, normalizeSlashes } from "./allowed-roots.js";
+export { isWindowsAbsolutePath } from "./paths.js";
 
 // Short-TTL cache for the allowed-roots set. Without this, every file list/read
 // request re-scans every pi session on disk just to check access. 5s is short

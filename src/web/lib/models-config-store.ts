@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
-import { writePrivateFileAtomicSync } from "./atomic-file";
-import { invalidateModelsCache } from "./models-cache";
+import { writePrivateFileAtomicSync } from "./atomic-file.js";
+import { invalidateModelsCache } from "./models-cache.js";
 
 const MODEL_COST_KEYS = ["input", "output", "cacheRead", "cacheWrite"] as const;
 

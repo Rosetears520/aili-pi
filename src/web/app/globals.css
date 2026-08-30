@@ -1240,6 +1240,69 @@ span.token.table {
   }
 }
 
+/* Bounded extension dialogs keep their controls reachable on short screens.
+   Safe-area padding is intentionally scoped to extension overlays. */
+.extension-modal-overlay {
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-right: max(20px, env(safe-area-inset-right));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  padding-left: max(20px, env(safe-area-inset-left));
+}
+
+/* Read-only project/system/catalog presentation. */
+.system-prompt-panel {
+  display: flex;
+  height: min(600px, 75dvh);
+  min-height: 220px;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+.system-prompt-scroll { min-height: 0; flex: 1; overflow: auto; padding: 12px 16px; }
+.system-prompt-text { color: var(--text-muted); font: 12px/1.6 var(--font-mono); overflow-wrap: anywhere; white-space: pre-wrap; }
+.system-prompt-empty, .tool-definitions-empty { padding: 12px; color: var(--text-muted); font-size: 12px; font-style: italic; }
+.tool-definitions-panel { display: grid; grid-template-columns: clamp(112px, 26%, 220px) minmax(0, 1fr); height: min(600px, 75dvh); min-height: 240px; overflow: hidden; border-bottom: 1px solid var(--border); background: var(--bg-panel); }
+.tool-definitions-sidebar, .tool-definition-detail { display: flex; min-width: 0; min-height: 0; flex-direction: column; }
+.tool-definitions-sidebar { border-right: 1px solid var(--border); }
+.tool-definitions-list, .tool-definition-scroll { min-height: 0; flex: 1; overflow: auto; overscroll-behavior: contain; }
+.tool-definitions-item { display: flex; width: 100%; min-height: 38px; align-items: center; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; text-align: left; }
+.tool-definitions-item:hover { background: var(--bg-hover); color: var(--text); }
+.tool-definitions-item.selected { background: var(--bg-selected); box-shadow: inset 2px 0 var(--accent); color: var(--text); }
+.tool-definitions-item code { max-width: 100%; overflow-wrap: anywhere; color: inherit; font-size: 11px; font-weight: 600; }
+.tool-definition-scroll { padding: 14px 16px 20px; }
+.tool-definition-section + .tool-definition-section { margin-top: 18px; }
+.tool-definition-section-label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: var(--text-dim); font-size: 11px; font-weight: 600; }
+.tool-definition-description { color: var(--text-muted); font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; white-space: pre-wrap; }
+.tool-definition-fields { border-top: 1px solid var(--border); }
+.tool-definition-field { display: grid; grid-template-columns: minmax(88px, .75fr) minmax(0, 1.5fr); gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 11px; line-height: 1.45; }
+.tool-definition-field-name { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.tool-definition-field-name span { color: var(--text-dim); font-size: 10px; }
+.tool-definition-field-name span.required { color: var(--accent); }
+.tool-definition-field-value { min-width: 0; color: var(--text-muted); overflow-wrap: anywhere; }
+.tool-definition-type { display: block; margin-bottom: 3px; color: var(--text); }
+.tool-definition-meta { margin-top: 4px; color: var(--text-dim); }
+.tool-definition-no-parameters { color: var(--text-dim); font-size: 11px; }
+.tool-definition-guidelines { padding-left: 18px; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
+.project-info-panel { min-width: 0; }
+.project-info-title { margin-bottom: 6px; color: var(--text); font-size: 11px; font-weight: 700; }
+.project-info-grid { display: grid; gap: 8px; }
+.project-info-row { display: grid; grid-template-columns: auto minmax(0, 1fr) 24px; align-items: start; gap: 12px; }
+.project-info-label { color: var(--text-dim); white-space: nowrap; }
+.project-info-value { color: var(--text-muted); overflow-wrap: anywhere; white-space: normal; }
+.project-info-copy { width: 22px; height: 22px; padding: 0; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--text-dim); cursor: pointer; }
+.project-info-copy:hover { border-color: var(--accent); color: var(--accent); }
+.settings-ui { min-width: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.settings-ui-header { display: flex; align-items: baseline; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.settings-ui-header span { color: var(--text-dim); font-size: 11px; }
+.settings-ui-body { max-height: min(600px, 75dvh); overflow: auto; padding: 16px; }
+.settings-ui-section + .settings-ui-section { margin-top: 18px; }
+.settings-ui-section h3 { margin: 0 0 8px; color: var(--text); font-size: 12px; }
+@media (max-width: 640px) {
+  .tool-definitions-panel { grid-template-columns: 112px minmax(0, 1fr); }
+  .tool-definition-scroll { padding: 12px; }
+  .tool-definition-field { grid-template-columns: minmax(74px, .7fr) minmax(0, 1.3fr); gap: 9px; }
+}
+
 /* ============ AILI: composer interaction shelf ============
    Blocking agent interactions (questionnaire, permission approvals,
    confirmations, selects, inputs) render as part of the conversation flow,
@@ -1508,9 +1571,11 @@ span.token.table {
 }
 .aili-quota-ring { position: absolute; inset: 0; border-radius: 50%; mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px)); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px)); }
 .aili-quota-core { font-size: 8.5px; font-weight: 600; color: var(--text-muted); }
-.aili-quota-popover { left: auto; right: 0; bottom: calc(100% + 6px); min-width: 240px; padding: 10px 12px; }
+/* These two live in the top bar, so the shared upward anchor in .aili-menu
+   would place them above the viewport; anchor them below the button instead. */
+.aili-quota-popover { left: auto; right: 0; bottom: auto; top: calc(100% + 6px); min-width: 240px; padding: 10px 12px; }
 .aili-quota-line { margin: 3px 0; font-size: 11.5px; color: var(--text-muted); font-family: var(--font-mono); overflow-wrap: anywhere; }
-.aili-keybind-popover { left: auto; right: 0; bottom: calc(100% + 6px); min-width: 300px; padding: 10px; }
+.aili-keybind-popover { left: auto; right: 0; bottom: auto; top: calc(100% + 6px); min-width: 300px; padding: 10px; }
 .aili-keybind-row { display: flex; align-items: center; gap: 8px; padding: 5px 2px; font-size: 12px; color: var(--text); }
 .aili-keybind-capture {
   min-width: 110px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 7px;
@@ -2085,6 +2150,122 @@ html.dark .markdown-code-action.is-copied { color: #34d399; }
   .aili-changes-list { width: 42vw; }
   .aili-changes-resize-handle { display: none; }
 }
+/* Changes list toolbar: changed-file count + tree/flat layout toggle. */
+.aili-changes-list-bar {
+  position: sticky; top: -6px; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 3px 4px 7px; margin-bottom: 5px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.aili-changes-list-count { font-size: 10.5px; color: var(--text-dim); font-family: var(--font-mono); }
+/* GitHub-style collapsible change tree. */
+.aili-file-tree-dir {
+  display: flex; align-items: center; gap: 6px;
+  width: 100%; padding: 4px 6px;
+  background: none; border: none; border-radius: 7px;
+  color: var(--text-muted); cursor: pointer;
+  font: inherit; font-size: 11.5px; font-weight: 600;
+  transition: background 0.12s, color 0.12s;
+}
+.aili-file-tree-dir:hover { background: var(--bg-hover); color: var(--text); }
+.aili-file-tree-caret {
+  width: 10px; flex-shrink: 0; font-size: 9px; color: var(--text-dim);
+  transition: transform 0.12s ease;
+}
+.aili-file-tree-caret[data-collapsed="true"] { transform: rotate(-90deg); }
+.aili-file-tree-name {
+  flex: 1; min-width: 0; text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.aili-file-tree-files { flex-shrink: 0; font-size: 9.5px; color: var(--text-dim); font-family: var(--font-mono); }
+.aili-changes-empty-pick {
+  margin-top: 10px; padding: 6px 12px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font: inherit; font-size: 11.5px; cursor: pointer;
+  transition: background 0.12s;
+}
+.aili-changes-empty-pick:hover { background: var(--bg-hover); }
+/* Changes-page directory picker (standalone repository chooser). */
+.aili-changes-picker-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(15,23,42,0.35);
+}
+.aili-changes-picker {
+  width: min(520px, 92vw); max-height: min(560px, 80vh);
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 12px 40px -12px rgba(15,23,42,0.28), 0 2px 8px rgba(15,23,42,0.10);
+  overflow: hidden;
+  animation: aili-rise 0.16s ease;
+}
+.aili-changes-picker-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border); background: var(--bg-panel);
+}
+.aili-changes-picker-up {
+  flex-shrink: 0; width: 26px; height: 26px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; border-radius: 7px;
+  color: var(--text-muted); cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.aili-changes-picker-up:not(:disabled):hover { background: var(--bg-hover); color: var(--text); }
+.aili-changes-picker-up:disabled { opacity: 0.4; cursor: default; }
+.aili-changes-picker-path {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 11px; color: var(--text);
+}
+.aili-changes-picker-native {
+  flex-shrink: 0; padding: 3px 10px;
+  background: none; border: 1px solid var(--border); border-radius: 999px;
+  color: var(--text-muted); font: inherit; font-size: 10.5px; font-weight: 600; cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.aili-changes-picker-native:not(:disabled):hover { background: var(--bg-hover); color: var(--text); }
+.aili-changes-picker-list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; }
+.aili-changes-picker-entry {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 5px 8px;
+  background: none; border: none; border-radius: 7px;
+  color: var(--text); font: inherit; font-size: 12px; cursor: pointer;
+  transition: background 0.12s;
+}
+.aili-changes-picker-entry:not(:disabled):hover { background: var(--bg-hover); }
+.aili-changes-picker-entry span[aria-hidden] { color: var(--text-dim); font-size: 9px; }
+.aili-changes-picker-name {
+  flex: 1; min-width: 0; text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.aili-changes-picker-empty { padding: 14px; font-size: 11.5px; color: var(--text-dim); }
+.aili-changes-picker-error {
+  padding: 8px 12px; border-top: 1px solid var(--border);
+  font-size: 11px; color: #ef4444;
+}
+.aili-changes-picker-foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 9px 10px;
+  border-top: 1px solid var(--border); background: var(--bg-panel);
+}
+.aili-changes-picker-cancel {
+  padding: 5px 12px;
+  background: none; border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-muted); font: inherit; font-size: 11.5px; cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.aili-changes-picker-cancel:not(:disabled):hover { background: var(--bg-hover); color: var(--text); }
+.aili-changes-picker-confirm {
+  padding: 5px 12px;
+  background: var(--accent); border: none; border-radius: 8px;
+  color: #fff; font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  transition: opacity 0.12s;
+}
+.aili-changes-picker-confirm:disabled, .aili-changes-picker-cancel:disabled,
+.aili-changes-picker-native:disabled, .aili-changes-picker-entry:disabled { opacity: 0.5; cursor: default; }
 
 /* ============ AILI file picker (single Plus button) ============ */
 .aili-picker {

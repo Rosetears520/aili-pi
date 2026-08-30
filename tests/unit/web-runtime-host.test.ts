@@ -180,6 +180,20 @@ describe("RuntimeHost and private browser BFF", () => {
       expect(factoryCalls).toBe(1);
       expect(executionCalls).toBe(1);
 
+      const continuing = await mutationBff.mutate(request, {
+        ...envelope,
+        requestId: "request-2",
+      }, () => ({ activeTurnContinues: true, result: { accepted: true } }));
+      expect(continuing).toMatchObject({ status: 200, body: { disposition: "completed", result: { accepted: true } } });
+      const continuingDuplicate = await mutationBff.mutate(request, { ...envelope, requestId: "request-2" }, () => { throw new Error("duplicate executed"); });
+      expect(continuingDuplicate).toEqual(continuing);
+      expect(host.snapshot.writer).toMatchObject({ activeTurn: true });
+      const whileRunning = await mutationBff.mutate(request, { ...envelope, requestId: "request-3" }, () => ({}));
+      expect(whileRunning).toMatchObject({ status: 200, body: { disposition: "completed" } });
+      expect(host.snapshot.writer).toMatchObject({ activeTurn: true });
+      expect(await host.heartbeatWriter(false)).toBe(true);
+      expect(host.snapshot.writer).toMatchObject({ activeTurn: false });
+
       await registry.disposeAll();
       expect(registry.get(host.sessionHandle)).toBeUndefined();
     });

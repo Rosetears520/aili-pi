@@ -15,6 +15,11 @@ const {
 
 const source = await readFile(new URL("./ModelsConfig.tsx", import.meta.url), "utf8");
 
+test("uses the package-local provider sprite component", () => {
+  assert.match(source, /import \{ ProviderIcon \} from "\.\/ProviderIcon"/);
+  assert.doesNotMatch(source, /@lobehub\/icons/);
+});
+
 test("ignores malformed auth provider responses", () => {
   assert.match(
     source,

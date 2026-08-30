@@ -7,6 +7,14 @@
 - Backend: OpenSpec `spec-driven`
 - Implementation authorization: granted for the accepted repository-local BUILD scope; exact risky operation gates remain controlling.
 
+## Current superseding direction (D-20)
+
+- D-20 (`upgrade-pi-0844-and-pi-web-0811`) supersedes D-19's active version statements while preserving its mutation/security ownership: the supported baseline is official Pi `0.84.4` and active `@agegr/pi-web@0.8.11` tag revision `28bab3c25f5f6770c9b0b745ebbfec1c27f7b948` (npm gitHead `024be0b1154ba8a2650237a2db8bfa89124e167e`) as recorded in `upstream/web-source-locks.json`; 0.8.9 remains historical evidence.
+- Inside the Web application, the AILI Runtime Gateway/BFF is the sole mutation owner. The real `AppShell` call graph and every compatibility route must reject or translate mutations through that owner; no direct mutable Pi, filesystem, Git, Worktree, Agent, MCP, Analytics, BTW, Stamp, model/plugin/skill, or media service call remains supported.
+- The earlier stock-TUI/Web first-writer asymmetry, Extension `session_start` admission, and private TUI observer projection are superseded and must not be presented as current behavior. This change makes no claim that stock TUI and Web can safely mutate the same session concurrently.
+- Existing direct mutation routes are sealed or gateway-translating compatibility facades first; source-file deletion is not authorized in this package.
+- A native agent-driven Browser extension is deferred to a later optional change. It may never be implemented and requires fresh explicit user authorization before any source, dependency, browser-install, or runtime work.
+
 ## Maintained user intent
 
 - Build an AILI Web UI with `agegr/pi-web` as the sole code and functionality base.
@@ -18,13 +26,13 @@
 ## Current repository constraints
 
 - `aili-pi` remains one Pi Package with one Extension entry at `extensions/index.ts`.
-- Official Pi `0.84.1`, Node.js `>=22.19.0`, MIT primary licensing, existing runtime ownership, and current package validation remain controlling until this change explicitly revises them.
+- Official Pi `0.84.4`, Node.js `>=22.19.0`, MIT primary licensing, existing runtime ownership, and current package validation are controlling.
 - Dependency and lockfile changes, upstream source vendoring, external repository writes, package installation, Git operations, publish, and release require separate exact authorization.
 - Existing uncommitted footer changes and unrelated untracked `.pi/`, archive, Graphify, design Zone.Identifier, and other user files must be preserved.
 
 ## Frozen upstream evidence
 
-- `@agegr/pi-web@0.8.8`, npm gitHead `5a53c18ca9328400a3dfb8c48c1e4f343b3e4903`, MIT, Node.js `>=22.19.0`, Pi packages `0.84.1`, Next.js `16.2.12`, React/React DOM `^19.2.4`. It is a standalone local browser application with a `pi-web` CLI, Next.js API routes, in-process Pi `AgentSession`, SSE, direct Session JSONL browsing, file/Git/worktree/model/plugin/skill interfaces, and loopback binding by default.
+- Active source: `@agegr/pi-web@0.8.11`, npm gitHead `024be0b1154ba8a2650237a2db8bfa89124e167e`, tag revision `28bab3c25f5f6770c9b0b745ebbfec1c27f7b948`, npm tarball SHA-256 `69baa3d4dc9328924a8ae03d431ff3ea5e0a707e1c9aeb4708cf31dbb07cb834`, MIT, Node.js `>=22.19.0`, adapted against Pi packages `0.84.4`, Next.js `16.3.1`, React/React DOM `19.2.4`. `upstream/web-source-locks.json` records the npm/git/tag distinction and retains exact 0.8.9 as historical evidence. Pi Web remains the sole Web code/function base.
 - `@narumitw/pi-analytics@0.49.6`, gitHead `1156ee787d7bbf04a2a67f25ace61ef50355cb8d`, MIT, Pi `0.84.1` development baseline. It is experimental, content-free local analytics with per-runtime private versioned JSONL writers and a TUI/RPC dashboard.
 - `@narumitw/pi-btw@0.50.0`, gitHead `e7d9112f4f3418216a14343c00f6f637e7a3d390`, MIT, Pi `0.84.1` development baseline. It owns ephemeral in-memory side threads, independent model/thinking selection, queued steering, explicit bring-to-main preview, and no implicit main-conversation mutation.
 - `@narumitw/pi-stamp@0.49.3`, gitHead `4c2c2e8c4b6c3d21659110ea1966810b1d15e045`, MIT, Pi `0.84.1` development baseline. It records versioned Pi custom entries outside model context for message timestamps, response timing, bounded assistant metadata, usage/cost fields reported by Pi, and tool duration/outcome.
@@ -47,7 +55,7 @@
 - Web startup boundary is `accepted`: provide standalone `pi-web` and Pi `/web` entry points, start the server only on demand, default to loopback, and treat non-loopback access as a separately controlled mode.
 - Upstream source strategy is `accepted`: import exact locked sources during an authorized BUILD operation, retain MIT/provenance evidence, adapt into AILI-owned modules, keep the released runtime independent of the five upstream npm packages, and update only through reviewed imports.
 - Analytics retention is `accepted`: use metadata-only append storage with bounded runtime memory, retain it until explicit user cleanup, expose store size and time-range/all cleanup, and verify exact memory/disk behavior through implementation profiling.
-- Shared-session writer ownership is `accepted`: the first TUI or Web client to acquire the writer lease is the only mutation owner, must display the owner, and cannot silently steal ownership or write concurrently. With official Pi `0.84.1`, this is intentionally asymmetric: when stock TUI owns, Web may observe live and read-only; when Web owns, stock TUI attachment to the same session fails closed until release or exit because Pi exposes neither a universal mutation veto nor live external-JSONL observer reload.
+- Shared-session writer ownership D-07/Q4-01 is `superseded by D-19`: the current supported claim is one mutation owner inside the Web application, implemented by the AILI Runtime Gateway/BFF. Stock-TUI/Web cross-process exclusion and live observer projection are not current requirements.
 - Non-loopback access is `accepted`: default to loopback; explicit non-loopback binding fails closed without password authentication, Origin validation, and allowed-root/path enforcement, and direct public-Internet exposure is not claimed as supported.
 - First-release completeness is `deferred`: the final release still requires all four absorbed capabilities to have retained important TUI entry points, AILI-owned Runtime/API behavior, and corresponding Web UI behavior. The currently accepted BUILD milestone is TUI-first capability usability; Runtime/API and Web parity are deferred until the foreground Pi Web work is resumed last.
 - Writer-lease recovery is `accepted`: explicit release is immediate; an unexpected disconnect receives a short recovery grace period; active turns retain ownership until settled or durably interrupted; acquisition after failure requires liveness validation; force stealing is forbidden.
@@ -55,7 +63,7 @@
 - Analytics attribution is `accepted`: an opaque per-session analytics scope is stored as a Pi custom entry outside model context without persisting raw Pi session identity, paths, cwd, labels, or titles.
 - AIcss fallback is `accepted`: if public source-redistribution rights remain unproven, copy none of the nine public free sources and independently implement AILI-owned equivalents for all fourteen categories; no private/locked source or token is used.
 - Browser/E2E artifact placement is `accepted`: browser and Playwright test source belongs under `tests/browser/`, durable browser reports/traces/screenshots belong under `artifacts/test-results/browser/`, and temporary output stays in ignored repository-local `.tmp/`.
-- Pi `0.84.1` feasibility evidence establishes that stock Pi TUI has no universal public veto for every mutation and no live external-JSONL observer seam. The accepted Option A keeps official Pi and no replacement TUI: TUI-writer sessions may project live state to a read-only Web observer; Web-writer sessions reject stock-TUI attachment to the same session until Web releases or exits. Any gateway-owned mutation path must still mediate before Pi invocation, and an ungated stock-TUI session must never weaken writer exclusivity.
+- Historical Pi `0.84.1` feasibility evidence remains valid as the reason D-19 retires the unsupported stock-TUI/Web observer contract. Current Pi `0.84.2` Web mutations must still be mediated before Pi invocation, but this change no longer claims Extension-side stock-TUI admission or projection.
 - The locked `agegr/pi-web` source is the concrete source and functional baseline for Web server, session, API, and UI patterns. DEFINE must inspect and preserve useful supported patterns from that project; where a baseline pattern conflicts with the accepted AILI single-writer, security, package, or runtime ownership boundaries, AILI adapts it rather than introducing another code base.
 
 ## D-15 — TUI-first plugin delivery sequence
@@ -88,4 +96,4 @@
 
 ## Current gate
 
-The user explicitly confirmed the consolidated product understanding and accepted Q4-01 Option A in `interview.md`; requirements-grilling is `READY`. Formal design, delta specs, tasks, revised detailed design, and the final test plan remain to be written and validated. Final `test-plan.md` acceptance is still pending and implementation authorization remains absent. No BUILD task, dependency change, source copy, install, user-home write, server startup, Git operation, or release is authorized.
+The user superseded the version and cross-surface architecture through D-19 and authorized repository-local implementation on the current dirty `main` while preserving unrelated changes. Contract synchronization and Web mutation-owner consolidation are active. Dependency/lockfile changes, source import, browser installation or execution, server/real-process probes, user-home writes, Git operations, publish, and release remain unauthorized.

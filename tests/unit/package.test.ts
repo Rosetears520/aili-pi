@@ -15,6 +15,7 @@ interface PackageManifest {
   bundleDependencies?: string[];
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
   scripts?: Record<string, string>;
   overrides?: unknown;
 }
@@ -30,7 +31,7 @@ describe("Pi package baseline", () => {
     expect(manifest.name).toBe("@rosetears/aili-pi");
     expect(manifest.version).toBe("0.2.9");
     expect(manifest.license).toBe("MIT");
-    expect(manifest.bin).toEqual({ "pi-web": "./bin/pi-web.js", "aili-pi": "./bin/aili-pi.js" });
+    expect(manifest.bin).toEqual({ "pi-web": "./bin/pi-web.js", "pi-changes": "./bin/pi-changes.js", "aili-pi": "./bin/aili-pi.js" });
     expect(manifest.engines?.node).toBe(">=22.19.0");
     expect(manifest.pi?.extensions).toEqual(["./extensions/index.ts"]);
     expect(manifest.pi?.prompts).toBeUndefined();
@@ -40,10 +41,11 @@ describe("Pi package baseline", () => {
     expect(manifest.dependencies).not.toHaveProperty("@narumitw/pi-lsp");
     expect(manifest.dependencies).not.toHaveProperty("pi-markdown-preview");
     expect(manifest.dependencies).not.toHaveProperty("@agwab/pi-subagent");
-    expect(manifest.devDependencies?.["@earendil-works/pi-agent-core"]).toBe("0.84.2");
-    expect(manifest.devDependencies?.["@earendil-works/pi-ai"]).toBe("0.84.2");
-    expect(manifest.devDependencies?.["@earendil-works/pi-coding-agent"]).toBe("0.84.2");
-    expect(manifest.devDependencies?.["@earendil-works/pi-tui"]).toBe("0.84.2");
+    expect(manifest.devDependencies?.["@earendil-works/pi-agent-core"]).toBe("0.84.4");
+    expect(manifest.devDependencies?.["@earendil-works/pi-ai"]).toBe("0.84.4");
+    expect(manifest.devDependencies?.["@earendil-works/pi-coding-agent"]).toBe("0.84.4");
+    expect(manifest.devDependencies?.["@earendil-works/pi-tui"]).toBe("0.84.4");
+    expect(manifest.peerDependencies?.["@earendil-works/pi-coding-agent"]).toBe("*");
     expect(manifest.dependencies).toEqual({
       "@narumitw/pi-codex-compact": "0.50.0",
       "@narumitw/pi-tui-kit": "0.53.0",
@@ -73,7 +75,7 @@ describe("Pi package baseline", () => {
 
   it("keeps Web building manual: no install-time hook runs or references the Web build", async () => {
     const manifest = await readManifest();
-    expect(manifest.bin).toEqual({ "pi-web": "./bin/pi-web.js", "aili-pi": "./bin/aili-pi.js" });
+    expect(manifest.bin).toEqual({ "pi-web": "./bin/pi-web.js", "pi-changes": "./bin/pi-changes.js", "aili-pi": "./bin/aili-pi.js" });
     expect(manifest.pi).toEqual({
       extensions: ["./extensions/index.ts"],
       skills: ["./node_modules/pi-web-access/skills"],
@@ -108,7 +110,7 @@ describe("Pi package baseline", () => {
     expect(manifest.files).toEqual(expect.arrayContaining(["extensions/analytics/", "extensions/btw/", "extensions/stamp/", "extensions/web/"]));
     expect(manifest.files).toEqual(expect.arrayContaining(["bin/", "dist/web/"]));
     expect(manifest.files).toContain("src/");
-    for (const excludedWebPath of ["!src/web/", "!scripts/build-web.ts"]) {
+    for (const excludedWebPath of ["!src/web/", "!scripts/build-web.ts", "!upstream/pi-web-0.8.11/", "!upstream/billion-context-pi/dist/"]) {
       expect(manifest.files).toContain(excludedWebPath);
     }
     for (const forbiddenWebPath of ["src/web/", "scripts/build-web.ts"]) {
@@ -139,8 +141,9 @@ describe("Pi package baseline", () => {
   it("includes user documentation and generated provenance gates", async () => {
     const manifest = await readManifest();
     expect(manifest.files).toEqual(expect.arrayContaining(["README.md", "THIRD_PARTY_NOTICES.md", "manifests/", "upstream/", "licenses/"]));
-    const [readme, permissionLock, packageLock, licenseText] = await Promise.all([
+    const [readme, automaticMemory, permissionLock, packageLock, licenseText] = await Promise.all([
       readFile(new URL("../../README.md", import.meta.url), "utf8"),
+      readFile(new URL("../../docs/automatic-memory.md", import.meta.url), "utf8"),
       readFile(new URL("../../upstream/pi-permission-modes.lock.json", import.meta.url), "utf8").then(JSON.parse),
       readFile(new URL("../../package-lock.json", import.meta.url), "utf8").then(JSON.parse),
       readFile(new URL("../../LICENSE", import.meta.url), "utf8"),
@@ -150,18 +153,30 @@ describe("Pi package baseline", () => {
     expect(readme).toContain("universal OS sandbox");
     expect(readme).toContain("/aili-doctor");
     expect(readme).toContain("Pi-native UI");
+    expect(readme).toContain("Exact tested Pi baseline `0.84.4`");
+    expect(readme).toContain("Codex-authenticated GPT-5.6 models retain Pi-owned model metadata");
     expect(readme).not.toContain("/rose-matrix");
     expect(readme).not.toContain("fixed-bottom editor");
-    expect(readme).toContain("public `sub`/`hub` persistent Agent framework");
+    expect(readme).toContain("public `sub` persistent Agent framework");
     expect(readme).not.toContain("@agwab/pi-subagent");
-    expect(readme).toContain("npx -y rose-aili@0.4.7 install");
-    expect(readme).toContain("npx -y rose-aili@0.4.7 update");
+    expect(readme).toContain("npx -y rose-aili@0.4.8 install");
+    expect(readme).toContain("npx -y rose-aili@0.4.8 update");
     expect(readme).toContain("A moving `rose-aili@latest`");
     expect(readme).toContain("Pi alone installs, lists, updates, and removes the Package resources");
     expect(readme).toContain("58-skill/562-file verification snapshot");
     expect(readme).toContain("20 specialized `aili.*` selectors");
     expect(readme).toContain("no longer registers `/aili-install-global-resources`");
     expect(readme).toContain("not included in the npm tarball");
+    expect(readme).toContain("/memory-auto t");
+    expect(readme).toContain("inspected user-level environment reported exact `3.7.0`");
+    expect(readme).toContain("side-effect-only checkpoint barrier");
+    expect(automaticMemory).toContain("Token-volume and deterministic high-value-event triggers");
+    expect(automaticMemory).toContain("searchable across projects");
+    expect(automaticMemory).toContain("session-scoped standing authorization");
+    expect(automaticMemory).toContain("returns `undefined`");
+    expect(automaticMemory).toContain("no second MCP client");
+    expect(automaticMemory).toContain("No live durable write is claimed");
+    expect(automaticMemory).toContain("Migration from the earlier observational-memory preview");
     expect(readme).not.toContain("During a Pi-managed npm install or update, the package replaces");
     expect(readme).not.toContain("installed Package embeds the pinned skills");
     expect(readme).toContain("is licensed under the MIT License");

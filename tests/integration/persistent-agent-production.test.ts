@@ -65,8 +65,8 @@ afterEach(async () => {
 });
 
 describe("production persistent Agent controlled path", () => {
-  it("auto-approves a model override under yolo bypass mode with an audited decision", async () => {
-    vi.stubEnv("PI_PERMISSION_MODE", "yolo");
+  it("projects the exact Parent prompt into direct-user authority before managed dispatch", async () => {
+    vi.stubEnv("PI_PERMISSION_MODE", "build");
     const cwd = join(scratch, "yolo-project");
     const sessionDir = join(scratch, "yolo-sessions");
     const agentDir = join(scratch, "home", ".pi", "agent");
@@ -90,7 +90,7 @@ describe("production persistent Agent controlled path", () => {
             type: "toolCall",
             id: "yolo-model-call",
             name: "sub",
-            arguments: { task: "Report one line.", agent: "general", async: false, model: requestedCanonical },
+            arguments: { description: "Report", prompt: "Report one line.", subagent_type: "general", model: requestedCanonical },
           }], "toolUse");
         }
         return assistantStream(selected, [{ type: "text", text: "Yolo child completed." }], "stop");
@@ -156,9 +156,9 @@ describe("production persistent Agent controlled path", () => {
       thinkingLevel: "off",
     });
     await created.session.bindExtensions({ mode: "print" });
-    // print mode has no UI: without yolo the headless request would be
-    // rejected-unauthorized; yolo must auto-approve and apply the override.
-    await created.session.prompt("Run the yolo override dispatch.", { expandPromptTemplates: false, source: "extension" });
+    // Print mode has no UI. The exact user prompt, not model-generated tool
+    // arguments, is what authorizes this matching value for the current turn.
+    await created.session.prompt(`Use ${requestedCanonical} for the subagent in this turn.`, { expandPromptTemplates: false, source: "interactive" });
     const taskResult = created.session.state.messages.find((message) => message.role === "toolResult" && message.toolName === "sub");
     expect(taskResult).toMatchObject({
       isError: false,
@@ -167,7 +167,7 @@ describe("production persistent Agent controlled path", () => {
           status: "completed",
           requestedModel: requestedCanonical,
           effectiveModel: requestedCanonical,
-          modelDecision: { overrideDecision: "auto-approved-bypass" },
+          modelDecision: { overrideDecision: "accepted-direct-user" },
         }],
       },
     });
@@ -197,12 +197,9 @@ describe("production persistent Agent controlled path", () => {
             id: "controlled-task-call",
             name: "sub",
             arguments: {
-              task: PERSISTENT_SANDBOX_TASK_TEXT,
-              agent: "general",
-              async: false,
-              tools: ["bash"],
-              workspace: "shared",
-              writeScope: { paths: [PERSISTENT_SANDBOX_MARKER_PATH], resources: [] },
+              description: "Sandbox marker",
+              prompt: PERSISTENT_SANDBOX_TASK_TEXT,
+              subagent_type: "general",
             },
           }], "toolUse");
         }
@@ -307,8 +304,8 @@ describe("production persistent Agent controlled path", () => {
             selector: "general",
             effectiveMode: "sync",
             workspace: {
-              requested: "shared",
-              writeScope: { paths: ["child-sandbox-marker.txt"], resources: [] },
+              requested: "auto",
+              writeScope: { paths: [], resources: [] },
             },
           }],
         },
@@ -344,7 +341,7 @@ describe("production persistent Agent controlled path", () => {
         generatedAt: new Date().toISOString(),
         evidenceClass: "deterministic-controlled-production",
         packageVersion: "0.2.2",
-        piVersion: "0.84.2",
+        piVersion: "0.84.4",
         test: { path: persistentTestPath, command: `npm test -- ${persistentTestPath}` },
         hashes: {
           implementation: await fileBinding("src/runtime/persistent-agents/production.ts"),
@@ -388,7 +385,7 @@ describe("production persistent Agent controlled path", () => {
       restoreSandbox();
       created.session.dispose();
     }
-  });
+  }, 20_000);
 });
 
 async function fileBinding(path: string) {

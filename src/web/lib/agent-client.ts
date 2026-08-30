@@ -25,10 +25,30 @@ export function isPromptRejectedError(error: unknown): error is AgentCommandErro
     && error.accepted === false;
 }
 
+const GATEWAY_AGENT_MUTATIONS = new Set([
+  "prompt", "steer", "follow_up", "compact", "abort", "abort_compaction",
+  "bash", "abort_bash", "navigate_tree", "fork", "reload", "clear_queue",
+  "set_model", "set_thinking_level", "set_session_name", "set_tools",
+  "set_auto_compaction", "set_auto_retry", "set_perm_mode", "extension_ui_response", "extension_ui_input",
+]);
+const READ_ONLY_AGENT_COMMANDS = new Set(["get_state", "get_session_stats", "get_last_assistant_text", "get_tools", "get_commands"]);
+
+export function isGatewayAgentMutation(command: Record<string, unknown>): boolean {
+  return typeof command.type === "string" && GATEWAY_AGENT_MUTATIONS.has(command.type);
+}
+
+export function isReadOnlyAgentCommand(command: Record<string, unknown>): boolean {
+  return typeof command.type === "string" && READ_ONLY_AGENT_COMMANDS.has(command.type);
+}
+
 export async function sendAgentCommand<T = unknown>(
   sessionId: string,
   command: Record<string, unknown>,
 ): Promise<T> {
+  if (isGatewayAgentMutation(command)) {
+    const { getGatewayClient } = await import("../gateway-client");
+    await getGatewayClient().ensureMutationSession();
+  }
   const res = await fetch(`/api/agent/${encodeURIComponent(sessionId)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

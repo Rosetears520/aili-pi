@@ -33,6 +33,6 @@
       "adapters/pi/adapter.json",
       "manifests/runtime-projections.json"
     ],
-    "inputSha256": "51e4cdba8def1c648e62e186dcb5f03ce93a4ae0d5e125bb7a51061e4d2a2513"
+    "inputSha256": "44fa2f5f6919654462e4d2373e3c980b5028478b02c8ba2a103e7e64f51ea7cd"
   }
 }

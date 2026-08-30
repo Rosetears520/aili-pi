@@ -6,9 +6,9 @@
 
 - Linux
 - Node.js 22.19.0 or newer
-- Exact tested Pi baseline `0.84.1` with the Package and Extension APIs used by this release
+- Exact tested Pi baseline `0.84.4` with the Package and Extension APIs used by this release
 
-AILI does not replace Pi's provider/model catalog. On the tested Pi 0.84.1 baseline, Codex-authenticated GPT-5.6 models retain Pi-owned model metadata unless you explicitly configure a supported Pi model override.
+AILI does not replace Pi's provider/model catalog. On the tested Pi 0.84.4 baseline, Codex-authenticated GPT-5.6 models retain Pi-owned model metadata unless you explicitly configure a supported Pi model override.
 
 macOS and native Windows are not supported by this bootstrap and fail before installation mutation.
 
@@ -34,7 +34,7 @@ If Pi is absent, the script downloads only `https://pi.dev/install.sh` over HTTP
 
 The script preserves an existing compatible Pi by default. It validates an existing user-global `~/.pi/agent/settings.json` but never creates, rewrites, or refreshes that file. Absent settings retain Pi defaults; explicit `true`, unmarked `false`, and unrelated settings are preserved byte-for-byte. Malformed or non-object settings fail without replacing the original file. Project `.pi/settings.json` files are never scanned or rewritten. If Pi automatic threshold/overflow compaction is disabled, set `compaction.enabled` to `true`. Context compaction is owned entirely by Pi.
 
-On WSL2, the bootstrap also validates `~/.pi/agent/keybindings.json` before package installation. If the file is absent or has no explicit `app.clipboard.pasteImage` action, it atomically adds both `Ctrl+V` and `Alt+V`; an existing explicit action is left byte-for-byte unchanged, and malformed or unsafe targets fail closed. This only exposes Pi 0.84.1's existing WSL clipboard-image path—AILI does not add another clipboard reader.
+On WSL2, the bootstrap also validates `~/.pi/agent/keybindings.json` before package installation. If the file is absent or has no explicit `app.clipboard.pasteImage` action, it atomically adds both `Ctrl+V` and `Alt+V`; an existing explicit action is left byte-for-byte unchanged, and malformed or unsafe targets fail closed. This only exposes Pi 0.84.4's existing WSL clipboard-image path—AILI does not add another clipboard reader.
 
 To request Pi's own self-update first:
 
@@ -49,8 +49,8 @@ Shared Skills/workflows and the Pi Package have two independent lifecycle owners
 **Shared Skills/workflows — explicit user-owned lifecycle.** Install or update them only by explicitly running `npx -y rose-aili@<exact-or-user-selected-version> install --profile pi` or `npx -y rose-aili@<exact-or-user-selected-version> update --profile pi`. The accepted exact baseline is:
 
 ```sh
-npx -y rose-aili@0.4.7 install --profile pi
-npx -y rose-aili@0.4.7 update --profile pi
+npx -y rose-aili@0.4.8 install --profile pi
+npx -y rose-aili@0.4.8 update --profile pi
 ```
 
 Choose a different version deliberately when needed. A moving `rose-aili@latest` may be a convenience command, but it is not valid doctor or release evidence; those claims require an exact version.
@@ -72,7 +72,7 @@ Removal is destructive for this Package. It does not remove Pi and must not be p
 
 ### Global Workflow ownership
 
-`rose-aili@0.4.7` owns global Pi `AGENTS.md` and Workflow prompts under `~/.pi/agent/`. The Package neither registers nor packages those prompt/global-context resources; it consumes only the pinned package-owned generated runtime subset. It no longer registers `/aili-install-global-resources` or writes `~/.pi/agent/APPEND_SYSTEM.md` and `~/.pi/agent/agents/aili/`. Doctor reports legacy marker/profile files without rewriting or deleting them; cleanup remains manual and separately authorized.
+`rose-aili@0.4.8` owns global Pi `AGENTS.md` and Workflow prompts under `~/.pi/agent/`. The Package neither registers nor packages those prompt/global-context resources; it consumes only the pinned package-owned generated runtime subset. It no longer registers `/aili-install-global-resources` or writes `~/.pi/agent/APPEND_SYSTEM.md` and `~/.pi/agent/agents/aili/`. Doctor reports legacy marker/profile files without rewriting or deleting them; cleanup remains manual and separately authorized.
 
 ## Pi-native UI
 
@@ -94,18 +94,24 @@ After bootstrap installation, take or copy an image in Windows and press `Alt+V`
 
 ### Context compaction and retry
 
-AILI Compact is retired. A turn-frozen canonical provider/API/model route selects exactly one context owner: compatible `openai-codex` uses `@narumitw/pi-codex-compact@0.50.0` for Remote Compaction V2; all other providers use the retained `billion-context-pi@0.1.34` runtime. ACP delegate tools remain a separate non-formal surface and never replace persistent `sub`/`hub` ownership. `@narumitw/pi-retry@0.31.0` classifier/watchdog behavior is integrated for explainable status, while Pi 0.84.1 remains the only attempt-budget and backoff owner.
+AILI Compact is retired. A turn-frozen canonical provider/API/model route selects exactly one context owner: compatible `openai-codex` uses `@narumitw/pi-codex-compact@0.50.0` for Remote Compaction V2; all other providers use the retained `billion-context-pi@0.1.34` runtime. ACP delegate tools remain a separate non-formal surface and never replace persistent `sub` ownership. `@narumitw/pi-retry@0.31.0` classifier/watchdog behavior is integrated for explainable status, while Pi 0.84.4 remains the only attempt-budget and backoff owner.
 
-The `pi-permission-modes@2.2.0` baseline owns mode persistence, prompts, and sandbox behavior. AILI carries hash-locked adaptations so `*` and `?` also match line terminators and the one process-owned ready SandboxController can supply exact-profile Bash operations to persistent children. Children never initialize, reconfigure, reset, or silently downgrade that process-global runtime; a missing, degraded, disabled, or profile-mismatched sandbox denies sandbox-required child Bash. Linux disposable fixtures and a Pi 0.84.1 provider-backed child turn verified the Build path through installed Bubblewrap, while an incompatible Git-worktree fixture remained fail closed for children. This is not a universal isolation guarantee. `YOLO` remains unrestricted and unsandboxed.
+The `pi-permission-modes@2.2.0` baseline owns mode persistence, prompts, and sandbox behavior. AILI carries hash-locked adaptations so `*` and `?` also match line terminators and the one process-owned ready SandboxController can supply exact-profile Bash operations to persistent children. Children never initialize, reconfigure, reset, or silently downgrade that process-global runtime; a missing, degraded, disabled, or profile-mismatched sandbox denies sandbox-required child Bash. Linux disposable fixtures and a Pi 0.84.4 provider-backed child turn verified the Build path through installed Bubblewrap, while an incompatible Git-worktree fixture remained fail closed for children. This is not a universal isolation guarantee. `YOLO` remains unrestricted and unsandboxed.
 
 ## Native integrations and side effects
 
 - `pi-web-access@0.13.0` provides its complete upstream web-search, content-fetch, curator, clone/PDF/video, and bundled-skill surface. Its provider fallback, network traffic, config/credential paths, clone cache, temporary curator service, downloads, and optional browser-cookie access are upstream behavior; inspect its tool requests and configuration before use. This restores only the native extension and its Pi-owned skill; the paused foreground Pi Web application remains excluded from the published artifact.
 - `pi-quota-status@0.3.0` is enabled by default. It may maintain `~/.pi/agent/pi-quota-status/state.json`; `/quota config` creates its configuration template. The Pi-native AILI footer displays the dependency's bounded active-model status without changing its selected percentage or reset data.
 - `pi-permission-modes@2.2.0` provides the permission UI and process-owned sandbox lifecycle above through AILI's exact-source adaptation. The semantic adaptations are line-terminator-safe shared glob matching, Pi session-environment forwarding, and the fail-closed persistent-child sandbox bridge; `upstream/pi-permission-modes.lock.json` records the baseline and adapted hashes. AILI does not retain `/aili-mode` or `Ctrl+Shift+Alt+A` as competing controls.
-- AILI owns the public `sub`/`hub` persistent Agent framework (`sub` was previously named `task`). `sub` creates parent-scoped official Pi child sessions using 20 specialized `aili.*` selectors, including read-only `aili.solution-architect`, or `general`; top-level work is async by default, supports bounded batch scheduling, and returns stable Agent/job/turn IDs plus `agent://` and `history://` references. `hub` provides list/send/wait/inbox/output/history/jobs/cancel/model operations, park/revive, durable delivery, and owner/descendant scoping. Use `/aili-agent-fast <standard|priority>` to select the Parent session's Fast tier for newly created Persistent Agents. No `subagent` compatibility alias or run/attempt backend selector remains. See [`docs/persistent-agents.md`](docs/persistent-agents.md).
+- AILI owns the public `sub` persistent Agent framework and the `hub` coordination surface. One `sub` call runs one bounded child turn: foreground is the default; top-level `background:true` returns `task_id` immediately and durable auto-delivery remains active. `hub jobs|wait|output|history|send|cancel` lets the Parent inspect, wait without model-authored polling loops, read evidence, continue a settled child in the background, or cancel it. Parallel foreground work remains several same-message `sub` calls. Routing uses 20 specialized `aili.*` selectors or `general`; results carry stable task/job/turn IDs and `agent://`/`history://` references. Nested background stays forbidden. Current managed/Herdr backends and strict model/thinking failure semantics remain; `formal_task`, legacy `subagent`, and run/attempt selectors remain absent. See [`docs/persistent-agents.md`](docs/persistent-agents.md).
 - `pi-cache-optimizer@2.6.18` provides `/cache-optimizer`, provider cache diagnostics, cache statistics, and prompt-cache optimization. It may maintain `~/.pi/agent/pi-cache-optimizer-stats.json`; `/cache-optimizer fix` is interactive and is the only command that may propose editing `models.json`.
 - The Parent Pi session has an advisory `pi-notify@1.4.0` adaptation. It preserves OSC 777, iTerm OSC 9, Kitty OSC 99, tmux passthrough, Windows Terminal PowerShell toast, and terminal-bell routes. Every route is best-effort and failure is nonfatal; Persistent Workers do not load the notifier.
+- `Alt+S` or `/snippets` selects trusted one-shot Prompt Middleware modifiers from user/project snippet roots. Modifiers preserve the stable system prefix, resolve scope/dependencies/conflicts deterministically, and runtime policy patches can only remove tools; `forceReadOnly` blocks write/edit/bash for that turn. `/snippets preview <id>|status|clear` inspects bounded state and provenance.
+- `/memory-auto t` enables local automatic observation, `/memory-auto f` disables it, and `/memory-auto s` shows status (`status`, `on`, and `off` remain supported; no argument also shows status). The full durable controls remain `/memory-auto checkpoint`, `/memory-auto authorize`, and `/memory-auto revoke`. Local observation defaults on. It uses token-volume plus high-value-event triggers around one managed-internal observer, exposes no public memory tool, and starts no Agent, Herdr pane, or child process. Recall is task/topic-scoped, injected at most once per Agent run, and has separate bounded durable/session budgets.
+- Durable memory uses one Palace. Memories remain searchable across projects, but logical applicability is preserved: global preferences may apply globally, reusable solutions retain source/verification provenance, foreign project decisions are reference-only, and recovery points require matching lineage. Recalled history never outranks current instructions, repository state, contracts, permissions, or evidence.
+- Local observation does not authorize external operations. `/memory-auto authorize` grants only session-scoped standing authority for the trusted Palace/project and exact search/checkpoint tools; shutdown, project/session rebinding, `/memory-auto revoke`, or incompatibility leaves durable operations fail closed. Delete, import, mining, initialization, destructive replacement, and other unscoped mutations remain separately gated.
+- The MemPalace bridge reuses the existing session MCP adapter and creates no second client, disk cache, outbox, mirror, or fallback store. It does not probe at extension load or session start. After the user initiates `/memory-auto authorize` and confirms, a no-shell, bounded `mempalace --version` probe must report exact `3.7.0` before the session port is rebound and durable authority is armed. Missing, malformed, timed-out, or mismatched evidence remains unarmed. The inspected user-level environment reported exact `3.7.0`; repository tests claim no live write.
+- The early `session_before_compact` listener is a side-effect-only checkpoint barrier and explicitly returns `undefined`. It supplies no summary or replacement content and does not initiate, cancel, suppress, wrap, reconfigure, or otherwise change any compaction mechanism, owner, threshold, route, or output. See [`docs/automatic-memory.md`](docs/automatic-memory.md).
 - `F8` or `/file-context browse` opens the restored File Context Explorer: Git-status file list, Enter preview, `[`/`]` changed-hunk navigation, and `d` diff review. Space/Enter selects immutable context for the next prompt; `/file-context` reviews the pending selections, while `/file-context-files` and `/file-context-search` search paths/content. It supports line ranges, Git status/diff/blame/history/revision provenance, SHA-256/token estimates, and rejects root/symlink escapes, binary files, and previews over 1 MiB. UI registration stays separate from the file-context core. The upstream `@narumitw/pi-file-context@0.53.0` identity and exact `@narumitw/pi-tui-kit@0.53.0` runtime companion are recorded in provenance.
 
 ## Optional capability packs
@@ -115,7 +121,7 @@ The core package does not install optional providers automatically.
 - `web-research`: public web retrieval and source verification.
 - `browser-qa`: browser-rendered inspection.
 - `artifact-runtime`: durable artifacts and format transformations.
-- `project-memory`: project-local durable memory after a separate project contract.
+- `project-memory`: MemPalace-backed durable memory after exact compatibility evidence and session-scoped standing authorization; records are cross-project searchable while retaining logical applicability.
 
 When unavailable, runtime and doctor output use explicit `SKIP`/`WARN` results and must not claim the work ran. Enable guidance and side effects are recorded in `manifests/capabilities.json`.
 
@@ -125,11 +131,11 @@ AILI applies a non-removable in-process child guard before tool approval. It den
 
 Wrapped local and sandboxed Bash preserve Pi's current `PI_SESSION_ID`, persistent `PI_SESSION_FILE`, `PI_PROVIDER`, `PI_MODEL`, and `PI_REASONING_LEVEL` values while removing stale inherited values. A command that is separately authorized to read `$PI_SESSION_FILE` performs an ordinary Pi tool read; AILI does not proactively read or copy that Session JSONL.
 
-Use `hub jobs`, `hub wait`, `hub output`, and `hub history` to inspect durable asynchronous work. At most 32 top-level turns run concurrently; nested work is synchronous and depth-bounded. Persistent Agents are a benefit-based way to improve execution efficiency and preserve parent context, while the main agent retains decisions, integration, and final verification. Direct parent work remains valid when delegation has no clear net benefit; no Agent call is required to unlock mutation. Provider/model behavior still depends on the configured Pi environment.
+Background results are delivered automatically, and the Parent may also coordinate them through `hub jobs`, `hub wait`, `hub output`, `hub history`, `hub send`, and `hub cancel`. Child output/history artifacts stay inspectable under the parent sidecar (`agent://` and `history://` references, with sensitive history entries redacted in place). At most 32 top-level turns run concurrently; nested work is synchronous and depth-bounded. Persistent Agents are a benefit-based way to improve execution efficiency and preserve parent context, while the main agent retains decisions, integration, and final verification. Direct parent work remains valid when delegation has no clear net benefit; no Agent call is required to unlock mutation. Provider/model behavior still depends on the configured Pi environment.
 
 ## Provenance and reproducibility
 
-- `upstream/aili-workflows.lock.json` pins the exact canonical 58-skill/562-file verification snapshot and Pi runtime bundle from `rose-aili@0.4.7` commit `a69f3149d8f1db81726128c2819a3ccc954b9ccc`.
+- `upstream/aili-workflows.lock.json` pins the exact canonical 58-skill/562-file verification snapshot and Pi runtime bundle from `rose-aili@0.4.8` commit `a5284ee105a084392a944aee04313dcf7c294a64`.
 - `upstream/aili-workflows-runtime/` contains the hash-bound generated Pi system, role metadata, selection map, protocols, installation contract, and provenance consumed by the runtime.
 - `upstream/pi-permission-modes.lock.json` pins the exact upstream and adapted permission runtime files and semantic diff.
 - `manifests/skill-compatibility.json` records one compatibility state per skill.

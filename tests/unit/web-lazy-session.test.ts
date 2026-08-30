@@ -56,7 +56,7 @@ describe("lazy official Pi AgentSession bridge", () => {
       factory: { create: () => { calls += 1; return { id: "agent-1" }; } },
     });
 
-    await expect(lazy.get()).rejects.toThrow(/0\.84\.2 compatibility/);
+    await expect(lazy.get()).rejects.toThrow(/0\.84\.4 compatibility/);
     expect(calls).toBe(0);
     expect(lazy.loaded).toBe(false);
   });
@@ -97,10 +97,12 @@ describe("lazy official Pi AgentSession bridge", () => {
   });
 
   it("accepts only the pinned official Pi baseline", () => {
-    expect(OFFICIAL_PI_VERSION).toBe("0.84.2");
-    expect(isOfficialPiCompatible("0.84.2")).toBe(true);
+    expect(OFFICIAL_PI_VERSION).toBe("0.84.4");
+    expect(isOfficialPiCompatible("0.84.4")).toBe(true);
+    expect(isOfficialPiCompatible("0.84.3")).toBe(false);
     expect(isOfficialPiCompatible("0.84.1")).toBe(false);
-    expect(() => assertOfficialPiCompatible("0.84.2")).not.toThrow();
-    expect(() => assertOfficialPiCompatible("0.84.1")).toThrow(/expected 0\.84\.2/);
+    expect(() => assertOfficialPiCompatible("0.84.4")).not.toThrow();
+    expect(() => assertOfficialPiCompatible("0.84.3")).toThrow(/expected 0\.84\.4/);
+    expect(() => assertOfficialPiCompatible("0.84.1")).toThrow(/expected 0\.84\.4/);
   });
 });

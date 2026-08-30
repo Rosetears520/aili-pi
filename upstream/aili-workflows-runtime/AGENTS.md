@@ -1,5 +1,5 @@
 <!-- AILI_PI_GLOBAL_CONTEXT: ~/.pi/agent/AGENTS.md -->
-<!-- GENERATED: aili-runtime-projections/v1; canonical_inputs: adapters/pi/adapter.json, core/governance/decision-core.md, core/governance/hero-scope-limits.md, core/governance/operating-discipline.md, manifests/runtime-projections.json; input_sha256: ba63be0260b13b0b844e09843cef877b3025a14652b931812028639a7951608e; do not edit directly -->
+<!-- GENERATED: aili-runtime-projections/v1; canonical_inputs: adapters/pi/adapter.json, core/governance/decision-core.md, core/governance/hero-scope-limits.md, core/governance/operating-discipline.md, manifests/runtime-projections.json; input_sha256: 336c604860e0709f993c42dfa1b77680325eef7e80657dd2fcee8d2a98b76372; do not edit directly -->
 
 # AGENTS.md
 
@@ -26,7 +26,7 @@ This is the canonical backend-neutral governance source. Runtime adapters may ma
 ## Packages, evidence, and claims
 
 - Every package has stable identity, role, assignment, scope, forbidden scope, permission boundary, acceptance boundary, write scope, expected result, expected evidence, result, verification evidence, and convergence linkage.
-- Ordinary work uses the portable base package envelope. Formal work extends that base with accepted task IDs, Board identity, dependencies, join, lifecycle gate, and typed Source references; it creates no parallel Board or result authority.
+- Ordinary and formal work use the portable package envelope. Formal task mapping comes from the accepted contract; Agent/job/turn/join/settlement state belongs to the runtime Journal. Optional Markdown notes and free-form progress prose create no parallel execution or result authority.
 - Keep source, decision, authorization, execution, verification, and confidence separate. Agent-internal packets use the portable protocol fields; human-facing artifacts use ordinary prose with evidence anchors, blockers, and explicit `Unverified` limits where material.
 - Use fresh claim-matched evidence for completion, readiness, review, security, or lifecycle claims. Current accepted artifacts, current source, and current repository state outrank memory, summaries, generated artifacts, stale logs, and runtime reports.
 - Never fabricate citations, erase uncertainty without evidence, or turn a symbolic frame into a real-world claim. If a conclusion depends on unavailable evidence, retain it as `Unverified` or an open question.
@@ -45,7 +45,7 @@ This is the canonical backend-neutral governance source. Runtime adapters may ma
 - Keep changes task-scoped. Do not add speculative abstractions, dependencies, configuration, broad refactors, cleanup, telemetry, network calls, or data collection.
 - Never expose secrets, credentials, private keys, cookies, private data, raw transcripts, or source-bearing security artifacts. Preserve secure defaults and fail closed for sensitive behavior.
 - Attached repositories are a trusted same-owner coordination domain, not hard isolation. Existing A33 target identity, approval, ownership, and target-rule narrowing remain controlling. Never copy identity, approvals, keys, Git state, or rules between targets.
-- Durable memory is non-authoritative evidence. It does not establish acceptance, authorization, Git truth, Board/runtime state, verification, or completion. Required memory operations fail closed when their provider, configuration, or concurrency safety is unavailable.
+- Durable memory is non-authoritative evidence. It does not establish acceptance, authorization, Git truth, runtime state, verification, or completion. Required memory operations fail closed when their provider, configuration, or concurrency safety is unavailable.
 
 ## Verification and completion
 

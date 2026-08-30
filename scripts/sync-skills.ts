@@ -20,12 +20,12 @@ const LOCK = resolve(ROOT, "upstream/aili-workflows.lock.json");
 const COMPATIBILITY = resolve(ROOT, "manifests/skill-compatibility.json");
 const REPOSITORY = "https://github.com/Rosetears520/aili-workflows.git";
 const AGENT_SELECTION_PATH = ".agents/skills/parallel-subagent-dispatch/references/agent-selection-matrix.md";
-const FORMAL_TASK_BOARD_PATH = ".agents/skills/aili-delivery-flow/references/formal-task-board.md";
+const FORMAL_TASK_NOTES_PATH = ".agents/skills/aili-delivery-flow/references/formal-task-board.md";
 const AGENT_SELECTION_PROTOCOL = "aili-agent-selection/v1";
-const FORMAL_TASK_BOARD_PROTOCOL = "aili-task-board/v1";
 
 type FileRecord = { path: string; sha256: string; bytes: number };
 type ProtocolRecord = { protocol: string; path: string; sha256: string; bytes: number };
+type ReferenceRecord = { path: string; sha256: string; bytes: number };
 interface ReleaseRecord {
   package: "rose-aili";
   version: string;
@@ -33,7 +33,9 @@ interface ReleaseRecord {
   tarballSha256: string;
   protocols: {
     agentSelection: ProtocolRecord;
-    formalTaskBoard: ProtocolRecord;
+  };
+  references: {
+    formalTaskNotes: ReferenceRecord;
   };
   canonicalSpecialists: string[];
 }
@@ -266,7 +268,6 @@ async function verifyReleaseSnapshot(lock: LockFile): Promise<void> {
   }
   const expectedProtocols = [
     [release.protocols?.agentSelection, AGENT_SELECTION_PROTOCOL, AGENT_SELECTION_PATH],
-    [release.protocols?.formalTaskBoard, FORMAL_TASK_BOARD_PROTOCOL, FORMAL_TASK_BOARD_PATH],
   ] as const;
   for (const [record, protocol, sourcePath] of expectedProtocols) {
     if (record?.protocol !== protocol || record.path !== sourcePath || !/^[0-9a-f]{64}$/.test(record.sha256)) {
@@ -277,6 +278,14 @@ async function verifyReleaseSnapshot(lock: LockFile): Promise<void> {
     if (record.sha256 !== sha256(content) || record.bytes !== content.byteLength || !content.toString("utf8").includes(protocol)) {
       throw new Error(`generated skill protocol drifted: ${protocol}`);
     }
+  }
+  const notes = release.references?.formalTaskNotes;
+  if (notes?.path !== FORMAL_TASK_NOTES_PATH || !/^[0-9a-f]{64}$/.test(notes.sha256) || !Number.isSafeInteger(notes.bytes)) {
+    throw new Error("generated formal task notes reference identity is incomplete");
+  }
+  const notesContent = await readFile(resolve(SNAPSHOT, FORMAL_TASK_NOTES_PATH.replace(/^\.agents\/skills\//, "")));
+  if (notes.sha256 !== sha256(notesContent) || notes.bytes !== notesContent.byteLength) {
+    throw new Error("generated formal task notes reference drifted");
   }
   const matrix = await readFile(
     resolve(SNAPSHOT, AGENT_SELECTION_PATH.replace(/^\.agents\/skills\//, "")),
@@ -357,8 +366,12 @@ async function releaseRecord(source: string, args: SyncArgs): Promise<ReleaseRec
     if (!content.toString("utf8").includes(protocol)) throw new Error(`missing protocol marker ${protocol} at ${path}`);
     return { protocol, path, sha256: sha256(content), bytes: content.byteLength };
   };
+  const referenceRecord = async (path: string): Promise<ReferenceRecord> => {
+    const content = await readFile(resolve(source, path));
+    return { path, sha256: sha256(content), bytes: content.byteLength };
+  };
   const agentSelection = await protocolRecord(AGENT_SELECTION_PROTOCOL, AGENT_SELECTION_PATH);
-  const formalTaskBoard = await protocolRecord(FORMAL_TASK_BOARD_PROTOCOL, FORMAL_TASK_BOARD_PATH);
+  const formalTaskNotes = await referenceRecord(FORMAL_TASK_NOTES_PATH);
   const matrix = await readFile(resolve(source, AGENT_SELECTION_PATH), "utf8");
   const canonicalSpecialists = parseSpecialistRoles(matrix);
   const publishedRoleNames = (await readdir(resolve(source, "agents"), { withFileTypes: true }))
@@ -373,7 +386,8 @@ async function releaseRecord(source: string, args: SyncArgs): Promise<ReleaseRec
     version: args.version,
     npmGitHead: args.npmGitHead!,
     tarballSha256: args.tarballSha256,
-    protocols: { agentSelection, formalTaskBoard },
+    protocols: { agentSelection },
+    references: { formalTaskNotes },
     canonicalSpecialists,
   };
 }

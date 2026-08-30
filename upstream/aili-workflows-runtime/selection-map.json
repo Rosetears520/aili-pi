@@ -98,6 +98,6 @@
       "core/roles/roles.json",
       "manifests/runtime-projections.json"
     ],
-    "inputSha256": "06b44525cd9551b834d05500e06e1a20d4b409835d0553ccbcae41290ebfd608"
+    "inputSha256": "abbcd949a3ed7dcdfacc073081fca27b3372899dcc0dda9b984929db2ff97072"
   }
 }

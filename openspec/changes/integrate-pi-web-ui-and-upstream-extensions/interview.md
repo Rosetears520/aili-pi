@@ -286,10 +286,36 @@ The material product frontier is empty based on current evidence. The user expli
   - Use the locked `agegr/pi-web` implementation as the concrete source baseline and inspect its supported session/server patterns during DEFINE. Where direct reuse conflicts with the accepted AILI ownership, security, or single-writer contract, adapt its approach rather than inventing an unrelated second base.
 - Write-back targets: `context.md`, `design.md`, shared-session specs, tasks, and `test-plan.md`.
 
+### D-19 — Pi 0.84.2 / Pi Web 0.8.9 and one Web mutation owner
+
+- User direction: first synchronize the formal contract to official Pi `0.84.2` and Pi Web `0.8.9`, explicitly retire stale Gateway/asymmetric design, then make the real `AppShell` use one Gateway mutation owner and seal rather than delete old direct mutation routes.
+- Classification: accepted material architecture and BUILD delta.
+- Decision state: `accepted`; supersedes the cross-surface parts of D-07 and Q4-01 while retaining Pi JSONL as conversation truth and the no-Pi-fork boundary.
+- Accepted requirement:
+  - The current source/runtime baseline is exact `@agegr/pi-web@0.8.9` revision `febcba5e33e5eef9bf7f092099105c5dfea742ff` with official Pi `0.84.2`.
+  - Inside the Web application, one AILI Runtime Gateway/BFF owns every mutation. The real `AppShell`, hooks, components, and compatibility routes may not directly invoke mutable Pi, filesystem, Git, Worktree, Agent, MCP, Analytics, BTW, Stamp, model/plugin/skill, or media owners.
+  - Existing direct mutation routes are retained only as sealed rejecting or Gateway-translating compatibility facades for now; deleting them is not authorized by this decision.
+  - The earlier Extension `session_start` admission, private TUI projection, TUI-writer/Web-observer, and Web-writer/stock-TUI-fail-closed requirements are retired. This change makes no claim that official stock TUI and Web can safely mutate the same session concurrently.
+  - Native agent-driven Browser work is last, optional, and requires fresh explicit authorization; it is not part of the current BUILD queue.
+- Execution target authorization: user selected the current dirty `main` and authorized task-scoped edits while preserving unrelated changes; no commit, push, dependency/lockfile change, browser operation, server probe, publish, or release is authorized.
+
+### D-20 — Pi 0.84.4 / Pi Web 0.8.11 preservation-first upgrade
+
+- User direction: adapt the latest official Pi and Pi Web while preserving existing AILI modifications; Prompt Middleware remains required; Native Browser remains deferred.
+- Classification: accepted version/source/dependency and selective-port BUILD delta owned by `upgrade-pi-0844-and-pi-web-0811`.
+- Decision state: `accepted`; supersedes only D-19's active version/source statements and preserves its Gateway/BFF sole mutation owner, sealed-route, lease, privacy and no-Pi-fork boundaries.
+- Accepted requirement:
+  - active runtime is exact Pi `0.84.4`;
+  - active Pi Web source is exact `0.8.11` tag revision `28bab3c25f5f6770c9b0b745ebbfec1c27f7b948`, with 0.8.9 retained historical-only;
+  - upstream features are ported symbol-by-symbol and may not overwrite AILI AppShell/ChatWindow/Herdr/Prompt/Memory/Gateway behavior;
+  - built-in upstream subagents and direct mutation ownership remain excluded;
+  - Browser/E2E execution remains separately gated.
+- Exact operation authorization: user accepted the new final test plan and authorized the repository-local Pi dependency/lockfile update and 0.8.11 snapshot import; no Git, publish or release authority was granted.
+
 ## Readiness
 
 - State: `READY`
-- Detailed reason: Q4-01 is resolved with the fail-closed official-Pi asymmetric attachment contract; no material product decision remains open.
+- Detailed reason: D-20 establishes official Pi `0.84.4`, active Pi Web `0.8.11`, one Web mutation owner, sealed compatibility routes, preservation-first selective ports, and no native Browser execution; no material product decision remains open.
 - Open material decisions: none.
 - Unverified implementation evidence: exact Analytics memory/disk measurements remain pending implementation profiling and are acceptance targets rather than current facts.
 - Next action: inspect the locked `agegr/pi-web` source patterns, then continue formal design, delta specs, tasks, and final test-plan definition.

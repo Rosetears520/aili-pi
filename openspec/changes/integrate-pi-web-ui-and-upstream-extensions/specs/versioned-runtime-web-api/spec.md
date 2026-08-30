@@ -26,15 +26,15 @@ Clients and the gateway SHALL reject events, responses, and mutation acknowledge
 - **THEN** the client ignores it and preserves the newer state
 
 ### Requirement: Capability-gated mutations
-Every mutation request SHALL carry a unique request ID, client identity, expected runtime epoch, expected lease generation, command type, and schema-validated arguments. Browser mutations MUST pass authentication and Origin checks. TUI-origin mutations MUST use the authenticated private runtime channel and MUST NOT be required to fabricate browser Origin data. Every origin MUST pass allowed-root, capability, permission, lease-ownership, freshness, and operation-specific checks before dispatch.
+Every mutation request SHALL carry a unique request ID, client identity, expected runtime epoch, expected Web lease generation, command type, and schema-validated arguments. Browser mutations MUST pass authentication and Origin checks. Every Web origin MUST pass allowed-root, capability, permission, lease-ownership, freshness, and operation-specific checks before dispatch. No private TUI mutation channel is part of this contract.
 
 #### Scenario: Unsupported mutation is absent or denied
 - **WHEN** the current runtime cannot safely perform a requested Agent, MCP, Pi, Analytics, BTW, Stamp, Worktree, or media mutation
 - **THEN** the UI does not present it as available or the gateway denies it without guessing support
 
-#### Scenario: TUI mutation uses private runtime identity
-- **WHEN** stock TUI owns the lease and submits a mutation through the extension runtime
-- **THEN** the gateway authenticates the private TUI channel and applies all non-browser gates without requiring a browser Origin header
+#### Scenario: AppShell mutation uses the Gateway envelope
+- **WHEN** an AppShell control requests a session or capability mutation
+- **THEN** the request enters the versioned Gateway envelope and cannot fall back to a direct legacy service call
 
 #### Scenario: Duplicate request is idempotently disposed
 - **WHEN** the same request ID and payload are retried after their disposition is known

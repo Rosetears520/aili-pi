@@ -1,14 +1,18 @@
+import { Type } from "typebox";
 import {
   SessionManager,
   type ExtensionAPI,
   type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import type { TaskExecutionOutput, TaskExecutorInput, TaskPreflightResult, TaskUpdateCallback } from "./task-coordinator.js";
+import type { TaskExecutorInput, TaskPreflightInput, TaskUpdateCallback } from "./sub-coordinator.js";
 import type { ResolvedModelChoice } from "./model-selection.js";
-import { TaskCoordinator } from "./task-coordinator.js";
-import { HUB_TOOL_SCHEMA, HubService, type HubCaller, type LiveAgentAdapter } from "./hub.js";
-import { TASK_TOOL_SCHEMA } from "./task-schema.js";
-import { buildFormalTaskDispatch, FORMAL_TASK_TOOL_SCHEMA } from "./formal-task-tool.js";
+import { SubCoordinator } from "./sub-coordinator.js";
+import { ActivityBus, type ActivityKind } from "./activity-bus.js";
+import { DEFAULT_EXECUTION_BACKEND, type ExecutionBackendKind } from "./backends/types.js";
+import { ExecutionBackendRegistry } from "./backends/registry.js";
+import { ManagedExecutionBackend } from "./backends/managed.js";
+import { assertHerdrRoleSupported, defaultBootstrapModulePath, HerdrExecutionBackend } from "./backends/herdr/adapter.js";
+import { SUB_TOOL_SCHEMA } from "./sub-schema.js";
 import {
   createChildSessionManager,
   ensureSidecarLayout,
@@ -42,9 +46,9 @@ import {
   type FormalRuntimeReconciliationPlan,
 } from "../formal-orchestration.js";
 import { loadRoleProfiles } from "../roles.js";
-import type { FormalContinuationAudit } from "./task-schema.js";
-import { registerCanonicalAiliTaskTool } from "./task-registration.js";
-import { HUB_RENDERERS, TASK_RENDERERS } from "./task-hub-renderer.js";
+import type { FormalContinuationAudit } from "./sub-schema.js";
+import { registerCanonicalAiliSubTool } from "./sub-registration.js";
+import { SUB_RENDERERS } from "./sub-renderer.js";
 
 export interface PersistentRuntimeExecutorInput extends TaskExecutorInput {
   sessionManager: SessionManager;
@@ -54,14 +58,19 @@ export interface PersistentAgentRuntimeOptions {
   parentSessionPath: string;
   parentId: string;
   cwd: string;
-  execute: (input: PersistentRuntimeExecutorInput) => Promise<TaskExecutionOutput>;
-  preallocate?: (input: { item: TaskExecutorInput["item"]; role: TaskExecutorInput["role"]; ancestry?: import("./task-coordinator.js").TaskAncestry }) => ResolvedModelChoice | TaskPreflightResult | undefined | Promise<ResolvedModelChoice | TaskPreflightResult | undefined>;
+  execute: (input: PersistentRuntimeExecutorInput) => Promise<import("./sub-coordinator.js").TaskExecutionOutput>;
+  /** Resolves the user-owned backend selection for NEW agents (settings +
+   *  session override). Returning a kind that is not registered fails the
+   *  submission explicitly before allocation — no fallback. */
+  resolveBackend?: () => Promise<ExecutionBackendKind> | ExecutionBackendKind | undefined;
+  preallocate?: (input: TaskPreflightInput) => ResolvedModelChoice | import("./sub-coordinator.js").TaskPreflightResult | undefined | Promise<ResolvedModelChoice | import("./sub-coordinator.js").TaskPreflightResult | undefined>;
   preflight?: (input: TaskExecutorInput) => void | Promise<void>;
-  preflightContinuation?: (agentId: string) => void | Promise<void>;
   parentDelivery: ParentDeliveryAdapter;
-  revive: (agentId: string, sessionManager: SessionManager) => Promise<LiveAgentAdapter>;
-  modelHubOperation?: (request: Record<string, unknown>, caller: HubCaller) => Promise<unknown>;
-  onRelease?: (agentId: string) => void | Promise<void>;
+  requestInteraction?: (request: { agentId: string; jobId: string; turnId: string; runId: string; interactionId: string; kind: string; payload: Record<string, unknown>; signal: AbortSignal }) => Promise<unknown>;
+  /** Path of the child bootstrap module passed to herdr children (-e). */
+  bootstrapModulePath?: string;
+  /** Cap on simultaneously live herdr child surfaces (surface permit). */
+  herdrMaxLiveSurfaces?: number;
 }
 
 export interface FormalRuntimeReconciliationRequest {
@@ -131,9 +140,12 @@ interface FormalReconciliationCheckpoint {
 export class PersistentAgentRuntime {
   readonly layout: SidecarLayout;
   readonly journal: CoordinatorJournal;
-  readonly task: TaskCoordinator;
-  readonly hub: HubService;
+  readonly sub: SubCoordinator;
   readonly delivery: AsyncDeliveryService;
+  readonly activity: ActivityBus;
+  /** Execution backends available to this runtime (ADR-001/ADR-005). */
+  readonly backends = new ExecutionBackendRegistry();
+  readonly herdrBackend: HerdrExecutionBackend;
   private readonly childManagers = new Map<string, SessionManager>();
 
   /** Repository root the coordinators resolve formal board roots against. */
@@ -147,41 +159,71 @@ export class PersistentAgentRuntime {
   ) {
     this.layout = initialized.layout;
     this.journal = initialized.journal;
+    this.activity = new ActivityBus(options.parentId);
     this.delivery = new AsyncDeliveryService(this.layout, this.journal, options.parentDelivery);
-    this.task = new TaskCoordinator({
+    // The previous in-process execution path, unchanged, behind the backend
+    // seam: child-session allocation, fallible preflight with durable failure
+    // evidence, and the production controller call now live in the adapter.
+    this.backends.register(new ManagedExecutionBackend({
+      journal: this.journal,
+      childManager: (agentId) => this.childManager(agentId),
+      preflight: options.preflight,
+      execute: options.execute,
+    }));
+    this.herdrBackend = new HerdrExecutionBackend({
+      journal: this.journal,
+      layout: this.layout,
+      parentId: options.parentId,
+      cwd: options.cwd,
+      bootstrapModulePath: options.bootstrapModulePath ?? defaultBootstrapModulePath(),
+      maxLiveSurfaces: options.herdrMaxLiveSurfaces,
+      requestInteraction: options.requestInteraction,
+      onAdoptedSettlement: async (settlement) => { await this.sub.settleRecovered(settlement); },
+      onActivity: (event) => {
+        const kind = event.event === "interaction.expired" ? "interaction.resolved" : event.event as ActivityKind;
+        const supported = new Set<ActivityKind>(["turn.started", "turn.completed", "turn.failed", "ui.prompt.started", "ui.prompt.ended", "interaction.requested", "interaction.resolved", "manual.input", "run.observed"]);
+        if (!supported.has(kind)) return;
+        this.activity.publish({
+          kind,
+          source: "precise",
+          agentId: event.agentId,
+          runId: event.runId,
+          ...(typeof event.data.jobId === "string" ? { jobId: event.data.jobId } : {}),
+          ...(typeof event.data.turnId === "string" ? { turnId: event.data.turnId } : {}),
+          backend: "herdr",
+          driver: "pi-cli",
+          ...(event.seq > 0 ? { sourceSequence: event.seq } : {}),
+        });
+      },
+    });
+    this.backends.register(this.herdrBackend);
+    this.sub = new SubCoordinator({
       journal: this.journal,
       repositoryRoot: options.cwd,
       preflight: options.preallocate,
+      resolveBackend: async () => {
+        const kind = (await options.resolveBackend?.()) ?? DEFAULT_EXECUTION_BACKEND;
+        // Fail here, before any durable allocation, when the resolved backend
+        // is not available in this build. Never substitute another backend.
+        this.backends.require(kind);
+        return kind;
+      },
+      checkBackendSupport: (backend, item, role) => {
+        if (backend === "herdr") assertHerdrRoleSupported(role, item);
+      },
       execute: async (input) => {
-        // Allocate and register the exact child history before any fallible
-        // preflight. If preflight fails, persist that failure as non-provider
-        // runtime evidence so official Pi materializes the deferred JSONL.
-        const manager = await this.childManager(input.agentId);
+        const backendKind = input.backend ?? DEFAULT_EXECUTION_BACKEND;
+        const backend = this.backends.require(backendKind);
+        const turnDriver = input.nestedCli ? "external-cli" as const : backend.driver;
+        this.activity.publish({ kind: "turn.started", source: "auxiliary", agentId: input.agentId, jobId: input.jobId, turnId: input.turnId, backend: backendKind, driver: turnDriver });
         try {
-          await options.preflight?.(input);
+          const output = await backend.execute(input);
+          this.activity.publish({ kind: output.status === "failed" ? "turn.failed" : "turn.completed", source: "auxiliary", agentId: input.agentId, jobId: input.jobId, turnId: input.turnId, runId: output.runId, backend: output.backend ?? backendKind, driver: output.driver ?? turnDriver });
+          return output;
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          manager.appendMessage({
-            role: "assistant",
-            content: [{ type: "text", text: `Agent preflight failed before execution: ${message}` }],
-            timestamp: Date.now(),
-            api: "aili-runtime",
-            provider: "aili-runtime",
-            model: "preflight",
-            usage: {
-              input: 0,
-              output: 0,
-              cacheRead: 0,
-              cacheWrite: 0,
-              totalTokens: 0,
-              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-            },
-            stopReason: "error",
-            errorMessage: message,
-          } as never);
+          this.activity.publish({ kind: "turn.failed", source: "auxiliary", agentId: input.agentId, jobId: input.jobId, turnId: input.turnId, backend: backendKind, driver: turnDriver, data: { error: error instanceof Error ? error.message.slice(0, 160) : "execution failed" } });
           throw error;
         }
-        return await options.execute({ ...input, sessionManager: manager });
       },
       onSettled: async (settlement, fullOutput) => {
         await persistFullAgentOutput(this.layout, settlement.agentId, fullOutput);
@@ -193,36 +235,27 @@ export class PersistentAgentRuntime {
         await this.delivery.complete(settlement, fullOutput);
       },
     });
-    this.hub = new HubService({
-      journal: this.journal,
-      ...(options.preflightContinuation ? {
-        preflightContinuation: async (agent) => await options.preflightContinuation!(agent.id),
-      } : {}),
-      revive: async (agent) => {
-        await options.preflightContinuation?.(agent.id);
-        if (!agent.sessionPath) throw new Error(`${agent.id}: no registered child session`);
-        const manager = await openChildSessionManager(this.layout, agent.sessionPath);
-        this.childManagers.set(agent.id, manager);
-        return await options.revive(agent.id, manager);
-      },
-      cancelJob: async (jobId) => await this.task.cancel(jobId),
-      output: async (agent, offset, limit) => await readAgentOutput(this.layout, this.journal, agent.id, offset, limit),
-      history: async (agent, offset, limit) => await readAgentHistory(this.layout, this.journal, agent.id, offset, limit),
-      model: options.modelHubOperation,
-      onRelease: async (agent) => await options.onRelease?.(agent.id),
-    });
   }
 
   static async create(options: PersistentAgentRuntimeOptions): Promise<PersistentAgentRuntime> {
     const layout = await ensureSidecarLayout(options.parentSessionPath);
-    const resumed = await resumeCoordinator(layout, options.parentId);
+    const resumed = await resumeCoordinator(layout, options.parentId, { deferHerdrReconcile: true });
     const runtime = new PersistentAgentRuntime(options, { layout, journal: resumed.journal });
     await runtime.delivery.recoverPending();
+    // Preserve live Herdr jobs until bridge adoption has had the first chance
+    // to reattach and replay completion evidence. Only non-adopted Herdr jobs
+    // are then reconciled as interrupted/unexecuted.
+    const adoption = await runtime.herdrBackend.adoptAfterResume().catch(() => ({ adopted: [] as string[], lost: [] as string[] }));
+    const adopted = new Set(adoption.adopted);
+    const pendingHerdr = new Set(Object.values(runtime.journal.getState().agents)
+      .filter((agent) => agent.backend === "herdr" && (agent.state === "running" || agent.state === "queued") && !adopted.has(agent.id))
+      .map((agent) => agent.id));
+    if (pendingHerdr.size) await reconcileUnfinishedCoordinator(runtime.journal, "process-loss", { includeAgentIds: pendingHerdr });
     return runtime;
   }
 
   async shutdown(): Promise<void> {
-    await this.task.scheduler.close();
+    await this.sub.scheduler.close();
     await reconcileUnfinishedCoordinator(this.journal, "graceful-shutdown");
     for (const manager of this.childManagers.values()) void manager;
     this.childManagers.clear();
@@ -449,68 +482,125 @@ export interface InternalPersistentToolRegistrationOptions {
   catalog: AgentCatalog;
   directModelCommand?: (args: string, context: ExtensionContext) => Promise<string>;
   directFastCommand?: (args: string, context: ExtensionContext) => Promise<string>;
+  directBackendCommand?: (args: string, context: ExtensionContext) => Promise<string>;
+  directAgentsCommand?: (args: string, context: ExtensionContext) => Promise<string>;
 }
 
-const TASK_DESCRIPTION = "Delegate bounded work to parent-scoped persistent AILI Agents. Ordinary Pi remains benefit-based: direct work is valid when delegation adds no concrete benefit, and omitted agent retains general compatibility. Formal package dispatch belongs to the formal_task tool; do not send formalContext or continuationAudit here. Use async:false for prerequisites with an immediate join, and async:true only for independent work with a named join, then inspect output/history before dependents. Workers never decide lifecycle phase or verdict. Never send blocking: it is profile-only internal metadata.";
+const HUB_TOOL_SCHEMA = Type.Object({
+  action: Type.Union([Type.Literal("jobs"), Type.Literal("wait"), Type.Literal("output"), Type.Literal("history"), Type.Literal("send"), Type.Literal("cancel")]),
+  task_id: Type.Optional(Type.String({ minLength: 1 })),
+  job_id: Type.Optional(Type.String({ minLength: 1 })),
+  prompt: Type.Optional(Type.String({ minLength: 1 })),
+  timeout_ms: Type.Optional(Type.Number({ minimum: 0 })),
+  offset: Type.Optional(Type.Number({ minimum: 0 })),
+  limit: Type.Optional(Type.Number({ minimum: 1, maximum: 5000 })),
+}, { additionalProperties: false });
 
-const TASK_PROMPT_SNIPPET = "Ordinary Pi keeps benefit-based direct work and omitted agent remains general-compatible. Dispatch formal packages through formal_task; keep this tool for ordinary bounded delegation.";
+const SUB_DESCRIPTION = "Delegate one bounded turn to a persistent AILI child Agent with its own context. Omit task_id to create the child and run this turn immediately; pass task_id to continue the same child session with a further turn. Calls run foreground by default; set background:true on a top-level call to return task_id immediately and coordinate it through hub. For parallel work, issue several sub calls in the same assistant message: official Pi executes them concurrently and this turn waits for all of them before continuing. model/thinking are per-turn execution choices: an explicit request that is unavailable, ambiguous, unsupported, or denied fails this call instead of falling back. Omit cli for ordinary Pi execution; only an exact current-user external-CLI authorization may use cli for one Herdr Pi runner turn. For multi-step work, keep a free-form progress.txt at the owning task or change root; create it when absent and do not format-validate it. A formal-task-board.md is optional and never required by sub.";
 
-const TASK_PROMPT_GUIDELINES = [
-  "Ordinary routing: outside a formal lifecycle, delegate only for concrete benefit; direct work remains valid and omitted agent retains general compatibility.",
-  "Formal boundary: formal package dispatch uses the formal_task tool with the exact changeId/packageId; this sub tool never carries formalContext or continuationAudit.",
-  "Prerequisite execution: use async:false with Join: immediate whenever the result is needed by the next decision or package.",
-  "Worker boundary: workers return evidence only; they never write the owning formal-task-board.md/progress.txt or decide lifecycle phase, acceptance, or final verdict.",
+const SUB_PROMPT_SNIPPET = "sub runs one child turn: foreground by default, top-level background:true for cross-turn work, task_id reuse for follow-up; hub coordinates jobs/wait/output/history/send/cancel.";
+
+const SUB_PROMPT_GUIDELINES = [
+  "One call = one turn: create with subagent_type, or continue a settled task_id; a running task_id returns SUB_BUSY and is never steered or queued.",
+  "Parallel foreground calls in one message execute concurrently and wait together. For cross-turn work, use background:true then hub jobs/wait/output/history/send; never invent a fixed wait timeout unless the task requires one.",
+  "Per-turn model/thinking: explicit requests are strict and fail on unavailable/ambiguous/unsupported/denied instead of silently falling back. Omit cli for Pi; pass cli only when the current user explicitly names that external product for this subagent turn.",
+  "Delegated children are observable surfaces: on the herdr backend they run as visible terminals in the user's Herdr window — one AILI tab, parallel work splits panes inside it (optional split: right|down hints the next pane's direction). sub owns the child lifecycle: never start or stop agents or close their panes yourself; in herdr mode use the herdr skill to observe panes and adjust layout (focus, move, resize, split ratio).",
+  "Ordinary routing: outside a formal lifecycle, delegate only for concrete benefit; direct work remains valid.",
+  "Progress: for multi-step work, create progress.txt at the owning task or change root when absent and append concise free-form progress. It has no fixed grammar and must not trigger format validation. formal-task-board.md is optional, human-readable only, and never required by sub.",
+  "Worker boundary: workers return evidence only; they never write the owning progress.txt or optional formal-task-board.md, or decide lifecycle phase, acceptance, or final verdict.",
 ];
 
-const FORMAL_TASK_DESCRIPTION = "Dispatch one exact ready package from a validated v1 formal-task-board.md/progress.txt pair as a persistent AILI Agent task. The board owns the task text, exact Specialized Owner selector, execution mode, and continuation audit; this adapter only validates the pair and constructs the ordinary task request. An invalid, missing, or non-ready package fails before any Agent is allocated and never falls back to ordinary dispatch. Workers return evidence only; ROSE owns phase, acceptance, integration, and verdict.";
 
 /**
  * Canonical registration surface shared by production and deterministic tests.
- * It registers only sub/formal_task/hub plus the direct-user model command when configured;
- * no legacy compatibility alias is created.
+ * It registers sub plus the modernized hub coordination surface and direct-user commands.
+ * formal_task and legacy run/attempt selectors remain absent.
  */
 export function registerPersistentAgentTools(pi: ExtensionAPI, options: InternalPersistentToolRegistrationOptions): void {
   const compactCatalog = renderCompactAgentCatalog(options.catalog);
   if (!compactCatalog.ok) {
     throw new Error(`sub Agent Catalog metadata is non-pass: ${compactCatalog.diagnostics.map((diagnostic) => diagnostic.code).join(", ") || "UNKNOWN"}`);
   }
-  registerCanonicalAiliTaskTool(pi, {
+  registerCanonicalAiliSubTool(pi, {
     name: "sub",
     label: "Sub",
-    description: TASK_DESCRIPTION,
-    promptSnippet: TASK_PROMPT_SNIPPET,
-    promptGuidelines: [...TASK_PROMPT_GUIDELINES, compactCatalog.value],
-    parameters: TASK_TOOL_SCHEMA,
-    ...TASK_RENDERERS,
+    description: SUB_DESCRIPTION,
+    promptSnippet: SUB_PROMPT_SNIPPET,
+    promptGuidelines: [...SUB_PROMPT_GUIDELINES, compactCatalog.value],
+    parameters: SUB_TOOL_SCHEMA,
+    ...SUB_RENDERERS,
     async execute(_toolCallId, params, signal, onUpdate, context) {
       const runtime = await options.runtimeForContext(context);
-      const result = await runtime.task.submit(params, undefined, signal, onUpdate as unknown as TaskUpdateCallback | undefined);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
-    },
-  });
-  pi.registerTool({
-    name: "formal_task",
-    label: "Formal Task",
-    description: FORMAL_TASK_DESCRIPTION,
-    parameters: FORMAL_TASK_TOOL_SCHEMA,
-    ...TASK_RENDERERS,
-    async execute(_toolCallId, params, signal, onUpdate, context) {
-      const runtime = await options.runtimeForContext(context);
-      const request = await buildFormalTaskDispatch(runtime.repositoryRoot ?? context.cwd, params as { changeId: string; packageId: string });
-      const result = await runtime.task.submitTrusted(request, undefined, signal, onUpdate as unknown as TaskUpdateCallback | undefined);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
+      const result = await runtime.sub.submit(params, undefined, signal, onUpdate as unknown as TaskUpdateCallback | undefined);
+      const enriched = { ...result, results: result.results.map((item) => {
+        const taskId = item.taskId ?? item.agentId;
+        const activityEvents = runtime.activity.list(taskId).slice(-20);
+        const pendingInteractions = activityEvents.filter((event) => event.kind === "interaction.requested").length - activityEvents.filter((event) => event.kind === "interaction.resolved").length;
+        const run = Object.values(runtime.journal.getState().runs).filter((candidate) => candidate.agentId === taskId).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).at(-1);
+        return { ...item, activity: runtime.activity.overlay(taskId, 30_000), activityEvents, pendingInteractions: Math.max(0, pendingInteractions), controlMode: run?.controlMode };
+      }) };
+      return { content: [{ type: "text", text: JSON.stringify(enriched, null, 2) }], details: enriched };
     },
   });
   pi.registerTool({
     name: "hub",
     label: "Hub",
-    description: "Inspect and control persistent Agents, jobs, messages, output, history, cancellation, and model requests.",
+    description: "Coordinate top-level background sub tasks: inspect jobs, wait without polling loops, read output/history, continue a settled task, or cancel an active task.",
     parameters: HUB_TOOL_SCHEMA,
-    ...HUB_RENDERERS,
-    async execute(_toolCallId, params, _signal, _onUpdate, context) {
+    async execute(_toolCallId, raw, signal, _onUpdate, context) {
       const runtime = await options.runtimeForContext(context);
-      const result = await runtime.hub.execute(params);
+      const input = raw as { action: string; task_id?: string; job_id?: string; prompt?: string; timeout_ms?: number; offset?: number; limit?: number };
+      const state = () => runtime.journal.getState();
+      const taskId = input.task_id?.trim();
+      const latestTaskJob = taskId
+        ? Object.values(state().jobs).filter((job) => job.agentId === taskId).sort((left, right) => left.createdAt.localeCompare(right.createdAt)).at(-1)?.id
+        : undefined;
+      const jobId = input.job_id?.trim() ?? (taskId ? state().agents[taskId]?.currentJobId ?? latestTaskJob : undefined);
+      let result: unknown;
+      if (input.action === "jobs") {
+        result = { agents: state().agents, jobs: state().jobs, turns: state().turns };
+      } else if (input.action === "wait") {
+        if (!jobId) throw new Error("hub wait requires job_id or task_id with an active job");
+        const started = Date.now();
+        while (true) {
+          if (signal?.aborted) throw new Error("hub wait aborted");
+          const job = state().jobs[jobId];
+          if (!job) throw new Error(`hub wait: unknown job ${jobId}`);
+          if (["completed", "failed", "aborted", "unexecuted"].includes(job.state)) { result = job; break; }
+          if (input.timeout_ms !== undefined && Date.now() - started >= input.timeout_ms) { result = { status: "timeout", job }; break; }
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+      } else if (input.action === "output" || input.action === "history") {
+        if (!taskId) throw new Error(`hub ${input.action} requires task_id`);
+        const reader = input.action === "output" ? readAgentOutput : readAgentHistory;
+        result = await reader(runtime.layout, runtime.journal, taskId, input.offset ?? 0, input.limit ?? 500);
+      } else if (input.action === "send") {
+        if (!taskId || !input.prompt?.trim()) throw new Error("hub send requires task_id and prompt");
+        result = await runtime.sub.submit({ description: `Continue ${taskId}`, prompt: input.prompt, task_id: taskId, background: true }, undefined, signal);
+      } else if (input.action === "cancel") {
+        if (!taskId) throw new Error("hub cancel requires task_id");
+        result = await runtime.sub.cancelTask(taskId);
+      } else throw new Error(`unsupported hub action: ${input.action}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
+    },
+  });
+  pi.registerCommand("sub-cancel", {
+    description: "Cancel the active turn of one persistent sub task (usage: /sub-cancel <task_id>)",
+    handler: async (args, context) => {
+      const taskId = args.trim();
+      try {
+        if (!taskId) throw new Error("usage: /sub-cancel <task_id>");
+        const runtime = await options.runtimeForContext(context);
+        const result = await runtime.sub.cancelTask(taskId);
+        const message = result === "idle"
+          ? `${taskId} has no active turn`
+          : result === "not-found"
+            ? `${taskId} is unknown in this parent session`
+            : `${taskId} turn cancellation requested (${result})`;
+        context.ui.notify(message, "info");
+      } catch (error) {
+        context.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      }
     },
   });
   if (options.directFastCommand) {
@@ -531,6 +621,30 @@ export function registerPersistentAgentTools(pi: ExtensionAPI, options: Internal
       handler: async (args, context) => {
         try {
           context.ui.notify(await options.directModelCommand!(args, context), "info");
+        } catch (error) {
+          context.ui.notify(error instanceof Error ? error.message : String(error), "error");
+        }
+      },
+    });
+  }
+  if (options.directBackendCommand) {
+    pi.registerCommand("aili-agent-backend", {
+      description: "Subagent 后端：s=状态，h=Herdr，m=manage；global herdr|managed|clear 持久化（兼容 status|herdr|managed）；只影响新建 Agent",
+      handler: async (args, context) => {
+        try {
+          context.ui.notify(await options.directBackendCommand!(args, context), "info");
+        } catch (error) {
+          context.ui.notify(error instanceof Error ? error.message : String(error), "error");
+        }
+      },
+    });
+  }
+  if (options.directAgentsCommand) {
+    pi.registerCommand("aili-agents", {
+      description: "Direct user overview of persistent Agents (usage: /aili-agents [focus <task_id>]); lists backend/run/state and focuses a live Herdr pane",
+      handler: async (args, context) => {
+        try {
+          context.ui.notify(await options.directAgentsCommand!(args, context), "info");
         } catch (error) {
           context.ui.notify(error instanceof Error ? error.message : String(error), "error");
         }

@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
-import { getAgentDir, createAgentSession, AgentSession, SessionManager } from "@earendil-works/pi-coding-agent";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { getAgentDir, SessionManager } from "@earendil-works/pi-coding-agent";
 import type { ImageContent } from "@earendil-works/pi-ai/compat";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -13,9 +13,8 @@ import {
   type WebRequestIdentity,
 } from "../../runtime/web/access-policy.js";
 import { PrivateWebBff, type GatewayResponse } from "../../runtime/web/bff-gateway.js";
-import type { JsonValue, MutationEnvelopeV1, RuntimeEventV1, RuntimeSnapshotV1 } from "../../runtime/web/contracts.js";
-import { ReadonlyJsonlBrowser, type JsonlProjectionRecordV1, type JsonlSessionDescriptorV1 } from "../../runtime/web/jsonl-browser.js";
-import { connectProjectionObserver, type ProjectionObserver } from "../../runtime/web/projection-channel.js";
+import type { JsonValue, MutationEnvelopeV1 } from "../../runtime/web/contracts.js";
+import { ReadonlyJsonlBrowser, type JsonlImageCandidateV1, type JsonlSessionDescriptorV1 } from "../../runtime/web/jsonl-browser.js";
 import {
   OwnerOnlyProcessLivenessServer,
   currentProcessIdentity,
@@ -23,18 +22,51 @@ import {
   markLeaseInterrupted,
   probeOwnerProcessLiveness,
 } from "../../runtime/web/process-liveness.js";
-import { RuntimeHost, RuntimeHostRegistry } from "../../runtime/web/runtime-host.js";
+import { RuntimeHost, RuntimeHostRegistry, type MutationExecutionResult } from "../../runtime/web/runtime-host.js";
 import type { LeaseAcquireResult } from "../../runtime/web/session-writer-lease.js";
-import type { WorkbenchCatalogV1, WorkbenchHistoryV1, WorkbenchProjectV1, WorkbenchSessionV1 } from "../contracts.js";
+import { assertBoundedJson, type WorkbenchCatalogV1, type WorkbenchHistoryV1, type WorkbenchProjectV1, type WorkbenchSessionV1 } from "../contracts.js";
+import { resolveSessionPath } from "../lib/session-reader.js";
+import { ConfigurationMutationService, CONFIGURATION_COMMANDS, isConfigurationCommand } from "./configuration-service.js";
 import {
   PrivateWebBffBridge,
   type AiliBffHttpRequest,
+  type AiliCompatibilityMutationRequest,
+  type AiliCompatibilitySessionCreateRequest,
   type AiliWebBffBridge,
 } from "./private-bff-bridge.js";
 
-const OFFICIAL_PI_VERSION = "0.84.2" as const;
-/** Most recent JSONL entries served by the per-session history route. */
-const HISTORY_ENTRY_LIMIT = 500;
+const OFFICIAL_PI_VERSION = "0.84.4" as const;
+const RPC_RUNTIME_ADAPTER_SYMBOL = Symbol.for("@rosetears/aili-pi/web-rpc-runtime-adapter/v1");
+
+interface ForegroundAgentSession {
+  readonly sessionId: string;
+  readonly sessionFile: string;
+  readonly cwd: string;
+  readonly inner: {
+    readonly sessionManager: { getLeafId(): string | null };
+    readonly model?: { readonly provider: string; readonly id: string } | null;
+    readonly agent: { readonly state?: { readonly thinkingLevel?: string } };
+    getContextUsage(): { readonly tokens: number; readonly contextWindow: number } | undefined;
+  };
+  send(command: Record<string, unknown>): Promise<unknown>;
+  isRunning(): boolean;
+  onEvent(listener: (event: { readonly type: string }) => void): () => void;
+  dispose(): Promise<void>;
+}
+
+interface RpcRuntimeAdapter {
+  open(path: string): Promise<ForegroundAgentSession>;
+  create(options: { cwd: string; toolNames?: readonly string[]; provider?: string; modelId?: string; thinkingLevel?: string }): Promise<ForegroundAgentSession>;
+}
+type RpcRuntimeAdapterGlobal = Record<symbol, RpcRuntimeAdapter | undefined>;
+const INITIAL_HISTORY_ENTRY_LIMIT = 50;
+const CONTINUATION_HISTORY_ENTRY_LIMIT = 200;
+const HISTORY_CURSOR_TTL_MS = 10 * 60_000;
+const TOOL_RESULT_IMAGE_MAX_BYTES = 48 * 1024;
+const TOOL_RESULT_IMAGE_PAGE_MAX_BYTES = 96 * 1024;
+const TOOL_RESULT_IMAGE_MAX_DIMENSION = 8_192;
+const TOOL_RESULT_IMAGE_MAX_PIXELS = 40_000_000;
+const TOOL_RESULT_IMAGE_MIMES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 const PRIVATE_HEADERS = Object.freeze({
   "Cache-Control": "private, no-store, max-age=0",
   "X-Content-Type-Options": "nosniff",
@@ -47,9 +79,21 @@ export const FOREGROUND_PI_COMMANDS = Object.freeze({
   "pi.send": Object.freeze(["send"]),
   "pi.follow_up": Object.freeze(["follow_up"]),
   "pi.steer": Object.freeze(["steer"]),
-  "pi.compact": Object.freeze(["compact"]),
+  "pi.compact": Object.freeze(["compact", "set_auto_compaction"]),
+  "pi.abort": Object.freeze(["abort", "abort_compaction"]),
+  "pi.bash": Object.freeze(["bash", "abort_bash"]),
+  "pi.queue": Object.freeze(["clear_queue"]),
+  "pi.tools": Object.freeze(["set_tools"]),
   "pi.thinking": Object.freeze(["select_thinking"]),
-  "session.rename": Object.freeze(["rename"]),
+  "pi.model": Object.freeze(["select_model"]),
+  "pi.branch": Object.freeze(["branch"]),
+  "pi.fork": Object.freeze(["fork"]),
+  "session.reload": Object.freeze(["reload"]),
+  "session.rename": Object.freeze(["rename", "auto_name"]),
+  "permission.mode": Object.freeze(["set_perm_mode"]),
+  "provider.retry": Object.freeze(["set_auto_retry"]),
+  "extension.interact": Object.freeze(["respond", "input"]),
+  "session.safe_delete": Object.freeze(["safe_delete"]),
 } as const);
 
 const CAPABILITIES = Object.freeze({
@@ -58,13 +102,22 @@ const CAPABILITIES = Object.freeze({
   "pi.follow_up": true,
   "pi.steer": true,
   "pi.compact": true,
+  "pi.abort": true,
+  "pi.bash": true,
+  "pi.queue": true,
+  "pi.tools": true,
   "pi.thinking": true,
   "session.rename": true,
+  "session.reload": true,
+  "permission.mode": true,
+  "provider.retry": true,
+  "extension.interact": true,
   "session.create": false,
-  "session.safe_delete": false,
-  "pi.branch": false,
-  "pi.fork": false,
-  "pi.model": false,
+  "session.safe_delete": true,
+  "pi.branch": true,
+  "pi.fork": true,
+  "pi.model": true,
+  "models.configure": false,
   "skills.configure": false,
   "plugins.configure": false,
   "agent.continue": false,
@@ -85,8 +138,7 @@ export interface ForegroundCompositionOptions {
   readonly now?: () => Date;
   readonly browser?: ReadonlyJsonlBrowser;
   readonly managerOpen?: (path: string) => SessionManager;
-  readonly createOfficialSession?: (path: string) => Promise<AgentSession>;
-  readonly connectObserver?: typeof connectProjectionObserver;
+  readonly createOfficialSession?: (path: string) => Promise<ForegroundAgentSession>;
   readonly processIdentity?: ReturnType<typeof currentProcessIdentity>;
   readonly livenessServer?: OwnerOnlyProcessLivenessServer;
 }
@@ -98,31 +150,36 @@ interface SessionRuntimeMetadata {
   readonly privatePath: string;
   readonly privateIdentity: string;
   readonly cwd: string;
-  readonly host: RuntimeHost<AgentSession>;
+  readonly host: RuntimeHost<ForegroundAgentSession>;
   readonly rootGrant?: AllowedPathGrant;
+  readonly transient?: boolean;
   currentLeaf: string;
-  observer?: ProjectionObserver;
   officialUnsubscribe?: () => void;
 }
 
 /**
  * Production composition root installed by Next instrumentation.register(). It
  * is the only code that joins auth, read-only JSONL, RuntimeHost, Pi SDK, BFF,
- * projection observation, dispatcher, and ordered event-stream ownership.
+ * mutation dispatch, and ordered event-stream ownership. The superseded private
+ * TUI observer/projection path is intentionally not composed here.
  */
 export class ForegroundRuntimeComposition implements AiliWebBffBridge {
-  readonly registry = new RuntimeHostRegistry<AgentSession>();
+  readonly registry = new RuntimeHostRegistry<ForegroundAgentSession>();
   readonly lifecycle: WebAccessLifecycle;
-  readonly bff: PrivateWebBff<AgentSession>;
-  private readonly inner: PrivateWebBffBridge<AgentSession>;
+  readonly bff: PrivateWebBff<ForegroundAgentSession>;
+  private readonly inner: PrivateWebBffBridge<ForegroundAgentSession>;
   private readonly browser: ReadonlyJsonlBrowser;
   private readonly rootPolicy: CanonicalAllowedRootPolicy;
   private readonly managerOpen: (path: string) => SessionManager;
-  private readonly createOfficialSession: (path: string) => Promise<AgentSession>;
-  private readonly connectObserver: typeof connectProjectionObserver;
+  private readonly createOfficialSession: (path: string) => Promise<ForegroundAgentSession>;
   private readonly sessions = new Map<string, SessionRuntimeMetadata>();
+  private readonly rawSessionHandles = new Map<string, string>();
   private readonly loadingSessions = new Map<string, Promise<SessionRuntimeMetadata | undefined>>();
   private readonly preparingSessions = new Map<string, Promise<PrepareSessionResult>>();
+  private readonly historyCursors = new Map<string, { readonly sessionHandle: string; readonly clientId: string; readonly beforeIndex: number; readonly expiresAt: number }>();
+  private readonly mediaHandles = new Map<string, { readonly clientId: string; readonly bytes: Uint8Array; readonly mimeType: string; readonly expiresAt: number }>();
+  private readonly configurationService = new ConfigurationMutationService();
+  private configurationHost?: RuntimeHost<ForegroundAgentSession>;
   private maintenanceChain: Promise<void> = Promise.resolve();
   private readonly processIdentity: ReturnType<typeof currentProcessIdentity>;
   private livenessServer?: OwnerOnlyProcessLivenessServer;
@@ -136,19 +193,19 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     this.browser = options.browser ?? new ReadonlyJsonlBrowser({ allowedRoots: options.sessionRoots, privateSalt: options.privateSalt });
     this.managerOpen = options.managerOpen ?? ((path) => SessionManager.open(path));
     this.createOfficialSession = options.createOfficialSession ?? (async (path) => {
-      const manager = SessionManager.open(path);
-      const cwd = manager.getCwd();
-      if (!cwd || !isAbsolute(cwd)) throw new Error("Pi session has no canonical working directory");
-      return (await createAgentSession({ cwd, sessionManager: manager })).session;
+      const adapter = (globalThis as unknown as RpcRuntimeAdapterGlobal)[RPC_RUNTIME_ADAPTER_SYMBOL];
+      if (!adapter) throw new Error("Pi Web RPC runtime adapter is unavailable");
+      return adapter.open(path);
     });
-    this.connectObserver = options.connectObserver ?? connectProjectionObserver;
     this.bff = new PrivateWebBff(this.lifecycle, this.registry, {
       admitMutation: (_request, envelope) => this.admitMutation(envelope),
     });
     if (options.policy.loopback) this.bff.armLoopbackBootstrap();
     this.inner = new PrivateWebBffBridge(this.bff, {
       catalog: (identity) => this.catalog(identity),
-      history: (identity, sessionHandle) => this.history(identity, sessionHandle),
+      history: (identity, sessionHandle, cursor) => this.history(identity, sessionHandle, cursor),
+      media: (identity, mediaHandle) => this.media(identity, mediaHandle),
+      configuration: (identity) => this.configuration(identity),
       execute: (session, envelope) => this.executeMutation(session, envelope),
     });
   }
@@ -166,13 +223,46 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     }
     const composition = new ForegroundRuntimeComposition(options, rootPolicy);
     composition.livenessServer = options.livenessServer ?? new OwnerOnlyProcessLivenessServer(options.runtimeDirectory, (generation) =>
-      [...composition.sessions.values()].some((session) => session.host.writerGeneration === generation));
+      composition.configurationHost?.writerGeneration === generation
+        || [...composition.sessions.values()].some((session) => session.host.writerGeneration === generation));
     try { await composition.livenessServer.start(); }
     catch (error) {
       await composition.livenessServer.close().catch(() => undefined);
       composition.livenessServer = undefined;
       composition.bff.dispose();
       composition.lifecycle.dispose();
+      throw error;
+    }
+    try {
+      // Scope the durable writer lease to this one-use private launch identity.
+      // A clean foreground restart must not wait for the prior process lease TTL.
+      const configurationIdentity = opaqueHandle("configuration", options.privateSalt, "foreground-service-mutations");
+      const host = composition.registry.create(configurationIdentity, {
+        piVersion: OFFICIAL_PI_VERSION,
+        runtimeDirectory: options.runtimeDirectory,
+        sessionHandle: configurationIdentity,
+        now: options.now,
+        lease: {
+          processIdentity: composition.processIdentity,
+          livenessEndpointId: composition.livenessServer!.endpointId,
+          isProcessAlive: isExactProcessAlive,
+          probeLiveness: (endpointId, generation) => probeOwnerProcessLiveness(options.runtimeDirectory, endpointId, generation),
+          markInterrupted: (record) => markLeaseInterrupted(options.runtimeDirectory, record),
+        },
+        // Deliberately a service object: configuration never creates an AgentSession.
+        agentSessionFactory: { create: async () => composition.configurationService as unknown as ForegroundAgentSession },
+        initialSnapshot: {
+          state: "idle",
+          capabilities: Object.fromEntries(Object.keys(CONFIGURATION_COMMANDS).map((key) => [key, true])),
+          projection: { service: "configuration" },
+        },
+      });
+      await host.initialize();
+      const acquired = await host.acquireWriter("web");
+      if (!acquired.acquired) throw new Error("configuration-service-writer-unavailable");
+      composition.configurationHost = host;
+    } catch (error) {
+      await composition.dispose().catch(() => undefined);
       throw error;
     }
     composition.maintenanceTimer = setInterval(() => {
@@ -199,8 +289,10 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
       if (!handle || !safeHandle(handle)) return failure(400, "invalid-mutation-envelope");
       const authorized = this.lifecycle.authorize(identityOf(request));
       if (!authorized.ok) return failure(401, authorized.reason);
-      const prepared = await this.prepareSession(handle, true);
-      if (!prepared.ok) return prepared.response;
+      if (handle !== this.configurationHost?.sessionHandle) {
+        const prepared = await this.prepareSession(handle, true);
+        if (!prepared.ok) return prepared.response;
+      }
     }
     const handle = sessionHandleFrom(request, "connect");
     if (handle) {
@@ -215,6 +307,114 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
       try { await this.releaseIdleWebWriters(); }
       catch { return failure(503, "logout-writer-release-failed"); }
     }
+    return response;
+  }
+
+  public async createCompatibilitySession(request: AiliCompatibilitySessionCreateRequest): Promise<GatewayResponse<unknown>> {
+    if (this.disposed) return failure(503, "runtime-composition-closed");
+    const identity = { host: request.host, origin: request.origin, cookie: request.cookie };
+    const authorized = this.lifecycle.authorize(identity);
+    if (!authorized.ok) return failure(401, authorized.reason);
+    let grant: AllowedPathGrant;
+    try { grant = await this.rootPolicy.grant(request.cwd, { mustExist: true }); }
+    catch { return failure(403, "allowed-root-denied"); }
+    const adapter = (globalThis as unknown as RpcRuntimeAdapterGlobal)[RPC_RUNTIME_ADAPTER_SYMBOL];
+    if (!adapter) return failure(503, "Pi Web RPC runtime adapter is unavailable");
+    let session: ForegroundAgentSession;
+    try {
+      session = await adapter.create({ cwd: grant.resolvedPath, toolNames: request.toolNames, provider: request.provider, modelId: request.modelId, thinkingLevel: request.thinkingLevel });
+    } catch (error) { return failure(500, boundedEventType(error instanceof Error ? error.message : String(error))); }
+    if (!session.sessionId || !isAbsolute(session.sessionFile) || resolve(session.cwd) !== grant.resolvedPath) {
+      await session.dispose().catch(() => undefined);
+      return failure(500, "created-session-identity-invalid");
+    }
+    let handle: string;
+    try { handle = (await this.browser.handleForPrivatePath(session.sessionFile))!; }
+    catch { await session.dispose().catch(() => undefined); return failure(500, "created-session-path-invalid"); }
+    const privateIdentity = session.sessionId;
+    let metadata!: SessionRuntimeMetadata;
+    const host = this.registry.create(privateIdentity, {
+      piVersion: OFFICIAL_PI_VERSION,
+      runtimeDirectory: this.options.runtimeDirectory,
+      sessionHandle: handle,
+      now: this.options.now,
+      lease: {
+        processIdentity: this.processIdentity,
+        livenessEndpointId: this.livenessServer!.endpointId,
+        isProcessAlive: isExactProcessAlive,
+        probeLiveness: (endpointId, generation) => probeOwnerProcessLiveness(this.options.runtimeDirectory, endpointId, generation),
+        markInterrupted: (record) => markLeaseInterrupted(this.options.runtimeDirectory, record),
+      },
+      agentSessionFactory: { create: async () => {
+        metadata.officialUnsubscribe = session.onEvent((event) => this.projectOfficialEvent(metadata, session, event.type));
+        return session;
+      } },
+      initialSnapshot: { state: "idle", capabilities: CAPABILITIES, projection: { pi: { activeRun: false, leafId: safeLeaf(session.inner.sessionManager.getLeafId()) }, agent: { tasks: [] }, mcp: { servers: [] } } },
+    });
+    try {
+      await host.initialize();
+      metadata = { handle, privatePath: session.sessionFile, privateIdentity, cwd: grant.resolvedPath, host, rootGrant: grant, transient: true, currentLeaf: safeLeaf(session.inner.sessionManager.getLeafId()) };
+      this.sessions.set(handle, metadata);
+      this.rawSessionHandles.set(privateIdentity, handle);
+      const ownership = await host.acquireWriter("web");
+      if (!ownership.acquired) throw new Error("created-session-writer-unavailable");
+      const state = await session.send({ type: "get_state" }) as { model?: { id: string; provider: string }; thinkingLevel?: string };
+      return { status: 200, headers: PRIVATE_HEADERS, body: { success: true, sessionId: privateIdentity, data: null, model: state.model ? { provider: state.model.provider, modelId: state.model.id } : null, thinkingLevel: state.thinkingLevel } };
+    } catch (error) {
+      this.sessions.delete(handle);
+      this.rawSessionHandles.delete(privateIdentity);
+      await this.registry.dispose(handle).catch(() => session.dispose());
+      return failure(500, boundedEventType(error instanceof Error ? error.message : String(error)));
+    }
+  }
+
+  public async dispatchCompatibilityMutation(request: AiliCompatibilityMutationRequest): Promise<GatewayResponse<unknown>> {
+    if (this.disposed) return failure(503, "runtime-composition-closed");
+    const identity = { host: request.host, origin: request.origin, cookie: request.cookie };
+    const authorized = this.lifecycle.authorize(identity);
+    if (!authorized.ok) return failure(401, authorized.reason);
+    const mutation = compatibilityMutationOf(request);
+    if (!mutation) return failure(404, "compatibility-mutation-unavailable");
+    let handle = this.rawSessionHandles.get(request.resourceId);
+    if (!handle) {
+      let privatePath: string | undefined;
+      try { privatePath = await resolveSessionPath(request.resourceId) ?? undefined; }
+      catch { return failure(404, "session-not-found"); }
+      if (!privatePath) return failure(404, "session-not-found");
+      try { handle = await this.browser.handleForPrivatePath(privatePath); }
+      catch { return failure(404, "session-not-found"); }
+    }
+    if (!handle) return failure(404, "session-not-found");
+    const prepared = await this.prepareSession(handle, true);
+    if (!prepared.ok) return prepared.response;
+    const metadata = this.sessions.get(handle);
+    const snapshot = metadata?.host.snapshot;
+    if (!metadata || !snapshot || snapshot.writer.owner !== "web" || !snapshot.writer.generation) {
+      return failure(409, "session-writer-unavailable");
+    }
+    const envelope: MutationEnvelopeV1 = {
+      schemaVersion: 1,
+      type: "MutationEnvelopeV1",
+      requestId: `compat-${randomUUID()}`,
+      clientId: authorized.sessionId,
+      runtimeEpoch: snapshot.runtimeEpoch,
+      leaseGeneration: snapshot.writer.generation,
+      sessionHandle: handle,
+      sessionLeaf: metadata.currentLeaf,
+      requestedAt: (this.options.now?.() ?? new Date()).toISOString(),
+      capability: mutation.capability,
+      commandType: mutation.commandType,
+      arguments: mutation.arguments,
+    };
+    const encoded = JSON.stringify(envelope);
+    const response = await this.inner.dispatch({
+      method: "POST",
+      segments: ["mutations"],
+      ...identity,
+      contentType: "application/json",
+      contentLength: Buffer.byteLength(encoded),
+      body: envelope,
+    });
     return response;
   }
 
@@ -240,12 +440,14 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     await Promise.allSettled(this.loadingSessions.values());
     this.loadingSessions.clear();
     this.preparingSessions.clear();
+    this.historyCursors.clear();
+    this.mediaHandles.clear();
     const sessionResources = [...this.sessions.values()];
     for (const session of sessionResources) {
       try { session.officialUnsubscribe?.(); } catch { failures.push("official-observer"); }
-      try { session.observer?.close(); } catch { failures.push("projection-observer"); }
     }
     this.sessions.clear();
+    this.rawSessionHandles.clear();
     const liveness = this.livenessServer;
     this.livenessServer = undefined;
     const settled = await Promise.allSettled([this.registry.disposeAll(), liveness?.close() ?? Promise.resolve()]);
@@ -258,6 +460,9 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
 
   private async maintain(): Promise<void> {
     if (this.disposed) return;
+    if (this.configurationHost?.snapshot.writer.owner === "web") {
+      await this.configurationHost.heartbeatWriter(false).catch(() => false);
+    }
     const removedSessions = this.lifecycle.expire();
     if (removedSessions > 0 && this.lifecycle.activeSessionCount === 0) {
       await this.releaseIdleWebWriters();
@@ -351,25 +556,84 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     };
   }
 
-  /** pi-web pattern: one session's bounded history loads only on explicit request. */
-  public async history(identity: WebRequestIdentity, sessionHandle: string): Promise<GatewayResponse<WorkbenchHistoryV1 | { readonly error: string }>> {
+  /** Active-branch tail pagination. Continuations are opaque and bound to browser auth plus session. */
+  public async history(identity: WebRequestIdentity, sessionHandle: string, cursor?: string): Promise<GatewayResponse<WorkbenchHistoryV1 | { readonly error: string }>> {
     const access = this.lifecycle.authorizeLoopbackRead(identity);
     if (!access.ok) return failure(401, access.reason);
     if (!safeHandle(sessionHandle)) return failure(404, "session-not-found");
-    let records: readonly JsonlProjectionRecordV1[];
-    try { records = await this.browser.read(sessionHandle); }
+    this.pruneReadHandles();
+    let beforeIndex: number | undefined;
+    let limit = INITIAL_HISTORY_ENTRY_LIMIT;
+    if (cursor !== undefined) {
+      if (!/^history-[A-Za-z0-9_-]{32,128}$/.test(cursor)) return failure(400, "history-cursor-malformed");
+      const state = this.historyCursors.get(cursor);
+      if (!state) return failure(400, "history-cursor-invalid");
+      if (state.expiresAt <= this.nowMs()) { this.historyCursors.delete(cursor); return failure(410, "history-cursor-expired"); }
+      if (state.sessionHandle !== sessionHandle || state.clientId !== access.sessionId) return failure(403, "history-cursor-scope-denied");
+      this.historyCursors.delete(cursor); // continuations are one-use
+      beforeIndex = state.beforeIndex;
+      limit = CONTINUATION_HISTORY_ENTRY_LIMIT;
+    }
+    let page: Awaited<ReturnType<ReadonlyJsonlBrowser["readBranchPage"]>>;
+    try { page = await this.browser.readBranchPage(sessionHandle, beforeIndex, limit); }
     catch { return failure(404, "session-not-found"); }
-    const recent = records.slice(-HISTORY_ENTRY_LIMIT);
-    const timeline = Object.freeze(recent.map((record) => Object.freeze({
+
+    let admittedMediaBytes = 0;
+    const mediaByRecord = new Map<number, Array<{ id: string; label: string; mimeType: string; url: string }>>();
+    for (const candidate of page.images) {
+      const image = validateHistoricalToolImage(candidate);
+      if (!image || admittedMediaBytes + image.bytes.byteLength > TOOL_RESULT_IMAGE_PAGE_MAX_BYTES) continue;
+      admittedMediaBytes += image.bytes.byteLength;
+      const mediaHandle = `media-${randomBytes(24).toString("base64url")}`;
+      this.mediaHandles.set(mediaHandle, { clientId: access.sessionId, bytes: image.bytes, mimeType: image.mimeType, expiresAt: this.nowMs() + HISTORY_CURSOR_TTL_MS });
+      const previews = mediaByRecord.get(candidate.recordIndex) ?? [];
+      if (previews.length >= 10) { this.mediaHandles.delete(mediaHandle); admittedMediaBytes -= image.bytes.byteLength; continue; }
+      previews.push({ id: mediaHandle, label: `tool result image ${candidate.blockIndex + 1}`, mimeType: image.mimeType, url: `/api/runtime/v1/media/${mediaHandle}` });
+      mediaByRecord.set(candidate.recordIndex, previews);
+    }
+    const timeline = Object.freeze(page.records.map((record) => Object.freeze({
       id: `${sessionHandle}:entry-${record.index}`,
       kind: record.role === "user" ? "user" : record.role === "assistant" ? "assistant" : record.role === "tool" ? "tool" : "event",
       status: "complete",
       title: record.role ?? record.type,
-      // \r and NUL would fail the public timeline-body contract; keep newlines.
       ...(record.content ? { body: record.content.replace(/[\r\0]+/g, " ").slice(0, 32_768) } : {}),
       ...(record.timestamp ? { at: record.timestamp } : {}),
+      ...(mediaByRecord.has(record.index) ? { media: Object.freeze(mediaByRecord.get(record.index)!) } : {}),
     })) as WorkbenchHistoryV1["timeline"]);
-    return { status: 200, headers: PRIVATE_HEADERS, body: Object.freeze({ schemaVersion: 1, sessionHandle, timeline }) };
+    let nextCursor: string | undefined;
+    if (page.hasMore && page.oldestIndex !== null) {
+      nextCursor = `history-${randomBytes(24).toString("base64url")}`;
+      this.historyCursors.set(nextCursor, { sessionHandle, clientId: access.sessionId, beforeIndex: page.oldestIndex, expiresAt: this.nowMs() + HISTORY_CURSOR_TTL_MS });
+      while (this.historyCursors.size > 4_096) this.historyCursors.delete(this.historyCursors.keys().next().value!);
+    }
+    return { status: 200, headers: PRIVATE_HEADERS, body: Object.freeze({ schemaVersion: 1, sessionHandle, timeline, hasMore: page.hasMore, ...(nextCursor ? { cursor: nextCursor } : {}) }) };
+  }
+
+  public configuration(identity: WebRequestIdentity): GatewayResponse<unknown> {
+    const access = this.lifecycle.authorizeLoopbackRead(identity);
+    if (!access.ok) return failure(401, access.reason);
+    if (!this.configurationHost) return failure(503, "configuration-runtime-unavailable");
+    return { status: 200, headers: PRIVATE_HEADERS, body: this.configurationHost.snapshot };
+  }
+
+  public media(identity: WebRequestIdentity, mediaHandle: string): GatewayResponse<Uint8Array | { readonly error: string }> {
+    const access = this.lifecycle.authorizeLoopbackRead(identity);
+    if (!access.ok) return failure(401, access.reason);
+    if (!/^media-[A-Za-z0-9_-]{32,128}$/.test(mediaHandle)) return failure(400, "media-handle-malformed");
+    const media = this.mediaHandles.get(mediaHandle);
+    if (!media) return failure(404, "media-not-found");
+    if (media.expiresAt <= this.nowMs()) { this.mediaHandles.delete(mediaHandle); return failure(410, "media-handle-expired"); }
+    if (media.clientId !== access.sessionId) return failure(403, "media-handle-scope-denied");
+    return { status: 200, body: media.bytes, headers: { ...PRIVATE_HEADERS, "Content-Type": media.mimeType, "Content-Length": String(media.bytes.byteLength) } };
+  }
+
+  private nowMs(): number { return (this.options.now?.() ?? new Date()).getTime(); }
+  private pruneReadHandles(): void {
+    const now = this.nowMs();
+    // Expired cursors remain distinguishable from malformed/unknown cursors
+    // until consumed or bounded-map eviction; media is safe to discard eagerly.
+    for (const [handle, state] of this.mediaHandles) if (state.expiresAt <= now) this.mediaHandles.delete(handle);
+    while (this.mediaHandles.size > 4_096) this.mediaHandles.delete(this.mediaHandles.keys().next().value!);
   }
 
   private ensureHost(handle: string): Promise<SessionRuntimeMetadata | undefined> {
@@ -415,7 +679,7 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
       },
       agentSessionFactory: { create: async () => {
         const session = await this.createOfficialSession(privatePath);
-        try { metadata.officialUnsubscribe = session.subscribe((event) => this.projectOfficialEvent(metadata, session, event.type)); }
+        try { metadata.officialUnsubscribe = session.onEvent((event) => this.projectOfficialEvent(metadata, session, event.type)); }
         catch (error) { await session.dispose(); throw error; }
         return session;
       } },
@@ -464,17 +728,11 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     try { metadata = await this.ensureHost(handle); }
     catch { return { ok: false, response: failure(503, "session-runtime-unavailable") }; }
     if (!metadata) return { ok: false, response: failure(404, "session-not-found") };
-    let holder: Awaited<ReturnType<RuntimeHost<AgentSession>["inspectWriter"]>>;
+    let holder: Awaited<ReturnType<RuntimeHost<ForegroundAgentSession>["inspectWriter"]>>;
     try { holder = await metadata.host.inspectWriter(); }
     catch { return { ok: false, response: failure(503, "session-writer-unverified") }; }
-    if (metadata.observer && holder?.owner !== "tui") {
-      metadata.observer.close();
-      metadata.observer = undefined;
-    }
     if (holder?.owner === "tui") {
-      const observed = await this.attachObserver(metadata, { acquired: false, reason: "held", holder });
-      if (!observed) return { ok: false, response: failure(503, "tui-projection-unavailable") };
-      return { ok: true };
+      return { ok: false, response: failure(409, "session-owned-outside-web-runtime") };
     }
     if (holder?.owner === "web" && metadata.host.snapshot.writer.owner !== "web") {
       return { ok: false, response: failure(409, "session-writer-owned-by-another-web-runtime") };
@@ -484,61 +742,22 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     if (!requireWebWriter || !metadata.rootGrant) return { ok: true };
     const ownership: LeaseAcquireResult = await metadata.host.acquireWriter("web").catch((): LeaseAcquireResult => ({ acquired: false, reason: "unverified" }));
     if (ownership.acquired) return { ok: true };
-    if (ownership.holder?.owner === "tui") {
-      const observed = await this.attachObserver(metadata, ownership);
-      return observed ? { ok: true } : { ok: false, response: failure(503, "tui-projection-unavailable") };
-    }
+    if (ownership.holder?.owner === "tui") return { ok: false, response: failure(409, "session-owned-outside-web-runtime") };
     return { ok: false, response: failure(409, `session-writer-unavailable-${ownership.reason}`) };
   }
 
-  private async attachObserver(metadata: SessionRuntimeMetadata, ownership: LeaseAcquireResult): Promise<boolean> {
-    if (metadata.observer) return true;
-    if (ownership.acquired || ownership.holder?.owner !== "tui") return false;
-    if (metadata.host.snapshot.writer.owner === "web" && !await metadata.host.releaseWriter().catch(() => false)) return false;
-    try {
-      metadata.observer = await this.connectObserver({
-        runtimeDirectory: this.options.runtimeDirectory,
-        privateSessionIdentity: metadata.privateIdentity,
-        onSnapshot: (snapshot) => this.projectObservedSnapshot(metadata, snapshot),
-        onEvent: (event) => this.projectObservedEvent(metadata, event),
-        onReset: () => this.safeProject(metadata, "blocked", { observerState: "reset-required" }),
-        onError: () => this.safeProject(metadata, "blocked", { observerState: "disconnected" }),
-      });
-      return true;
-    } catch {
-      this.safeProject(metadata, "blocked", { observerState: "unavailable" });
-      return false;
-    }
-  }
-
-  private safeProject(metadata: SessionRuntimeMetadata, state: RuntimeSnapshotV1["state"], patch: Readonly<Record<string, JsonValue>>): void {
-    if (this.disposed || !this.sessions.has(metadata.handle)) return;
-    try { metadata.host.project("tui-observer", state, patch); }
-    catch {
-      try { metadata.observer?.close(); } catch { /* transport already closed */ }
-      metadata.observer = undefined;
-    }
-  }
-
-  private projectObservedSnapshot(metadata: SessionRuntimeMetadata, snapshot: RuntimeSnapshotV1): void {
-    if (this.disposed || !this.sessions.has(metadata.handle)) return;
-    const pi = publicRecord(snapshot.projection.pi) ?? snapshot.projection;
-    const leaf = typeof pi.leafId === "string" ? safeLeaf(pi.leafId) : metadata.currentLeaf;
-    metadata.currentLeaf = leaf;
-    this.safeProject(metadata, snapshot.state, { ...snapshot.projection, observerState: "connected", readOnlyObserver: true });
-  }
-
-  private projectObservedEvent(metadata: SessionRuntimeMetadata, event: RuntimeEventV1): void {
-    if (this.disposed || !this.sessions.has(metadata.handle)) return;
-    const patch = publicRecord(event.payload.projectionPatch);
-    this.safeProject(metadata, event.eventType === "closed" ? "blocked" : metadata.host.snapshot.state, {
-      ...(patch ?? {}),
-      observerState: event.eventType === "closed" ? "disconnected" : "connected",
-      observerCursor: event.cursor,
-    });
-  }
-
   private admitMutation(envelope: MutationEnvelopeV1) {
+    if (!this.disposed && envelope.sessionHandle === this.configurationHost?.sessionHandle) {
+      const allowed = isConfigurationCommand(envelope.capability, envelope.commandType);
+      return {
+        rootAuthorized: true,
+        permissionGranted: allowed && this.configurationHost.snapshot.writer.owner === "web",
+        capabilityAllowed: allowed && this.configurationHost.snapshot.capabilities[envelope.capability] === true,
+        currentSessionLeaf: "configuration",
+        revalidate: (): true | string => this.disposed || this.configurationHost?.snapshot.writer.owner !== "web"
+          ? "configuration-runtime-unavailable" : true,
+      };
+    }
     const metadata = this.disposed ? undefined : this.sessions.get(envelope.sessionHandle);
     const commandAllowed = isAdvertisedCommand(envelope.capability, envelope.commandType);
     return {
@@ -552,8 +771,10 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
         try {
           const currentGrant = await this.rootPolicy.grant(metadata.cwd, { mustExist: true });
           if (currentGrant.allowedRoot !== metadata.rootGrant.allowedRoot) return "allowed-root-changed";
-          await this.browser.read(metadata.handle);
-          const currentLeaf = safeLeaf(this.managerOpen(metadata.privatePath).getLeafId());
+          if (!metadata.transient) await this.browser.read(metadata.handle);
+          const currentLeaf = metadata.transient
+            ? metadata.currentLeaf
+            : safeLeaf(this.managerOpen(metadata.privatePath).getLeafId());
           if (currentLeaf !== metadata.currentLeaf) return "session-leaf-changed";
           return true;
         } catch { return "operation-revalidation-failed"; }
@@ -561,17 +782,21 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     };
   }
 
-  private projectOfficialEvent(metadata: SessionRuntimeMetadata, session: AgentSession, eventType: string): void {
+  private projectOfficialEvent(metadata: SessionRuntimeMetadata, session: ForegroundAgentSession, eventType: string): void {
     if (this.disposed || !this.sessions.has(metadata.handle)) return;
-    metadata.currentLeaf = safeLeaf(session.sessionManager.getLeafId());
-    const running = !session.isIdle;
-    const usage = session.getContextUsage();
+    const inner = session.inner;
+    metadata.currentLeaf = safeLeaf(inner.sessionManager.getLeafId());
+    const running = session.isRunning();
+    const usage = inner.getContextUsage();
+    if (metadata.host.snapshot.writer.owner === "web") {
+      void metadata.host.heartbeatWriter(running, running ? `agent-${metadata.handle}` : undefined).catch(() => false);
+    }
     try {
       metadata.host.project("official-pi", running ? "running" : "idle", {
         pi: {
-          provider: session.model?.provider ?? null,
-          model: session.model?.id ?? null,
-          thinkingLevel: session.thinkingLevel,
+          provider: inner.model?.provider ?? null,
+          model: inner.model?.id ?? null,
+          thinkingLevel: inner.agent.state?.thinkingLevel ?? "off",
           contextTokens: usage?.tokens ?? null,
           contextWindow: usage?.contextWindow ?? null,
           activeRun: running,
@@ -582,68 +807,235 @@ export class ForegroundRuntimeComposition implements AiliWebBffBridge {
     } catch { /* host disposal wins over late official events */ }
   }
 
-  private async executeMutation(session: AgentSession, envelope: MutationEnvelopeV1): Promise<void> {
+  private async executeMutation(session: ForegroundAgentSession, envelope: MutationEnvelopeV1): Promise<MutationExecutionResult> {
     if (this.disposed) throw new Error("runtime-composition-closed");
-    await dispatchOfficialPiMutation(session, envelope);
+    if (envelope.sessionHandle === this.configurationHost?.sessionHandle) {
+      return (session as unknown as ConfigurationMutationService).execute(envelope.capability, envelope.commandType, envelope.arguments);
+    }
+    const execution = await dispatchOfficialPiMutation(session, envelope);
+    if (envelope.capability === "pi.fork" || envelope.capability === "session.safe_delete") {
+      const handle = envelope.sessionHandle;
+      const timer = setTimeout(() => {
+        const metadata = this.sessions.get(handle);
+        try { metadata?.officialUnsubscribe?.(); } catch { /* closing session already won */ }
+        if (metadata) this.rawSessionHandles.delete(metadata.privateIdentity);
+        this.sessions.delete(handle);
+        void this.registry.dispose(handle).catch(() => undefined);
+      }, 0);
+      timer.unref();
+      return execution;
+    }
     const metadata = this.sessions.get(envelope.sessionHandle);
-    if (!metadata || metadata.host.snapshot.writer.owner !== "web") return;
-    metadata.currentLeaf = safeLeaf(session.sessionManager.getLeafId());
-    const usage = session.getContextUsage();
-    if (this.disposed) return;
-    metadata.host.project("official-pi", session.isIdle ? "idle" : "running", {
+    if (!metadata || metadata.host.snapshot.writer.owner !== "web") return execution;
+    const inner = session.inner;
+    metadata.currentLeaf = safeLeaf(inner.sessionManager.getLeafId());
+    const usage = inner.getContextUsage();
+    if (this.disposed) return execution;
+    metadata.host.project("official-pi", session.isRunning() ? "running" : "idle", {
       pi: {
-        provider: session.model?.provider ?? null,
-        model: session.model?.id ?? null,
-        thinkingLevel: session.thinkingLevel,
+        provider: inner.model?.provider ?? null,
+        model: inner.model?.id ?? null,
+        thinkingLevel: inner.agent.state?.thinkingLevel ?? "off",
         contextTokens: usage?.tokens ?? null,
         contextWindow: usage?.contextWindow ?? null,
-        activeRun: !session.isIdle,
+        activeRun: session.isRunning(),
         leafId: metadata.currentLeaf,
       },
     });
+    return execution;
   }
 }
 
 /** Exhaustive public-Pi dispatcher for the exact capability matrix above. */
-export async function dispatchOfficialPiMutation(session: AgentSession, envelope: MutationEnvelopeV1): Promise<void> {
+export async function dispatchOfficialPiMutation(session: ForegroundAgentSession, envelope: MutationEnvelopeV1): Promise<MutationExecutionResult> {
   if (!isAdvertisedCommand(envelope.capability, envelope.commandType)) throw new Error("unsupported-runtime-command");
   const args = envelope.arguments;
   if (envelope.capability === "pi.send" && envelope.commandType === "send") {
     const message = boundedMessage(args.message, true);
     const images = boundedImages(args.images);
     if (!message.trim() && images.length === 0) throw new Error("message-invalid");
-    await session.sendUserMessage(images.length ? [...(message ? [{ type: "text" as const, text: message }] : []), ...images] : message);
-    return;
+    await session.send({ type: "prompt", message, ...(images.length ? { images } : {}) });
+    return { activeTurnContinues: session.isRunning() };
   }
   if (envelope.capability === "pi.follow_up" && envelope.commandType === "follow_up") {
-    await session.followUp(boundedMessage(args.message), boundedImages(args.images));
-    return;
+    const images = boundedImages(args.images);
+    await session.send({ type: "follow_up", message: boundedQueuedMessage(args.message), ...(images.length ? { images } : {}) });
+    return { activeTurnContinues: session.isRunning() };
   }
   if (envelope.capability === "pi.steer" && envelope.commandType === "steer") {
-    await session.steer(boundedMessage(args.message), boundedImages(args.images));
-    return;
+    const images = boundedImages(args.images);
+    await session.send({ type: "steer", message: boundedQueuedMessage(args.message), ...(images.length ? { images } : {}) });
+    return { activeTurnContinues: session.isRunning() };
   }
   if (envelope.capability === "pi.compact" && envelope.commandType === "compact") {
     const instructions = args.instructions === undefined ? undefined : boundedMessage(args.instructions, true);
-    await session.compact(instructions);
-    return;
+    const result = await session.send({ type: "compact", ...(instructions === undefined ? {} : { customInstructions: instructions }) });
+    if (result !== undefined) assertBoundedJson(result);
+    return { activeTurnContinues: session.isRunning(), ...(result === undefined ? {} : { result }) };
+  }
+  if (envelope.capability === "pi.abort" && (envelope.commandType === "abort" || envelope.commandType === "abort_compaction")) {
+    await session.send({ type: envelope.commandType });
+    return {};
+  }
+  if (envelope.capability === "pi.bash" && envelope.commandType === "bash") {
+    const command = boundedMessage(args.command).trim();
+    const excludeFromContext = args.excludeFromContext === true;
+    const result = await session.send({ type: "bash", command, excludeFromContext });
+    if (result !== undefined) assertBoundedJson(result);
+    return result === undefined ? {} : { result };
+  }
+  if (envelope.capability === "pi.bash" && envelope.commandType === "abort_bash") {
+    await session.send({ type: "abort_bash" });
+    return {};
+  }
+  if (envelope.capability === "pi.queue" && envelope.commandType === "clear_queue") {
+    const result = await session.send({ type: "clear_queue" });
+    if (!isOfficialClearQueueResult(result)) throw new Error("clear-queue-result-invalid");
+    const officialResult = Object.freeze({
+      steering: Object.freeze([...result.steering]),
+      followUp: Object.freeze([...result.followUp]),
+    });
+    assertBoundedJson(officialResult);
+    return { result: officialResult };
+  }
+  if (envelope.capability === "pi.tools" && envelope.commandType === "set_tools") {
+    if (!Array.isArray(args.toolNames) || !args.toolNames.every((name) => typeof name === "string" && name.length <= 128 && !/[\r\n\0]/.test(name))) {
+      throw new Error("tool-selection-invalid");
+    }
+    await session.send({ type: "set_tools", toolNames: args.toolNames });
+    return {};
+  }
+  if (envelope.capability === "session.reload" && envelope.commandType === "reload") {
+    await session.send({ type: "reload" });
+    return {};
+  }
+  if (envelope.capability === "permission.mode" && envelope.commandType === "set_perm_mode") {
+    const mode = boundedMessage(args.mode).trim();
+    await session.send({ type: "set_perm_mode", mode });
+    return {};
+  }
+  if (envelope.capability === "provider.retry" && envelope.commandType === "set_auto_retry") {
+    if (typeof args.enabled !== "boolean") throw new Error("auto-retry-setting-invalid");
+    await session.send({ type: "set_auto_retry", enabled: args.enabled });
+    return {};
+  }
+  if (envelope.capability === "extension.interact" && (envelope.commandType === "respond" || envelope.commandType === "input")) {
+    const command = publicRecord(args.command);
+    if (!command) throw new Error("extension-interaction-invalid");
+    const expectedType = envelope.commandType === "respond" ? "extension_ui_response" : "extension_ui_input";
+    if (command.type !== expectedType) throw new Error("extension-interaction-invalid");
+    const result = await session.send({ ...command });
+    if (result !== undefined) assertBoundedJson(result);
+    return result === undefined ? {} : { result };
+  }
+  if (envelope.capability === "pi.compact" && envelope.commandType === "set_auto_compaction") {
+    if (typeof args.enabled !== "boolean") throw new Error("auto-compaction-setting-invalid");
+    await session.send({ type: "set_auto_compaction", enabled: args.enabled });
+    return {};
+  }
+  if (envelope.capability === "pi.branch" && envelope.commandType === "branch") {
+    const targetId = boundedMessage(args.targetId).trim();
+    const result = await session.send({ type: "navigate_tree", targetId });
+    if (result !== undefined) assertBoundedJson(result);
+    return result === undefined ? {} : { result };
+  }
+  if (envelope.capability === "pi.fork" && envelope.commandType === "fork") {
+    const entryId = boundedMessage(args.entryId).trim();
+    const result = await session.send({ type: "fork", entryId });
+    if (result !== undefined) assertBoundedJson(result);
+    return result === undefined ? {} : { result };
   }
   if (envelope.capability === "pi.thinking" && envelope.commandType === "select_thinking") {
     const level = args.thinkingLevel;
     if (level !== "off" && level !== "minimal" && level !== "low" && level !== "medium" && level !== "high" && level !== "xhigh" && level !== "max") {
       throw new Error("thinking-level-invalid");
     }
-    session.setThinkingLevel(level as ThinkingLevel);
-    return;
+    await session.send({ type: "set_thinking_level", level: level as ThinkingLevel });
+    return {};
+  }
+  if (envelope.capability === "pi.model" && envelope.commandType === "select_model") {
+    const provider = boundedMessage(args.provider).trim();
+    const modelId = boundedMessage(args.modelId).trim();
+    await session.send({ type: "set_model", provider, modelId });
+    return {};
+  }
+  if (envelope.capability === "session.rename" && envelope.commandType === "auto_name") {
+    const result = await session.send({ type: "auto_name" });
+    const record = unknownRecord(result);
+    const title = record?.title;
+    if (typeof title !== "string" || !title.trim() || title.length > 80) throw new Error("auto-name-result-invalid");
+    assertBoundedJson(record);
+    return { result: record };
   }
   if (envelope.capability === "session.rename" && envelope.commandType === "rename") {
     const name = boundedMessage(args.name).trim();
     if (!name || name.length > 200) throw new Error("session-name-invalid");
-    session.setSessionName(name);
-    return;
+    await session.send({ type: "set_session_name", name });
+    return {};
+  }
+  if (envelope.capability === "session.safe_delete" && envelope.commandType === "safe_delete") {
+    const result = await session.send({ type: "safe_delete" });
+    if (result !== undefined) assertBoundedJson(result);
+    return result === undefined ? {} : { result };
   }
   const exhaustive: never = envelope.capability as never;
   throw new Error(`unsupported-runtime-command-${String(exhaustive)}`);
+}
+
+function validateHistoricalToolImage(candidate: JsonlImageCandidateV1): { readonly bytes: Uint8Array; readonly mimeType: string } | null {
+  if (!TOOL_RESULT_IMAGE_MIMES.has(candidate.mimeType) || candidate.data.length === 0
+    || candidate.data.length > Math.ceil(TOOL_RESULT_IMAGE_MAX_BYTES * 4 / 3) + 4
+    || candidate.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(candidate.data)) return null;
+  const buffer = Buffer.from(candidate.data, "base64");
+  if (buffer.byteLength === 0 || buffer.byteLength > TOOL_RESULT_IMAGE_MAX_BYTES || buffer.toString("base64") !== candidate.data) return null;
+  const dimensions = imageDimensions(buffer, candidate.mimeType);
+  if (!dimensions || dimensions.width < 1 || dimensions.height < 1
+    || dimensions.width > TOOL_RESULT_IMAGE_MAX_DIMENSION || dimensions.height > TOOL_RESULT_IMAGE_MAX_DIMENSION
+    || dimensions.width * dimensions.height > TOOL_RESULT_IMAGE_MAX_PIXELS) return null;
+  return { bytes: new Uint8Array(buffer), mimeType: candidate.mimeType };
+}
+
+function imageDimensions(bytes: Buffer, mimeType: string): { width: number; height: number } | null {
+  if (mimeType === "image/png") {
+    if (bytes.length < 24 || !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) || bytes.toString("ascii", 12, 16) !== "IHDR") return null;
+    return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+  }
+  if (mimeType === "image/gif") {
+    if (bytes.length < 10 || (bytes.toString("ascii", 0, 6) !== "GIF87a" && bytes.toString("ascii", 0, 6) !== "GIF89a")) return null;
+    return { width: bytes.readUInt16LE(6), height: bytes.readUInt16LE(8) };
+  }
+  if (mimeType === "image/webp") {
+    if (bytes.length < 30 || bytes.toString("ascii", 0, 4) !== "RIFF" || bytes.toString("ascii", 8, 12) !== "WEBP") return null;
+    const chunk = bytes.toString("ascii", 12, 16);
+    if (chunk === "VP8X") return { width: 1 + bytes.readUIntLE(24, 3), height: 1 + bytes.readUIntLE(27, 3) };
+    if (chunk === "VP8L" && bytes[20] === 0x2f && bytes.length >= 25) {
+      const bits = bytes.readUInt32LE(21);
+      return { width: (bits & 0x3fff) + 1, height: ((bits >>> 14) & 0x3fff) + 1 };
+    }
+    if (chunk === "VP8 " && bytes.length >= 30 && bytes[23] === 0x9d && bytes[24] === 0x01 && bytes[25] === 0x2a) {
+      return { width: bytes.readUInt16LE(26) & 0x3fff, height: bytes.readUInt16LE(28) & 0x3fff };
+    }
+    return null;
+  }
+  if (mimeType === "image/jpeg") {
+    if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+    let offset = 2;
+    while (offset + 8 < bytes.length) {
+      while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;
+      const marker = bytes[offset++];
+      if (marker === undefined || marker === 0xd9 || marker === 0xda) return null;
+      if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+      if (offset + 2 > bytes.length) return null;
+      const length = bytes.readUInt16BE(offset);
+      if (length < 2 || offset + length > bytes.length) return null;
+      if ((marker >= 0xc0 && marker <= 0xc3) || (marker >= 0xc5 && marker <= 0xc7) || (marker >= 0xc9 && marker <= 0xcb) || (marker >= 0xcd && marker <= 0xcf)) {
+        if (length < 7) return null;
+        return { width: bytes.readUInt16BE(offset + 5), height: bytes.readUInt16BE(offset + 3) };
+      }
+      offset += length;
+    }
+  }
+  return null;
 }
 
 export async function createProductionForegroundComposition(identity: Uint8Array): Promise<ForegroundRuntimeComposition> {
@@ -714,6 +1106,19 @@ function boundedMessage(value: JsonValue | undefined, allowEmpty = false): strin
   if (typeof value !== "string" || value.length > 32_768 || /\0/.test(value) || (!allowEmpty && !value.trim())) throw new Error("message-invalid");
   return value;
 }
+function boundedQueuedMessage(value: JsonValue | undefined): string {
+  const message = boundedMessage(value);
+  if (message.length > 4_096) throw new Error("queued-message-too-long");
+  return message;
+}
+function isOfficialClearQueueResult(value: unknown): value is { steering: string[]; followUp: string[] } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const result = value as { steering?: unknown; followUp?: unknown };
+  return Array.isArray(result.steering) && result.steering.length <= 100
+    && result.steering.every((message) => typeof message === "string" && message.length <= 4_096)
+    && Array.isArray(result.followUp) && result.followUp.length <= 100
+    && result.followUp.every((message) => typeof message === "string" && message.length <= 4_096);
+}
 function boundedImages(value: JsonValue | undefined): ImageContent[] {
   if (value === undefined) return [];
   if (!Array.isArray(value) || value.length > 10) throw new Error("image-content-invalid");
@@ -728,6 +1133,83 @@ function boundedImages(value: JsonValue | undefined): ImageContent[] {
     return { type: "image", data: item.data, mimeType: item.mimeType } satisfies ImageContent;
   });
 }
+function compatibilityMutationOf(request: AiliCompatibilityMutationRequest): {
+  capability: string;
+  commandType: string;
+  arguments: Readonly<Record<string, JsonValue>>;
+} | undefined {
+  if (request.kind === "session.rename") {
+    const name = typeof request.arguments.name === "string" ? request.arguments.name.trim() : "";
+    return name && name.length <= 200 && !/[\r\n\0]/.test(name)
+      ? { capability: "session.rename", commandType: "rename", arguments: { name } }
+      : undefined;
+  }
+  if (request.kind === "session.auto_name") {
+    return { capability: "session.rename", commandType: "auto_name", arguments: {} };
+  }
+  if (request.kind === "session.delete") {
+    return { capability: "session.safe_delete", commandType: "safe_delete", arguments: {} };
+  }
+  const command = unknownRecord(request.arguments.command);
+  const type = typeof command?.type === "string" ? command.type : "";
+  const message = typeof command?.message === "string" ? command.message : "";
+  const images = Array.isArray(command?.images) ? command.images as JsonValue : undefined;
+  if (type === "prompt") {
+    const behavior = command?.streamingBehavior;
+    if (behavior === "steer") return { capability: "pi.steer", commandType: "steer", arguments: { message, ...(images ? { images } : {}) } };
+    if (behavior === "followUp") return { capability: "pi.follow_up", commandType: "follow_up", arguments: { message, ...(images ? { images } : {}) } };
+    return { capability: "pi.send", commandType: "send", arguments: { message, ...(images ? { images } : {}) } };
+  }
+  if (type === "steer" || type === "follow_up") {
+    return { capability: type === "steer" ? "pi.steer" : "pi.follow_up", commandType: type, arguments: { message, ...(images ? { images } : {}) } };
+  }
+  if (type === "compact") {
+    const instructions = typeof command?.customInstructions === "string" ? command.customInstructions : undefined;
+    return { capability: "pi.compact", commandType: "compact", arguments: instructions === undefined ? {} : { instructions } };
+  }
+  if (type === "abort" || type === "abort_compaction") {
+    return { capability: "pi.abort", commandType: type, arguments: {} };
+  }
+  if (type === "bash" && typeof command?.command === "string") {
+    return { capability: "pi.bash", commandType: "bash", arguments: { command: command.command, excludeFromContext: command.excludeFromContext === true } };
+  }
+  if (type === "abort_bash") return { capability: "pi.bash", commandType: "abort_bash", arguments: {} };
+  if (type === "reload") return { capability: "session.reload", commandType: "reload", arguments: {} };
+  if (type === "clear_queue") return { capability: "pi.queue", commandType: "clear_queue", arguments: {} };
+  if (type === "set_tools" && Array.isArray(command?.toolNames)) {
+    return { capability: "pi.tools", commandType: "set_tools", arguments: { toolNames: command.toolNames as JsonValue } };
+  }
+  if (type === "set_auto_compaction" && typeof command?.enabled === "boolean") {
+    return { capability: "pi.compact", commandType: "set_auto_compaction", arguments: { enabled: command.enabled } };
+  }
+  if (type === "set_perm_mode" && typeof command?.mode === "string") {
+    return { capability: "permission.mode", commandType: "set_perm_mode", arguments: { mode: command.mode } };
+  }
+  if (type === "set_auto_retry" && typeof command?.enabled === "boolean") {
+    return { capability: "provider.retry", commandType: "set_auto_retry", arguments: { enabled: command.enabled } };
+  }
+  if (type === "extension_ui_response" || type === "extension_ui_input") {
+    assertBoundedJson(command);
+    return { capability: "extension.interact", commandType: type === "extension_ui_response" ? "respond" : "input", arguments: { command } };
+  }
+  if (type === "navigate_tree" && typeof command?.targetId === "string") {
+    return { capability: "pi.branch", commandType: "branch", arguments: { targetId: command.targetId } };
+  }
+  if (type === "fork" && typeof command?.entryId === "string") {
+    return { capability: "pi.fork", commandType: "fork", arguments: { entryId: command.entryId } };
+  }
+  if (type === "set_thinking_level" && typeof command?.level === "string") {
+    return { capability: "pi.thinking", commandType: "select_thinking", arguments: { thinkingLevel: command.level } };
+  }
+  if (type === "set_model" && typeof command?.provider === "string" && typeof command?.modelId === "string") {
+    return { capability: "pi.model", commandType: "select_model", arguments: { provider: command.provider, modelId: command.modelId } };
+  }
+  if (type === "set_session_name" && typeof command?.name === "string") {
+    return { capability: "session.rename", commandType: "rename", arguments: { name: command.name } };
+  }
+  return undefined;
+}
+
 function identityOf(request: AiliBffHttpRequest): WebRequestIdentity { return { host: request.host, origin: request.origin, cookie: request.cookie }; }
 function sessionHandleFrom(request: AiliBffHttpRequest, terminal: "connect" | "stream"): string | undefined {
   return request.method === "GET" && request.segments.length === 3 && request.segments[0] === "sessions"

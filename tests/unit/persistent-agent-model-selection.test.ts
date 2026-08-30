@@ -84,19 +84,18 @@ describe("direct-parent model resolution", () => {
     parentThinking: "medium" as const,
   };
 
-  it("keeps user-owned precedence above a confirmed one-shot and records source-aware inheritance", async () => {
-    // Per-field resolution: the instance layer provides the model while the
-    // confirmed one-shot still provides its thinking.
-    expect(await resolveModelChoice(base, catalog())).toMatchObject({ canonical: "provider/instance", layer: "instance", source: "instance-override", modelSource: "instance-override", oneShot: false, thinking: "high", thinkingSource: "user-one-shot" });
+  it("keeps confirmed proposals below persistent user configuration and above inheritance", async () => {
+    expect(await resolveModelChoice(base, catalog())).toMatchObject({ canonical: "provider/instance", layer: "instance", source: "instance-override", modelSource: "instance-override", thinking: "high", thinkingSource: "confirmed-one-shot", oneShot: false });
+    expect(await resolveModelChoice({ ...base, instance: { model: "provider/instance", thinking: "low" } }, catalog())).toMatchObject({ canonical: "provider/instance", thinking: "low", thinkingSource: "instance-override" });
     expect(await resolveModelChoice({ ...base, instance: undefined }, catalog())).toMatchObject({ canonical: "provider/project", layer: "project-role", source: "project-role-override", modelSource: "project-role-override" });
     expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined }, catalog())).toMatchObject({ canonical: "provider/user", layer: "user-role", source: "user-role-override", modelSource: "user-role-override" });
-    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined }, catalog())).toMatchObject({ canonical: "provider/one", layer: "one-shot", source: "confirmed-one-shot", modelSource: "user-one-shot", oneShot: true, thinking: "high", thinkingSource: "user-one-shot" });
+    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined }, catalog())).toMatchObject({ canonical: "provider/one", layer: "one-shot", source: "confirmed-one-shot", modelSource: "confirmed-one-shot", oneShot: true, thinking: "high", thinkingSource: "confirmed-one-shot" });
     expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "high", speedTier: "priority" } }, catalog())).toMatchObject({ canonical: "provider/parent", source: "inherited-parent", modelSource: "inherited-parent", thinking: "high", thinkingSource: "inherited-parent", speedTier: "priority" });
-    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, parent: undefined }, catalog())).toMatchObject({ canonical: "provider/profile", layer: "profile", source: "profile-fallback", modelSource: "profile-fallback" });
+    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined }, catalog())).toMatchObject({ canonical: "provider/profile", layer: "profile", source: "profile-fallback", modelSource: "profile-fallback" });
     expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, profile: undefined }, catalog())).toMatchObject({ canonical: "provider/parent", layer: "runtime-fallback", source: "runtime-fallback", modelSource: "runtime-fallback" });
   });
 
-  it("applies a direct user-turn instruction above every persistent layer", async () => {
+  it("applies a direct user-turn instruction above every other layer", async () => {
     expect(await resolveModelChoice({ ...base, directUserTurn: { model: "provider/one" } }, catalog())).toMatchObject({
       canonical: "provider/one",
       layer: "direct-user-turn",
@@ -105,8 +104,8 @@ describe("direct-parent model resolution", () => {
       oneShot: false,
       persistent: false,
     });
-    // A thinking-only current-turn instruction outranks persistent thinking
-    // while the persistent layer keeps providing the model.
+    // A thinking-only direct instruction outranks persistent thinking while
+    // the persistent layer still provides the model.
     expect(await resolveModelChoice({ ...base, instance: { model: "provider/instance", thinking: "low" }, directUserTurn: { thinking: "high" } }, catalog())).toMatchObject({
       canonical: "provider/instance",
       layer: "instance",
@@ -114,6 +113,29 @@ describe("direct-parent model resolution", () => {
       thinking: "high",
       thinkingSource: "direct-user-turn",
     });
+  });
+
+  it("uses the target Pi default rather than Parent xhigh after a model-only switch", async () => {
+    const glm: CatalogModel = { provider: "zai-coding-cn", model: "glm-5.3-flash", available: true, authenticated: true, thinkingLevels: ["off", "medium", "max"], defaultThinking: "medium" };
+    const result = await resolveModelChoice({
+      ...base,
+      oneShot: undefined,
+      instance: undefined,
+      projectRole: undefined,
+      userRole: undefined,
+      profile: undefined,
+      directUserTurn: { model: "zai-coding-cn/glm-5.3-flash" },
+      parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "xhigh", speedTier: "standard" },
+    }, catalog({ resolve: async (id) => id === "zai-coding-cn/glm-5.3-flash" ? glm : models[id] }));
+    expect(result).toMatchObject({ canonical: "zai-coding-cn/glm-5.3-flash", thinking: "medium", thinkingSource: "model-default" });
+  });
+
+  it("strictly rejects an incompatible direct-user-turn thinking request without lower-layer fallback", async () => {
+    await expect(resolveModelChoice({
+      ...base,
+      oneShot: undefined,
+      directUserTurn: { model: "provider/limited", thinking: "high" },
+    }, catalog())).rejects.toThrow(/direct-user-turn.*incompatible.*lower layers were not considered/);
   });
 
   it("resolves an explicit bare model through Parent provider first and otherwise requires one candidate", async () => {
@@ -175,7 +197,7 @@ describe("direct-parent model resolution", () => {
       configs,
       catalog: catalog(),
     })).toMatchObject({ canonical: "provider/instance", layer: "instance", modelSource: "instance-override" });
-    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "provider/project" } }, catalog())).toMatchObject({ canonical: "provider/project", layer: "one-shot", modelSource: "user-one-shot" });
+    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "provider/project" } }, catalog())).toMatchObject({ canonical: "provider/project", layer: "one-shot", modelSource: "confirmed-one-shot" });
     expect(await readFile(globalPath, "utf8")).toBe(beforeBytes);
     expect(journal.getState().models).toEqual(beforeState);
     expect(await resolveAgentModel({
@@ -202,7 +224,7 @@ describe("current-turn model authority", () => {
     expect(validateCurrentTurnModelRequest({ model: "one" }, { mode: "delegated-choice", models: "available" })).toEqual({ model: "one" });
     expect(() => validateCurrentTurnModelRequest({ thinking: "high" }, { mode: "delegated-choice", models: "available" })).toThrow(/delegated model-choice/);
     expect(validateCurrentTurnModelRequest({ thinking: "high" }, { mode: "delegated-choice", models: "available", thinkingMode: "available" })).toEqual({ thinking: "high" });
-    await expect(resolveModelChoice({ selector: "general", agentId: "Worker", projectTrusted: true, oneShotThinking: "high", parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "medium", speedTier: "standard" } }, catalog())).resolves.toMatchObject({ canonical: "provider/parent", thinking: "high", thinkingSource: "user-one-shot", source: "confirmed-one-shot" });
+    await expect(resolveModelChoice({ selector: "general", agentId: "Worker", projectTrusted: true, oneShotThinking: "high", parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "medium", speedTier: "standard" } }, catalog())).resolves.toMatchObject({ canonical: "provider/parent", thinking: "high", thinkingSource: "confirmed-one-shot", source: "confirmed-one-shot" });
   });
 
   it("rejects malformed authority instead of treating it as permission", () => {

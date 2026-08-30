@@ -11,3 +11,6 @@ artifacts/test-results/
 graphify-out/
 *:Zone.Identifier
 chatgpt-archive-json-*/
+.playwright-mcp/
+.zcode/
+questionnaire-transcript.png

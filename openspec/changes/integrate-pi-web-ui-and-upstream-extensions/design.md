@@ -1,6 +1,6 @@
 ## Context
 
-This change adds a browser workbench to the existing single `@rosetears/aili-pi` package and absorbs four Pi extension capabilities. The locked functional and source baseline is `@agegr/pi-web@0.8.8` at git revision `5a53c18ca9328400a3dfb8c48c1e4f343b3e4903`. Codex, `pi-gui`, and OpenCode remain visual or interaction references only.
+This change adds a browser workbench to the existing single `@rosetears/aili-pi` package and absorbs four Pi extension capabilities. The active locked functional and source baseline is `@agegr/pi-web@0.8.11` at tag revision `28bab3c25f5f6770c9b0b745ebbfec1c27f7b948` (npm gitHead `024be0b1154ba8a2650237a2db8bfa89124e167e`), adapted against official Pi `0.84.4`; 0.8.9 remains historical evidence. Codex, `pi-gui`, and OpenCode remain visual or interaction references only.
 
 The baseline already supplies useful, proven patterns:
 
@@ -14,17 +14,17 @@ The baseline already supplies useful, proven patterns:
 
 The baseline cannot be adopted unchanged. It has no cross-process first-writer lease, its event stream lacks a versioned epoch/sequence/gap protocol, SSE attachment can create a live `AgentSession`, non-loopback startup warns rather than fails closed, and its Worktree API supports force removal. Those behaviors conflict with the accepted AILI contract.
 
-Pi `0.84.1` also has no universal public pre-mutation veto and no live external-JSONL observer reload for stock TUI. The accepted behavior is therefore asymmetric: a TUI-owned session may be observed by Web, while a Web-owned session rejects stock-TUI attachment until Web releases or exits.
+The earlier stock-TUI/Web first-writer and asymmetric observer design is superseded by D-19. The Web application now owns exactly one mutation path through the AILI Runtime Gateway/BFF. The Extension no longer attempts stock-TUI `session_start` admission, private TUI projection, or cross-process observer conversion. Concurrent mutation of the same session from stock TUI and Web is not a supported product claim; this change must not imply that official Pi exposes a universal cross-surface veto.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Keep one npm package, one Pi Extension entry, official Pi `0.84.1`, and Pi JSONL as conversation truth.
-- Adapt the locked Pi Web source and behavior rather than design a separate Web product.
+- Keep one npm package, one Pi Extension entry, official Pi `0.84.4`, and Pi JSONL as conversation truth.
+- Adapt the locked active Pi Web `0.8.11` source and behavior rather than design a separate Web product; preserve 0.8.9 only as historical evidence.
 - Provide on-demand foreground `pi-web` and Pi `/web` startup.
-- Enforce one writer for each shared session and preserve the accepted stock-TUI asymmetry.
-- Expose versioned browser contracts instead of binding UI routes directly to private Pi or AILI objects.
+- Enforce one mutation owner inside the Web application: the AILI Runtime Gateway/BFF.
+- Expose versioned browser contracts instead of binding AppShell, hooks, components, or legacy routes directly to private Pi or AILI objects.
 - Absorb Analytics, BTW, Stamp, and Worktree behind AILI-owned Runtime/API services while retaining important TUI entry points and complete first-release Web surfaces.
 - Provide fourteen AILI AI-process component categories with license-safe source handling, reduced motion, and bounded animation.
 - Preserve AILI Agent, MCP, provider/context, permission, memory, and Pi-native media ownership boundaries.
@@ -41,7 +41,7 @@ Pi `0.84.1` also has no universal public pre-mutation veto and no live external-
 
 ### 1. Adapt the locked Pi Web baseline behind an AILI Session Runtime Gateway
 
-The Web source, Next.js app structure, foreground launcher, JSONL readers, lazy `AgentSession` construction, UI components, and relevant tests will be imported from the exact locked Pi Web revision during authorized BUILD. AILI will add a transport-neutral Session Runtime Gateway between browser routes and mutable runtime services.
+The Web source, Next.js app structure, foreground launcher, JSONL readers, lazy `AgentSession` construction, UI components, and relevant tests are adapted from the exact locked Pi Web `0.8.9` revision. AILI adds a transport-neutral Session Runtime Gateway between every browser mutation caller and mutable runtime services.
 
 The gateway is a per-session composition root, not a second process-global Agent framework. It owns:
 
@@ -51,7 +51,7 @@ The gateway is a per-session composition root, not a second process-global Agent
 - capability routing for Pi, Agent, MCP, Analytics, BTW, Stamp, Worktree, and Web media;
 - permission, path, authentication, Origin, and stale-generation checks.
 
-Browser routes become a BFF over gateway contracts. They do not call persistent-Agent journals, MCP adapters, filesystem mutations, or private Pi objects directly.
+Browser routes become a BFF over gateway contracts. The real `AppShell` dependency graph, hooks, components, and compatibility routes do not call persistent-Agent journals, MCP adapters, filesystem/Git/Worktree mutations, capability services, or private Pi objects directly. Existing direct mutation routes remain only as sealed compatibility facades that reject or translate into the same Gateway contract; they are not a second owner.
 
 **Alternative considered:** importing Pi Web unchanged and adding checks to its routes. Rejected because policy would remain fragmented and would not safely coordinate stock Pi and a Web process.
 
@@ -63,14 +63,15 @@ Read-only session browsing continues to use the Pi Web pattern of reading JSONL 
 
 A mutation owner creates exactly one official Pi `AgentSession` adapter after acquiring the writer lease. AILI services persist only their separately defined out-of-context metadata or sidecars.
 
-### 3. Enforce an asymmetric first-writer lease
+### 3. Enforce one Web mutation owner
 
-A versioned lease sidecar is associated with the canonical session and uses atomic acquisition. It records an opaque generation, owner surface, process identity and start fingerprint, liveness endpoint identity, heartbeat, active-turn state, and timestamps. It contains no password or browser secret.
+A versioned Web-runtime lease is associated with the canonical session and uses atomic acquisition inside the supported Web process topology. It records an opaque generation, process identity and start fingerprint, liveness endpoint identity, heartbeat, active-turn state, and timestamps. It contains no password or browser secret.
 
-Every mutation carries the expected runtime epoch, lease generation, request ID, and command. Admission revalidates authentication, Origin, allowed root, permission/capability, session leaf, request freshness, and lease ownership immediately before invoking Pi or another mutating service.
+Every browser mutation carries the expected runtime epoch, lease generation, request ID, and command. Admission revalidates authentication, Origin, allowed root, permission/capability, session leaf, request freshness, and lease ownership immediately before invoking Pi or another mutating service.
 
-- When stock TUI acquires first, the Extension exposes an authenticated owner-only local projection endpoint and Web attaches as a live read-only observer.
-- When Web acquires first, the Extension detects the conflicting lease during `session_start` and requests graceful shutdown or otherwise blocks the TUI runtime before accepting user mutation.
+- `PrivateWebBff` and its `RuntimeHost` composition are the only Web mutation owner.
+- `AppShell`, hooks, components, and API compatibility facades never create another mutable `AgentSession` or invoke another mutable service directly.
+- The retired Extension `session_start` admission and private TUI observer projection are not production paths.
 - Explicit idle release is immediate.
 - Unexpected disconnect enters a short bounded recovery grace period.
 - Active turns remain owned until settled or, after owner death is proven, durably marked interrupted.
@@ -150,7 +151,7 @@ Package validation must cover the new executable, generated Web output, notices,
 
 ## Risks / Trade-offs
 
-- **Stock Pi observation is asymmetric** → make Web-owned stock-TUI attachment visibly fail closed; never advertise unsupported read-only attachment.
+- **Stock Pi cannot be universally mediated by this Web process** → make no cross-surface exclusion or live-observer claim; support and verify only the single Web mutation owner.
 - **Lease recovery may misclassify a live process** → combine generation checks, process-start fingerprint, heartbeat, private liveness endpoint, complete grace period, and atomic recovery.
 - **Pi Web source may drift from its published package** → bind import and adaptation evidence to the exact accepted revision and separately verify packed output.
 - **Next.js increases package size and dependency surface** → accept the installation footprint, package only runtime build/assets, and prove no eager server/model-context load.
@@ -164,9 +165,9 @@ Package validation must cover the new executable, generated Web output, notices,
 ## Migration Plan
 
 1. Add source locks, notices, SBOM/provenance support, and exact upstream snapshots under separate source-import and dependency authorization.
-2. Introduce gateway contracts, projections, lease storage, and compatibility validation without enabling Web startup.
+2. Introduce gateway contracts, Web-runtime lease storage, and compatibility validation without enabling Web startup.
 3. Add foreground process lifecycle, security preflight, BFF routes, SSE protocol, and packaged Web baseline.
-4. Integrate the Pi Web workbench against gateway contracts.
+4. Migrate the real Pi Web workbench mutation dependency graph to gateway contracts and seal every legacy direct mutation route as a rejecting or gateway-translating compatibility facade.
 5. Add BTW first, then Analytics and Stamp, and safe Worktree when it does not delay those paths; deliver retained Pi TUI usability and deterministic local tests before their deferred Runtime/API/Web parity.
 6. Resume foreground Pi Web composition last, then connect deferred Runtime/API/Web parity for the absorbed capabilities.
 7. Add Agent/MCP/context/media projections and fourteen AI process components.

@@ -31,8 +31,8 @@ describe("provenance and SBOM", () => {
       readFile(new URL("../../manifests/provenance.json", import.meta.url), "utf8").then(JSON.parse),
       readFile(new URL("../../THIRD_PARTY_NOTICES.md", import.meta.url), "utf8"),
     ]);
-    expect(provenance.sources).toHaveLength(18);
-    expect(provenance.sources.filter((item: { status: string }) => item.status === "adapted")).toHaveLength(8);
+    expect(provenance.sources).toHaveLength(19);
+    expect(provenance.sources.filter((item: { status: string }) => item.status === "adapted")).toHaveLength(9);
     expect(provenance.sources.filter((item: { status: string }) => item.status === "dependency")).toHaveLength(5);
     expect(provenance.sources.filter((item: { status: string }) => item.status === "reference-only")).toHaveLength(5);
     expect(provenance.sources.find((item: { name: string }) => item.name === "Oh My Pi reference")).toMatchObject({
@@ -52,6 +52,8 @@ describe("provenance and SBOM", () => {
       localChanges: [],
     });
     expect(notices).toContain("## algal pi-openai-server-compaction reference");
+    expect(notices).toContain("## @agegr/pi-web 0.8.11");
+    expect(notices).toContain("Copyright (c) 2026 agegr");
     expect(provenance.sources.find((item: { name: string }) => item.name === "pi-codex-fast reference")).toMatchObject({ status: "reference-only", revision: "npm:0.1.5" });
     expect(provenance.sources.find((item: { name: string }) => item.name === "Graphify reference")).toMatchObject({ status: "reference-only", revision: "e4bfd2ad1a9393251023a4edef93e93dc798afc7" });
     expect(provenance.sources.find((item: { name: string }) => item.name === "pi-tool-display reference")).toMatchObject({ status: "reference-only", revision: "91cef7580078371f8dc49a8607222807ad6a424d" });
@@ -97,12 +99,12 @@ describe("provenance and SBOM", () => {
     ]);
     expect(provenance.sources.find((item: { name: string }) => item.name === "aili-workflows")).toMatchObject({
       repository: "https://github.com/Rosetears520/aili-workflows.git",
-      revision: "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
-      version: "0.4.7",
+      revision: "a5284ee105a084392a944aee04313dcf7c294a64",
+      version: "0.4.8",
       status: "adapted",
     });
-    expect(notices).toContain("Revision: a69f3149d8f1db81726128c2819a3ccc954b9ccc");
-    expect(notices).toContain("Version: 0.4.7");
+    expect(notices).toContain("Revision: a5284ee105a084392a944aee04313dcf7c294a64");
+    expect(notices).toContain("Version: 0.4.8");
   });
 
   it("emits a deterministic SPDX 2.3 inventory with locked package integrity", async () => {
@@ -120,7 +122,7 @@ describe("provenance and SBOM", () => {
       licenseDeclared: "MIT",
     });
     expect(sbom.packages.length).toBeGreaterThan(100);
-    expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "@earendil-works/pi-coding-agent", versionInfo: "0.84.2", licenseDeclared: "MIT" }));
+    expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "@earendil-works/pi-coding-agent", versionInfo: "0.84.4", licenseDeclared: "MIT" }));
     expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "pi-mcp-adapter", versionInfo: "2.23.0", licenseDeclared: "MIT" }));
     expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "@narumitw/pi-codex-compact", versionInfo: "0.50.0", licenseDeclared: "MIT" }));
     expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "billion-context-pi", versionInfo: "0.1.34", licenseDeclared: "MIT" }));

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { readModelsConfig, writeModelsConfig } from "@/lib/models-config-store";
+import { readModelsConfig } from "@/lib/models-config-store";
+import { translateConfigurationRoute } from "@/server/configuration-route-facade";
 
 export const dynamic = "force-dynamic";
 
@@ -8,11 +9,5 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  try {
-    const body = await req.json() as Record<string, unknown>;
-    writeModelsConfig(body);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 });
-  }
+  return translateConfigurationRoute(req, "models.configure", "replace", (body) => ({ config: body }));
 }

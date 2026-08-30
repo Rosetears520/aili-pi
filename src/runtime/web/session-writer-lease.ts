@@ -333,7 +333,8 @@ function processStartFingerprint(): string {
     const fields = stat.slice(end + 2).trim().split(/\s+/);
     const startTime = fields[19];
     if (startTime && /^\d+$/.test(startTime)) {
-      return createHash("sha256").update(`${process.pid}:${startTime}`).digest("base64url").slice(0, 32);
+      const fingerprint = createHash("sha256").update(`${process.pid}:${startTime}`).digest("base64url").slice(0, 32);
+      return /^[A-Za-z0-9]/.test(fingerprint) ? fingerprint : `A${fingerprint.slice(1)}`;
     }
   } catch { /* Linux /proc is required for production recovery; fixtures may inject identity. */ }
   throw new Error("Linux process start identity is unavailable");

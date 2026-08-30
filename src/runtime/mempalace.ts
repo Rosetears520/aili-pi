@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto";
 import { lstat, realpath } from "node:fs/promises";
-import { basename } from "node:path";
+import { homedir } from "node:os";
+import { basename, join } from "node:path";
 
 export const MEMPALACE_VERSION = "3.7.0";
-export const MEMPALACE_PATH = "/home/rosetears/code/ai/.mempalace";
+/** One user-owned Palace without embedding the package author's home path. */
+export const MEMPALACE_PATH = join(homedir(), "code", "ai", ".mempalace");
 
 export interface TrustedProjectIdentity {
   root: string;

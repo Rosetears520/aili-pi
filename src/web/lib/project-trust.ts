@@ -1,5 +1,5 @@
 import { hasTrustRequiringProjectResources, ProjectTrustStore } from "@earendil-works/pi-coding-agent";
-import type { ProjectTrustStatus } from "./api-types";
+import type { ProjectTrustStatus } from "./api-types.js";
 
 export function getProjectTrustStatus(cwd: string, agentDir: string): ProjectTrustStatus {
   const requiresTrust = Boolean(cwd) && hasTrustRequiringProjectResources(cwd);

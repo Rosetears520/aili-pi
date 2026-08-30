@@ -7,8 +7,8 @@ import { dispatchSessionRowContextMenu } from "@/lib/session-row-context-menu";
 import { skillExpansionToCommand } from "@/lib/slash-display";
 import { getProjectActivity, getRecentProjects, sessionsForProject } from "@/lib/project-groups";
 import { workspaceKeyOf } from "@/lib/workspace-memory";
+import { getGatewayClient } from "@/gateway-client";
 import { useI18n } from "@/hooks/useI18n";
-import { DirectoryPicker } from "./DirectoryPicker";
 import { FileExplorer, type FileExplorerHandle } from "./FileExplorer";
 
 declare global {
@@ -102,6 +102,8 @@ interface Props {
    *  Lets the app play a cross-workspace completion tone. */
   onBackgroundTaskDone?: () => void;
   onRunningSessionIdsChange?: (ids: Set<string>) => void;
+  /** Read-only metadata from the existing sessions/worktrees projections. */
+  onProjectInfoChange?: (project: { directory: string; branch: string | null; worktree: string | null } | null) => void;
 }
 
 interface WorktreeEntry {
@@ -392,7 +394,7 @@ function PiWebTitle() {
   );
 }
 
-export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSession, initialSessionId, skipInitialProjectSelection, onInitialRestoreDone, refreshKey, onSessionDeleted, selectedCwd: selectedCwdProp, onCwdChange, onOpenFile, explorerRefreshKey, onExplorerRefresh, onAtMention, onAtMentions, onBackgroundTaskDone, onRunningSessionIdsChange }: Props) {
+export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSession, initialSessionId, skipInitialProjectSelection, onInitialRestoreDone, refreshKey, onSessionDeleted, selectedCwd: selectedCwdProp, onCwdChange, onOpenFile, explorerRefreshKey, onExplorerRefresh, onAtMention, onAtMentions, onBackgroundTaskDone, onRunningSessionIdsChange, onProjectInfoChange }: Props) {
   const { t } = useI18n();
   const [allSessions, setAllSessions] = useState<SessionInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -402,10 +404,6 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [projectFilter, setProjectFilter] = useState("");
   const [wtFilter, setWtFilter] = useState("");
-  const [customPathOpen, setCustomPathOpen] = useState(false);
-  const [customPathValue, setCustomPathValue] = useState("");
-  const [customPathError, setCustomPathError] = useState<string | null>(null);
-  const [customPathValidating, setCustomPathValidating] = useState(false);
   const [validatedProject, setValidatedProject] = useState<ValidatedProject | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   // Worktree switcher state
@@ -415,7 +413,6 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
   const [wtNewBranch, setWtNewBranch] = useState("");
   const [wtError, setWtError] = useState<string | null>(null);
   const [wtBusy, setWtBusy] = useState(false);
-  const [wtConfirmRemove, setWtConfirmRemove] = useState<string | null>(null);
   const [worktreeLoadingCwd, setWorktreeLoadingCwd] = useState<string | null>(null);
   const wtDropdownRef = useRef<HTMLDivElement>(null);
   const wtNewInputRef = useRef<HTMLInputElement>(null);
@@ -729,17 +726,36 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     : undefined;
   const currentWorktreePath = currentWorktree?.path ?? null;
 
-  const commitCustomPath = useCallback(async (candidate?: string) => {
-    const path = (candidate ?? customPathValue).trim();
-    if (!path || customPathValidating) return;
+  const [customPathBusy, setCustomPathBusy] = useState(false);
+  const [customPathError, setCustomPathError] = useState<string | null>(null);
 
-    setCustomPathValidating(true);
+  // “自定义路径”：弹出宿主机原生目录选择对话框（Windows/WSL 都是 Windows
+  // 原生对话框），选中后校验并切换为当前工作区；取消则什么都不发生。
+  const pickCustomPath = useCallback(async () => {
+    if (customPathBusy) return;
+    setCustomPathBusy(true);
     setCustomPathError(null);
     try {
+      const pickRes = await fetch("/api/cwd/pick", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initialDirectory: selectedCwd?.trim() || undefined }),
+      });
+      const picked = await pickRes.json().catch(() => ({})) as {
+        status?: string;
+        path?: string;
+        error?: string;
+      };
+      if (pickRes.status !== 200 || picked.error) {
+        setCustomPathError(picked.error ?? `HTTP ${pickRes.status}`);
+        return;
+      }
+      if (picked.status !== "picked" || !picked.path) return;
+
       const res = await fetch("/api/cwd/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cwd: path }),
+        body: JSON.stringify({ cwd: picked.path }),
       });
       const data = await res.json().catch(() => ({})) as {
         cwd?: string;
@@ -757,36 +773,13 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
         key: data.projectKey,
       });
       setSelectedCwd(data.cwd);
-      setCustomPathOpen(false);
-      setCustomPathValue("");
       setDropdownOpen(false);
-    } catch (e) {
-      setCustomPathError(e instanceof Error ? e.message : String(e));
+    } catch (cause) {
+      setCustomPathError(cause instanceof Error ? cause.message : String(cause));
     } finally {
-      setCustomPathValidating(false);
+      setCustomPathBusy(false);
     }
-  }, [customPathValue, customPathValidating]);
-
-  const handleCustomPathClick = useCallback(() => {
-    setCustomPathOpen(true);
-    setCustomPathError(null);
-    setDropdownOpen(false);
-  }, []);
-  const handleDefaultCwd = useCallback(async () => {
-    try {
-      const res = await fetch("/api/default-cwd", { method: "POST" });
-      const data = await res.json() as { cwd?: string; error?: string };
-      if (data.cwd) {
-        setSelectedCwd(data.cwd);
-        setCustomPathOpen(false);
-        setCustomPathValue("");
-        setCustomPathError(null);
-        setDropdownOpen(false);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
+  }, [customPathBusy, selectedCwd]);
 
   const handleCreateWorktree = useCallback(async () => {
     const branch = wtNewBranch.trim();
@@ -825,7 +818,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     }
   }, [wtNewBranch, wtBusy, worktreeState]);
 
-  const handleRemoveWorktree = useCallback(async (path: string, force: boolean) => {
+  const handleRemoveWorktree = useCallback(async (path: string) => {
     if (!worktreeState || wtBusy) return;
     setWtBusy(true);
     setWtError(null);
@@ -833,19 +826,13 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
       const res = await fetch("/api/worktrees", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cwd: worktreeState.projectRoot, path, force }),
+        body: JSON.stringify({ cwd: worktreeState.projectRoot, path }),
       });
-      const data = await res.json().catch(() => ({})) as { error?: string; dirty?: boolean };
+      const data = await res.json().catch(() => ({})) as { error?: string };
       if (!res.ok) {
-        if (data.dirty && !force) {
-          // Dirty worktree — ask the user to confirm a force removal
-          setWtConfirmRemove(path);
-          return;
-        }
         setWtError(data.error ?? `HTTP ${res.status}`);
         return;
       }
-      setWtConfirmRemove(null);
       if (currentWorktreePath === path) setSelectedCwd(worktreeState.projectRoot);
       setWtRefreshKey((k) => k + 1);
     } catch (e) {
@@ -867,7 +854,6 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
         setWtNewOpen(false);
         setWtNewBranch("");
         setWtError(null);
-        setWtConfirmRemove(null);
         setWtFilter("");
       }
     };
@@ -902,6 +888,18 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
 
   // Sessions of every worktree in the selected project are shown together
   const selectedProject = projectFor(selectedCwd);
+
+  useEffect(() => {
+    if (!selectedCwd) {
+      onProjectInfoChange?.(null);
+      return;
+    }
+    onProjectInfoChange?.({
+      directory: selectedProject?.root ?? selectedCwd,
+      branch: currentWorktree?.branch ?? null,
+      worktree: currentWorktree && !currentWorktree.isMain ? currentWorktree.path : null,
+    });
+  }, [currentWorktree?.branch, currentWorktree?.isMain, currentWorktree?.path, onProjectInfoChange, selectedCwd, selectedProject?.root]);
 
   // Per-project activity counts (running / unread) for the workspace selector.
   // Uses the same stable server key as the project list and filtering.
@@ -957,17 +955,6 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-      {customPathOpen && (
-        <DirectoryPicker
-          busy={customPathValidating}
-          error={customPathError}
-          onCancel={() => {
-            setCustomPathOpen(false);
-            setCustomPathError(null);
-          }}
-          onSelect={(path) => void commitCustomPath(path)}
-        />
-      )}
       {/* Header */}
       <div
         style={{
@@ -1170,9 +1157,6 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                     onClick={() => {
                       setSelectedCwd(project.root);
                       setProjectFilter("");
-                      setCustomPathOpen(false);
-                      setCustomPathValue("");
-                      setCustomPathError(null);
                       setDropdownOpen(false);
                     }}
                     style={{
@@ -1210,38 +1194,14 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                 )}
               </div>
 
-              {/* Default cwd shortcut */}
-              {!customPathOpen && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDefaultCwd(); }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 7,
-                    width: "100%",
-                    padding: "8px 10px",
-                    background: "none",
-                    border: "none",
-                    borderTop: visibleProjects.length > 0 ? "1px solid var(--border)" : "none",
-                    color: "var(--text-muted)",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontSize: 11,
-                  }}
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                    <path d="M1 3A1 1 0 0 1 2 2H4L5 3.5H8.5a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5h-7A.5.5 0 0 1 1 8V3Z" />
-                  </svg>
-                   <span>{t("sidebar.useDefaultDirectory")}</span>
-                </button>
-              )}
-
-              {/* Custom path directory picker */}
+              {/* 自定义路径：点击直接打开宿主机原生资源管理器（Windows 与
+                  WSL 都是 Windows 资源管理器；WSL 路径翻译为 \\wsl$\… UNC）。 */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleCustomPathClick();
+                  void pickCustomPath();
                 }}
+                disabled={customPathBusy}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -1256,12 +1216,17 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                   fontSize: 11,
                 }}
               >
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" style={{ flexShrink: 0 }}>
-                  <line x1="5" y1="1" x2="5" y2="9" />
-                  <line x1="1" y1="5" x2="9" y2="5" />
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d="M1 3A1 1 0 0 1 2 2H4L5 3.5H8.5a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5h-7A.5.5 0 0 1 1 8V3Z" />
+                  <path d="M1 5h2.2l.8 2h4.7" />
                 </svg>
                 <span>{t("sidebar.customPath")}</span>
               </button>
+              {customPathError && (
+                <div style={{ padding: "6px 10px 8px", fontSize: 11, color: "#dc2626", fontFamily: "var(--font-mono)", wordBreak: "break-all" }}>
+                  {customPathError}
+                </div>
+              )}
           </AnimatedDropdown>
         </div>
 
@@ -1371,28 +1336,6 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                   <div style={{ maxHeight: "min(40vh, 300px)", overflowY: "auto" }}>
                     {visibleWorktrees.map((wt) => {
                       const isCurrent = wt.path === currentWorktreePath;
-                      if (wtConfirmRemove === wt.path) {
-                        return (
-                          <div key={wt.path} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderBottom: "1px solid var(--border)", background: "rgba(239,68,68,0.06)" }}>
-                            <span style={{ flex: 1, fontSize: 11, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {t("sidebar.forceRemoveCheckout")}
-                            </span>
-                            <button
-                              onClick={() => void handleRemoveWorktree(wt.path, true)}
-                              disabled={wtBusy}
-                              style={{ padding: "3px 9px", background: "#ef4444", border: "none", borderRadius: 5, color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
-                            >
-                              {t("sidebar.force")}
-                            </button>
-                            <button
-                              onClick={() => setWtConfirmRemove(null)}
-                              style={{ padding: "3px 9px", background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: 5, color: "var(--text-muted)", fontSize: 11, cursor: "pointer", flexShrink: 0 }}
-                            >
-                              {t("sidebar.cancel")}
-                            </button>
-                          </div>
-                        );
-                      }
                       return (
                         <div
                           key={wt.path}
@@ -1435,7 +1378,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
                           </button>
                           {!wt.isMain && (
                             <button
-                              onClick={() => void handleRemoveWorktree(wt.path, false)}
+                              onClick={() => void handleRemoveWorktree(wt.path)}
                               disabled={wtBusy}
                                title={t("sidebar.removeWorktreeTitle", { path: wt.path })}
                               style={{
@@ -2016,11 +1959,13 @@ function SessionItem({
     // a skill-invoked session stays a no-op instead of persisting raw XML.)
     if (renameValue === title || name === (session.name ?? "")) return;
     try {
-      await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, {
+      await getGatewayClient().ensureMutationSession();
+      const response = await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       });
+      if (!response.ok) throw new Error(`Session rename failed (HTTP ${response.status})`);
       onRenamed?.();
     } catch {
       // ignore
@@ -2032,7 +1977,9 @@ function SessionItem({
     setConfirmDelete(false);
     setDeleting(true);
     try {
-      await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, { method: "DELETE" });
+      await getGatewayClient().ensureMutationSession();
+      const response = await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, { method: "DELETE" });
+      if (!response.ok) throw new Error(`Session deletion failed (HTTP ${response.status})`);
       onDeleted?.(session.id);
     } catch {
       setDeleting(false);

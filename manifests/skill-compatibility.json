@@ -2,26 +2,27 @@
   "schemaVersion": 1,
   "source": {
     "repository": "https://github.com/Rosetears520/aili-workflows.git",
-    "commit": "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
-    "tree": "a3ae306a306ebaddc0c942248b3fab455760272a",
-    "contentHash": "cce823fc0cb0b1c4d30a5b7d1a3ba8c899de088dc63ade4712b613663bb22ce5",
+    "commit": "a5284ee105a084392a944aee04313dcf7c294a64",
+    "tree": "771664584c66bfdd4525f691754aadec3eaa5558",
+    "contentHash": "8b1f2b11e26ac286efaf421eb222854178c94cfd4739bcd55279b2f4ab6d8c97",
     "release": {
       "package": "rose-aili",
-      "version": "0.4.7",
-      "npmGitHead": "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
-      "tarballSha256": "0a72de82e467bcfc386e982c33db5aa153b989a136bbb0c2423156e3c41f07a0",
+      "version": "0.4.8",
+      "npmGitHead": "a5284ee105a084392a944aee04313dcf7c294a64",
+      "tarballSha256": "cfc3b90e982900dcc17cf841066f6eee022cc2b97f27bb40e39494ac77bed910",
       "protocols": {
         "agentSelection": {
           "protocol": "aili-agent-selection/v1",
           "path": ".agents/skills/parallel-subagent-dispatch/references/agent-selection-matrix.md",
-          "sha256": "db35b7c17ba76984d9ee2d69931dfbce80c6413b90953899a9ae5cc671855224",
-          "bytes": 8833
-        },
-        "formalTaskBoard": {
-          "protocol": "aili-task-board/v1",
+          "sha256": "936d29442a1efc01d1fc0ed80cd319d733dafb6ff8c4c0cffbfd09ed6b2335d3",
+          "bytes": 8904
+        }
+      },
+      "references": {
+        "formalTaskNotes": {
           "path": ".agents/skills/aili-delivery-flow/references/formal-task-board.md",
-          "sha256": "3512a280b8f854da27c74af77c72709a62187be4592d53b2d7717f565975c703",
-          "bytes": 10300
+          "sha256": "b3f74e4fea3b3dd9e35bea4d59e447d051f4a9195fbdb75f6393b19f95460bcb",
+          "bytes": 2993
         }
       },
       "canonicalSpecialists": [
@@ -128,7 +129,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -141,22 +142,22 @@
     {
       "name": "aili-delivery-flow",
       "sourcePath": ".agents/skills/aili-delivery-flow",
-      "sourceHash": "03b21b6fccabc3e2f18495443a1435c235be2ee74a2374c85adf634228648404",
+      "sourceHash": "49e0131177f39d8763ad190d53acb9f8476e42947d24d84af5ccd45f4050c901",
       "files": [
         {
           "path": "references/artifact-contracts.md",
-          "sha256": "d351dfb8d935e763c56b8665ac61cb1edd252f837f4b312e0beb8a32940ae7f3",
-          "bytes": 18515
+          "sha256": "e2fc1969435cc76852aea04bc92c0cdd7aaef3e9f69ad13cb086d58764ca74a6",
+          "bytes": 18296
         },
         {
           "path": "references/backend-routing.md",
-          "sha256": "882b02d587e2334723ac1e9543947d2af1843badb4c970a87d51e880406e1771",
-          "bytes": 9989
+          "sha256": "07006caead35c07dac2801053c2ab86ede2fb31582a050eccbcaed92476c0ce5",
+          "bytes": 10162
         },
         {
           "path": "references/build-execution-loop.md",
-          "sha256": "eb4bea2568237cafac40ebd547b256a522eb8a7de9bb34e9dab1a4906c5701a0",
-          "bytes": 15373
+          "sha256": "57662398cf784c0d5df493ef83c3fd025689b9840deb2c9fe62097cdbcc0b1b0",
+          "bytes": 15535
         },
         {
           "path": "references/build-goal-mode.md",
@@ -165,23 +166,23 @@
         },
         {
           "path": "references/direct-vs-delegated-work.md",
-          "sha256": "d6d85e63087b85cc434cf8fe9cecb30ba0126b2225622f2262c7d865d8b629b4",
-          "bytes": 4253
+          "sha256": "81b8b9fefdd58862568ca42e0e35f96447c3352b4442cd6d39a6d7ffb97d4e7f",
+          "bytes": 4332
         },
         {
           "path": "references/formal-task-board.md",
-          "sha256": "3512a280b8f854da27c74af77c72709a62187be4592d53b2d7717f565975c703",
-          "bytes": 10300
+          "sha256": "b3f74e4fea3b3dd9e35bea4d59e447d051f4a9195fbdb75f6393b19f95460bcb",
+          "bytes": 2993
         },
         {
           "path": "references/implementation-packages.md",
-          "sha256": "605830d5a568b411c0913c0947aff99120f6897a382ecc2239dfd7df7b5c1e99",
-          "bytes": 9661
+          "sha256": "73d0aa4de22ef8d0d8d7898a89b58d631c8a0c47c012132e6a29b1f6ccf7ae81",
+          "bytes": 9823
         },
         {
           "path": "references/lifecycle.md",
-          "sha256": "016f7c6e38ab8564c5d78d860f2c089fcb53162463728698c67921ceffcd0000",
-          "bytes": 26024
+          "sha256": "a575f7bcd9d15b53160a4be9554475732f0ea735f7b9c7c91df59f58ed84d11f",
+          "bytes": 26665
         },
         {
           "path": "references/protocols/acceptance-test-plan.md",
@@ -235,8 +236,8 @@
         },
         {
           "path": "references/protocols/subagent-task-packet.md",
-          "sha256": "32e9c009dd9d58f4651d36bc42223be0501d7d32b37d0b57e5ab724e37726881",
-          "bytes": 3717
+          "sha256": "9dc6d5d585a6f7b1eb6c5d07023997e67fa567a44c572ec8ffc1af890a3bb706",
+          "bytes": 3799
         },
         {
           "path": "references/protocols/worktree-context.md",
@@ -260,8 +261,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "4fe6ef6221b78141419b45fd67c3ec424a40146fac11a39ae42a2874f1cede8b",
-          "bytes": 16319
+          "sha256": "31eb493f93abcec9f2c1d4e8f6b07a8a7d00e1c8071a70fbd50ee766d082c321",
+          "bytes": 16552
         }
       ],
       "triggers": {
@@ -365,6 +366,8 @@
                 52,
                 68,
                 114,
+                115,
+                118,
                 122,
                 124,
                 133,
@@ -381,7 +384,7 @@
                 24,
                 25,
                 30,
-                31
+                36
               ]
             },
             {
@@ -408,22 +411,8 @@
                 1,
                 3,
                 7,
-                11,
-                13,
-                15,
-                25,
-                26,
-                27,
-                44,
-                46,
-                85,
-                87,
-                89,
-                91,
-                99,
-                116,
-                118,
-                147
+                8,
+                15
               ]
             },
             {
@@ -437,6 +426,7 @@
                 31,
                 33,
                 46,
+                47,
                 48,
                 49
               ]
@@ -606,6 +596,7 @@
                 7,
                 16,
                 17,
+                18,
                 20,
                 21,
                 22,
@@ -625,8 +616,7 @@
             {
               "path": "references/formal-task-board.md",
               "lines": [
-                13,
-                14
+                15
               ]
             },
             {
@@ -642,6 +632,8 @@
                 62,
                 70,
                 73,
+                87,
+                88,
                 116,
                 125
               ]
@@ -735,7 +727,7 @@
             {
               "path": "references/formal-task-board.md",
               "lines": [
-                145
+                11
               ]
             },
             {
@@ -817,11 +809,9 @@
       "adapterOwner": "src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
-        "npm run verify:roles",
-        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
-        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/persistent-agent-task-collision.test.ts tests/integration/package-runtime.test.ts",
-        "vitest run tests/unit/persistent-agent-task-registration.test.ts",
-        "npm run test:doctor"
+        "npm run typecheck",
+        "vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/herdr-backends.test.ts tests/unit/persistent-agent-sub.test.ts tests/unit/persistent-agent-backends.test.ts tests/unit/persistent-agent-storage.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/package-runtime.test.ts"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -1042,7 +1032,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1275,7 +1265,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1322,7 +1312,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1397,7 +1387,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1466,7 +1456,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1531,7 +1521,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1588,7 +1578,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1636,7 +1626,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1683,7 +1673,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1775,12 +1765,10 @@
         "repo.read"
       ],
       "optionalCapabilities": [
-        "repo.write",
-        "mcp.runtime",
-        "memory.provider.mempalace"
+        "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1814,7 +1802,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1863,7 +1851,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1912,7 +1900,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -1996,7 +1984,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -2030,7 +2018,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -2066,7 +2054,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -2965,7 +2953,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3114,7 +3102,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3245,7 +3233,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3462,7 +3450,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3570,7 +3558,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3671,7 +3659,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -3738,7 +3726,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -5130,7 +5118,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -5143,12 +5131,12 @@
     {
       "name": "parallel-subagent-dispatch",
       "sourcePath": ".agents/skills/parallel-subagent-dispatch",
-      "sourceHash": "eef484aa6f70ee787b7f032668bae285dffa133dd5157a7fe6dc24ab70dc0f50",
+      "sourceHash": "407746eab6727c4828ce2dce8ee9d041dff89937ac9937e80a2a5f02ed03efb6",
       "files": [
         {
           "path": "references/agent-selection-matrix.md",
-          "sha256": "db35b7c17ba76984d9ee2d69931dfbce80c6413b90953899a9ae5cc671855224",
-          "bytes": 8833
+          "sha256": "936d29442a1efc01d1fc0ed80cd319d733dafb6ff8c4c0cffbfd09ed6b2335d3",
+          "bytes": 8904
         },
         {
           "path": "SKILL.md",
@@ -5183,6 +5171,7 @@
             {
               "path": "references/agent-selection-matrix.md",
               "lines": [
+                7,
                 17,
                 31
               ]
@@ -5235,11 +5224,9 @@
       "adapterOwner": "src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
-        "npm run verify:roles",
-        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
-        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/persistent-agent-task-collision.test.ts tests/integration/package-runtime.test.ts",
-        "vitest run tests/unit/persistent-agent-task-registration.test.ts",
-        "npm run test:doctor"
+        "npm run typecheck",
+        "vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/herdr-backends.test.ts tests/unit/persistent-agent-sub.test.ts tests/unit/persistent-agent-backends.test.ts tests/unit/persistent-agent-storage.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/package-runtime.test.ts"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -5319,7 +5306,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -5428,7 +5415,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -6174,7 +6161,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -6399,7 +6386,7 @@
     {
       "name": "requirements-grilling",
       "sourcePath": ".agents/skills/requirements-grilling",
-      "sourceHash": "364b5d497a7f1f9571adce621b63a8593a4ea00d6935a1c9e415c414d46e3d41",
+      "sourceHash": "26396302c168730d84efed49f2d1d27a1827ac566760f3816ac2b0c4ac81e349",
       "files": [
         {
           "path": "references/ADR-FORMAT.md",
@@ -6463,8 +6450,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "a579838da63c9f47524396d9f894520854870a088c0ab01353b9f14d5df34c36",
-          "bytes": 44484
+          "sha256": "b885400ef69c5cf9ccc05aac7ab9e66f97dda14850de7ad7d342f2615015d0ad",
+          "bytes": 44603
         }
       ],
       "triggers": {
@@ -6616,7 +6603,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -6669,11 +6656,9 @@
       "adapterOwner": "src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
-        "npm run verify:roles",
-        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
-        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/persistent-agent-task-collision.test.ts tests/integration/package-runtime.test.ts",
-        "vitest run tests/unit/persistent-agent-task-registration.test.ts",
-        "npm run test:doctor"
+        "npm run typecheck",
+        "vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/herdr-backends.test.ts tests/unit/persistent-agent-sub.test.ts tests/unit/persistent-agent-backends.test.ts tests/unit/persistent-agent-storage.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/package-runtime.test.ts"
       ],
       "status": "adapted",
       "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
@@ -6752,7 +6737,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7280,7 +7265,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7317,7 +7302,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7511,7 +7496,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7560,7 +7545,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7700,7 +7685,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7792,7 +7777,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",
@@ -7904,7 +7889,7 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.1",
+      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
         "vitest run tests/integration/extension-load.test.ts",

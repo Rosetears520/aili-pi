@@ -20,6 +20,21 @@ export interface ReadonlySessionManagerLike {
   getHeader(): SessionHeader | null;
   getEntries(): SessionEntry[];
   getSessionName(): string | undefined;
+  getLeafId?(): string | null;
+}
+
+export interface JsonlImageCandidateV1 {
+  readonly recordIndex: number;
+  readonly blockIndex: number;
+  readonly data: string;
+  readonly mimeType: string;
+}
+
+export interface JsonlBranchPageV1 {
+  readonly records: readonly JsonlProjectionRecordV1[];
+  readonly images: readonly JsonlImageCandidateV1[];
+  readonly oldestIndex: number | null;
+  readonly hasMore: boolean;
 }
 
 export interface OfficialSessionManagerAdapter {
@@ -108,8 +123,53 @@ export class ReadonlyJsonlBrowser {
     return this.readPrivatePath(path);
   }
 
+  /** Read one bounded tail page from the active branch without constructing AgentSession. */
+  public async readBranchPage(sessionHandle: string, beforeIndex: number | undefined, limit: number): Promise<JsonlBranchPageV1> {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 200) throw new Error("history page limit is invalid");
+    if (beforeIndex !== undefined && (!Number.isSafeInteger(beforeIndex) || beforeIndex < 0)) throw new Error("history cursor is invalid");
+    const path = this.privatePaths.get(sessionHandle);
+    if (!path) throw new Error("unknown JSONL session handle; list sessions first");
+    const trustedPath = await this.revalidate(path);
+    const before = await lstat(trustedPath);
+    if (!before.isFile() || before.isSymbolicLink() || before.size > this.maxBytes) throw new Error("JSONL target is not a permitted regular file");
+    const handle = await open(trustedPath, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    try {
+      const opened = await handle.stat();
+      if (!opened.isFile() || opened.size > this.maxBytes || opened.dev !== before.dev || opened.ino !== before.ino) throw new Error("JSONL target changed before open");
+      const manager = this.sessionManagerOpen(trustedPath);
+      const entries = manager.getEntries().slice(0, this.maxLines);
+      const byId = new Map(entries.map((entry, index) => [entry.id, { entry, index }]));
+      let current = beforeIndex === undefined
+        ? (manager.getLeafId?.() ? byId.get(manager.getLeafId?.() ?? "") : undefined) ?? (entries.length ? { entry: entries[entries.length - 1]!, index: entries.length - 1 } : undefined)
+        : entries[beforeIndex]?.parentId ? byId.get(entries[beforeIndex]!.parentId!) : undefined;
+      const selected: Array<{ entry: SessionEntry; index: number }> = [];
+      while (current && selected.length < limit) {
+        selected.push(current);
+        current = current.entry.parentId ? byId.get(current.entry.parentId) : undefined;
+      }
+      selected.reverse();
+      const records = selected.map(({ entry, index }) => projectEntry(entry, index));
+      const images = selected.flatMap(({ entry, index }) => imageCandidates(entry, index));
+      const oldestIndex = selected[0]?.index ?? null;
+      const hasMore = Boolean(selected[0]?.entry.parentId);
+      const after = await handle.stat();
+      if (after.dev !== opened.dev || after.ino !== opened.ino || after.size !== opened.size) throw new Error("JSONL target changed while read");
+      return Object.freeze({ records: Object.freeze(records), images: Object.freeze(images), oldestIndex, hasMore });
+    } finally {
+      await handle.close();
+    }
+  }
+
   public privatePathForHandle(sessionHandle: string): string | undefined {
     return this.privatePaths.get(sessionHandle);
+  }
+
+  /** Server-only compatibility lookup; raw paths never cross the BFF response. */
+  public async handleForPrivatePath(path: string): Promise<string | undefined> {
+    const trustedPath = await this.revalidate(path);
+    const handle = this.opaqueHandle(trustedPath);
+    this.privatePaths.set(handle, trustedPath);
+    return handle;
   }
 
   /** Server-only official SessionManager adapter for a selected catalog entry. */
@@ -189,6 +249,22 @@ async function discoverJsonlFiles(root: string, depth: number): Promise<readonly
   return output;
 }
 
+function imageCandidates(entry: SessionEntry, recordIndex: number): JsonlImageCandidateV1[] {
+  const raw = entry as unknown as Record<string, unknown>;
+  const message = isRecord(raw.message) ? raw.message : undefined;
+  if (message?.role !== "toolResult" || !Array.isArray(message.content)) return [];
+  return message.content.flatMap((block, blockIndex) => {
+    if (!isRecord(block) || block.type !== "image") return [];
+    if (typeof block.data === "string" && typeof block.mimeType === "string") {
+      return [{ recordIndex, blockIndex, data: block.data, mimeType: block.mimeType }];
+    }
+    const source = isRecord(block.source) ? block.source : undefined;
+    return source?.type === "base64" && typeof source.data === "string" && typeof source.media_type === "string"
+      ? [{ recordIndex, blockIndex, data: source.data, mimeType: source.media_type }]
+      : [];
+  });
+}
+
 function projectEntry(entry: SessionEntry, index: number): JsonlProjectionRecordV1 {
   const raw = entry as unknown as Record<string, unknown>;
   const message = isRecord(raw.message) ? raw.message : undefined;
@@ -226,6 +302,7 @@ function projectContent(value: unknown): string | undefined {
   return text ? text.slice(0, 32_768) : undefined;
 }
 function roleOf(value: unknown): JsonlProjectionRecordV1["role"] | undefined {
+  if (value === "toolResult") return "tool";
   return value === "user" || value === "assistant" || value === "tool" || value === "system" ? value : undefined;
 }
 function boundedType(value: string): string { return value.replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 96) || "record"; }

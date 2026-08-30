@@ -78,16 +78,26 @@ async function installTerminalUpgradeHook(): Promise<void> {
 }
 
 async function installFromInheritedChannels(): Promise<InstalledForegroundRuntime> {
-  const identity = readOneUseIdentity(3);
+  const { installRuntimeGatewayAgentAdapter } = await import("./lib/rpc-manager");
+  const uninstallAgentAdapter = installRuntimeGatewayAgentAdapter();
+  let identity: Buffer | undefined;
   let composition: ForegroundRuntimeComposition | undefined;
   try {
+    identity = readOneUseIdentity(3);
     composition = await createProductionForegroundComposition(identity);
+  } catch (error) {
+    uninstallAgentAdapter();
+    throw error;
   } finally {
-    identity.fill(0);
+    identity?.fill(0);
   }
   let uninstallBridge: () => void;
   try { uninstallBridge = installAiliWebBffBridge(composition); }
-  catch (error) { await composition.dispose().catch(() => undefined); throw error; }
+  catch (error) {
+    await composition.dispose().catch(() => undefined);
+    uninstallAgentAdapter();
+    throw error;
+  }
   let disposePromise: Promise<void> | undefined;
   // Node child "pipes" are socketpairs on Linux; /proc/self/fd cannot reopen
   // them, so the parent-liveness channel must read the inherited fd directly.
@@ -100,6 +110,7 @@ async function installFromInheritedChannels(): Promise<InstalledForegroundRuntim
       for (const [signal, handler] of signalHandlers) process.off(signal, handler);
       uninstallBridge();
       await composition.dispose();
+      uninstallAgentAdapter();
     })();
     return disposePromise;
   };

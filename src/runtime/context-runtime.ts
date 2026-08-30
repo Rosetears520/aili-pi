@@ -5,8 +5,9 @@ import type {
 import { hasApi, type Api, type Model } from "@earendil-works/pi-ai";
 import { createCodexCompactExtension } from "@narumitw/pi-codex-compact/src/codex-compact.js";
 import { createCodexCompactSettingsRuntime, type CodexCompactSettingsRuntime } from "@narumitw/pi-codex-compact/src/settings.js";
-import { createAcpExtension, createAcpPressureEvaluator, type AcpPressureEvaluator } from "../../upstream/billion-context-pi/dist/index.js";
-import { wireContextPressure } from "./context-pressure.js";
+// AILI owns the retained upstream source adaptation. Do not hand-edit its
+// generated dist: this source import is the canonical runtime owner.
+import { createAcpExtension } from "../../upstream/billion-context-pi/src/index.js";
 
 export const BILLION_CONTEXT_VERSION = "0.1.34";
 export const CODEX_COMPACT_VERSION = "0.50.0";
@@ -96,7 +97,6 @@ export function forcePiOwnedCodexRetry(
 export interface ProviderRoutedContextOptions {
   settingsRuntime?: ReturnType<typeof createCodexCompactSettingsRuntime>;
   fetch?: typeof globalThis.fetch;
-  pressureEvaluator?: AcpPressureEvaluator;
 }
 
 export function createProviderRoutedContextExtension(options: ProviderRoutedContextOptions = {}): ExtensionFactory {
@@ -109,21 +109,16 @@ export function createProviderRoutedContextExtension(options: ProviderRoutedCont
       return router.route(ctx).owner === expected;
     };
 
-    // Keep Codex transport retries disabled: Pi 0.84.2 owns attempts, budget and backoff.
+    // Keep Codex transport retries disabled: Pi 0.84.4 owns attempts, budget and backoff.
     const settingsRuntime = forcePiOwnedCodexRetry(options.settingsRuntime ?? createCodexCompactSettingsRuntime());
     const codex = createCodexCompactExtension({ fetch: options.fetch, settingsRuntime });
-    const acp = createAcpExtension({ autoUpdate: false }, {
+    // `delegate: false` is a package-owned monotonic decision: AILI's sole
+    // delegation surface is sub, while compression/context stay enabled.
+    const acp = createAcpExtension({ autoUpdate: false, delegate: false }, {
       ownsContext: (ctx) => owns(ctx, "billion-context"),
     });
-    const pressureEvaluator = options.pressureEvaluator ?? createAcpPressureEvaluator({ autoUpdate: false });
 
     acp(pi);
-    // Register the Codex ACP nudge and threshold gate before codex-compact so
-    // a native threshold event cannot start compaction ahead of model consent.
-    wireContextPressure(pi, {
-      ownsCodexContext: (ctx) => owns(ctx, "codex-remote-v2"),
-      evaluator: pressureEvaluator,
-    });
     codex(pi);
     pi.on("agent_end", () => router.endTurn());
     pi.on("session_before_switch", () => router.endTurn());

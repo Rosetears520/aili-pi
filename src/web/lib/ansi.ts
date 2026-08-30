@@ -147,12 +147,14 @@ function applyAnsiCodes(style: CSSProperties, codes: number[]): CSSProperties {
       next.fontStyle = "italic";
     } else if (code === 4) {
       next.textDecoration = "underline";
+    } else if (code === 9) {
+      next.textDecoration = "line-through";
     } else if (code === 22) {
       delete next.fontWeight;
       delete next.opacity;
     } else if (code === 23) {
       delete next.fontStyle;
-    } else if (code === 24) {
+    } else if (code === 24 || code === 29) {
       delete next.textDecoration;
     } else if (code === 39) {
       delete next.color;

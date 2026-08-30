@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { isCanonicalAiliTaskActive } from "./persistent-agents/task-registration.ts";
+import { isCanonicalAiliSubActive } from "./persistent-agents/sub-registration.ts";
 
 type NativeExtension = (pi: ExtensionAPI) => void | Promise<void>;
 
@@ -51,7 +51,7 @@ export function persistentTaskAwarePermissionApi(pi: ExtensionAPI): ExtensionAPI
       const toolName = toolEvent && typeof toolEvent === "object" && "toolName" in toolEvent
         ? (toolEvent as { toolName?: unknown }).toolName
         : undefined;
-      return toolName === "sub" && isCanonicalAiliTaskActive(pi)
+      return toolName === "sub" && isCanonicalAiliSubActive(pi)
         ? undefined
         : handler(toolEvent, context);
     });

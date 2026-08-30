@@ -45,18 +45,18 @@ afterEach(async () => {
 });
 
 describe("validated Workflow runtime bundle", () => {
-  it("loads one immutable 0.4.7 view with all 20 canonical specialists", async () => {
+  it("loads one immutable 0.4.8 view with all 20 canonical specialists", async () => {
     const bundle = await loadWorkflowRuntimeBundle();
     expect(bundle).toMatchObject({
       package: "rose-aili",
-      version: "0.4.7",
-      commit: "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
+      version: "0.4.8",
+      commit: "a5284ee105a084392a944aee04313dcf7c294a64",
     });
     expect(bundle.canonicalSpecialists).toHaveLength(20);
     expect(bundle.canonicalSpecialists).toContain("solution-architect");
     expect(Object.isFrozen(bundle)).toBe(true);
     expect(Object.isFrozen(bundle.roleMetadata.roles)).toBe(true);
-    expect(Object.keys(bundle.protocols)).toEqual(["agentSelection", "formalTaskBoard", "packageEnvelope"]);
+    expect(Object.keys(bundle.protocols)).toEqual(["agentSelection", "packageEnvelope"]);
   });
 
   it("loads the package runtime subset without Workflow-owned global resources", async () => {
@@ -65,7 +65,7 @@ describe("validated Workflow runtime bundle", () => {
       rm(join(paths.bundle, "AGENTS.md")),
       rm(join(paths.bundle, "prompts"), { recursive: true }),
     ]);
-    await expect(load(paths)).resolves.toMatchObject({ package: "rose-aili", version: "0.4.7" });
+    await expect(load(paths)).resolves.toMatchObject({ package: "rose-aili", version: "0.4.8" });
   });
 
   it("fails closed for missing and byte-drifted runtime artifacts", async () => {

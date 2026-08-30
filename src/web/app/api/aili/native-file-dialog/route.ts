@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
-import { delimiter as pathDelimiter } from "node:path";
 import { isWsl, wslDistroName } from "@/lib/allowed-roots";
+import { findOnPath, runDialogProcess, runPowerShellDialogScript } from "@/lib/native-dialog-bridge";
 
 const DIALOG_TIMEOUT_MS = 10 * 60_000;
 const CANCEL_MARKER = "##AILI_CANCELLED##";
@@ -13,52 +11,6 @@ const globalRef = globalThis as {
 };
 
 type ChildProcessLike = import("node:child_process").ChildProcess;
-
-function findOnPath(name: string): string | null {
-  for (const dir of (process.env.PATH ?? "").split(pathDelimiter)) {
-    if (!dir) continue;
-    const candidate = `${dir}/${name}`;
-    if (existsSync(candidate)) return candidate;
-  }
-  return null;
-}
-
-/**
- * One live dialog at a time with replace semantics: a newer request kills the
- * previous dialog process, so a hidden or abandoned dialog can never wedge the
- * endpoint until its timeout.
- */
-function runDialog(exe: string, args: string[]): Promise<{ stdout: string; code: number | null }> {
-  return new Promise((resolve, reject) => {
-    globalRef.__ailiNativeDialogChild?.kill();
-    const child: ChildProcessLike = spawn(exe, args, { stdio: ["ignore", "pipe", "ignore"] });
-    globalRef.__ailiNativeDialogChild = child;
-    let stdout = "";
-    const timer = setTimeout(() => child.kill(), DIALOG_TIMEOUT_MS);
-    child.stdout?.on("data", (chunk) => { stdout += chunk.toString("utf8"); });
-    child.on("error", (error) => {
-      clearTimeout(timer);
-      if (globalRef.__ailiNativeDialogChild === child) globalRef.__ailiNativeDialogChild = null;
-      reject(error);
-    });
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      if (globalRef.__ailiNativeDialogChild === child) globalRef.__ailiNativeDialogChild = null;
-      resolve({ stdout, code });
-    });
-  });
-}
-
-function powershellPath(): string | null {
-  const candidates = [
-    "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
-    "/mnt/c/Windows/SysWOW64/WindowsPowerShell/v1.0/powershell.exe",
-  ];
-  for (const candidate of candidates) {
-    if (existsSync(candidate)) return candidate;
-  }
-  return null;
-}
 
 /** WSL path -> the form the Windows dialog accepts as an initial directory. */
 function windowsInitialDirectory(cwd: string | null): string {
@@ -117,8 +69,6 @@ export async function POST(request: Request) {
 
   try {
     if (isWsl()) {
-      const exe = powershellPath();
-      if (!exe) return NextResponse.json({ error: "Windows interop unavailable" }, { status: 501 });
       const initialDirectory = windowsInitialDirectory(cwd);
       const script = [
         "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8",
@@ -137,7 +87,7 @@ export async function POST(request: Request) {
         "$owner.Close()",
         `if ($ok -eq [System.Windows.Forms.DialogResult]::OK) { $d.FileNames } else { '${CANCEL_MARKER}' }`,
       ].filter(Boolean).join("\n");
-      const { stdout } = await runDialog(exe, ["-NoProfile", "-STA", "-NonInteractive", "-Command", script]);
+      const { stdout } = await runPowerShellDialogScript(script, DIALOG_TIMEOUT_MS);
       const lines = stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
       if (lines.length === 0 || lines.includes(CANCEL_MARKER)) {
         return NextResponse.json({ paths: [] }, { headers: { "Cache-Control": "no-store" } });
@@ -163,7 +113,7 @@ export async function POST(request: Request) {
         "-e", "end repeat",
         "-e", "return out",
       ];
-      const { stdout, code } = await runDialog(osascript, args);
+      const { stdout, code } = await runDialogProcess(osascript, args, DIALOG_TIMEOUT_MS);
       if (code !== 0) return NextResponse.json({ paths: [] }, { headers: { "Cache-Control": "no-store" } });
       const paths = stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
       return NextResponse.json({ paths }, { headers: { "Cache-Control": "no-store" } });
@@ -172,20 +122,20 @@ export async function POST(request: Request) {
     const zenity = findOnPath("zenity");
     const kdialog = findOnPath("kdialog");
     if (zenity) {
-      const { stdout, code } = await runDialog(zenity, [
+      const { stdout, code } = await runDialogProcess(zenity, [
         "--file-selection", "--multiple", "--separator=\n",
         "--title=AILI Pi - select files",
         ...(cwd ? [`--filename=${cwd}/`] : []),
-      ]);
+      ], DIALOG_TIMEOUT_MS);
       if (code !== 0) return NextResponse.json({ paths: [] }, { headers: { "Cache-Control": "no-store" } });
       const paths = stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
       return NextResponse.json({ paths }, { headers: { "Cache-Control": "no-store" } });
     }
     if (kdialog) {
-      const { stdout, code } = await runDialog(kdialog, [
+      const { stdout, code } = await runDialogProcess(kdialog, [
         "--getopenfilename", cwd ?? ".", "--multiple", "--separate",
         "--title", "AILI Pi - select files",
-      ]);
+      ], DIALOG_TIMEOUT_MS);
       if (code !== 0) return NextResponse.json({ paths: [] }, { headers: { "Cache-Control": "no-store" } });
       const paths = stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
       return NextResponse.json({ paths }, { headers: { "Cache-Control": "no-store" } });

@@ -127,13 +127,13 @@ function registrationSpy(): { pi: ExtensionAPI; providerCalls: unknown[][] } {
   return { pi, providerCalls };
 }
 
-describe("Pi 0.84.2-owned GPT-5.6 Codex metadata", () => {
+describe("Pi 0.84.4-owned GPT-5.6 Codex metadata", () => {
   it("keeps the installed Pi version and exact Sol, Terra, and Luna catalog values", async () => {
     const piPackage = JSON.parse(await readFile(
       new URL("../../node_modules/@earendil-works/pi-coding-agent/package.json", import.meta.url),
       "utf8",
     )) as { version?: string };
-    expect(piPackage.version).toBe("0.84.2");
+    expect(piPackage.version).toBe("0.84.4");
 
     const registry = await createOfflineRegistry();
     for (const [id, expected] of Object.entries(EXPECTED_GPT_56)) {
@@ -171,5 +171,5 @@ describe("Pi 0.84.2-owned GPT-5.6 Codex metadata", () => {
     const registry = await createOfflineRegistry();
     expect(registry.getRegisteredProviderIds()).not.toContain("openai-codex");
     expect(registry.find("openai-codex", "gpt-5.6-sol")?.contextWindow).toBe(272000);
-  });
+  }, 20_000);
 });

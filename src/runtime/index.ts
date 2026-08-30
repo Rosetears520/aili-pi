@@ -16,6 +16,8 @@ export const runtimeComponents: readonly RuntimeComponent[] = [
   { id: "mcp-runtime", availability: "available", register: createAiliMcpExtension() },
   { id: "context-runtime", availability: "available", register: createProviderRoutedContextExtension() },
   { id: "provider-retry", availability: "available", register: createExplainableRetryExtension() },
+  { id: "observational-memory", availability: "available" },
+  { id: "prompt-middleware", availability: "available" },
   { id: "native-integrations", availability: "available", register: registerNativeIntegrations },
   { id: "capability-registry", availability: "available" },
   { id: "doctor", availability: "available", register: registerDoctor },

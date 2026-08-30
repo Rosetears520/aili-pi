@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Icons derived from @lobehub/icons (https://github.com/lobehub/lobe-icons).
+    MIT License. Copyright (c) 2023 LobeHub.
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+  -->
+  <symbol id="anthropic" viewBox="0 0 24 24"><path d="M13.827 3.52h3.603L24 20h-3.603l-6.57-16.48zm-7.258 0h3.767L16.906 20h-3.674l-1.343-3.461H5.017l-1.344 3.46H0L6.57 3.522zm4.132 9.959L8.453 7.687 6.205 13.48H10.7z"/></symbol>
+  <symbol id="openai" viewBox="0 0 24 24"><path d="M12 2a5 5 0 014.8 3.6 5 5 0 013.6 8.4 5 5 0 01-6.4 6.4A5 5 0 015.6 16 5 5 0 012 9.6 5 5 0 016.4 4 5 5 0 015.2 8l6.8-4 6.8 4v8L12 20l-6.8-4V8M9 9.7v4.6l3 1.7 3-1.7V9.7L12 8z"/></symbol>
+  <symbol id="google" viewBox="0 0 24 24"><path d="M23 12.245c0-.905-.075-1.565-.236-2.25h-10.54v4.083h6.186c-.124 1.014-.797 2.542-2.294 3.569l3.542 2.688C21.779 18.417 23 15.593 23 12.245z" fill="#4285F4"/><path d="M12.225 23c3.03 0 5.574-.978 7.433-2.665l-3.542-2.688c-.948.648-2.22 1.1-3.891 1.1a6.745 6.745 0 01-6.386-4.572l-3.642 2.763C4.043 20.531 7.835 23 12.225 23z" fill="#34A853"/><path d="M5.84 14.175A6.65 6.65 0 015.463 12c0-.758.138-1.491.361-2.175L2.197 7.062A10.831 10.831 0 001 12c0 1.772.436 3.447 1.197 4.938z" fill="#FBBC05"/><path d="M12.225 5.253c2.108 0 3.529.892 4.34 1.638l3.167-3.031C17.787 2.088 15.255 1 12.225 1 7.834 1 4.043 3.469 2.197 7.062l3.63 2.763a6.77 6.77 0 016.398-4.572z" fill="#EB4335"/></symbol>
+  <symbol id="deepseek" viewBox="0 0 24 24"><path d="M2 12C2 5 8 2 14 5c3 1 4 4 8 1-1 5-4 6-7 5 1 5-3 9-8 8-4-1-6-4-5-7zm5 1c2 3 5 4 8 2-3 0-5-3-8-2z" fill="#4D6BFE"/></symbol>
+  <symbol id="groq" viewBox="0 0 24 24"><path d="M12 2a7 7 0 100 14h3v-3h-3a4 4 0 110-8 4 4 0 014 4v7a4 4 0 01-7 3l-2 2a7 7 0 0012-5V9a7 7 0 00-7-7z"/></symbol>
+  <symbol id="mistral" viewBox="0 0 24 24"><path d="M3 3h4v4H3zm14 0h4v4h-4z" fill="#FFD000"/><path d="M3 7h8v4H3zm10 0h8v4h-8z" fill="#FF9D00"/><path d="M3 11h18v4H3z" fill="#F56B00"/><path d="M0 17h11v4H0zm13 0h11v4H13z" fill="#E10500"/></symbol>
+  <symbol id="moonshot" viewBox="0 0 24 24"><path d="M2 4l20 5v3L1 7zm-1 5l22 6-1 3L0 12zm0 6l18 5a12 12 0 01-18-5z"/></symbol>
+  <symbol id="minimax" viewBox="0 0 24 24"><path d="M2 20V8l4 4 4-8 4 8 4-8 4 4v12h-3V9l-5 10-4-9-5 9V9l-3 3z" fill="#ED3775"/></symbol>
+  <symbol id="fireworks" viewBox="0 0 24 24"><path d="M12 2v8l5-6-3 8 8-3-7 5 7 3-8-1 3 7-5-6-5 6 3-7-8 1 7-3-7-5 8 3-3-8 5 6z" fill="#5019C5"/></symbol>
+  <symbol id="huggingface" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#FFD21E"/><circle cx="8" cy="10" r="1.3"/><circle cx="16" cy="10" r="1.3"/><path d="M7 14c3 4 7 4 10 0" fill="none" stroke="#E33" stroke-width="2"/></symbol>
+  <symbol id="cerebras" viewBox="0 0 24 24"><path d="M15 2a10 10 0 100 20v-3a7 7 0 110-14zm0 5a5 5 0 100 10v-3a2 2 0 110-4z" fill="#F15A29"/></symbol>
+  <symbol id="openrouter" viewBox="0 0 24 24"><path d="M0 9h13V5l11 6-11 6v-4H0zm0 6h8v4l8-5-8-5v4H0z"/></symbol>
+  <symbol id="xai" viewBox="0 0 24 24"><path d="M2 2l15 21h-5L2 9zm20 0v21h-4V8zM7 23l3-5-2-3-6 8z"/></symbol>
+  <symbol id="cloudflare" viewBox="0 0 24 24"><path d="M1 18h15c2-5-2-6-4-5-1-5-8-5-10 0-3 0-3 5-1 5z" fill="#F38020"/><path d="M16 18h8c0-4-5-6-7-3z" fill="#FCAD32"/></symbol>
+  <symbol id="vercel" viewBox="0 0 24 24"><path d="M12 1l12 21H0z"/></symbol>
+  <symbol id="githubcopilot" viewBox="0 0 24 24"><path d="M4 8c1-7 15-7 16 0l2 2v7c-6 6-14 6-20 0v-7zm3 1v4h3V9zm7 0v4h3V9z"/></symbol>
+  <symbol id="aws" viewBox="0 0 24 24"><path d="M2 14l3-9h3l3 9H8l-1-2H4l-1 2zm10 0L9 5h3l2 6 2-6h3l2 6 1-6h2l-2 9h-3l-2-5-2 5z"/><path d="M2 17c7 4 14 4 20 0-5 6-15 6-20 0z" fill="#F90"/></symbol>
+  <symbol id="azure" viewBox="0 0 24 24"><path d="M8 1h7L8 23H1z" fill="#0878C9"/><path d="M14 1l9 22h-8L9 17z" fill="#31A8E0"/></symbol>
+  <symbol id="kimi" viewBox="0 0 24 24"><path d="M3 3h4v7l7-7h5l-8 8 9 7h-6l-7-5v7H3z" fill="#1783FF"/><circle cx="21" cy="2" r="2" fill="#1783FF"/></symbol>
+  <symbol id="qwen" viewBox="0 0 24 24"><path d="M8 2h8l2 4h4l2 7-4 7h-6l-2 3-2-3H4l-4-7 4-7h2zm1 6l3 6 3-6z" fill="#6F69F7"/></symbol>
+  <symbol id="zhipu" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="#3859FF"/><g fill="#3859FF"><circle cx="12" cy="3" r="2"/><circle cx="12" cy="21" r="2"/><circle cx="3" cy="12" r="2"/><circle cx="21" cy="12" r="2"/><circle cx="6" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/></g></symbol>
+  <symbol id="cohere" viewBox="0 0 24 24"><path d="M2 2h16a5 5 0 010 10H8A6 6 0 012 2z" fill="#39594D"/><circle cx="18" cy="18" r="5" fill="#D18EE2"/><circle cx="5" cy="19" r="4" fill="#FF7759"/></symbol>
+  <symbol id="perplexity" viewBox="0 0 24 24"><path d="M5 1v7H2v9h3v6l7-6 7 6v-6h3V8h-3V1l-7 7zm2 9h10v5l-5-5-5 5z" fill="#22B8CD"/></symbol>
+  <symbol id="together" viewBox="0 0 24 24"><circle cx="9" cy="8" r="7" fill="#CAAEF5"/><circle cx="16" cy="8" r="7" fill="#EF2CC1"/><circle cx="12" cy="16" r="7" fill="#FC4C02"/></symbol>
+  <symbol id="grok" viewBox="0 0 24 24"><path d="M3 20L20 3l-2 7c4 8-5 14-11 9l-4 2zm6-5c5 2 8-1 7-6z"/></symbol>
+  <symbol id="antgroup" viewBox="0 0 24 24"><path d="M12 2a10 10 0 11-7 3c2-2 3-2 5-1-5 2-5 10 1 13 6 2 10-5 6-9-2-2-5-2-7 0 2-4 7-4 10 0 4 6-1 13-8 12z" fill="#1677FF"/></symbol>
+  <symbol id="nvidia" viewBox="0 0 24 24"><path d="M2 12c5-8 15-8 20 0-6 7-14 7-20 0zm4 0c4 5 9 4 12 0-4-4-9-4-12 0zm4 0a2 2 0 104 0 2 2 0 00-4 0z" fill="#74B71B"/></symbol>
+  <symbol id="opencode" viewBox="0 0 24 24"><path d="M16 6H8v12h8V6zm4 16H4V2h16v20z"/></symbol>
+  <symbol id="xiaomimimo" viewBox="0 0 24 24"><path d="M1 19v-7l3 3 3-3v7H5v-3l-1 1-1-1v3zm8 0v-7h2v7zm4 0v-7l3 3 3-3v7h-2v-3l-1 1-1-1v3zm8-7h2v7h-2z"/></symbol>
+  <symbol id="zai" viewBox="0 0 24 24"><path d="M12 2L9 6H0l3-4zm12 0L9 22H0L15 2zm0 18l-2 2h-10l2-2z"/></symbol>
+</svg>

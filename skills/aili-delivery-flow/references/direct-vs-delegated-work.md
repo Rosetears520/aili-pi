@@ -8,7 +8,7 @@ Ordinary work uses a specialist-preferred scan. Dispatch the narrowest matching 
 
 ## Formal lane
 
-A ready `aili-task-board/v1` package with `Owner: agent:<canonical-role-id>` requires dispatch to that exact role. Do not rerun the ordinary benefit judgment or substitute another role. `Owner: ROSE` uses `Dispatch: forbidden` and direct execution. Direct ROSE execution of an Agent-owned package is legal only through a valid waiver recorded before work under the bounded reasons in `formal-task-board.md`; a post-hoc waiver or an invalid role is not a fallback.
+A ready formal package assigned to `agent:<canonical-role-id>` requires dispatch to that exact role. Do not rerun the ordinary benefit judgment or substitute another role. A ROSE-owned package uses direct execution. Direct ROSE execution of an Agent-owned package is legal only through a valid waiver recorded before work under the bounded reasons in `formal-task-board.md`; a post-hoc waiver or an invalid role is not a fallback. Assignment and settlement live in the accepted contract and runtime Journal, never in required Markdown fields.
 
 Formal hard dispatch does not extend to ordinary conversation or bounded ordinary tasks.
 

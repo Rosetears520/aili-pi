@@ -42,7 +42,7 @@ describe("Pi-owned role profiles", () => {
     const manifest = JSON.parse(await readFile(new URL("../../manifests/roles.json", import.meta.url), "utf8"));
     expect(lock).toMatchObject({
       repository: "https://github.com/Rosetears520/aili-workflows.git",
-      commit: "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
+      commit: "a5284ee105a084392a944aee04313dcf7c294a64",
     });
     expect(manifest.source).toEqual({ repository: lock.repository, commit: lock.commit });
 

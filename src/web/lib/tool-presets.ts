@@ -2,6 +2,9 @@ export interface ToolEntry {
   name: string;
   description: string;
   active: boolean;
+  /** Read-only schema metadata projected by the active Agent session. */
+  parameters?: Record<string, unknown>;
+  promptGuidelines?: string[];
 }
 
 export const TOOL_PRESET_VALUES = ["none", "read-only", "default", "full"] as const;

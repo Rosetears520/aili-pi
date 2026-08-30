@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAbsolute } from "node:path";
-import { listMcpPanelServers, setMcpPanelServerDisabled } from "@/lib/mcp-panel-access";
+import { listMcpPanelServers } from "@/lib/mcp-panel-access";
+import { translateConfigurationRoute } from "@/server/configuration-route-facade";
 import { readMcpRuntimeSnapshot } from "../../../../runtime/mcp-runtime-store.ts";
 import { getAllowedFileRoots, isExistingFilePathAllowed, isWindowsAbsolutePath } from "@/lib/file-access";
 export async function GET(request: NextRequest) {
@@ -20,30 +21,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Retained URL: translation only. Runtime Gateway is the sole mutation owner.
 export async function PATCH(request: NextRequest) {
-  let body: { cwd?: unknown; name?: unknown; disabled?: unknown };
-  try {
-    body = (await request.json()) as typeof body;
-  } catch {
-    return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
-  }
-  const cwd = typeof body.cwd === "string" ? body.cwd.trim() : "";
-  const name = typeof body.name === "string" ? body.name : "";
-  if (!cwd || (!isAbsolute(cwd) && !isWindowsAbsolutePath(cwd))) {
-    return NextResponse.json({ error: "cwd must be an absolute path" }, { status: 400 });
-  }
-  if (typeof body.disabled !== "boolean") {
-    return NextResponse.json({ error: "disabled must be a boolean" }, { status: 400 });
-  }
-  const allowedRoots = await getAllowedFileRoots();
-  if (!isExistingFilePathAllowed(cwd, allowedRoots)) {
-    return NextResponse.json({ error: "cwd is outside the allowed roots" }, { status: 403 });
-  }
-  try {
-    const result = setMcpPanelServerDisabled(name, body.disabled, cwd);
-    const list = listMcpPanelServers(cwd);
-    return NextResponse.json({ ...result, servers: list.servers, reloadHint: true }, { headers: { "Cache-Control": "no-store" } });
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 400 });
-  }
+  return translateConfigurationRoute(request, "mcp.configure", "set_disabled", undefined, () => 400);
 }

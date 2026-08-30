@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server";
-import { existsSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "fs";
-import { dirname, join } from "path";
+import { existsSync, statSync } from "fs";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import {
   resolveSessionPath,
   resolveSessionIdByPath,
-  invalidateSessionPathCache,
   invalidateSessionListCache,
   buildSessionContext,
-  readSessionHeader,
 } from "@/lib/session-reader";
-import { sessionPathKey } from "@/lib/session-path";
 import { getRpcSession } from "@/lib/rpc-manager";
 import { projectTreeForResponse } from "@/lib/project-tree";
 import { computeSessionTotalActiveMs } from "@/lib/session-timing";
+import { requireAiliWebBffBridge } from "@/server/private-bff-bridge";
 
 export async function GET(
   req: Request,
@@ -89,14 +86,20 @@ export async function PATCH(
     if (typeof name !== "string") {
       return NextResponse.json({ error: "name is required" }, { status: 400 });
     }
-    const filePath = await resolveSessionPath(id);
-    if (!filePath) {
-      return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    const bridge = requireAiliWebBffBridge();
+    if (!bridge.dispatchCompatibilityMutation) {
+      return NextResponse.json({ error: "Runtime Gateway compatibility facade is unavailable" }, { status: 503 });
     }
-    const sm = SessionManager.open(filePath);
-    sm.appendSessionInfo(name.trim());
-    invalidateSessionListCache();
-    return NextResponse.json({ ok: true });
+    const result = await bridge.dispatchCompatibilityMutation({
+      kind: "session.rename",
+      resourceId: id,
+      host: req.headers.get("host") ?? undefined,
+      origin: req.headers.get("origin") ?? undefined,
+      cookie: req.headers.get("cookie") ?? undefined,
+      arguments: { name },
+    });
+    if (result.status >= 200 && result.status < 300) invalidateSessionListCache();
+    return NextResponse.json(result.body, { status: result.status, headers: result.headers });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
@@ -104,52 +107,24 @@ export async function PATCH(
 
 // DELETE /api/sessions/[id]
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   try {
-    const filePath = await resolveSessionPath(id);
-    if (!filePath) {
-      return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    const bridge = requireAiliWebBffBridge();
+    if (!bridge.dispatchCompatibilityMutation) {
+      return NextResponse.json({ error: "Runtime Gateway compatibility facade is unavailable" }, { status: 503 });
     }
-
-    // Read only the bounded header before deleting.
-    const parentSessionPath = readSessionHeader(filePath)?.parentSession;
-
-    // Re-attach all direct children to this session's parent (cascade re-parent)
-    // Scan sibling files in the same directory
-    const targetPathKey = sessionPathKey(filePath);
-    const dir = dirname(filePath);
-    try {
-      const files = readdirSync(dir).filter(
-        (file) => file.endsWith(".jsonl") && sessionPathKey(join(dir, file)) !== targetPathKey,
-      );
-      for (const file of files) {
-        const childPath = join(dir, file);
-        try {
-          const content = readFileSync(childPath, "utf8");
-          const lines = content.split("\n");
-          const header = JSON.parse(lines[0]) as { type?: string; parentSession?: string };
-          if (
-            header.type === "session" &&
-            header.parentSession &&
-            sessionPathKey(header.parentSession) === targetPathKey
-          ) {
-            // Rewrite header with new parentSession
-            header.parentSession = parentSessionPath;
-            lines[0] = JSON.stringify(header);
-            writeFileSync(childPath, lines.join("\n"));
-          }
-        } catch { /* skip malformed */ }
-      }
-    } catch { /* skip if dir unreadable */ }
-
-    await getRpcSession(id)?.shutdown();
-    unlinkSync(filePath);
-    invalidateSessionPathCache(id);
-    invalidateSessionListCache();
-    return NextResponse.json({ ok: true });
+    const result = await bridge.dispatchCompatibilityMutation({
+      kind: "session.delete",
+      resourceId: id,
+      host: req.headers.get("host") ?? undefined,
+      origin: req.headers.get("origin") ?? undefined,
+      cookie: req.headers.get("cookie") ?? undefined,
+      arguments: {},
+    });
+    return NextResponse.json(result.body, { status: result.status, headers: result.headers });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }

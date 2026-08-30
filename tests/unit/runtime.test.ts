@@ -78,7 +78,7 @@ function expectAlignedGovernance(surface: string): void {
 describe("AILI runtime composition", () => {
   it("exports one extension entry and keeps native integrations behind it", () => {
     expect(runtimeComponents.map((component) => component.id)).toEqual([
-      "rose-context", "lifecycle-routing", "task-runtime", "mcp-runtime", "context-runtime", "provider-retry", "native-integrations",
+      "rose-context", "lifecycle-routing", "task-runtime", "mcp-runtime", "context-runtime", "provider-retry", "observational-memory", "prompt-middleware", "native-integrations",
       "capability-registry", "doctor", "shortcuts", "status",
     ]);
   });
@@ -86,7 +86,7 @@ describe("AILI runtime composition", () => {
   it("registers delegated and selected community surfaces without legacy AILI mode controls", async () => {
     const harness = await runtimeHarness();
     expect(harness.registeredCommands).toEqual(expect.arrayContaining([
-      "aili-doctor", "perm", "cache-optimizer",
+      "aili-doctor", "memory-auto", "perm", "cache-optimizer",
     ]));
     expect(harness.registeredCommands).not.toContain("aili-install-global-resources");
     expect(harness.registeredCommands).not.toContain("aili-compact");
@@ -97,8 +97,9 @@ describe("AILI runtime composition", () => {
     expect(harness.registeredShortcuts).toContain("alt+m");
     expect(harness.registeredShortcuts).not.toContain("ctrl+shift+alt+a");
     expect(harness.registeredTools).toEqual(expect.arrayContaining([
-      "sub", "hub", "mcp", "mcpScript", "compress", "decompress", "search_context", "acp_status", "web_search", "fetch_content", "get_search_content",
+      "sub", "mcp", "mcpScript", "compress", "decompress", "search_context", "acp_status", "web_search", "fetch_content", "get_search_content",
     ]));
+    expect(harness.registeredTools).toContain("hub");
     expect(harness.registeredTools.filter((name) => name.startsWith("aili_compact") || [
       "aili_decompress", "aili_prune", "aili_search_context", "aili_context_recap",
     ].includes(name))).toEqual([]);
@@ -109,8 +110,8 @@ describe("AILI runtime composition", () => {
     const profiles = await loadRoleProfiles();
     const task = harness.registeredToolDefinitions.find((tool) => tool.name === "sub")!;
     const catalogGuideline = task.promptGuidelines?.at(-1) ?? "";
-    expect(task.description).toContain("Delegate bounded work to parent-scoped persistent AILI Agents");
-    expect(task.promptSnippet).toContain("Dispatch formal packages through formal_task");
+    expect(task.description).toContain("Delegate one bounded turn to a persistent AILI child Agent");
+    expect(task.promptSnippet).toContain("sub runs one child turn");
     expect(catalogGuideline).toContain("Specialized Agent catalog (generated routing cues");
     expect(catalogGuideline).toContain(`aili.code-scout — ${profiles.find((profile) => profile.selector === "aili.code-scout")!.description}`);
     expect(catalogGuideline).toContain("use=Files, symbols, call paths");
@@ -118,7 +119,8 @@ describe("AILI runtime composition", () => {
     expect(catalogGuideline).toContain("never grant tools or permissions");
     expect(catalogGuideline).not.toContain("toolPolicy");
     expect(catalogGuideline).not.toContain("capabilities");
-    expect(JSON.stringify(task.parameters)).toContain("Choose an exact Specialized selector from the active task catalog");
+    expect(JSON.stringify(task.parameters)).toContain("task_id");
+    expect(JSON.stringify(task.parameters)).toContain("subagent_type");
   });
 
   it("appends only dynamic runtime state while the static ROSE adapter is global", async () => {

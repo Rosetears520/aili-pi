@@ -11,12 +11,13 @@
 
 - `captureTaskModelRequest` 返回结构化结果：`absent` / `captured`（带验证后的请求）/ `rejected`（带原因）；不再静默吞错。
 - 新增 `direct-user-turn` 最高解析层：本轮 explicit/delegated-choice authority 验证通过的请求直接应用、不再弹确认；model-proposed（inherit-only）仍需一次确认。
+- 当用户在当前消息中明确指定本轮 subagent 的 `model` 和/或 `thinking` 时，Parent 必须把该指令投影为仅限当前 turn、仅匹配所述值与目标 subagent 范围的 `explicit` authority；Herdr 与 managed 使用同一规则。模型生成的工具参数本身仍不构成授权。
 - model 与 thinking 分字段独立解析（各取第一个提供该字段的层）；层序：direct-user-turn > instance > project-role > user-role > confirmed one-shot > parent > profile > runtime。
 - 不兼容 thinking 明确失败并报告来源与原因；一次性请求不可用时 decision 记为 rejected-unsupported，不静默换回。
 - thinking-only 请求获得与 model 请求对等的一次确认路径（含 UI 文案区分），headless 下记为明确拒绝。
 - 结构化 `SubagentModelDecision`（requested/effective/来源/overrideDecision/reason）进入 accepted 结果、Agent/job/turn 元数据与 turn.audit。
 - `hub model request` 增加 thinking；`hub send` 增加仅作用于该 continuation turn 的 model/thinking 一次性覆盖。
-- 更新 `docs/persistent-agents.md` 层级说明。
+- 更新 `docs/persistent-agents.md` 层级说明，并明确 Herdr 不是模型覆盖限制来源：只有当前 turn authority、模型目录可用性和模型能力决定请求能否生效。
 
 ## Impact
 

@@ -1,41 +1,41 @@
 import { NextResponse } from "next/server";
-import type { AgentSession } from "@earendil-works/pi-coding-agent";
-import { generateSessionTitle } from "@/lib/session-title";
-import { getRpcSession, startRpcSession } from "@/lib/rpc-manager";
-import { invalidateSessionListCache, resolveSessionPath } from "@/lib/session-reader";
+import { invalidateSessionListCache } from "@/lib/session-reader";
+import { requireAiliWebBffBridge } from "@/server/private-bff-bridge";
 
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-
   try {
-    const filePath = await resolveSessionPath(id);
-    if (!filePath) {
-      return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    const bridge = requireAiliWebBffBridge();
+    if (!bridge.dispatchCompatibilityMutation) {
+      return NextResponse.json({ error: "Runtime Gateway compatibility facade is unavailable" }, { status: 503 });
     }
-
-    const existing = getRpcSession(id);
-    const { session } = existing?.isAlive()
-      ? { session: existing }
-      : await startRpcSession(id, filePath, undefined);
-
-    // globalThis keeps wrappers alive across dev hot reloads; older instances
-    // may predate waitUntilReady(), but those have already completed startup.
-    await session.waitUntilReady?.();
-    const result = await generateSessionTitle(session.inner as unknown as AgentSession);
-
-    if (!session.isAlive()) {
-      return NextResponse.json(
-        { error: "The session was closed while its title was being generated. Please try again." },
-        { status: 409 },
-      );
+    const result = await bridge.dispatchCompatibilityMutation({
+      kind: "session.auto_name",
+      resourceId: id,
+      host: req.headers.get("host") ?? undefined,
+      origin: req.headers.get("origin") ?? undefined,
+      cookie: req.headers.get("cookie") ?? undefined,
+      arguments: {},
+    });
+    if (result.status >= 200 && result.status < 300) {
+      const generated = (result.body as { result?: { title?: unknown; usage?: unknown } }).result;
+      if (!generated || typeof generated.title !== "string") {
+        return NextResponse.json({ error: "Runtime Gateway returned an invalid session title" }, { status: 502 });
+      }
+      invalidateSessionListCache();
+      return NextResponse.json({ title: generated.title, usage: generated.usage ?? null }, { status: result.status, headers: result.headers });
     }
-
-    session.inner.setSessionName(result.title);
-    invalidateSessionListCache();
-    return NextResponse.json({ title: result.title, usage: result.usage ?? null });
+    const failure = result.body as { error?: unknown; reason?: unknown };
+    return NextResponse.json({
+      error: typeof failure.error === "string"
+        ? failure.error
+        : typeof failure.reason === "string"
+          ? failure.reason
+          : "Runtime Gateway title generation failed",
+    }, { status: result.status, headers: result.headers });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : String(error) },

@@ -8,6 +8,8 @@ import { ChatWindow } from "./ChatWindow";
 import { AiliKeybindSettings } from "./aili/AiliKeybindSettings";
 import { AiliQuotaOrb } from "./aili/AiliQuotaOrb";
 import { fetchWebKeybinds, type WebKeybinds } from "@/lib/aili-keybinds";
+import { getGatewayClient } from "@/gateway-client";
+import { contextCapacityLabel, normalizeCodexQuotaText } from "@/lib/aili-footer";
 import { parseQuotaStatus } from "@/lib/aili-status";
 import { FileViewer } from "./FileViewer";
 import { TabBar, type Tab } from "./TabBar";
@@ -19,6 +21,10 @@ import { TerminalPanel } from "./TerminalPanel";
 import { PluginsConfig } from "./PluginsConfig";
 import { ProjectTrustDialog } from "./ProjectTrustDialog";
 import { BranchNavigator } from "./BranchNavigator";
+import { SystemPromptPanel } from "./SystemPromptPanel";
+import { ToolDefinitionsPanel } from "./ToolDefinitionsPanel";
+import { ProjectInfoPanel, type ProjectInfoPresentation } from "./ProjectInfoPanel";
+import type { ToolEntry } from "@/lib/tool-presets";
 import { useTheme } from "@/hooks/useTheme";
 import { useI18n } from "@/hooks/useI18n";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -205,10 +211,18 @@ export function AppShell() {
   }, []);
 
   const [systemPrompt, setSystemPrompt] = useState<string | null>(null);
+  const [systemTools, setSystemTools] = useState<ToolEntry[] | null>(null);
+  const [projectInfo, setProjectInfo] = useState<ProjectInfoPresentation | null>(null);
+  const handleProjectInfoChange = useCallback((project: { directory: string; branch: string | null; worktree: string | null } | null) => {
+    setProjectInfo(project ? { ...project, label: getFileName(project.directory) || project.directory } : null);
+  }, []);
   const [ailiCwd, setAiliCwd] = useState<string | null>(null);
   const [ailiStatuses, setAiliStatuses] = useState<{ key: string; text: string }[]>([]);
   const [keybinds, setKeybinds] = useState<WebKeybinds>({});
   const quotaStatus = parseQuotaStatus(ailiStatuses.find((item) => item.key === "pi-quota-status")?.text);
+  // Codex-only quota chip for the top bar; the normalizer rejects every other
+  // provider's text, so this is undefined unless a codex model is active.
+  const codexQuotaText = normalizeCodexQuotaText(ailiStatuses.find((item) => item.key === "pi-quota-status")?.text ?? "");
   const [systemPromptLoading, setSystemPromptLoading] = useState(false);
 
   const handleAiliSurfaceChange = useCallback((surface: { cwd: string | null; statuses: { key: string; text: string }[] }) => {
@@ -216,10 +230,14 @@ export function AppShell() {
     setAiliStatuses(surface.statuses);
   }, []);
 
-  /** The dedicated changes page opens in its own (reused) browser tab, VS Code-style. */
+  /** The dedicated changes page opens in its own browser tab, VS Code-style.
+   *  Every activation opens a NEW tab (user direction 2026-08-25): each tab
+   *  carries its own ?cwd= so multiple repos/worktrees can be inspected at
+   *  once; the browser's own focus/duplicate replaces the old named-window
+   *  reuse. */
   const openChangesPage = useCallback(() => {
     if (!ailiCwd) return;
-    window.open(`/changes?cwd=${encodeURIComponent(ailiCwd)}`, "aili-changes");
+    window.open(`/changes?cwd=${encodeURIComponent(ailiCwd)}`, "_blank");
   }, [ailiCwd]);
 
   useEffect(() => {
@@ -227,8 +245,8 @@ export function AppShell() {
     void fetchWebKeybinds().then(setKeybinds).catch(() => undefined);
     return () => window.removeEventListener("aili:changes:open", openChangesPage);
   }, [openChangesPage]);
-  const systemPromptLoaderRef = useRef<(() => Promise<void>) | null>(null);
-  const systemPromptLoadIdRef = useRef(0);
+  const systemInfoLoaderRef = useRef<(() => Promise<void>) | null>(null);
+  const systemInfoLoadIdRef = useRef(0);
   const systemBtnRef = useRef<HTMLButtonElement>(null);
 
   const handleSystemPromptChange = useCallback((prompt: string | null) => {
@@ -236,9 +254,12 @@ export function AppShell() {
     setSystemPromptLoading(false);
   }, []);
 
-  const handleSystemPromptLoaderChange = useCallback((loader: (() => Promise<void>) | null) => {
-    systemPromptLoadIdRef.current += 1;
-    systemPromptLoaderRef.current = loader;
+  const handleSystemToolsChange = useCallback((tools: ToolEntry[] | null) => setSystemTools(tools), []);
+
+  const handleSystemInfoLoaderChange = useCallback((loader: (() => Promise<void>) | null) => {
+    systemInfoLoadIdRef.current += 1;
+    systemInfoLoaderRef.current = loader;
+    setSystemTools(null);
     setSystemPromptLoading(false);
   }, []);
 
@@ -275,11 +296,11 @@ export function AppShell() {
   }, []);
 
   // Single active panel — only one dropdown open at a time
-  const [activeTopPanel, setActiveTopPanel] = useState<"branches" | "system" | "session" | "language" | null>(null);
+  const [activeTopPanel, setActiveTopPanel] = useState<"branches" | "system" | "tools" | "session" | "language" | null>(null);
   const [topPanelPos, setTopPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const toggleTopPanel = useCallback((
-    panel: "branches" | "system" | "session" | "language",
+    panel: "branches" | "system" | "tools" | "session" | "language",
     keepMobileToolbarOpen = false,
   ) => {
     if (isMobile) setSidebarOpen(false);
@@ -287,21 +308,19 @@ export function AppShell() {
     if (isMobile && keepMobileToolbarOpen) setMobileToolbarMoreOpen(true);
   }, [isMobile]);
 
-  const handleSystemPromptToggle = useCallback((keepMobileToolbarOpen = false) => {
-    const opening = activeTopPanel !== "system";
-    toggleTopPanel("system", keepMobileToolbarOpen);
+  const handleSystemInfoToggle = useCallback((panel: "system" | "tools", keepMobileToolbarOpen = false) => {
+    const opening = activeTopPanel !== panel;
+    toggleTopPanel(panel, keepMobileToolbarOpen);
     if (!opening || systemPromptLoading) return;
 
-    const load = systemPromptLoaderRef.current;
+    const load = systemInfoLoaderRef.current;
     if (!load) return;
-    const loadId = ++systemPromptLoadIdRef.current;
+    const loadId = ++systemInfoLoadIdRef.current;
     setSystemPromptLoading(true);
     void load().catch((error) => {
-      console.error("Failed to load system prompt:", error);
+      console.error("Failed to load system information:", error);
     }).finally(() => {
-      if (systemPromptLoadIdRef.current === loadId) {
-        setSystemPromptLoading(false);
-      }
+      if (systemInfoLoadIdRef.current === loadId) setSystemPromptLoading(false);
     });
   }, [activeTopPanel, systemPromptLoading, toggleTopPanel]);
 
@@ -742,6 +761,7 @@ export function AppShell() {
     setAutoNameStatus({ kind: "naming" });
 
     try {
+      await getGatewayClient().ensureMutationSession();
       const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/auto-name`, {
         method: "POST",
       });
@@ -902,14 +922,13 @@ export function AppShell() {
     setProjectTrustBusy(true);
     setProjectTrustError(null);
     try {
-      const response = await fetch("/api/project-trust", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cwd: projectTrustCwd }),
-      });
-      const data = await response.json() as ProjectTrustStatus & { error?: string };
-      if (!response.ok || data.error) throw new Error(data.error ?? `HTTP ${response.status}`);
-      setProjectTrust(data);
+      const mutation = await getGatewayClient().configure(
+        "project_trust.configure",
+        "trust",
+        { cwd: projectTrustCwd },
+      );
+      if (mutation.disposition !== "completed") throw new Error(mutation.reason);
+      setProjectTrust(mutation.result as unknown as ProjectTrustStatus);
       setProjectTrustDialogOpen(false);
       setModelsRefreshKey((key) => key + 1);
       setSessionKey((key) => key + 1);
@@ -955,6 +974,7 @@ export function AppShell() {
         onAtMentions={handleAtMentions}
         onBackgroundTaskDone={handleBackgroundTaskDone}
         onRunningSessionIdsChange={handleRunningSessionIdsChange}
+        onProjectInfoChange={handleProjectInfoChange}
       />
       <div style={{ padding: "8px", flexShrink: 0, display: "flex", justifyContent: "space-between", gap: 4 }}>
         {([
@@ -1372,7 +1392,7 @@ export function AppShell() {
         <button
           ref={systemBtnRef}
           type="button"
-          onClick={() => handleSystemPromptToggle(mobile)}
+          onClick={() => handleSystemInfoToggle("system", mobile)}
           disabled={mobile && !showChat}
           title={translate("system.prompt")}
           aria-label={translate("system.prompt")}
@@ -1406,6 +1426,28 @@ export function AppShell() {
             <line x1="8" y1="17" x2="13" y2="17" />
           </svg>
           {!mobile && <span>{translate("system.label")}</span>}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSystemInfoToggle("tools", mobile)}
+          disabled={mobile && !showChat}
+          title={translate("tools.title")}
+          aria-label={translate("tools.title")}
+          aria-pressed={activeTopPanel === "tools"}
+          data-mobile-toolbar-action={mobile ? "tools" : undefined}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            width: mobile ? TOP_BAR_ICON_BUTTON_SIZE : undefined,
+            height: "100%", padding: mobile ? 0 : "0 12px",
+            background: activeTopPanel === "tools" ? "var(--bg-selected)" : "none",
+            border: "none", borderTop: activeTopPanel === "tools" ? "2px solid var(--accent)" : "2px solid transparent",
+            borderRight: "1px solid var(--border)", color: activeTopPanel === "tools" ? "var(--text)" : "var(--text-muted)",
+            cursor: mobile && !showChat ? "not-allowed" : "pointer", opacity: mobile && !showChat ? 0.45 : 1,
+            fontSize: 11, whiteSpace: "nowrap",
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: systemTools?.some((tool) => tool.active) ? "var(--accent)" : "var(--text-dim)" }} aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z" /></svg>
+          {!mobile && <span>{translate("tools.label")}</span>}
         </button>
         {!mobile && (
           <>
@@ -1466,6 +1508,22 @@ export function AppShell() {
               </button>
               <AiliQuotaOrb quota={quotaStatus} />
               <AiliKeybindSettings keybinds={keybinds} onChange={setKeybinds} />
+              {codexQuotaText && (
+                <span
+                  title={quotaStatus ? quotaStatus.lines.join(" · ") : codexQuotaText}
+                  style={{
+                    flexShrink: 0,
+                    fontSize: 10.5,
+                    fontFamily: "var(--font-mono)",
+                    fontVariantNumeric: "tabular-nums",
+                    color: "var(--text-muted)",
+                    whiteSpace: "nowrap",
+                    userSelect: "none",
+                  }}
+                >
+                  {codexQuotaText}
+                </span>
+              )}
             </div>
           </>
         )}
@@ -1494,9 +1552,7 @@ export function AppShell() {
       const percent = contextUsage.percent;
       if (percent !== null && percent > 90) contextColor = "#ef4444";
       else if (percent !== null && percent > 70) contextColor = "rgba(234,179,8,0.95)";
-      desktopContextText = percent !== null
-        ? `${percent.toFixed(0)}% / ${formatCompact(contextUsage.contextWindow)}`
-        : `? / ${formatCompact(contextUsage.contextWindow)}`;
+      desktopContextText = contextCapacityLabel(contextUsage.tokens, contextUsage.contextWindow, percent) ?? "";
       mobileContextText = percent !== null ? `${percent.toFixed(0)}%` : null;
     }
 
@@ -1510,7 +1566,7 @@ export function AppShell() {
     }
     if (contextUsage?.contextWindow) {
       const percent = contextUsage.percent;
-      tooltipParts.push(`context: ${percent !== null ? percent.toFixed(1) + "%" : "unknown"} of ${contextUsage.contextWindow.toLocaleString()} tokens`);
+      tooltipParts.push(`context: ${contextCapacityLabel(contextUsage.tokens, contextUsage.contextWindow, percent) ?? "unknown"}`);
     }
     const tooltip = tooltipParts.join("  |  ");
     const covered = mobile && mobileToolbarMoreOpen;
@@ -1987,35 +2043,8 @@ export function AppShell() {
                   ))}
                 </div>
               )}
-              {activeTopPanel === "system" && (
-                <div style={{
-                  background: "var(--bg-panel)",
-                  borderBottom: "1px solid var(--border)",
-                }}>
-                  {systemPrompt ? (
-                    <div style={{
-                      maxHeight: "min(600px, 75vh)",
-                      overflowY: "auto",
-                      padding: "12px 16px",
-                      color: "var(--text-muted)",
-                      fontSize: 12,
-                      lineHeight: 1.6,
-                      whiteSpace: "pre-wrap",
-                      fontFamily: "var(--font-mono)",
-                    }}>
-                      {systemPrompt}
-                    </div>
-                  ) : systemPrompt === "" ? (
-                    <div style={{ padding: "10px 16px", fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
-                       {translate("system.empty")}
-                    </div>
-                  ) : (
-                    <div style={{ padding: "10px 16px", fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
-                       {systemPromptLoading ? translate("system.loading") : translate("system.load")}
-                    </div>
-                  )}
-                </div>
-              )}
+              {activeTopPanel === "system" && <SystemPromptPanel loading={systemPromptLoading} prompt={systemPrompt} translate={translate} />}
+              {activeTopPanel === "tools" && <ToolDefinitionsPanel loading={systemPromptLoading} tools={systemTools} translate={translate} />}
               {activeTopPanel === "session" && (
                 <div className="session-info-popover" style={{
                   background: "var(--bg-panel)",
@@ -2056,10 +2085,9 @@ export function AppShell() {
                        [translate("session.total"), sessionStats.tokens.total.toLocaleString(locale)],
                     ];
                     const ctx = contextUsage ?? sessionStats.contextUsage;
-                    const formatCompact = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(0)}k` : String(n);
                     const extraTokenRows = [
                        ...(sessionStats.cost > 0 ? [[translate("session.cost"), `$${sessionStats.cost.toFixed(4)}`]] : []),
-                       ...(ctx?.contextWindow ? [[translate("session.context"), `${ctx.percent !== null ? `${ctx.percent.toFixed(1)}%` : "?"} / ${formatCompact(ctx.contextWindow)}`]] : []),
+                       ...(ctx?.contextWindow ? [[translate("session.context"), contextCapacityLabel(ctx.tokens, ctx.contextWindow, ctx.percent) ?? "?"]] : []),
                        // Cache hit rate = cache reads / (input + cache writes + cache reads) — the denominator covers all input-class tokens.
                        ...(sessionStats.tokens.cacheRead + sessionStats.tokens.cacheWrite > 0 && sessionStats.tokens.cacheRead + sessionStats.tokens.cacheWrite + sessionStats.tokens.input > 0
                          ? [[translate("session.cacheHitRate"), `${(sessionStats.tokens.cacheRead / (sessionStats.tokens.cacheRead + sessionStats.tokens.cacheWrite + sessionStats.tokens.input) * 100).toFixed(1)}%`]]
@@ -2174,7 +2202,10 @@ export function AppShell() {
                         lineHeight: 1.5,
                         fontFamily: "var(--font-mono)",
                       }}>
-                        {sessionInfoSection}
+                        <div style={{ display: "flex", minWidth: 0, flexDirection: "column", gap: isMobile ? 16 : 20 }}>
+                          {sessionInfoSection}
+                          {projectInfo && <ProjectInfoPanel project={projectInfo} translate={translate} />}
+                        </div>
                          {section(translate("session.messages"), messageRows)}
                          {section(translate("session.tokens"), [...tokenRows, ...extraTokenRows], "right", true)}
                       </div>
@@ -2210,7 +2241,8 @@ export function AppShell() {
               chatInputRef={chatInputRef}
               onBranchDataChange={handleBranchDataChange}
               onSystemPromptChange={handleSystemPromptChange}
-              onSystemPromptLoaderChange={handleSystemPromptLoaderChange}
+              onSystemToolsChange={handleSystemToolsChange}
+              onSystemInfoLoaderChange={handleSystemInfoLoaderChange}
               onSessionStatsChange={handleSessionStatsChange}
               onSessionStatsPanelOpen={openSessionStatsPanel}
               onContextUsageChange={handleContextUsageChange}

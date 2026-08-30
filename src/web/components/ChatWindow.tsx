@@ -2,14 +2,15 @@
 import { registerAbortHandler } from "@/hooks/useKeyboardShortcuts";
 import { Component, Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { AgentMessage, AssistantContentBlock, AssistantMessage, BashExecutionMessage, BlockingExtensionUiRequest, CustomMessage, ExtensionUiRequest, SessionInfo, SessionTreeNode, ToolResultMessage, UserMessage } from "@/lib/types";
-import { normalizeCustomPanelLines, parseAnsiLine } from "@/lib/ansi";
+import { normalizeCustomPanelLines } from "@/lib/ansi";
 import { asBracketedPaste, toTerminalKeyData } from "@/lib/terminal-input";
 import { countToolCallBlocks, getAssistantErrorMessage, getDisplayableAssistantBlocks, splitFinalAssistantBlocks } from "@/lib/message-display";
 import { extractTurnWrittenFiles, type WrittenFile } from "@/lib/turn-written-files";
 import { MessageView } from "./MessageView";
+import { AnsiText } from "./AnsiText";
 import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { ChatMinimap, useMessageRefs } from "./ChatMinimap";
-import { ExtensionStatusBar } from "./ExtensionStatusBar";
+import { AiliFooterStatus } from "./aili/AiliFooterStatus";
 import { actionForBinding, eventToBinding, fetchWebKeybinds, isTextInput, type WebKeybinds } from "@/lib/aili-keybinds";
 import { ApprovalCard } from "./aicss/ApprovalCard";
 import { Orb } from "./aicss/Orb";
@@ -45,7 +46,8 @@ interface Props {
   chatInputRef?: React.RefObject<ChatInputHandle | null>;
   onBranchDataChange?: (tree: SessionTreeNode[], activeLeafId: string | null, onLeafChange: (leafId: string | null) => void) => void;
   onSystemPromptChange?: (prompt: string | null) => void;
-  onSystemPromptLoaderChange?: (loader: (() => Promise<void>) | null) => void;
+  onSystemToolsChange?: (tools: import("@/lib/tool-presets").ToolEntry[] | null) => void;
+  onSystemInfoLoaderChange?: (loader: (() => Promise<void>) | null) => void;
   onSessionStatsChange?: (stats: SessionStatsInfo | null) => void;
   /** Lifts extension statuses and the session cwd to the AppShell top bar (quota orb, changes inspector). */
   onAiliSurfaceChange?: (surface: { cwd: string | null; statuses: { key: string; text: string }[] }) => void;
@@ -259,7 +261,7 @@ function ProcessDetailsGroup({ messageCount, toolCallCount, defaultExpanded = fa
   );
 }
 
-export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemPromptLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onContextUsageChange, onOpenFile, onAiliSurfaceChange, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio }: Props) {
+export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onContextUsageChange, onOpenFile, onAiliSurfaceChange, soundEnabled = true, onSoundToggle, playDoneSound = () => {}, unlockAudio }: Props) {
   const { t } = useI18n();
   const isMobile = useIsMobile();
 
@@ -303,7 +305,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
     handleToolPresetChange, handleThinkingLevelChange, loadSlashCommands, scrollUserMsgToTop,
   } = useAgentSession({
     session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd: wrappedOnAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked,
-    modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemPromptLoaderChange, onSessionStatsPanelOpen,
+    modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsPanelOpen,
   });
   const permStatusText = extensionStatuses.find((item) => item.key === "perm")?.text ?? null;
 
@@ -812,7 +814,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
               </div>
             </div>
             {chatInputElement}
-            <ExtensionStatusBar statuses={extensionStatuses} widgets={extensionWidgets} />
+            <AiliFooterStatus widgets={extensionWidgets} />
           </div>
         </div>
       ) : (
@@ -1065,7 +1067,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
           onRespond={respondToExtensionUi}
         />
         {chatInputElement}
-        <ExtensionStatusBar statuses={extensionStatuses} widgets={extensionWidgets} />
+        <AiliFooterStatus widgets={extensionWidgets} />
       </div>
       </>
       )}
@@ -1365,6 +1367,7 @@ function ExtensionDialog({
   if (request.method === "confirm" || request.method === "select") {
     return (
       <div
+        className="extension-modal-overlay"
         style={{
           position: "absolute",
           inset: 0,
@@ -1372,11 +1375,10 @@ function ExtensionDialog({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: 20,
           background: "rgba(0,0,0,0.18)",
         }}
       >
-        <div role="dialog" aria-modal="true" style={{ width: "min(560px, 100%)" }}>
+        <div role="dialog" aria-modal="true" style={{ width: "min(560px, 100%)", maxHeight: "100%", overflow: "auto" }}>
           {request.method === "confirm" ? (
             <ApprovalCard
               variant="command"
@@ -1405,6 +1407,7 @@ function ExtensionDialog({
 
   return (
     <div
+      className="extension-modal-overlay"
       style={{
         position: "absolute",
         inset: 0,
@@ -1412,7 +1415,6 @@ function ExtensionDialog({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 20,
         background: "rgba(0,0,0,0.18)",
       }}
     >
@@ -1518,14 +1520,6 @@ function ExtensionDialog({
 
 type ExtensionCustomRequest = Extract<ExtensionUiRequest, { method: "custom" }>;
 
-function renderAnsiLine(line: string, keyPrefix: string): ReactNode[] {
-  return parseAnsiLine(line).map((segment, index) => (
-    Object.keys(segment.style).length > 0
-      ? <span key={`${keyPrefix}-${index}`} style={segment.style}>{segment.text}</span>
-      : segment.text
-  ));
-}
-
 function ExtensionCustomPanel({
   request,
   onInput,
@@ -1544,6 +1538,7 @@ function ExtensionCustomPanel({
 
   return (
     <div
+      className="extension-modal-overlay"
       style={{
         position: "absolute",
         inset: 0,
@@ -1551,7 +1546,6 @@ function ExtensionCustomPanel({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 20,
         background: "rgba(0,0,0,0.18)",
       }}
     >
@@ -1652,12 +1646,7 @@ function ExtensionCustomPanel({
             whiteSpace: "pre",
           }}
         >
-          {(displayLines.length ? displayLines : [""]).map((line, index, allLines) => (
-            <Fragment key={index}>
-              {renderAnsiLine(line, `line-${index}`)}
-              {index < allLines.length - 1 ? "\n" : null}
-            </Fragment>
-          ))}
+          <AnsiText text={displayLines.join("\n")} />
         </pre>
       </div>
     </div>

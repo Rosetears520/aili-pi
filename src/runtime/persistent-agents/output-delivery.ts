@@ -10,12 +10,12 @@ import {
   validateExactChildSessionPath,
 } from "./storage.js";
 import type { AgentRecord, FormalResultEvidenceRecord, ModelIdentityProjection, SidecarLayout } from "./types.js";
-import type { NormalizedTaskSettlement } from "./task-coordinator.js";
-import { parseCanonicalFormalResult } from "./task-coordinator.js";
-import { assertNoCredentialMaterial } from "./permission.js";
+import type { NormalizedTaskSettlement } from "./sub-coordinator.js";
+import { parseCanonicalFormalResult } from "./sub-coordinator.js";
+import { assertNoCredentialMaterial, findCredentialMaterial, redactCredentialText } from "./permission.js";
 
 export const PARENT_PREVIEW_CHAR_LIMIT = 5_000;
-export const BUILTIN_PARENT_DELETE_GAP = "official Pi 0.84.2 built-in Ctrl+D/archive does not cascade AILI sidecars; use confirmed AILI deletion or reconciliation";
+export const BUILTIN_PARENT_DELETE_GAP = "official Pi 0.84.4 built-in Ctrl+D/archive does not cascade AILI sidecars; use confirmed AILI deletion or reconciliation";
 
 function isInside(root: string, candidate: string): boolean {
   const rel = relative(root, candidate);
@@ -199,6 +199,8 @@ export interface BoundedTextResult {
   truncated: boolean;
   source: string;
   diagnostic?: string;
+  /** Number of rendered entries whose sensitive values were redacted in place. */
+  redactedSensitiveEntries?: number;
 }
 
 function boundedLines(lines: string[], offset: number, limit: number, source: string, diagnostic?: string): BoundedTextResult {
@@ -265,10 +267,12 @@ export async function readAgentHistory(layout: SidecarLayout, journal: Coordinat
   if (rawLines.at(-1) === "") rawLines.pop();
   const rendered: string[] = [];
   let diagnostic: string | undefined;
+  let redactedSensitiveEntries = 0;
   for (let index = 0; index < rawLines.length; index += 1) {
     const line = rawLines[index]!;
+    let text: string;
     try {
-      rendered.push(entryText(JSON.parse(line) as Record<string, unknown>));
+      text = entryText(JSON.parse(line) as Record<string, unknown>);
     } catch (error) {
       if (index === rawLines.length - 1 && !content.endsWith("\n")) {
         diagnostic = `ignored final partial child JSONL line (${Buffer.byteLength(line)} bytes)`;
@@ -276,9 +280,23 @@ export async function readAgentHistory(layout: SidecarLayout, journal: Coordinat
       }
       throw new Error(`${agentId}: child history corruption at line ${index + 1}: ${error instanceof Error ? error.message : String(error)}`);
     }
+    // History is already-persisted local diagnostic content: sanitize per
+    // entry and keep the rest of the transcript readable instead of denying
+    // the entire history when one entry matches a credential pattern.
+    const finding = await findCredentialMaterial(text, process.cwd());
+    let entry = text;
+    if (finding) {
+      const sanitized = redactCredentialText(text);
+      // The residual probe ignores this sanitizer's own markers, so a value
+      // already replaced by <redacted> stays readable with its field name.
+      const residual = await findCredentialMaterial(sanitized.replace(/<redacted[-a-z]*>/gi, ""), process.cwd());
+      entry = residual ? "<redacted-protected-path>" : sanitized;
+    }
+    if (entry !== text) redactedSensitiveEntries += 1;
+    rendered.push(entry);
   }
-  await assertNoCredentialMaterial(rendered, "Agent history read");
-  return boundedLines(rendered, offset, limit, sessionPath, diagnostic);
+  const result = boundedLines(rendered, offset, limit, sessionPath, diagnostic);
+  return { ...result, ...(redactedSensitiveEntries > 0 ? { redactedSensitiveEntries } : {}) };
 }
 
 export interface ParentResultMessage {

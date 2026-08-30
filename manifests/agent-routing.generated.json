@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "source": {
     "repository": "https://github.com/Rosetears520/aili-workflows.git",
-    "commit": "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
+    "commit": "a5284ee105a084392a944aee04313dcf7c294a64",
     "protocol": "aili-agent-selection/v1",
-    "sourceSha256": "db35b7c17ba76984d9ee2d69931dfbce80c6413b90953899a9ae5cc671855224"
+    "sourceSha256": "936d29442a1efc01d1fc0ed80cd319d733dafb6ff8c4c0cffbfd09ed6b2335d3"
   },
   "roles": [
     {

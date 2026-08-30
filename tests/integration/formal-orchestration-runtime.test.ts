@@ -9,7 +9,6 @@ import {
 } from "../../src/runtime/formal-orchestration.js";
 import { planFormalTaskBoardUpdate } from "../../src/runtime/formal-task-board-update.js";
 import { PersistentAgentRuntime, type PersistentRuntimeExecutorInput } from "../../src/runtime/persistent-agents/runtime.js";
-import { buildFormalTaskDispatch } from "../../src/runtime/persistent-agents/formal-task-tool.js";
 import { persistFullAgentOutput } from "../../src/runtime/persistent-agents/output-delivery.js";
 import { loadRoleProfiles, type RoleProfile } from "../../src/runtime/roles.js";
 
@@ -294,10 +293,9 @@ describe("formal task Runtime allocation and protection identity", () => {
         return { output };
       },
       parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "sent" },
-      revive: async () => ({ steer() {}, sendUserMessage() {}, dispose() {} }),
     });
     for (const name of Object.keys(outputs)) {
-      const response = await runtimeInstance.task.submitTrusted({
+      const response = await runtimeInstance.sub.submitTrusted({
         task: name,
         agent: "aili.implementer",
         async: false,
@@ -328,7 +326,7 @@ describe("formal task Runtime allocation and protection identity", () => {
     await runtimeInstance.shutdown();
   });
 
-  it("rejects malformed/non-v1/non-exact roots before any child allocation and persists the valid derived deny set", async () => {
+  it("validates formal request identity without parsing Board/progress Markdown and persists the derived deny set", async () => {
     const project = join(scratch, "project");
     await mkdir(join(project, "openspec", "changes"), { recursive: true });
     await writePair(project, "exact-change");
@@ -355,55 +353,48 @@ describe("formal task Runtime allocation and protection identity", () => {
         return { output };
       },
       parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "sent" },
-      revive: async () => ({ steer() {}, sendUserMessage() {}, dispose() {} }),
     });
     const runtimeInstance = await create();
 
-    await expect(runtimeInstance.task.submitTrusted({
+    await expect(runtimeInstance.sub.submitTrusted({
       task: "formal omitted agent",
       async: false,
       formalContext: { changeId: "exact-change" },
       continuationAudit: continuationAudit(),
     })).rejects.toThrow(/explicit Specialized agent selector/);
-    await expect(runtimeInstance.task.submitTrusted({
+    await expect(runtimeInstance.sub.submitTrusted({
       task: "formal general agent",
       agent: "general",
       async: false,
       formalContext: { changeId: "exact-change" },
       continuationAudit: continuationAudit(),
     })).rejects.toThrow(/explicit Specialized agent selector/);
-    await expect(runtimeInstance.task.submitTrusted({
+    await expect(runtimeInstance.sub.submitTrusted({
       task: "formal omitted async",
       agent: "aili.implementer",
       formalContext: { changeId: "exact-change" },
       continuationAudit: continuationAudit(),
     })).rejects.toThrow(/explicit boolean async/);
 
-    for (const changeId of ["unknown-change", "legacy-change", "identity-mismatch", "linked-change", "../exact-change"]) {
-      await expect(runtimeInstance.task.submitTrusted({
-        task: "must not allocate",
-        agent: "aili.implementer",
-        async: false,
-        formalContext: { changeId },
-        continuationAudit: continuationAudit(),
-      })).rejects.toThrow(/formalContext|exact v1|ordinary path/i);
-    }
-    await expect(runtimeInstance.task.submitTrusted({
+    await expect(runtimeInstance.sub.submitTrusted({
+      task: "unsafe formal identity",
+      agent: "aili.implementer",
+      async: false,
+      formalContext: { changeId: "../exact-change" },
+      continuationAudit: continuationAudit(),
+    })).rejects.toThrow(/safe OpenSpec change identifier/);
+    await expect(runtimeInstance.sub.submitTrusted({
       tasks: [
         { task: "valid member", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit() },
         { task: "invalid formal member", agent: "aili.implementer", formalContext: { changeId: "exact-change" } },
       ],
     })).rejects.toThrow(/explicit boolean async/);
-    await expect(runtimeInstance.task.submitTrusted({
-      tasks: [
-        { task: "valid root member", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit() },
-        { task: "invalid root member", agent: "aili.implementer", async: false, formalContext: { changeId: "missing-change" }, continuationAudit: continuationAudit() },
-      ],
-    })).rejects.toThrow(/formalContext|exact v1/i);
     expect(runtimeInstance.journal.getState().agents).toEqual({});
     expect(executions).toBe(0);
 
-    const formal = await runtimeInstance.task.submitTrusted({
+    await writeFile(join(project, "openspec", "changes", "exact-change", "formal-task-board.md"), "optional free-form task notes\n");
+    await writeFile(join(project, "openspec", "changes", "exact-change", "progress.txt"), "free-form progress without an event grammar\n");
+    const formal = await runtimeInstance.sub.submitTrusted({
       task: "valid formal package",
       agent: "aili.implementer",
       async: false,
@@ -428,7 +419,7 @@ describe("formal task Runtime allocation and protection identity", () => {
     expect(runtimeInstance.journal.getState().jobs[formal.results[0]!.jobId]?.metadata?.formalProtection).toEqual(expectedProtection);
     expect(runtimeInstance.journal.getState().turns[formal.results[0]!.turnId]?.metadata?.formalProtection).toEqual(expectedProtection);
 
-    const ordinary = await runtimeInstance.task.submitTrusted({ task: "ordinary compatibility", async: false });
+    const ordinary = await runtimeInstance.sub.submitTrusted({ task: "ordinary compatibility", async: false });
     expect(ordinary.results[0]).toMatchObject({ status: "completed", selector: "general", effectiveModeReason: "requested-sync" });
     expect(runtimeInstance.journal.getState().agents[ordinary.results[0]!.agentId]?.metadata).not.toHaveProperty("formalProtection");
     await runtimeInstance.shutdown();
@@ -439,7 +430,7 @@ describe("formal task Runtime allocation and protection identity", () => {
     await resumed.shutdown();
   });
 
-  it("carries the exact board identity from orchestration through allocation and one audited hub continuation", async () => {
+  it("carries the exact board identity from orchestration through allocation and refuses public sub continuation", async () => {
     const project = join(scratch, "continuation-project");
     await mkdir(join(project, "openspec", "changes"), { recursive: true });
     await writePair(project, "fixture-change");
@@ -464,7 +455,6 @@ describe("formal task Runtime allocation and protection identity", () => {
 
     const parentFile = join(project, "parent.jsonl");
     await writeFile(parentFile, "fixture parent\n");
-    const continued: string[] = [];
     const runtimeInstance = await PersistentAgentRuntime.create({
       parentSessionPath: parentFile,
       parentId: "parent-continuation",
@@ -475,61 +465,33 @@ describe("formal task Runtime allocation and protection identity", () => {
         return { output };
       },
       parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "sent" },
-      revive: async () => ({
-        steer(message) { continued.push(`steer:${message}`); },
-        sendUserMessage(message) { continued.push(message); },
-        dispose() {},
-      }),
     });
-    const result = await runtimeInstance.task.submitTrusted(plan.taskRequest);
+    const result = await runtimeInstance.sub.submitTrusted(plan.taskRequest);
     const agentId = result.results[0]!.agentId;
     expect(runtimeInstance.journal.getState().agents[agentId]?.metadata?.formalContinuationIdentity).toEqual(plan.taskRequest.continuationAudit);
-    expect(await runtimeInstance.hub.park(agentId)).toBe(true);
-    const receipt = await runtimeInstance.hub.execute({
-      action: "send",
-      agentId,
-      message: "Clarify the same package evidence.",
-      continuationAudit: plan.taskRequest.continuationAudit,
-    }) as { turnId: string };
-    expect(continued).toEqual(["Clarify the same package evidence."]);
-    expect(runtimeInstance.journal.getState().turns[receipt.turnId]?.metadata?.formalContinuationIdentity).toEqual(plan.taskRequest.continuationAudit);
+    expect(runtimeInstance.journal.getState().agents[agentId]?.state).toBe("idle");
 
+    // Formal Agents are created only by the trusted internal path; the public sub
+    // tool refuses to continue a formal Agent and allocates nothing.
     const before = runtimeInstance.journal.getState();
-    const messageCount = Object.keys(before.messages).length;
     const turnCount = Object.keys(before.turns).length;
-    await expect(runtimeInstance.hub.execute({
-      action: "send",
-      agentId,
-      message: "Expand scope.",
-      continuationAudit: { ...plan.taskRequest.continuationAudit, scope: "A changed scope." },
-    })).rejects.toThrow(/create a new bounded job\/Agent/);
-    expect(Object.keys(runtimeInstance.journal.getState().messages)).toHaveLength(messageCount);
+    await expect(runtimeInstance.sub.submit({ description: "continue", prompt: "Clarify the same package evidence.", task_id: agentId }))
+      .rejects.toThrow(/^SUB_FORMAL_CONTINUATION_REFUSED: /);
     expect(Object.keys(runtimeInstance.journal.getState().turns)).toHaveLength(turnCount);
-    await runtimeInstance.hub.settleMessageTurn(agentId, receipt.turnId, "completed");
     await runtimeInstance.shutdown();
 
-    const revivedMessages: string[] = [];
     const resumed = await PersistentAgentRuntime.create({
       parentSessionPath: parentFile,
       parentId: "parent-continuation",
       cwd: project,
       execute: async () => { throw new Error("restart must not replay the initial job"); },
       parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "sent" },
-      revive: async () => ({
-        steer(message) { revivedMessages.push(`steer:${message}`); },
-        sendUserMessage(message) { revivedMessages.push(message); },
-        dispose() {},
-      }),
     });
+    // Restart reconciliation parks settled formal Agents pending formal revive checks.
     expect(resumed.journal.getState().agents[agentId]?.state).toBe("parked");
-    const revived = await resumed.hub.execute({
-      action: "send",
-      agentId,
-      message: "Continue after restart with the same board protection.",
-      continuationAudit: plan.taskRequest.continuationAudit,
-    }) as { turnId: string };
-    expect(revivedMessages).toEqual(["Continue after restart with the same board protection."]);
-    expect(resumed.journal.getState().turns[revived.turnId]?.metadata?.formalProtection).toEqual({
+    await expect(resumed.sub.submit({ description: "continue", prompt: "Continue after restart.", task_id: agentId }))
+      .rejects.toThrow(/^SUB_FORMAL_CONTINUATION_REFUSED: /);
+    expect(resumed.journal.getState().agents[agentId]?.metadata?.formalProtection).toEqual({
       changeId: "fixture-change",
       protectedPaths: [
         "openspec/changes/fixture-change/formal-task-board.md",
@@ -684,16 +646,8 @@ describe("formal Runtime restart reconciliation planner", () => {
         return { output, result: "completed" };
       },
       parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "sent" },
-      revive: async () => {
-        revives += 1;
-        return { steer() {}, sendUserMessage() {}, dispose() {} };
-      },
-      modelHubOperation: async () => {
-        modelCalls += 1;
-        return {};
-      },
     });
-    const submitted = await runtimeInstance.task.submitTrusted({
+    const submitted = await runtimeInstance.sub.submitTrusted({
       task: "complete exact formal package",
       agent: "aili.implementer",
       async: false,
@@ -755,10 +709,9 @@ describe("formal Runtime restart reconciliation planner", () => {
         return { output };
       },
       parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "sent" },
-      revive: async () => ({ steer() {}, sendUserMessage() {}, dispose() {} }),
     });
     for (const changeId of ["other-change", "fixture-change"]) {
-      await runtimeInstance.task.submitTrusted({
+      await runtimeInstance.sub.submitTrusted({
         task: `complete ${changeId}`,
         agent: "aili.implementer",
         async: false,
@@ -778,7 +731,7 @@ describe("formal Runtime restart reconciliation planner", () => {
 
     await writeFile(join(changeRoot, "formal-task-board.md"), runningBoard);
     await writeFile(join(changeRoot, "progress.txt"), runningProgress);
-    await runtimeInstance.task.submitTrusted({
+    await runtimeInstance.sub.submitTrusted({
       task: "second exact current candidate",
       agent: "aili.implementer",
       async: false,
@@ -810,9 +763,8 @@ describe("formal Runtime restart reconciliation planner", () => {
           return { output };
         },
         parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "sent" },
-        revive: async () => ({ steer() {}, sendUserMessage() {}, dispose() {} }),
-      });
-      const submitted = await runtimeInstance.task.submitTrusted({
+        });
+      const submitted = await runtimeInstance.sub.submitTrusted({
         task: `race ${race}`,
         agent: "aili.implementer",
         async: false,
@@ -868,8 +820,6 @@ describe("formal Runtime restart reconciliation planner", () => {
       cwd: project,
       execute: async () => { executions += 1; return { output: "must not execute" }; },
       parentDelivery: { scanDeliveryIds: async () => new Set(), send: async () => "sent" },
-      revive: async () => { throw new Error("must not revive"); },
-      modelHubOperation: async () => { throw new Error("must not select a fallback model"); },
     });
     const result = await runtimeInstance.reconcileFormalTaskBoard({
       actor: "ROSE",
@@ -886,49 +836,5 @@ describe("formal Runtime restart reconciliation planner", () => {
     expect(writtenProgress).not.toContain("P-01 DONE");
     expect(executions).toBe(0);
     await runtimeInstance.shutdown();
-  });
-});
-
-describe("formal_task adapter", () => {
-  async function writeReadyPair(project: string, status: "pending" | "ready" = "ready"): Promise<void> {
-    const root = join(project, "openspec", "changes", "fixture-change");
-    await mkdir(root, { recursive: true });
-    await writeFile(join(root, "formal-task-board.md"), board("fixture-change", [canonicalPackageBlock(status)]));
-    await writeFile(join(root, "progress.txt"), canonicalProgress(status === "ready"));
-  }
-
-  it("constructs the ordinary task request from the validated ready package", async () => {
-    const project = join(scratch, "formal-task-project");
-    await mkdir(join(project, "openspec", "changes"), { recursive: true });
-    await writeReadyPair(project);
-
-    const request = await buildFormalTaskDispatch(project, { changeId: "fixture-change", packageId: "P-01" });
-    expect(request.agent).toBe("aili.implementer");
-    expect(request.async).toBe(false);
-    expect(request.formalContext).toEqual({ changeId: "fixture-change" });
-    expect(request.continuationAudit).toEqual(continuationAudit());
-    expect(request.task).toContain("Formal lifecycle package P-01");
-    expect(request.task).toContain("Task identity: fixture-change");
-    expect(request.task).toContain("Return evidence only");
-  });
-
-  it("fails closed on unknown packages, non-ready status, and missing pairs without touching ordinary dispatch", async () => {
-    const project = join(scratch, "formal-task-closed-project");
-    await mkdir(join(project, "openspec", "changes"), { recursive: true });
-    await writeReadyPair(project);
-
-    await expect(buildFormalTaskDispatch(project, { changeId: "fixture-change", packageId: "P-unknown" }))
-      .rejects.toThrow(/is not on the validated board/);
-
-    const pendingProject = join(scratch, "formal-task-pending-project");
-    await mkdir(join(pendingProject, "openspec", "changes"), { recursive: true });
-    await writeReadyPair(pendingProject, "pending");
-    await expect(buildFormalTaskDispatch(pendingProject, { changeId: "fixture-change", packageId: "P-01" }))
-      .rejects.toThrow(/only a ready package can be dispatched/);
-
-    const emptyProject = join(scratch, "formal-task-empty-project");
-    await mkdir(join(emptyProject, "openspec", "changes"), { recursive: true });
-    await expect(buildFormalTaskDispatch(emptyProject, { changeId: "missing-change", packageId: "P-01" }))
-      .rejects.toThrow(/root validation|requires an existing valid/);
   });
 });

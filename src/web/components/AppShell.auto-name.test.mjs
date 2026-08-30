@@ -22,3 +22,7 @@ test("会话落盘后会用服务端记录清除临时状态", () => {
   assert.match(source, /\{ \.\.\.prev, \.\.\.full, transient: full\.transient \?\? false \}/);
   assert.match(source, /if \(selectedSession\) hydrateSelectedSession\(selectedSession\.id\)/);
 });
+
+test("自动命名在保留 URL 前建立 Runtime Gateway 会话", () => {
+  assert.match(source, /await getGatewayClient\(\)\.ensureMutationSession\(\);\s*const response = await fetch\(`\/api\/sessions\/\$\{encodeURIComponent\(sessionId\)\}\/auto-name`/);
+});

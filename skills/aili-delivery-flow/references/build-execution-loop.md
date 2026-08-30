@@ -10,7 +10,7 @@ When no package is supplied, synthesize the queue from the active accepted contr
 
 The current A33 host is the Git repository where the user started OpenCode; a non-Git startup root blocks, and AILI never ranks, moves, scans for, or auto-selects another host. Resolve exactly one declared target under current `WT-001` evidence before work. Target rules are re-read at the operation/dispatch boundary, may narrow but never broaden, and same-level conflict blocks.
 
-## Queue contract and lightweight savepoints
+## Queue contract and free-form continuity
 
 Packages preserve identity, dependency order, complete accepted behavior, forbidden scope, pre-action safety gates, traceability, and stop conditions. Direct serial execution needs no lane report. Record ownership/join details only when actual concurrent work has a clear benefit.
 
@@ -19,12 +19,12 @@ For each implementation package defined by the active contract before its comple
 1. Read the current package/task rows, owning contract sections, target/Git/rules, and affected evidence. Read progress/drift only for resume, deviation, or conflict; do not blanket-hydrate unrelated artifacts.
 2. Implement its complete accepted behavior; scoped work is not a partial patch.
 3. Run a focused test/check only when the changed behavior, risk, package need, or bounded failure diagnosis triggers it; a package boundary alone triggers none.
-4. Record a progress-ledger savepoint with exactly the package identity plus `scope`, `files_changed`, `unresolved_items`, `evidence_state`, and `next_package`.
+4. Append only useful status, changed-scope/evidence, blockers, and next action to orchestrator-owned `progress.txt`; use ordinary free-form prose with no required fields, grammar, parsing, or replay.
 5. Continue only when dependencies are ready and no material/safety/budget stop applies.
 
-The savepoint is not a test, review, commit, package approval, closure verdict, or readiness evidence and triggers none automatically. Optional feedback is not a mandatory local code-review/test/security gate. Package 1–12 terminology is history specific to `complete-aili-workflow-orchestration`.
+The progress note is not a test, review, commit, package approval, closure verdict, or readiness evidence and triggers none automatically. Existing arbitrary text is valid and never blocks dispatch or completion. Workers return evidence and do not write `progress.txt`. Optional feedback is not a mandatory local code-review/test/security gate. Package 1–12 terminology is history specific to `complete-aili-workflow-orchestration`.
 
-After all active-contract packages/savepoints, ROSE runs the proactive delegation scan, inspects the changed-scope diff and affected requirement/task links, and selects the smallest fresh evidence needed for the exact completion claim. A full matrix or review/test/security capability remains optional and trigger-gated to one concrete gap. Its default concurrency is at most two but is not a hard cap; larger bounded read-only fan-out requires independent non-overlapping units, concrete benefit, suitable owners, and an explicit join plan. One targeted repair/recheck is allowed. Success records `IMPLEMENTED_TARGETED_VERIFIED` and stops BUILD; any remaining blocker is reported without an automatic swarm, broad matrix, fixed multi-cycle loop, commit, push, PR, or SHIP transition. Package 12 is only this umbrella's historical name for that inspection.
+After all active-contract packages, ROSE runs the proactive delegation scan, inspects the changed-scope diff and affected requirement/task links, and selects the smallest fresh evidence needed for the exact completion claim. A full matrix or review/test/security capability remains optional and trigger-gated to one concrete gap. Its default concurrency is at most two but is not a hard cap; larger bounded read-only fan-out requires independent non-overlapping units, concrete benefit, suitable owners, and an explicit join plan. One targeted repair/recheck is allowed. Success records `IMPLEMENTED_TARGETED_VERIFIED` and stops BUILD; any remaining blocker is reported without an automatic swarm, broad matrix, fixed multi-cycle loop, commit, push, PR, or SHIP transition. Package 12 is only this umbrella's historical name for that inspection.
 
 ## Loop taxonomy
 

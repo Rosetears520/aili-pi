@@ -1,5 +1,4 @@
 import { readFile } from "node:fs/promises";
-import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it } from "vitest";
 import { RuntimeEventHub } from "../../runtime/web/event-hub.js";
 import { validateWebListenPolicy, WebAccessLifecycle } from "../../runtime/web/access-policy.js";
@@ -10,9 +9,10 @@ import { FOREGROUND_PI_COMMANDS, dispatchOfficialPiMutation } from "./foreground
 
 describe("foreground Runtime composition seams", () => {
   it("keeps launcher readiness conjunctive and installs the bridge from Next instrumentation", async () => {
-    const [launcher, instrumentation] = await Promise.all([
+    const [launcher, instrumentation, composition] = await Promise.all([
       readFile("bin/pi-web.js", "utf8"),
       readFile("src/web/instrumentation.ts", "utf8"),
+      readFile("src/web/server/foreground-composition.ts", "utf8"),
     ]);
     expect(launcher).toContain('stdio: ["inherit", "pipe", "inherit", "pipe", "pipe", "pipe"]');
     expect(launcher).toContain("!listenerReady || !runtimeReady");
@@ -25,6 +25,10 @@ describe("foreground Runtime composition seams", () => {
     expect(launcher).toContain('runtimeControl.on("end", () => requestStop');
     expect(instrumentation).toContain("target[REGISTER_SYMBOL] ??=");
     expect(instrumentation).toContain("await composition.dispose()");
+    expect(composition).not.toContain("connectProjectionObserver");
+    expect(composition).not.toContain("attachObserver");
+    expect(composition).not.toContain("tui-projection-unavailable");
+    expect(composition).toContain("session-owned-outside-web-runtime");
   });
 
   it("exchanges an internal one-use loopback bootstrap into an HttpOnly same-site session", () => {
@@ -47,21 +51,31 @@ describe("foreground Runtime composition seams", () => {
   it("dispatches every advertised official Pi command and denies unsupported pairs", async () => {
     const calls: string[] = [];
     const session = {
-      sendUserMessage: async () => { calls.push("send"); },
-      followUp: async () => { calls.push("follow_up"); },
-      steer: async () => { calls.push("steer"); },
-      compact: async () => { calls.push("compact"); },
-      setThinkingLevel: () => { calls.push("select_thinking"); },
-      setSessionName: () => { calls.push("rename"); },
-    } as unknown as AgentSession;
+      send: async (command: Record<string, unknown>) => {
+        calls.push(String(command.type));
+        return command.type === "auto_name" ? { title: "Generated session title" } : undefined;
+      },
+      isRunning: () => false,
+    } as never;
     const args: Readonly<Record<string, MutationEnvelopeV1["arguments"]>> = {
       send: { message: "send" }, follow_up: { message: "later" }, steer: { message: "now" },
-      compact: {}, select_thinking: { thinkingLevel: "high" }, rename: { name: "renamed" },
+      compact: {}, set_auto_compaction: { enabled: true }, abort: {}, abort_compaction: {},
+      bash: { command: "pwd" }, abort_bash: {}, clear_queue: {}, set_tools: { toolNames: ["read"] },
+      select_thinking: { thinkingLevel: "high" }, select_model: { provider: "provider", modelId: "model" },
+      branch: { targetId: "entry-1" }, fork: { entryId: "entry-1" }, reload: {}, rename: { name: "renamed" }, auto_name: {},
+      safe_delete: {}, set_perm_mode: { mode: "build" }, set_auto_retry: { enabled: true },
+      respond: { command: { type: "extension_ui_response", id: "ui-1", value: true } },
+      input: { command: { type: "extension_ui_input", id: "ui-1", data: "answer" } },
     };
     for (const [capability, commands] of Object.entries(FOREGROUND_PI_COMMANDS)) {
       for (const commandType of commands) await dispatchOfficialPiMutation(session, envelope(capability, commandType, args[commandType]!));
     }
-    expect(calls).toEqual(["send", "follow_up", "steer", "compact", "select_thinking", "rename"]);
+    expect(calls).toEqual([
+      "prompt", "follow_up", "steer", "compact", "set_auto_compaction", "abort", "abort_compaction",
+      "bash", "abort_bash", "clear_queue", "set_tools", "set_thinking_level", "set_model", "navigate_tree",
+      "fork", "reload", "set_session_name", "auto_name", "safe_delete", "set_perm_mode", "set_auto_retry",
+      "extension_ui_response", "extension_ui_input",
+    ]);
     await expect(dispatchOfficialPiMutation(session, envelope("analytics.read", "query", {}))).rejects.toThrow(/unsupported-runtime-command/);
     await expect(dispatchOfficialPiMutation(session, envelope("pi.send", "unlisted", { message: "no" }))).rejects.toThrow(/unsupported-runtime-command/);
   });

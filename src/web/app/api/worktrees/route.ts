@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { existsSync } from "fs";
-import { addWorktree, findCurrentWorktreePath, listWorktrees, removeWorktree, resolveProject } from "@/lib/worktree";
+import { findCurrentWorktreePath, listWorktrees, resolveProject } from "@/lib/worktree";
 import { allowFileRoot, getAllowedFileRoots, isExistingFilePathAllowed, isFilePathAllowed } from "@/lib/file-access";
 import { projectIdentityKey } from "@/lib/project-identity";
+import { rejectCompatibilityMutation } from "@/lib/compatibility-mutation";
 
 /** Same gate as /api/files: only session cwds / project roots / explicitly
- *  allowed dirs may be inspected or mutated through this endpoint. */
+ *  allowed dirs may be inspected through this compatibility endpoint. */
 async function checkCwdAllowed(cwd: string): Promise<NextResponse | null> {
   const allowedRoots = await getAllowedFileRoots();
   if (!isFilePathAllowed(cwd, allowedRoots) || !isExistingFilePathAllowed(cwd, allowedRoots)) {
@@ -53,50 +54,12 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/worktrees  body: { cwd, branch }  →  { path, branch }
-export async function POST(req: Request) {
-  try {
-    const body = await req.json() as { cwd?: string; branch?: string };
-    if (!body.cwd || typeof body.cwd !== "string") {
-      return NextResponse.json({ error: "cwd is required" }, { status: 400 });
-    }
-    if (!body.branch || typeof body.branch !== "string") {
-      return NextResponse.json({ error: "branch is required" }, { status: 400 });
-    }
-    const denied = await checkCwdAllowed(body.cwd);
-    if (denied) return denied;
-    if (!existsSync(body.cwd)) {
-      return NextResponse.json({ error: `Directory does not exist: ${body.cwd}` }, { status: 400 });
-    }
-
-    const result = await addWorktree(body.cwd, body.branch);
-    return NextResponse.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: message }, { status: 400 });
-  }
+// These retained UI URLs cannot construct the opaque handle + writer lease
+// required by the existing Gateway contracts. Never fall back to direct Git.
+export async function POST() {
+  return rejectCompatibilityMutation("/api/worktrees POST", "worktree-add");
 }
 
-// DELETE /api/worktrees  body: { cwd, path, force? }
-export async function DELETE(req: Request) {
-  try {
-    const body = await req.json() as { cwd?: string; path?: string; force?: boolean };
-    if (!body.cwd || typeof body.cwd !== "string") {
-      return NextResponse.json({ error: "cwd is required" }, { status: 400 });
-    }
-    if (!body.path || typeof body.path !== "string") {
-      return NextResponse.json({ error: "path is required" }, { status: 400 });
-    }
-    const denied = await checkCwdAllowed(body.cwd);
-    if (denied) return denied;
-
-    await removeWorktree(body.cwd, body.path, body.force === true);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    // git refuses to remove dirty worktrees without --force; surface that so
-    // the UI can offer a force-remove confirmation.
-    const dirty = /contains modified or untracked files|is dirty/i.test(message);
-    return NextResponse.json({ error: message, dirty }, { status: dirty ? 409 : 400 });
-  }
+export async function DELETE() {
+  return rejectCompatibilityMutation("/api/worktrees DELETE", "worktree-remove");
 }

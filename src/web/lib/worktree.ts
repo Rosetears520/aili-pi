@@ -2,8 +2,8 @@ import { execFile } from "child_process";
 import { existsSync, mkdirSync, realpathSync } from "fs";
 import { basename, dirname, join, resolve } from "path";
 import { promisify } from "util";
-import { allowFileRoot } from "./allowed-roots";
-import { samePath, toNativePath } from "./paths";
+import { allowFileRoot } from "./allowed-roots.js";
+import { samePath, toNativePath } from "./paths.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -229,14 +229,16 @@ export async function addWorktree(cwd: string, branch: string): Promise<{ path: 
   return { path: worktreePath, branch: trimmed };
 }
 
-export async function removeWorktree(cwd: string, worktreePath: string, force = false): Promise<void> {
+export async function removeWorktree(cwd: string, worktreePath: string): Promise<void> {
   const worktrees = await listWorktrees(cwd);
   const target = findWorktreeByPath(worktrees, worktreePath);
   if (!target) throw new Error(`Not a worktree of this repository: ${worktreePath}`);
   if (target.isMain) throw new Error("Cannot remove the main worktree");
 
   try {
-    await git(cwd, ["worktree", "remove", ...(force ? ["--force"] : []), target.path]);
+    // Git's default refusal is the policy: modified or untracked bytes are
+    // never stashed, discarded, checked out over, or removed by this helper.
+    await git(cwd, ["worktree", "remove", target.path]);
   } catch (error) {
     throw new Error(extractGitError(error));
   }

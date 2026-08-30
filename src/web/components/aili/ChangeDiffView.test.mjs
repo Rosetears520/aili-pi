@@ -48,7 +48,7 @@ test("timeline, tool details, and the Changes page all render through ChangeDiff
 test("/changes mounts its own I18nProvider (the tab has no chat-page provider tree)", () => {
   // ChangeDiffView calls useI18n, which throws outside a provider; the changes
   // page opens as its own tab, so it must carry the provider itself.
-  assert.match(changesPage, /import \{ I18nProvider \} from "@\/hooks\/useI18n"/);
+  assert.match(changesPage, /import \{ I18nProvider, useI18n \} from "@\/hooks\/useI18n"/);
   const providerIndex = changesPage.indexOf("<I18nProvider>");
   assert.ok(providerIndex !== -1, "changes page must wrap its tree in I18nProvider");
   assert.ok(changesPage.indexOf('<main className="aili-changes-page"', providerIndex) > providerIndex, "provider must wrap the page main");
@@ -64,9 +64,18 @@ test("duplicate diff renderers are gone from the web tree", () => {
   assert.ok(!changesPage.includes("AiliFileDiff"));
 });
 
-test("changes page offers worktree switching without creation", () => {
+test("changes page navigates worktrees through the branch switcher, without creation", () => {
   assert.match(changesPage, /\/api\/worktrees\?cwd=/);
-  assert.match(changesPage, /aria-label="Worktrees"/);
+  // A branch held by a sibling worktree routes to that worktree instead of a
+  // checkout git would refuse ("already used by worktree …").
+  assert.match(changesPage, /worktreeOwningBranch/);
+  assert.match(changesPage, /applyCwd\(owner\.path\)/);
+  assert.match(changesPage, /t\("changes\.inWorktree"\)/);
   assert.match(changesPage, /setCwd\(next\)/);
   assert.ok(!/createWorktree|new-worktree/i.test(changesPage), "no worktree creation UI");
+});
+
+test("changes page labels branches from live git data, never a stale default", () => {
+  assert.match(changesPage, /worktrees\.find\(\(worktree\) => worktree\.path === currentWorktree\)\?\.branch/);
+  assert.ok(!changesPage.includes('worktree.isMain ? "main"'), "main checkout must not be mislabeled as the main branch");
 });

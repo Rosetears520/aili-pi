@@ -13,6 +13,10 @@ const {
 test("uses the first supported browser language and falls back to English", () => {
   assert.equal(resolveBrowserLocale(["zh-CN", "en-US"]), "zh-CN");
   assert.equal(resolveBrowserLocale(["zh", "en-US"]), "zh-CN");
+  assert.equal(resolveBrowserLocale(["zh-Hans", "zh-TW"]), "zh-CN");
+  assert.equal(resolveBrowserLocale(["zh-TW", "en-US"]), "zh-TW");
+  assert.equal(resolveBrowserLocale(["zh-Hant-HK", "en-US"]), "zh-TW");
+  assert.equal(resolveBrowserLocale(["zh-HK", "en-US"]), "zh-TW");
   assert.equal(resolveBrowserLocale(["en-US", "zh-CN"]), "en");
   assert.equal(resolveBrowserLocale(["fr-FR", "zh-CN"]), "zh-CN");
   assert.equal(resolveBrowserLocale(["fr-FR"]), "en");
@@ -20,9 +24,18 @@ test("uses the first supported browser language and falls back to English", () =
 });
 
 test("returns only registered locales", () => {
-  assert.deepEqual(getSupportedLocales(), ["en", "zh-CN"]);
+  assert.deepEqual(getSupportedLocales(), ["en", "zh-CN", "zh-TW"]);
   assert.equal(getLocalePlugin("en").id, "en");
+  assert.equal(getLocalePlugin("zh-TW")?.label, "繁體中文");
+  assert.equal(getLocalePlugin("zh-TW")?.messages["common.language"], "語言");
   assert.equal(getLocalePlugin("missing"), undefined);
+});
+
+test("built-in locales preserve every downstream English message key", () => {
+  const englishKeys = Object.keys(getLocalePlugin("en").messages).sort();
+  for (const id of ["zh-CN", "zh-TW"]) {
+    assert.deepEqual(Object.keys(getLocalePlugin(id).messages).sort(), englishKeys);
+  }
 });
 
 test("allows a new locale plugin and rejects duplicate ids", () => {

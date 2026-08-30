@@ -3,6 +3,7 @@ import { analyzeBash } from "pi-permission-modes/src/bash-parse.ts";
 import type { Action, ModeDef, Surface } from "pi-permission-modes/src/schema.ts";
 import { decide, decideBashCommand, mostRestrictive } from "../../vendor/pi-permission-modes/resolve.js";
 import { bashMentionsCredentialPath, isProtectedChildPath } from "../credential-guard.js";
+import { InteractionBroker } from "./interaction-broker.js";
 
 const FILE_SURFACE: Record<string, Surface> = {
   read: "read",
@@ -151,13 +152,6 @@ export interface ApprovalRequestPacket {
   modeLabel: string;
 }
 
-interface PendingApproval {
-  settle: (decision: "allow" | "deny") => void;
-  jobId: string;
-  signal?: AbortSignal;
-  abortListener?: () => void;
-}
-
 export function brokeredChildPermission(
   resolver: ChildPermissionResolver,
   broker: ParentApprovalBroker,
@@ -179,45 +173,33 @@ export function brokeredChildPermission(
 }
 
 export class ParentApprovalBroker {
-  private pending = new Map<string, PendingApproval>();
-  private closed = false;
-  private nextId = 0;
+  private readonly interactions = new InteractionBroker();
 
   constructor(private readonly prompt: ApprovalPrompt) {}
 
-  pendingCount(jobId?: string): number {
-    if (!jobId) return this.pending.size;
-    return [...this.pending.values()].filter((pending) => pending.jobId === jobId).length;
+  pendingCount(jobId?: string): number { return this.interactions.pendingRecords(jobId).length; }
+
+  async request(packet: Omit<ApprovalRequestPacket, "requestId">, signal?: AbortSignal): Promise<"allow" | "deny"> {
+    if (!this.prompt.hasUI || signal?.aborted) return "deny";
+    return this.interactions.request<Omit<ApprovalRequestPacket, "requestId">, "allow" | "deny">({
+      kind: "permission",
+      agentId: packet.agentId,
+      jobId: packet.jobId,
+      request: packet,
+      signal,
+      fallback: "deny" as const,
+      render: async (interaction) => {
+        const fullPacket: ApprovalRequestPacket = { ...packet, requestId: interaction.id, summary: redactCredentialText(packet.summary).slice(0, 500) };
+        return await this.prompt.ask(fullPacket) === "allow" ? "allow" as const : "deny" as const;
+      },
+    });
   }
 
-  async request(
-    packet: Omit<ApprovalRequestPacket, "requestId">,
-    signal?: AbortSignal,
-  ): Promise<"allow" | "deny"> {
-    if (this.closed || !this.prompt.hasUI || signal?.aborted) return "deny";
-    const requestId = `approval-${++this.nextId}`;
-    const fullPacket: ApprovalRequestPacket = { ...packet, requestId, summary: redactCredentialText(packet.summary).slice(0, 500) };
-    let settleGate!: (decision: "allow" | "deny") => void;
-    const gate = new Promise<"allow" | "deny">((resolve) => { settleGate = resolve; });
-    const pending: PendingApproval = { settle: settleGate, signal, jobId: packet.jobId };
-    if (signal) {
-      pending.abortListener = () => settleGate("deny");
-      signal.addEventListener("abort", pending.abortListener, { once: true });
-    }
-    this.pending.set(requestId, pending);
-    const promptDecision = this.prompt.ask(fullPacket).then(
-      (decision) => decision === "allow" ? "allow" as const : "deny" as const,
-      () => "deny" as const,
-    );
-    const decision = await Promise.race([promptDecision, gate]);
-    this.pending.delete(requestId);
-    if (signal && pending.abortListener) signal.removeEventListener("abort", pending.abortListener);
-    return decision;
+  async requestQuestion<T>(input: { agentId: string; jobId: string; question: string; render: () => Promise<T>; fallback: T; signal?: AbortSignal }): Promise<T> {
+    return this.interactions.request({ kind: "question", agentId: input.agentId, jobId: input.jobId, request: { question: input.question }, render: input.render, fallback: input.fallback, signal: input.signal });
   }
 
-  shutdown(): void {
-    this.closed = true;
-    for (const pending of this.pending.values()) pending.settle("deny");
-    this.pending.clear();
-  }
+  pendingInteractions(jobId?: string) { return this.interactions.pendingRecords(jobId); }
+  answerInteraction(id: string, answer: unknown): boolean { return this.interactions.answer(id, answer); }
+  shutdown(): void { this.interactions.shutdown(); }
 }

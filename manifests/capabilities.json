@@ -68,7 +68,7 @@
     {
       "id": "provider.retry",
       "provider": "aili-provider-retry",
-      "adapterOwner": "src/runtime/provider-retry.ts adapted from @narumitw/pi-retry@0.31.0; Pi 0.84.1 owns attempt budget/backoff",
+      "adapterOwner": "src/runtime/provider-retry.ts adapted from @narumitw/pi-retry@0.31.0; Pi 0.84.4 owns attempt budget/backoff",
       "platforms": ["linux"],
       "class": "required",
       "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "provider-turn-abort-classification" },
@@ -78,19 +78,39 @@
     {
       "id": "memory.provider.mempalace",
       "provider": "aili-core",
-      "adapterOwner": "src/runtime/mcp.ts via pi-mcp-adapter@2.23.0",
+      "adapterOwner": "one Palace through the existing session adapter in src/runtime/mcp.ts via pi-mcp-adapter@2.23.0",
       "platforms": ["linux"],
       "class": "optional",
-      "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "external-provider-state" },
+      "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "session-authorized-external-search-and-checkpoint" },
       "probe": { "id": "aili.memory.mempalace", "kind": "optional-pack", "timeoutMs": 1000 },
       "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "memory.provider.mempalace" },
       "optionalPack": {
         "id": "mempalace-memory",
-        "missingBehavior": "MemPalace durable memory is unavailable; no fallback store is created.",
-        "enableGuidance": "Enable only after the MCP/MemPalace configuration and operation gates are satisfied.",
-        "sideEffects": ["external Palace reads and writes through MCP"],
+        "missingBehavior": "Automatic durable operations fail closed; local observation may continue, and no disk cache, outbox, second Palace, or fallback store is created.",
+        "enableGuidance": "Require exact MemPalace 3.7.0 compatibility evidence plus session-scoped standing authorization for the trusted Palace/project and exact search/checkpoint tools. Current installed evidence 3.6.0 is a mismatch/Unverified and must not be upgraded implicitly.",
+        "sideEffects": ["bounded external Palace search and non-destructive checkpoint through the existing session MCP adapter"],
         "futureOwner": "aili-pi"
       }
+    },
+    {
+      "id": "memory.observational",
+      "provider": "aili-core",
+      "adapterOwner": "default-on token/high-value hybrid observer and bounded task recall in src/runtime/observational-memory/** plus side-effect-only pre-compaction hook in extensions/observational-memory/index.ts",
+      "platforms": ["linux"],
+      "class": "required",
+      "risk": { "secret": "possible", "network": "none", "sideEffect": "bounded-in-process-session-observation-and-recall" },
+      "probe": { "id": "aili.memory.observational", "kind": "runtime-component", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "memory.observational" }
+    },
+    {
+      "id": "prompt.middleware",
+      "provider": "aili-core",
+      "adapterOwner": "src/runtime/prompt-middleware/** and extensions/prompt-middleware/index.ts",
+      "platforms": ["linux"],
+      "class": "required",
+      "risk": { "secret": "possible", "network": "none", "sideEffect": "prompt-and-tool-policy-narrowing" },
+      "probe": { "id": "aili.prompt.middleware", "kind": "runtime-component", "timeoutMs": 1000 },
+      "dependentSkills": { "source": "manifests/skill-compatibility.json", "capability": "prompt.middleware" }
     },
     {
       "id": "web.fetch",

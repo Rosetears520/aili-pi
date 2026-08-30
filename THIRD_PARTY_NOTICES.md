@@ -2,16 +2,28 @@
 
 This distribution is licensed under MIT. The following adapted sources, behavioral references, and locked development/runtime dependencies retain their own license terms.
 
+## @agegr/pi-web 0.8.11
+
+- Status: adapted
+- Source: https://github.com/agegr/pi-web.git
+- Revision: 28bab3c25f5f6770c9b0b745ebbfec1c27f7b948
+- Version: 0.8.11
+- License: MIT
+- Upstream notice: Copyright (c) 2026 agegr
+- Source files: upstream/pi-web-0.8.11/** (exact tag snapshot with exclusions recorded in upstream/web-source-locks.json)
+- Reused symbols/patterns: AnsiText and ANSI parser behavior, ProviderIcon and provider-icons.svg, zh-TW locale registry, Project Info/read-only settings presentation, bounded active-branch history pagination and lazy tool-result image behavior
+- Local changes: ported selected presentation/read behavior symbol-by-symbol onto the AILI Runtime Gateway/BFF and opaque-handle contracts; retained AILI writer lease, access policy, private request IDs, Changes/native-dialog/footer/orb/questionnaire, Herdr, Prompt Middleware and Observational Memory; excluded upstream built-in subagents, direct RPC/session/settings/Git/Worktree/push mutation ownership, conventional launcher and raw session/entry media URLs
+
 ## aili-workflows
 
 - Status: adapted
 - Source: https://github.com/Rosetears520/aili-workflows.git
-- Revision: a69f3149d8f1db81726128c2819a3ccc954b9ccc
-- Version: 0.4.7
+- Revision: a5284ee105a084392a944aee04313dcf7c294a64
+- Version: 0.4.8
 - License: MIT
-- Source files: upstream/aili-workflows.lock.json#files (562 exact skill files), upstream/aili-workflows-runtime/** (exact generated Pi runtime bundle), manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.7 source revision)
-- Reused symbols/patterns: 58 canonical skill bodies and owned assets, 20 canonical Specialized Agent roles, Pi system/role/selection/protocol/installation runtime bundle
-- Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; the generated Pi runtime bundle is copied byte-for-byte and validated through one lock-bound loader; specialized role prompts and deterministic routing were regenerated from the exact 0.4.7 source revision and remain manifest-hash bound; legacy APPEND_SYSTEM and global-role installation ownership is retired and report-only
+- Source files: upstream/aili-workflows.lock.json#files (562 exact skill files), upstream/aili-workflows-runtime/** (exact generated Pi runtime bundle), manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.8 source revision)
+- Reused symbols/patterns: 58 canonical skill bodies and owned assets, 20 canonical Specialized Agent roles, Pi system/role/selection/package-protocol/installation runtime bundle
+- Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; the generated Pi runtime bundle is copied byte-for-byte and validated through one lock-bound loader; specialized role prompts and deterministic routing were regenerated from the exact 0.4.8 source revision and remain manifest-hash bound; legacy APPEND_SYSTEM and global-role installation ownership is retired and report-only
 
 ## pi-mcp-adapter
 
@@ -32,8 +44,8 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 - Version: 0.1.34
 - License: MIT
 - Source files: upstream/billion-context-pi/** (complete tracked source tree except .git metadata)
-- Reused symbols/patterns: compress, decompress, search_context, acp_status, acp_delegate, acp_delegate_wait, acp_delegate_cancel, context and compaction handlers, createAcpPressureEvaluator decision-only pressure evaluator
-- Local changes: added AcpOwnershipRouter so a turn-frozen canonical route gates context, system-prompt and compaction ownership before side effects; disabled upstream auto-update and user-home subagent settings mutation in the AILI composition; added createAcpPressureEvaluator so the Codex route can reuse ACP pressure decisions as model-facing nudges without ACP message mutation; rebuilt dist against the retained source and Pi 0.84.1
+- Reused symbols/patterns: compress, decompress, search_context, acp_status, acp_delegate, acp_delegate_wait, acp_delegate_cancel, context and compaction handlers
+- Local changes: added AcpOwnershipRouter so a turn-frozen canonical route gates context, system-prompt and compaction ownership before side effects; disabled upstream auto-update and user-home subagent settings mutation in the AILI composition; the AILI-owned factory locks `delegate: false` so global/project acp.json cannot re-enable `acp_delegate*`, its prompt, or widget while compression/context remain; AILI imports the retained source owner and never hand-edits generated dist; the stale generated dist is excluded from the published package
 
 ## pi-codex-compact
 
@@ -55,7 +67,7 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 - License: MIT
 - Source files: upstream/pi-retry-0.31.0/**, src/runtime/provider-retry.ts
 - Reused symbols/patterns: provider retry classifiers, stall watchdog, receiving/retrying status, Pi retry-policy integration
-- Local changes: added bounded redacted structured retry diagnostics and exported classification helpers; Pi 0.84.1 remains the sole attempt budget/backoff owner; later upstream deprecated placement is documented in the accepted change
+- Local changes: added bounded redacted structured retry diagnostics and exported classification helpers; Pi 0.84.4 remains the sole attempt budget/backoff owner; later upstream deprecated placement is documented in the accepted change
 
 ## pi-permission-modes
 
@@ -202,6 +214,6 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 
 ## npm dependency inventory
 
-The exact 1202-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
+The exact 881-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
 
 Runtime dependencies are initialized through the single AILI Extension entry. Package-owned third-party adaptations are copied only where their provenance sourceFiles explicitly name repository paths.

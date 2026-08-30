@@ -4,8 +4,8 @@
     {
       "capability": "repo.read",
       "status": "native",
-      "owner": "@earendil-works/pi-coding-agent@0.84.1",
-      "sourceRevision": "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
+      "owner": "@earendil-works/pi-coding-agent@0.84.4",
+      "sourceRevision": "a5284ee105a084392a944aee04313dcf7c294a64",
       "verification": [
         "vitest run tests/integration/extension-load.test.ts",
         "vitest run tests/integration/persistent-agent-host-seams.test.ts"
@@ -13,7 +13,7 @@
       "artifacts": [
         {
           "path": "package-lock.json",
-          "sha256": "f009895b183ef5b18594804f435417970c6c420ed40f141161ec043014b3473d"
+          "sha256": "05e9a78934810a09524c65ddaba4875cf7b2c34f9eff8944ab1bb195ee23fa75"
         },
         {
           "path": "tests/integration/extension-load.test.ts",
@@ -21,7 +21,7 @@
         },
         {
           "path": "tests/integration/persistent-agent-host-seams.test.ts",
-          "sha256": "f6b6556bd00d64484c68f4e52154e6394a977fb782915ad9414560b0619e4c0d"
+          "sha256": "c0f38e9bc7931f5e008e722f73855faa19489e84479443742630cdc21694b63e"
         }
       ]
     },
@@ -29,74 +29,88 @@
       "capability": "subagent.dispatch",
       "status": "adapted",
       "owner": "src/runtime/persistent-agents/production.ts",
-      "sourceRevision": "a69f3149d8f1db81726128c2819a3ccc954b9ccc",
+      "sourceRevision": "a5284ee105a084392a944aee04313dcf7c294a64",
       "verification": [
-        "npm run verify:roles",
-        "vitest run tests/unit/persistent-agent-task.test.ts tests/unit/persistent-agent-hub.test.ts tests/unit/persistent-agent-policy.test.ts",
-        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/persistent-agent-task-collision.test.ts tests/integration/package-runtime.test.ts",
-        "vitest run tests/unit/persistent-agent-task-registration.test.ts",
-        "npm run test:doctor"
+        "npm run typecheck",
+        "vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/herdr-backends.test.ts tests/unit/persistent-agent-sub.test.ts tests/unit/persistent-agent-backends.test.ts tests/unit/persistent-agent-storage.test.ts",
+        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/package-runtime.test.ts"
       ],
       "artifacts": [
         {
           "path": "src/runtime/persistent-agents/production.ts",
-          "sha256": "81fe0a47ef1d962ed01d479aeec1396dc8884e85ed121220c2c64bb3874be511"
+          "sha256": "4112c2163bd2fd3f5a138e278d131cbb58e4fbfdd20daae8683d447899653156"
         },
         {
           "path": "src/runtime/persistent-agents/runtime.ts",
-          "sha256": "371b0a141c7bbcb75dea3007aa34e89f90ed8692d802733d0a7a066404201da0"
+          "sha256": "cc873785c13a27adc43931a188b394b97934b938e81e274bb702ef60939a83a9"
         },
         {
           "path": "src/runtime/persistent-agents/session-factory.ts",
           "sha256": "ad7e06b2199c633d105ff967aa84e0c17c5bc5f5b1ec02d084d171c22940ab19"
         },
         {
-          "path": "src/runtime/persistent-agents/task-registration.ts",
-          "sha256": "ccf019753ae3b9e27c3686436235ebd16544c96687d1a0eeacde972d750372c5"
+          "path": "src/runtime/persistent-agents/sub-registration.ts",
+          "sha256": "2cd6947055c19d161806586f15c1919a8244032b3bcfe58c9e92ee879efb6858"
         },
         {
           "path": "src/runtime/native-integrations.ts",
-          "sha256": "33b9a5252d74428878368406528d11f3e6170ed8731c2e7c27fc3ff9a9474413"
+          "sha256": "2377923521298038c26729a167d30b589303d37b27ed0056d8b532043c0103cd"
         },
         {
           "path": "src/runtime/persistent-agents/storage.ts",
-          "sha256": "3f68f60bdab0f352745faa674b9031216805c53e3ac57a0bc6a3cbac0f1fa5a6"
+          "sha256": "e9dad42601490a9ce7d0ee0fb4bcac9dfe749e3c2d135dca82f1256479c5aa55"
         },
         {
           "path": "src/runtime/persistent-agents/permission.ts",
-          "sha256": "48b30508491bca7fcd04d82b30d9dde1423499c2f02c014074c3f030c7ebd8ba"
+          "sha256": "9f8afd7645d944078111a6c6155464b31d82c6d5c3aa5515d2401fd500194208"
         },
         {
-          "path": "tests/unit/persistent-agent-task.test.ts",
-          "sha256": "b32cb27571de186b428ae190e548e6afab6c209f0a6e12749530e0fe05277ba2"
+          "path": "src/runtime/persistent-agents/external-cli.ts",
+          "sha256": "0984e9c18891ed1c017bddbf829c07e69359f74b3bc7bed9100bf6fb251e2a50"
         },
         {
-          "path": "tests/unit/persistent-agent-hub.test.ts",
-          "sha256": "cdb79e51d8e187ea7b56a9373d622fbfbcc6a782d325539892c936f62fa75dcb"
+          "path": "src/runtime/persistent-agents/backends/types.ts",
+          "sha256": "89445546a36e6fa3eeadc983575814f33e9c7321eb6439ff66e0cb3026fb51df"
+        },
+        {
+          "path": "src/runtime/persistent-agents/backends/herdr/adapter.ts",
+          "sha256": "e8ba1947fc96e3de29b85384d69e5fdd157e9d4436bf3af72b3756220c6b495d"
+        },
+        {
+          "path": "tests/unit/persistent-agent-external-cli.test.ts",
+          "sha256": "95ee221a8e11cb3a9edb9550d14bf0e971ae11a321b9356abffd83679df9d85f"
+        },
+        {
+          "path": "tests/unit/herdr-backends.test.ts",
+          "sha256": "a4675c099d2ad4cf464bd9c6f8aecec6c5b75b8b8080ad8429f61f772e5de2b4"
+        },
+        {
+          "path": "tests/unit/persistent-agent-sub.test.ts",
+          "sha256": "35d4eacbf2262d19dec4f49162d9ee1d89eec4cad4c5a4e4b2856b104a53baca"
         },
         {
           "path": "tests/unit/persistent-agent-policy.test.ts",
-          "sha256": "b2d03a1643f273de8032460ceecfb0198ca5a8cf06dfeee93407ec81759c6360"
+          "sha256": "5de014fea05324a1cbe3581772be3a2e4b84b1db48aea739fbe2ad076a7b4e77"
         },
         {
           "path": "tests/integration/persistent-agent-runtime.test.ts",
-          "sha256": "40eb94bca4bcc6d6ee96d0192f05abebc3f46f6a80bf921fa9eeb6e827186ad0"
+          "sha256": "b5c7cee1cba0050c81e24c6bd458ad1602a53c7cf5ab33e59d3b45395670884e"
         },
         {
           "path": "tests/integration/persistent-agent-production.test.ts",
-          "sha256": "a8e091c22516c6b760d17d14c32a1869546671c3f3d3483c93eb0ebb1e1c31c1"
+          "sha256": "76658131ec7c48d5ee3b11a576349d053553e76655a9411f7a22fd017f2f149c"
         },
         {
-          "path": "tests/integration/persistent-agent-task-collision.test.ts",
-          "sha256": "e57a85d90b655f5d12b812c415d16858dd6c3afffd7f7f475c67ea2dc6789cbf"
+          "path": "tests/integration/persistent-agent-sub-collision.test.ts",
+          "sha256": "8c31ba403ab4eb871ae03435d792eec7ceedb6c483f9e68a69629f88670933af"
         },
         {
-          "path": "tests/unit/persistent-agent-task-registration.test.ts",
-          "sha256": "204d063a8424a4a7b3fa96fc2696f4bfbbbb15072371933258cdffee946f9a65"
+          "path": "tests/unit/persistent-agent-sub-registration.test.ts",
+          "sha256": "88b7a0a6316156292046e33eb3c6b27dd30b8ebde369cb9cd35ccedfa07ec162"
         },
         {
           "path": "tests/integration/package-runtime.test.ts",
-          "sha256": "61d54684ba672746e82a12f617f101cd0fd2e043e01e3ff32df2972a2a2bf733"
+          "sha256": "6b1938a99decd1f25e456d2022a44270f6609da11d0c5ffdac4477235edc9b6b"
         }
       ]
     },
@@ -123,15 +137,15 @@
         },
         {
           "path": "package-lock.json",
-          "sha256": "f009895b183ef5b18594804f435417970c6c420ed40f141161ec043014b3473d"
+          "sha256": "05e9a78934810a09524c65ddaba4875cf7b2c34f9eff8944ab1bb195ee23fa75"
         },
         {
           "path": "node_modules/@earendil-works/pi-coding-agent/docs/skills.md",
-          "sha256": "de38956dcdb3f060b62a891c23b5c0facc568d26039cd0addd6d5adfbed2762f"
+          "sha256": "4d663d3791e82dc86cd832a9881247d0b1edd23bd33913a4a8322321906073a5"
         },
         {
           "path": "node_modules/@earendil-works/pi-coding-agent/dist/core/package-manager.js",
-          "sha256": "643d15e9dc277bea7a0daeadde94207b25143cf23556b2e30af4dbc3fcfb7974"
+          "sha256": "26aa8adf255f7b1ebf9b00732d2e9a1648e38b76a10eedcd443131e3708b6e88"
         }
       ]
     }

@@ -397,7 +397,7 @@ After answer ingestion, classify every confirmed correction, new requirement, ar
 
 - `covered`: the current accepted artifacts and tests already cover it; link the evidence and do not duplicate writeback.
 - `material-question`: one unresolved decision can change scope, contract, tasks, acceptance, risk handling, or implemented behavior; ask one focused question and do not guess.
-- `material-delta`: confirmed material change; write and re-read only the owning artifacts and direct dependents, read OpenSpec status/instructions when those dependencies require it, run lifecycle-selected strict validation, and stale prior test-plan acceptance when acceptance or required verification changes.
+- `material-delta`: confirmed material change; write and re-read only the owning artifacts and direct dependents, read OpenSpec status/instructions when those dependencies require it, run one lifecycle-selected targeted strict validation only when an OpenSpec-native planning artifact changed or an explicit acceptance/archive gate requires it, and stale prior test-plan acceptance when acceptance or required verification changes.
 - `ordinary-steering`: presentation/process guidance that changes no material dimension; apply without reopening acceptance.
 - `Unverified`: evidence is missing or cannot currently establish the class; name the gap and block any dependent claim/action.
 

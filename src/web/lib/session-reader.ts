@@ -6,12 +6,12 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { closeSync, openSync, readSync } from "fs";
 import { normalize as normalizePath } from "path";
-import type { AgentMessage, SessionEntry, SessionHeader, SessionInfo, SessionContext } from "./types";
+import type { AgentMessage, SessionEntry, SessionHeader, SessionInfo, SessionContext } from "./types.js";
 import type { SessionEntry as PiSessionEntry, SessionInfo as PiSessionInfo } from "@earendil-works/pi-coding-agent";
-import { normalizeToolCalls } from "./normalize";
-import { projectIdentityKey } from "./project-identity";
-import { sessionPathKey } from "./session-path";
-import { resolveProject, type ProjectInfo } from "./worktree";
+import { normalizeToolCalls } from "./normalize.js";
+import { projectIdentityKey } from "./project-identity.js";
+import { sessionPathKey } from "./session-path.js";
+import { resolveProject, type ProjectInfo } from "./worktree.js";
 
 export { getAgentDir };
 

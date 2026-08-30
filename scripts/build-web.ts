@@ -18,15 +18,14 @@ export const LOCKED_WEB_RUNTIME_DEPENDENCIES = Object.freeze({
 });
 
 export const LOCKED_PI_DEVELOPMENT_PACKAGES = Object.freeze({
-  "@earendil-works/pi-agent-core": "0.84.2",
-  "@earendil-works/pi-ai": "0.84.2",
-  "@earendil-works/pi-coding-agent": "0.84.2",
-  "@earendil-works/pi-tui": "0.84.2",
+  "@earendil-works/pi-agent-core": "0.84.4",
+  "@earendil-works/pi-ai": "0.84.4",
+  "@earendil-works/pi-coding-agent": "0.84.4",
+  "@earendil-works/pi-tui": "0.84.4",
 });
 
-/** Exact versions resolved by the imported Pi Web 0.8.9 source lock for its UI build. */
+/** Exact UI build versions retained by the active Pi Web 0.8.11 adaptation. */
 export const LOCKED_WEB_UI_BUILD_DEPENDENCIES = Object.freeze({
-  "@lobehub/icons": "5.6.0",
   "@tailwindcss/postcss": "4.2.2",
   "@types/js-yaml": "4.0.9",
   "@types/proper-lockfile": "4.1.4",
@@ -49,13 +48,13 @@ export const LOCKED_WEB_UI_BUILD_DEPENDENCIES = Object.freeze({
 });
 
 const ABSORBED_PACKAGES = ["@agegr/pi-web", "@narumitw/pi-analytics", "@narumitw/pi-stamp", "@narumitw/pi-btw", "@narumitw/pi-worktree"] as const;
-const REQUIRED_PACKAGE_EXCLUSIONS = ["!src/web/", "!upstream/pi-web-0.8.9/", "!upstream/pi-extensions/"] as const;
+const REQUIRED_PACKAGE_EXCLUSIONS = ["!src/web/", "!upstream/pi-web-0.8.9/", "!upstream/pi-web-0.8.11/", "!upstream/pi-extensions/"] as const;
 
 export interface WebBuildManifestV1 {
   readonly schemaVersion: 1;
-  readonly source: "upstream/pi-web-0.8.9";
-  readonly sourceRevision: "febcba5e33e5eef9bf7f092099105c5dfea742ff";
-  readonly piVersion: "0.84.2";
+  readonly source: "upstream/pi-web-0.8.11";
+  readonly sourceRevision: "28bab3c25f5f6770c9b0b745ebbfec1c27f7b948";
+  readonly piVersion: "0.84.4";
   readonly sourceDigest: string;
   readonly files: readonly string[];
 }
@@ -75,10 +74,10 @@ export async function assertLockedWebDependencies(root = process.cwd()): Promise
     packages?: Record<string, { version?: string; dependencies?: Record<string, string>; devDependencies?: Record<string, string>; peerDependencies?: Record<string, string> }>;
   };
   const sourceLock = JSON.parse(await readFile(join(root, PI_WEB_SOURCE_LOCK), "utf8")) as {
-    sources?: Array<{ id?: string; version?: string; gitRevision?: string }>;
+    sources?: Array<{ id?: string; status?: string; version?: string; gitRevision?: string }>;
   };
-  const piWebSource = sourceLock.sources?.find((source) => source.id === "pi-web");
-  if (piWebSource?.version !== "0.8.9" || piWebSource.gitRevision !== "febcba5e33e5eef9bf7f092099105c5dfea742ff") {
+  const piWebSource = sourceLock.sources?.find((source) => source.id === "pi-web-0.8.11" && source.status === "active");
+  if (piWebSource?.version !== "0.8.11" || piWebSource.gitRevision !== "28bab3c25f5f6770c9b0b745ebbfec1c27f7b948") {
     throw new Error("locked Pi Web source identity mismatch");
   }
   const dependencies = manifest.dependencies ?? {};
@@ -154,9 +153,9 @@ export async function createWebBuildManifest(root = process.cwd()): Promise<WebB
   }
   return Object.freeze({
     schemaVersion: 1,
-    source: "upstream/pi-web-0.8.9",
-    sourceRevision: "febcba5e33e5eef9bf7f092099105c5dfea742ff",
-    piVersion: "0.84.2",
+    source: "upstream/pi-web-0.8.11",
+    sourceRevision: "28bab3c25f5f6770c9b0b745ebbfec1c27f7b948",
+    piVersion: "0.84.4",
     sourceDigest: digest.digest("hex"),
     files,
   });

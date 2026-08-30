@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useI18n } from "@/hooks/useI18n";
+import { getGatewayClient } from "@/gateway-client";
 import type {
   SkillInfo as Skill,
   SkillInstallScope,
@@ -424,16 +425,7 @@ function AddSkillPanel({
       setInstalling(pkg);
       setInstallError(null);
       try {
-        const res = await fetch("/api/skills/install", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ package: pkg, scope, cwd }),
-        });
-        const d = (await res.json()) as { success?: boolean; error?: string };
-        if (!res.ok || d.error) {
-          setInstallError(d.error ?? `HTTP ${res.status}`);
-          return;
-        }
+        await getGatewayClient().configure("skills.configure", "install", { package: pkg, scope, cwd });
         setNewlyInstalledPkgs((prev) =>
           new Set(prev).add(`${scope}:${pkg}`),
         );
@@ -812,35 +804,22 @@ export function SkillsConfig({
   }, [cwd, skills]);
 
   const updateInstalledSkill = useCallback(async (skill: Skill) => {
-    if (!skill.install) return;
+    const install = skill.install;
+    if (!install) return;
     const key = updateKey(skill)!;
     setUpdatingSkill(key);
     setUpdateError(null);
     try {
-      const res = await fetch("/api/skills/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cwd,
-          package: skill.install.package,
-          scope: skill.install.scope,
-        }),
+      await getGatewayClient().configure("skills.configure", "update", {
+        cwd, package: install.package, scope: install.scope,
       });
-      const data = (await res.json()) as {
-        success?: boolean;
-        skill?: Skill;
-        error?: string;
-      };
-      if (!res.ok || data.error || !data.success) {
-        throw new Error(data.error ?? `HTTP ${res.status}`);
-      }
-      await loadSkills();
-      const versionHash = data.skill?.install?.versionHash;
+      const refreshed = await loadSkills();
+      const versionHash = refreshed.find((item) => item.install?.package === install.package && item.install.scope === install.scope)?.install?.versionHash;
       setUpdateStatuses((current) => ({
         ...current,
         [key]: {
-          package: skill.install!.package,
-          scope: skill.install!.scope,
+          package: install.package,
+          scope: install.scope,
           state: "up-to-date",
           currentVersion: versionHash,
           latestVersion: versionHash,
@@ -858,19 +837,9 @@ export function SkillsConfig({
     setToggling((s) => new Set(s).add(skill.filePath));
     setSaveError(null);
     try {
-      const res = await fetch("/api/skills", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filePath: skill.filePath,
-          disableModelInvocation: next,
-        }),
+      await getGatewayClient().configure("skills.configure", "toggle_model_invocation", {
+        filePath: skill.filePath, disableModelInvocation: next,
       });
-      const d = (await res.json()) as { success?: boolean; error?: string };
-      if (!res.ok || d.error) {
-        setSaveError(d.error ?? `HTTP ${res.status}`);
-        return;
-      }
       setSkills((prev) =>
         prev.map((s) =>
           s.filePath === skill.filePath

@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-08-18T09:55:00Z",
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-29T00:00:00Z",
   "policy": {
     "webCodeBase": "pi-web-only",
     "referenceOnlySources": [
@@ -11,9 +11,25 @@
     "aicssSourceCopied": true,
     "aicssDisposition": "2026-08-18 project-owner authorization plus free/locked audit: only AIcss's ten free components may be vendored (FAQ: free components are usable in personal and commercial projects without a license); four verbatim free components live under src/web/components/aicss/ (ApprovalCard, Orb, TodoList, StreamingText + module CSS) with provenance in that directory's README. The locked components (inline-citations, image-generation, comparison-table, file-diff) are never vendored: an InlineCitations copy was removed the same day and replaced by the AILI-owned .aili-cite-* implementation, and the markdown-table/diff CSS values were re-derived onto theme variables. The FAQ's redistribution ban (as-is resale as a competing template/component library) does not cover use inside this application's prebuilt bundle."
   },
+  "piPackageBaseline": {
+    "version": "0.84.4",
+    "sharedRevision": "b79e4cc834970cca69daebffab7df1da7d1e52c4",
+    "license": "MIT",
+    "notice": "Official Pi packages are npm artifacts with package-specific integrity values; the shared source revision does not make their tarballs interchangeable.",
+    "packages": {
+      "@earendil-works/pi-agent-core": "sha512-HyUnjaOXj6oN/6SNcr8A1J/ElRQA50FtIE0XUTSKAQVqmdlb9qdojOyUQwF/jULE5+yOEtGuVgi/N1RnBiNG+g==",
+      "@earendil-works/pi-ai": "sha512-AClAZxf5+c4RRu44NJPS6wyQy+Nmq+Mzyyrdvm4ZVMNuixelO02RZX4G4Aq1F145Yzp43wnM5S+hLlSI7ypfVw==",
+      "@earendil-works/pi-coding-agent": "sha512-jmOlrqUmvhh/siNWFRXjYLJzhKFIHNsAQaysRwzQPQFnPAaV/vhqHsLH/MBsIISA1Rjj7WTUFR3nJrpXoLx39w==",
+      "@earendil-works/pi-tui": "sha512-nPUnwDkLtupPXnZQYrCwPFcuTydCDqTY6ZbFqhsL4S4kVq0AT418kPa/6uXwtaCD+MjBNBltb7ScTYX65yeE1w==",
+      "@earendil-works/pi-client": "sha512-q398WY/3ZQHTizk7IKxApzqFV0xt4yM9LkSkwyqeLK5Bj5RwRjOWxESt26z4LgNp4O+8hqhqFPf/8fj4H5rE4A==",
+      "@earendil-works/pi-protocol": "sha512-acyE9ozxkMiWiz/xyWpU0O9vwnYv0hyG889Vniv6Sg9c9zfsX+8MePnDNphBacY2Fvm1rxdsGmiVDSZl9yuDFA==",
+      "@earendil-works/pi-telemetry": "sha512-8e2CuxM+ht+hedQXTZmi5JVl6/xDK9RpSDL2+MbITevKYQhMZ/z6lJOTFgox3HQyGxO8mOZEtYGVeQNaD4OzqA=="
+    }
+  },
   "sources": [
     {
-      "id": "pi-web",
+      "id": "pi-web-0.8.9",
+      "status": "historical",
       "package": "@agegr/pi-web",
       "version": "0.8.9",
       "sourceUrl": "https://github.com/agegr/pi-web.git",
@@ -39,7 +55,38 @@
         "node_modules/**",
         ".next/**"
       ],
-      "adaptationBoundary": "Sole Web code/function base. AILI must add gateway, lease, versioned event/disposition, fail-closed bind policy, and safe Worktree behavior rather than use the source unchanged."
+      "adaptationBoundary": "Historical source evidence only. AILI added gateway, lease, versioned event/disposition, fail-closed bind policy, and safe Worktree behavior rather than using this source unchanged."
+    },
+    {
+      "id": "pi-web-0.8.11",
+      "status": "active",
+      "package": "@agegr/pi-web",
+      "version": "0.8.11",
+      "sourceUrl": "https://github.com/agegr/pi-web.git",
+      "npmTarballUrl": "https://registry.npmjs.org/@agegr/pi-web/-/pi-web-0.8.11.tgz",
+      "npmTarballSha256": "69baa3d4dc9328924a8ae03d431ff3ea5e0a707e1c9aeb4708cf31dbb07cb834",
+      "npmIntegrity": "sha512-AUnw18qoSA5kvy5hz+Z+PIFqVrvnjM0FFnZjuE6n7TbvDhqIloeM4BbWpD0DUz9jenJYfgSZQxiRKjQxYY3yKg==",
+      "npmGitHead": "024be0b1154ba8a2650237a2db8bfa89124e167e",
+      "gitRevision": "28bab3c25f5f6770c9b0b745ebbfec1c27f7b948",
+      "gitSourceArchiveSha256": "329ac758a3bd70916988f507f71938a9dc28e44bbcb772b5ef34c06dc1bc36a6",
+      "sourceManifestVersion": "0.8.11",
+      "identityNote": "The npm package gitHead identifies the functional pre-publish source, while the annotated release-tag commit and Git archive identify the imported release snapshot. npm integrity/tarball and Git archive hashes identify different artifacts and are intentionally distinct.",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2026 agegr",
+      "importPath": "upstream/pi-web-0.8.11",
+      "importKind": "exact-git-tag-source-snapshot",
+      "importedFileCount": 448,
+      "importedTreeSha256": "1c273b6013d5ed19464d3115f15aaf57b085ad333274034dc545aa0be17fd768",
+      "excludedSourceFiles": [
+        ".git/**",
+        ".gitignore",
+        "AGENTS.md",
+        "CONTEXT.md",
+        "bun.lock",
+        "node_modules/**",
+        ".next/**"
+      ],
+      "adaptationBoundary": "Evidence only: port selected presentation/read behavior symbol-by-symbol through AILI's existing Gateway/BFF, lease, access, Prompt, Memory and Herdr owners. Never import direct mutation, built-in subagent, launcher/process, browser RPC/session, push enrollment or raw-identity media ownership."
     },
     {
       "id": "pi-analytics",

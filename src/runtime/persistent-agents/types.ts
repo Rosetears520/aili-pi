@@ -1,3 +1,5 @@
+import type { AgentDriverKind, ExecutionBackendKind, RunRecord } from "./backends/types.js";
+
 export const COORDINATOR_SCHEMA_VERSION = 1 as const;
 export const DEFAULT_IDLE_TTL_MS = 420_000;
 
@@ -65,6 +67,10 @@ export interface AgentRecord extends ModelIdentityProjection {
   name: string;
   selector: string;
   state: AgentState;
+  /** Execution backend frozen at agent creation; absent on legacy records
+   *  means the pre-backend in-process execution (`managed`). */
+  backend?: ExecutionBackendKind;
+  driver?: AgentDriverKind;
   parentAgentId?: string;
   sessionPath?: string;
   currentTurnId?: string;
@@ -109,6 +115,7 @@ export interface CoordinatorState {
   releasedAgents: Record<string, AgentRecord>;
   jobs: Record<string, JobRecord>;
   turns: Record<string, TurnRecord>;
+  runs: Record<string, RunRecord>;
   mailboxes: Record<string, MailboxRecord>;
   deliveries: Record<string, Record<string, unknown>>;
   models: Record<string, Record<string, unknown>>;
@@ -128,6 +135,9 @@ export type CoordinatorEventKind =
   | "turn.created"
   | "turn.state"
   | "turn.audit"
+  | "run.created"
+  | "run.state"
+  | "run.control"
   | "formal.result.evidence"
   | "formal.message.prepared"
   | "mailbox.put"
@@ -148,6 +158,7 @@ export interface CoordinatorEvent {
   agentId?: string;
   jobId?: string;
   turnId?: string;
+  runId?: string;
   deliveryId?: string;
   messageId?: string;
   payload: Record<string, unknown>;
@@ -158,6 +169,7 @@ export interface CoordinatorEventInput {
   agentId?: string;
   jobId?: string;
   turnId?: string;
+  runId?: string;
   deliveryId?: string;
   messageId?: string;
   payload: Record<string, unknown>;

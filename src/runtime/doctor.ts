@@ -5,12 +5,6 @@ import { lstat, open, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import { detectLifecycleConflicts } from "./conflicts.js";
-import {
-  FORMAL_TASK_BOARD_HEADERS,
-  FORMAL_TASK_BOARD_PROTOCOL,
-  FORMAL_TASK_PACKAGE_FIELDS,
-  FORMAL_TASK_PROGRESS_EVENT_TYPES,
-} from "./formal-task-board.js";
 import { loadRegistry, validateLiveVerification, validateProvenance, validateRegistry } from "./registry.js";
 import { inspectGlobalResources } from "./global-resources.js";
 import { nativeIntegrationDiagnostics } from "./native-integrations.js";
@@ -45,13 +39,13 @@ export interface SharedWorkflowInspection {
   compatibility: SharedWorkflowCompatibility;
   sourceMatch: SharedWorkflowSourceMatch;
   references: { readable: number; required: 2 };
-  protocols: { compatible: number; required: 2 };
+  protocols: { compatible: number; required: 1 };
   roles: { observed: number; required: number };
   reasons: string[];
 }
 
 const AGENT_SELECTION_PROTOCOL = "aili-agent-selection/v1";
-const SHARED_WORKFLOW_RELEASE = "0.4.7";
+const SHARED_WORKFLOW_RELEASE = "0.4.8";
 const SHARED_REFERENCE_MAX_BYTES = 256 * 1024;
 const AGENT_SELECTION_PATH = ".agents/skills/parallel-subagent-dispatch/references/agent-selection-matrix.md";
 const FORMAL_TASK_BOARD_PATH = ".agents/skills/aili-delivery-flow/references/formal-task-board.md";
@@ -62,9 +56,14 @@ interface SharedProtocolRecord {
   sha256: string;
 }
 
+interface SharedReferenceRecord {
+  path: string;
+  sha256: string;
+}
+
 interface SharedWorkflowContract {
   agentSelection: SharedProtocolRecord;
-  formalTaskBoard: SharedProtocolRecord;
+  formalTaskNotes: SharedReferenceRecord;
   canonicalSpecialists: string[];
 }
 
@@ -79,7 +78,7 @@ export async function inspectSharedWorkflows(home = homedir()): Promise<SharedWo
   const contract = await loadSharedWorkflowContract();
   if (!contract) return sharedWorkflowInspection("unverified", "unknown", 0, 0, 0, ["contract-unavailable"]);
 
-  const records = [contract.agentSelection, contract.formalTaskBoard] as const;
+  const records = [contract.agentSelection, contract.formalTaskNotes] as const;
   const reads = await Promise.all(records.map((record) => readSharedReference(join(home, record.path))));
   const readable = reads.filter((item): item is Extract<SharedReferenceRead, { state: "readable" }> => item.state === "readable");
   const sourceMatch: SharedWorkflowSourceMatch = readable.length !== records.length
@@ -88,8 +87,8 @@ export async function inspectSharedWorkflows(home = homedir()): Promise<SharedWo
       ? "exact"
       : "modified";
   const agent = reads[0]!.state === "readable" ? inspectAgentSelection(reads[0]!.text, contract.canonicalSpecialists) : undefined;
-  const board = reads[1]!.state === "readable" ? inspectFormalTaskBoardReference(reads[1]!.text) : undefined;
-  const protocols = Number(agent?.protocolCompatible ?? false) + Number(board?.protocolCompatible ?? false);
+  const notes = reads[1]!.state === "readable" ? inspectFormalTaskNotesReference(reads[1]!.text) : undefined;
+  const protocols = Number(agent?.protocolCompatible ?? false);
   const observedRoles = agent?.observedRoles ?? 0;
 
   const missing = reads.filter((item) => item.state === "missing");
@@ -101,7 +100,7 @@ export async function inspectSharedWorkflows(home = homedir()): Promise<SharedWo
     return sharedWorkflowInspection("unverified", "unknown", readable.length, protocols, observedRoles, uniqueReasons(ambiguous.map((item) => item.reason)));
   }
 
-  const reasons = uniqueReasons([...agent!.reasons, ...board!.reasons]);
+  const reasons = uniqueReasons([...agent!.reasons, ...notes!.reasons]);
   return sharedWorkflowInspection(
     reasons.length === 0 ? "present-compatible" : "incompatible",
     sourceMatch,
@@ -124,7 +123,7 @@ function sharedWorkflowInspection(
     compatibility,
     sourceMatch,
     references: { readable: Math.min(2, Math.max(0, readable)), required: 2 },
-    protocols: { compatible: Math.min(2, Math.max(0, protocols)), required: 2 },
+    protocols: { compatible: Math.min(1, Math.max(0, protocols)), required: 1 },
     roles: { observed: Math.min(99, Math.max(0, observedRoles)), required: 20 },
     reasons: uniqueReasons(reasons).slice(0, 4),
   };
@@ -135,16 +134,17 @@ async function loadSharedWorkflowContract(): Promise<SharedWorkflowContract | un
     const value = JSON.parse(await readFile(new URL("upstream/aili-workflows.lock.json", ROOT), "utf8")) as {
       release?: {
         version?: unknown;
-        protocols?: { agentSelection?: Partial<SharedProtocolRecord>; formalTaskBoard?: Partial<SharedProtocolRecord> };
+        protocols?: { agentSelection?: Partial<SharedProtocolRecord> };
+        references?: { formalTaskNotes?: Partial<SharedReferenceRecord> };
         canonicalSpecialists?: unknown;
       };
     };
     const agentSelection = value.release?.protocols?.agentSelection;
-    const formalTaskBoard = value.release?.protocols?.formalTaskBoard;
+    const formalTaskNotes = value.release?.references?.formalTaskNotes;
     const roles = value.release?.canonicalSpecialists;
     if (value.release?.version !== SHARED_WORKFLOW_RELEASE
       || !validProtocolRecord(agentSelection, AGENT_SELECTION_PROTOCOL, AGENT_SELECTION_PATH)
-      || !validProtocolRecord(formalTaskBoard, FORMAL_TASK_BOARD_PROTOCOL, FORMAL_TASK_BOARD_PATH)
+      || !validReferenceRecord(formalTaskNotes, FORMAL_TASK_BOARD_PATH)
       || !Array.isArray(roles)
       || roles.length !== 20
       || roles.some((role) => typeof role !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(role))
@@ -153,7 +153,7 @@ async function loadSharedWorkflowContract(): Promise<SharedWorkflowContract | un
     }
     return {
       agentSelection: agentSelection as SharedProtocolRecord,
-      formalTaskBoard: formalTaskBoard as SharedProtocolRecord,
+      formalTaskNotes: formalTaskNotes as SharedReferenceRecord,
       canonicalSpecialists: [...roles] as string[],
     };
   } catch {
@@ -167,6 +167,13 @@ function validProtocolRecord(
   path: string,
 ): record is SharedProtocolRecord {
   return record?.protocol === protocol && record.path === path && typeof record.sha256 === "string" && /^[a-f0-9]{64}$/.test(record.sha256);
+}
+
+function validReferenceRecord(
+  record: Partial<SharedReferenceRecord> | undefined,
+  path: string,
+): record is SharedReferenceRecord {
+  return record?.path === path && typeof record.sha256 === "string" && /^[a-f0-9]{64}$/.test(record.sha256);
 }
 
 async function readSharedReference(path: string): Promise<SharedReferenceRead> {
@@ -240,20 +247,16 @@ function inspectAgentSelection(text: string, requiredRoles: readonly string[]): 
   return { protocolCompatible, observedRoles: observed.length, reasons: uniqueReasons(reasons) };
 }
 
-function inspectFormalTaskBoardReference(text: string): { protocolCompatible: boolean; reasons: string[] } {
-  const protocolCompatible = hasOnlyProtocolMarkers(text, FORMAL_TASK_BOARD_PROTOCOL, "## Creation and placement");
-  const reasons: string[] = protocolCompatible ? [] : ["board-protocol-invalid"];
-  const header = firstMarkdownFence(markdownSection(text, "## Board header", "## Package contract"));
-  const taskPackage = firstMarkdownFence(markdownSection(text, "## Package contract", "## Package kinds and source references"));
-  const progress = firstMarkdownFence(markdownSection(text, "## Progress events"));
-  if (!header || !taskPackage || !progress
-    || !hasRequiredFields(header, FORMAL_TASK_BOARD_HEADERS, "- ")
-    || !taskPackage.split(/\r?\n/).includes("- [ ] <package-id> — <title>")
-    || !hasRequiredFields(taskPackage, FORMAL_TASK_PACKAGE_FIELDS, "  - ")
-    || !hasExactUniqueLines(progress, FORMAL_TASK_PROGRESS_EVENT_TYPES)) {
-    reasons.push("board-structure-invalid");
-  }
-  return { protocolCompatible, reasons: uniqueReasons(reasons) };
+function inspectFormalTaskNotesReference(text: string): { reasons: string[] } {
+  const required = [
+    "# Formal Task Notes and Runtime State",
+    "## Authority boundaries",
+    "## Progress continuity",
+    "`formal-task-board.md` is an optional human-readable notes file",
+    "Never parse or format-validate it",
+    "Only the orchestrator writes `progress.txt`",
+  ];
+  return { reasons: required.every((marker) => text.includes(marker)) ? [] : ["formal-notes-invalid"] };
 }
 
 function hasOnlyProtocolMarkers(text: string, expected: string, preambleEnd: string): boolean {
@@ -269,20 +272,6 @@ function markdownSection(text: string, start: string, end?: string): string | un
   const contentStart = startIndex + start.length;
   const endIndex = end ? text.indexOf(end, contentStart) : text.length;
   return endIndex < 0 ? undefined : text.slice(contentStart, endIndex);
-}
-
-function firstMarkdownFence(section: string | undefined): string | undefined {
-  return section?.match(/```(?:markdown|text)\r?\n([\s\S]*?)\r?\n```/)?.[1];
-}
-
-function hasRequiredFields(text: string, fields: readonly string[], prefix: string): boolean {
-  const lines = text.split(/\r?\n/);
-  return fields.every((field) => lines.filter((line) => line.startsWith(`${prefix}${field}: \``) && line.endsWith("`")).length === 1);
-}
-
-function hasExactUniqueLines(text: string, values: readonly string[]): boolean {
-  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  return lines.length === values.length && values.every((value) => lines.filter((line) => line === value).length === 1);
 }
 
 function uniqueReasons(reasons: readonly string[]): string[] {
@@ -322,6 +311,8 @@ export async function runDoctor(
   options: {
     platform?: NodeJS.Platform;
     home?: string;
+    /** Exact runtime evidence supplied by the owning environment; omitted means unverified. */
+    mempalaceInstalledVersion?: string;
   } = {},
 ): Promise<DoctorReport> {
   const results: DoctorResult[] = [];
@@ -376,12 +367,19 @@ export async function runDoctor(
   results.push({
     id: "provider.retry",
     status: "PASS",
-    evidence: `classifier=pi-retry@${PROVIDER_RETRY_VERSION}; attempts_budget_backoff=pi-0.84.2; diagnostics=bounded-redacted`,
+    evidence: `classifier=pi-retry@${PROVIDER_RETRY_VERSION}; attempts_budget_backoff=pi-0.84.4; diagnostics=bounded-redacted`,
   });
+  results.push({
+    id: "memory.observational",
+    status: "PASS",
+    evidence: "local=default-on; observer=token+high-value-managed-internal; public_tools=none; herdr=none; recall=task-bounded; pre_compaction=side-effect-only-return-undefined; compaction_change=none; disk_cache=none",
+  });
+  const observedMemPalaceVersion = options.mempalaceInstalledVersion?.trim() || "unverified";
+  const mempalaceCompatibility = observedMemPalaceVersion === MEMPALACE_VERSION ? "exact" : observedMemPalaceVersion === "unverified" ? "unverified" : "mismatch";
   results.push({
     id: "memory.mempalace",
     status: "UNVERIFIED",
-    evidence: `version=${MEMPALACE_VERSION}; palace=${MEMPALACE_PATH}; source=mcp-only; runtime_health=operation-evidence-required; fallback=none`,
+    evidence: `accepted=${MEMPALACE_VERSION}; installed=${observedMemPalaceVersion}; compatibility=${mempalaceCompatibility}; palace=${MEMPALACE_PATH}; palace_count=one; bridge=existing-session-mcp-adapter; standing_authority=session-scoped; automatic_durable=fail-closed; fallback=none; live_write=not-run-unverified`,
   });
 
   const commands = pi.getCommands();
@@ -420,8 +418,7 @@ export async function runDoctor(
       ...[
         "src/runtime/persistent-agents/runtime.ts",
         "src/runtime/persistent-agents/storage.ts",
-        "src/runtime/persistent-agents/task-coordinator.ts",
-        "src/runtime/persistent-agents/hub.ts",
+        "src/runtime/persistent-agents/sub-coordinator.ts",
         "src/runtime/persistent-agents/output-delivery.ts",
       ].map((path) => readFile(new URL(path, ROOT), "utf8")),
     ]);
@@ -438,7 +435,7 @@ export async function runDoctor(
         ? `public runtime registered but profile validation failed: ${profileErrors.slice(0, 3).join("; ")}`
         : liveErrors.length > 0
           ? `public tools=sub,hub; deterministic runtime gates pass; ${liveErrors.slice(0, 2).join("; ")}`
-          : "public tools=sub,hub; legacy subagent absent; deterministic and Pi 0.84.2 provider/sandbox/external-workspace lifecycle gates pass",
+          : "public tools=sub,hub; legacy subagent and formal_task absent; deterministic and Pi 0.84.4 provider/sandbox/external-workspace lifecycle gates pass",
     });
   } catch (error) {
     results.push({ id: "agent.framework", status: "ERROR", evidence: boundedError(error) });

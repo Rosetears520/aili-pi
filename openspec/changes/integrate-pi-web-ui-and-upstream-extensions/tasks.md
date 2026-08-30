@@ -1,6 +1,8 @@
+> D-20 note (2026-08-29): completed 0.84.2/0.8.9 task evidence remains historical for its implementation point; active baseline and further upgrade work are owned by `upgrade-pi-0844-and-pi-web-0811` at Pi 0.84.4/Pi Web 0.8.11. Do not reopen old checkboxes or treat their version text as current.
+
 ## 1. Freeze source identities and authorize material operations
 
-- [x] 1.1 Record exact source locks and complete inventories for `@agegr/pi-web@0.8.8` at `5a53c18ca9328400a3dfb8c48c1e4f343b3e4903` and the accepted `pi-analytics`, `pi-btw`, `pi-stamp`, and `pi-worktree` revisions, including URLs, archive identities, licenses, copyrights, and adaptation boundaries.
+- [x] 1.1 Record exact source locks and complete inventories for `@agegr/pi-web@0.8.9` at `febcba5e33e5eef9bf7f092099105c5dfea742ff` and the accepted `pi-analytics`, `pi-btw`, `pi-stamp`, and `pi-worktree` revisions, including URLs, archive identities, licenses, copyrights, npm/git manifest identity distinctions, and adaptation boundaries.
   - Acceptance: every imported file can be traced to one locked source; any mismatch stops BUILD rather than floating a version.
   - Verify: focused source-lock and provenance inventory checks.
 - [x] 1.2 Obtain and record separate exact authorization before dependency or lockfile mutation; repository source import; AIcss source copying; browser installation; user-home writes; real-process, server, provider, browser, WSL2, performance, disposable-Git, tarball, install, or runtime probes; Git operations; publish; or release. Bind every authorized operation to its exact later task ID, target, command class, and evidence destination.
@@ -18,8 +20,8 @@
 - [x] 2.1a Immediately after all five authorized source imports, produce one reviewed included/excluded behavior and TUI-entry inventory for Pi Web, Analytics, Stamp, BTW, and Worktree before adapting dependent behavior.
   - Acceptance: every upstream public behavior and command is mapped to retained, safely modified by an accepted AILI boundary, or explicitly excluded; Analytics 7.5, Stamp 8.4, BTW 9.4, Worktree 10.4, and convergence 13.6 remain blocked until ROSE dispositions the inventory.
   - Verify: source-symbol/command inventory links each disposition to the owning spec and later task.
-- [x] 2.2 Under dependency authorization, add the exact Web build/runtime dependencies required by the locked baseline while keeping official Pi packages aligned to `0.84.1` and Node.js `>=22.19.0`; retain the Pi-host peer wildcard only as the documented Package-host compatibility exception and fail runtime startup outside the exact supported compatibility manifest.
-  - Acceptance: one compatible dependency graph exists with no runtime dependency on `@agegr/pi-web` itself or the four absorbed upstream packages; development/resolved Pi packages are exact `0.84.1`, and a mismatched host is rejected before mutation.
+- [x] 2.2 Under dependency authorization, add the exact Web build/runtime dependencies required by the locked baseline while keeping official Pi packages aligned to `0.84.2` and Node.js `>=22.19.0`; retain the Pi-host peer wildcard only as the documented Package-host compatibility exception and fail runtime startup outside the exact supported compatibility manifest.
+  - Acceptance: one compatible dependency graph exists with no runtime dependency on `@agegr/pi-web` itself or the four absorbed upstream packages; development/resolved Pi packages are exact `0.84.2`, and a mismatched host is rejected before mutation.
   - Verify: package/lock assertions, duplicate Pi-version check, runtime host mismatch fixture, and typecheck.
 - [x] 2.3 Add deterministic Web build output and package inclusion rules without changing the sole Pi Extension entry.
   - Acceptance: the npm package contains only required runtime assets, and normal package/Pi load neither starts the server nor injects Web assets into model context.
@@ -44,9 +46,9 @@
 - [x] 3.1 Implement schema-validated `RuntimeSnapshotV1`, `RuntimeEventV1`, and `MutationEnvelopeV1` contracts with opaque session handles and redacted public projections.
   - Acceptance: version, epoch, sequence, cursor, generation, request identity, and capability fields are explicit; private paths, credentials, raw MCP config, and private payloads are excluded.
   - Verify: valid/malformed/unknown-version/redaction unit fixtures.
-- [ ] 3.2 Implement a per-session AILI Runtime Host, an authenticated owner-only local IPC transport for TUI projection/control, and a Browser BFF boundary over existing Pi, persistent-Agent, MCP, provider/context, and permission owners.
-  - Acceptance: browser routes cannot directly mutate private Pi objects, Agent journals, MCP adapters, or filesystem state outside the gateway; TUI/Web peers require current opaque bootstrap identity and cannot widen observer authority.
-  - Verify: dependency-boundary, IPC discovery/authentication/spoofing/cleanup, and route-admission integration tests.
+- [ ] 3.2 Implement a per-session AILI Runtime Host and Browser BFF boundary over existing Pi, persistent-Agent, MCP, provider/context, permission, filesystem, Git, Worktree, Analytics, BTW, Stamp, model/plugin/skill, and media owners.
+  - Acceptance: browser routes and production AppShell callers cannot directly mutate private owners outside the Gateway; no private TUI projection/control transport is registered.
+  - Verify: dependency-boundary, retired-TUI-path negative assertions, and route-admission integration tests.
 - [ ] 3.3 Adapt Pi Web's read-only `SessionManager` JSONL browsing and lazy official `AgentSession` creation.
   - Acceptance: history browsing creates no `AgentSession`; only an admitted writer creates one official Pi mutation runtime and Pi JSONL stays authoritative.
   - Verify: session-list/read/resume tests with creation counters and real disposable JSONL fixtures.
@@ -62,15 +64,15 @@
 - [x] 4.1 Implement atomic versioned lease acquisition with opaque generation, owner surface, process/start identity, liveness endpoint, heartbeat, active-turn state, and no secret fields.
   - Acceptance: concurrent acquisition produces exactly one writer and durable lease state cannot be confused with Analytics or Agent sidecars.
   - Verify: multi-process acquisition and schema tests.
-- [ ] 4.2 Gate every Pi and AILI mutation on authenticated origin identity, allowed root, permission/capability, epoch, lease generation, request ID, session leaf, and operation-specific revalidation; browser origins additionally require Host/Origin policy, while TUI uses the authenticated private runtime channel.
-  - Acceptance: observers and stale clients perform zero mutation, TUI does not fabricate browser Origin data, and every denial returns a bounded reason.
-  - Verify: origin-by-command positive/negative matrix including browser and TUI send, Steer, Follow-up, Compact, model, thinking, Branch, Fork, session, Worktree, Agent, and capability actions.
+- [ ] 4.2 Gate every Web-origin Pi and AILI mutation on authenticated browser identity, Host/Origin, allowed root, permission/capability, epoch, Web lease generation, request ID, session leaf, and operation-specific revalidation.
+  - Acceptance: stale or unauthorized browser clients perform zero mutation, every denial returns a bounded reason, and no compatibility route bypasses the same admission boundary.
+  - Verify: browser-origin command matrix including send, Steer, Follow-up, Compact, model, thinking, Branch, Fork, session, Worktree, Agent, and capability actions.
 - [ ] 4.3 Implement explicit release, bounded disconnect grace, process liveness validation, active-turn retention, durable interruption, and atomic recovery without force stealing.
   - Acceptance: live or possibly live owners cannot be stolen from; proven dead active owners are marked interrupted before transfer.
   - Verify: clean release, reconnect, stale heartbeat, PID reuse/start fingerprint, owner death, active turn, and recovery-race tests.
-- [ ] 4.4 Implement the accepted official-Pi asymmetric attachment behavior through Extension `session_start` admission and the private local projection channel.
-  - Acceptance: TUI writer permits authenticated live read-only Web observation; Web writer makes the Extension gracefully shut down or block the conflicting stock-TUI runtime before user mutation; no Pi fork or replacement TUI is introduced.
-  - Verify: real-process integration fixtures for both ownership directions, spoofed peers, corrupt/stale lease sidecars, crash/reconnect, and denial messaging.
+- [x] 4.4 Retire the superseded official-Pi asymmetric attachment implementation surfaces.
+  - Acceptance: the active Extension registers no Web lease admission during `session_start`, no private TUI projection endpoint is reachable, and Web ownership messaging does not claim control over an independently opened stock TUI.
+  - Verify: production-registration and call-graph negative assertions plus focused Extension load tests.
 
 ## 5. Strengthen Web access and path security
 
@@ -101,6 +103,9 @@
 - [x] 6.4 Implement bounded Web media upload, paste, drag/drop, preview, and official Pi image conversion without changing the Pi-native WSL clipboard path.
   - Acceptance: invalid, oversized, unsupported, or model-incompatible media fails visibly and produces no misleading attachment.
   - Verify: media unit/integration fixtures and browser interaction tests.
+- [ ] 6.5 Migrate the real production `AppShell` mutation dependency graph to the single AILI Runtime Gateway/BFF and seal every retained direct mutation route.
+  - Acceptance: production controls for session, Agent, files, Git, Worktree, skills/plugins/models, media, Analytics, BTW, Stamp, and MCP either use one Gateway mutation envelope or are capability-hidden; retained legacy mutation endpoints reject or translate before side effects and are not deleted in this package.
+  - Verify: static call-graph/route-owner assertions plus focused component/API tests for each migrated mutation family.
 
 ## 7. Absorb local Analytics
 
@@ -191,8 +196,8 @@
 - [ ] 12.1 Generalize provenance validation for the five locked imports, Web assets, AI component dispositions, notices, and SPDX SBOM.
   - Acceptance: missing, stale, mixed, or unattributed source blocks packaging.
   - Verify: provenance/generated validation and negative fixtures.
-- [ ] 12.2 Update package metadata, third-party notices, licenses, README, doctor, and operator guidance for foreground startup, loopback/non-loopback security, storage/cleanup, asymmetric TUI attachment, and unsupported public-Internet use.
-  - Acceptance: documentation contains no daemon, symmetric observer, copied-reference, or unsafe Worktree claim.
+- [ ] 12.2 Update package metadata, third-party notices, licenses, README, doctor, and operator guidance for foreground startup, loopback/non-loopback security, storage/cleanup, the single Web mutation owner, retired TUI observer/admission paths, and unsupported public-Internet use.
+  - Acceptance: documentation contains no daemon, stock-TUI observer/exclusion, copied-reference, or unsafe Worktree claim.
   - Verify: focused docs/package/doctor assertions.
 - [ ] 12.3 Revise `AILI Web UI 详细设计与实施方案.md` to make Pi Web the sole code/function base and Codex/`pi-gui`/OpenCode reference-only, and to incorporate the accepted package, lease, security, Analytics, AIcss, media, source, testing, and release boundaries.
   - Acceptance: the human design no longer contradicts the formal proposal, design, specs, or test plan.
@@ -209,9 +214,9 @@
 - [ ] 13.2 Under the exact browser-install/probe authorization from 1.2, implement browser and Playwright coverage under `tests/browser/`, with durable reports/traces/screenshots under `artifacts/test-results/browser/` only when required as evidence.
   - Acceptance: the supported browser matrix from the accepted test plan covers the baseline workbench, accessibility thresholds, responsive behavior, writer/read-only states, four absorbed capabilities, fourteen components, and error/empty/loading states.
   - Verify: accepted browser command, browser/version receipt, threshold results, and artifact inventory.
-- [ ] 13.3 Under the exact real-process authorization from 1.2, verify the multi-process writer lease and private projection transport with real TUI/Web-compatible processes, reconnect grace, owner death, active-turn interruption, spoofing, corrupt sidecars, and both asymmetric attachment directions.
-  - Acceptance: exactly one writer exists, only authenticated observer projection succeeds, and no unsupported stock-TUI observer claim is made.
-  - Verify: disposable process/session/IPC evidence.
+- [ ] 13.3 Under the exact real-process authorization from 1.2, verify the Web-runtime lease with real Web-compatible processes, reconnect grace, owner death, active-turn interruption, corrupt sidecars, and absence of retired private TUI projection/admission paths.
+  - Acceptance: exactly one Web mutation owner exists and no stock-TUI observer or exclusion claim is made.
+  - Verify: disposable process/session evidence.
 - [ ] 13.4 After final `test-plan.md` acceptance and explicit BUILD authorization, run typecheck, focused tests, strict OpenSpec validation, provenance/generated/package validation, then the full automated suite only after focused checks pass.
   - Acceptance: all selected gates pass on the exact candidate tree or remain explicit blockers.
   - Verify: fresh command receipts recorded in this change's `progress.txt`.
