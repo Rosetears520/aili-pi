@@ -41,12 +41,14 @@ describe("external CLI deterministic probe", () => {
     expect(modifier).toContain("Frozen --help");
   });
 
-  it("fails missing executables and never lets a tool argument self-authorize", async () => {
-    await expect(probeExternalCli("gemini-cli")).rejects.toThrow(/^SUB_CLI_UNAVAILABLE: gemini-cli is not installed; expected executable: gemini$/);
-    expect(() => validateCurrentTurnCliRequest("codex-cli", { mode: "inherit-only" })).toThrow(/not authorized/);
-    expect(validateCurrentTurnCliRequest("codex-cli", { mode: "inherit-only", allowedCli: ["codex-cli"] })).toBe("codex-cli");
+  it("treats a registered cli value as a structured Parent choice rather than phrase authorization", () => {
+    expect(validateCurrentTurnCliRequest("agy-cli", { mode: "inherit-only" })).toBe("agy-cli");
+    expect(validateCurrentTurnCliRequest("codex-cli", { mode: "inherit-only" })).toBe("codex-cli");
     expect(validateCurrentTurnCliRequest(undefined, { mode: "inherit-only" })).toBeUndefined();
-    expect(() => validateCurrentTurnCliRequest("codex-cli", { mode: "inherit-only", allowedCli: ["claude-code"] })).toThrow(/not authorized/);
+  });
+
+  it("fails missing executables before surface allocation", async () => {
+    await expect(probeExternalCli("agy-cli")).rejects.toThrow(/^SUB_CLI_UNAVAILABLE: agy-cli is not installed; expected executable: agy$/);
   });
 
   it("rejects failed probes and reports unsupported YOLO without guessing a flag", async () => {
@@ -56,16 +58,14 @@ describe("external CLI deterministic probe", () => {
     const probe = await probeExternalCli("opencode");
     expect(probe.yolo).toEqual({ disposition: "yolo-unavailable", argv: [] });
     expect(createExternalCliLaunchPlan(probe, true)).toMatchObject({ argv: [], yolo: "yolo-unavailable", herdrKind: "opencode" });
-    await fake("gemini", "if [ \"$1\" = \"--version\" ]; then echo 'gemini 1.0'; exit 0; fi\nif [ \"$1\" = \"--help\" ]; then echo 'usage: gemini'; exit 5; fi\nexit 9");
-    await expect(probeExternalCli("gemini-cli")).rejects.toThrow(/^SUB_CLI_PROBE_FAILED: gemini --help exited 5$/);
   });
 
   it("derives an exact allowlisted YOLO flag only from bounded help", async () => {
-    await fake("gemini", "if [ \"$1\" = \"--version\" ]; then echo 'gemini 1.0'; else echo 'usage: gemini --yolo'; fi");
-    const probe = await probeExternalCli("gemini-cli");
-    expect(probe.yolo).toEqual({ disposition: "available", argv: ["--yolo"] });
+    await fake("claude", "if [ \"$1\" = \"--version\" ]; then echo 'Claude Code 1.0'; else echo 'usage: claude --dangerously-skip-permissions'; fi");
+    const probe = await probeExternalCli("claude-code");
+    expect(probe.yolo).toEqual({ disposition: "available", argv: ["--dangerously-skip-permissions"] });
     expect(createExternalCliLaunchPlan(probe, false)).toMatchObject({ argv: [], yolo: "available" });
-    expect(createExternalCliLaunchPlan(probe, true)).toMatchObject({ argv: ["--yolo"], yolo: "enabled", herdrKind: "gemini" });
+    expect(createExternalCliLaunchPlan(probe, true)).toMatchObject({ argv: ["--dangerously-skip-permissions"], yolo: "enabled", herdrKind: "claude" });
   });
 
   it("requires a post-prompt working transition before idle/done can settle", () => {
@@ -102,10 +102,10 @@ describe("external CLI deterministic probe", () => {
   });
 
   it("bounds hanging probes at the helper boundary", async () => {
-    await fake("gemini", "sleep 20");
+    await fake("agy", "sleep 20");
     vi.useFakeTimers();
     try {
-      const pending = probeExternalCli("gemini-cli");
+      const pending = probeExternalCli("agy-cli");
       // Attach the rejection handler before advancing time so the synchronous
       // timer rejection never becomes an unhandled rejection.
       const assertion = expect(pending).rejects.toThrow(/timed out/);

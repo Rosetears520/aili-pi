@@ -38,7 +38,7 @@
       "artifacts": [
         {
           "path": "src/runtime/persistent-agents/production.ts",
-          "sha256": "4112c2163bd2fd3f5a138e278d131cbb58e4fbfdd20daae8683d447899653156"
+          "sha256": "b14782c23a21de1ef4309eb29340ba51a334731734e44cca4f8018ee7108317d"
         },
         {
           "path": "src/runtime/persistent-agents/runtime.ts",
@@ -66,7 +66,7 @@
         },
         {
           "path": "src/runtime/persistent-agents/external-cli.ts",
-          "sha256": "0984e9c18891ed1c017bddbf829c07e69359f74b3bc7bed9100bf6fb251e2a50"
+          "sha256": "59c09fea5ce9a1f1e71f165ce4d3cf544002e2a6e0c49da5ade96305b547640c"
         },
         {
           "path": "src/runtime/persistent-agents/backends/types.ts",
@@ -78,7 +78,7 @@
         },
         {
           "path": "tests/unit/persistent-agent-external-cli.test.ts",
-          "sha256": "95ee221a8e11cb3a9edb9550d14bf0e971ae11a321b9356abffd83679df9d85f"
+          "sha256": "c0894e8e4c1577d0ce3e2fdab45c0aef66e5d18fdf879877f5c92c1a89de023e"
         },
         {
           "path": "tests/unit/herdr-backends.test.ts",

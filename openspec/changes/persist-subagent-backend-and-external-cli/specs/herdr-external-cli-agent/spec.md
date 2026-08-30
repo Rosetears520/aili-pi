@@ -1,18 +1,22 @@
 ## Purpose
 
-Run explicitly authorized third-party CLI agents through Herdr with the same observable AILI subagent lifecycle as Pi child agents and with trustworthy completion evidence.
+Run registered third-party CLI agents selected by the Parent model through Herdr with the same observable AILI subagent lifecycle as Pi child agents and with trustworthy completion evidence.
 
 ## ADDED Requirements
 
-### Requirement: External CLI Agents require current direct-user product authorization
-The system SHALL create an external CLI Agent only when the current direct user message authorizes the exact requested CLI product, and SHALL reject unavailable or unsupported requested CLI products without falling back to another CLI or Pi child execution.
+### Requirement: Parent model selects a registered external CLI structurally
+The Parent model SHALL interpret natural-language intent and MAY select a registered external CLI through the structured `sub.cli` field without a runtime product-name phrase parser or per-message/session authorization handshake. An omitted `cli` field SHALL remain ordinary Pi execution. The runtime SHALL reject unknown, unavailable, or unsupported structured CLI values without falling back to another CLI or Pi child execution.
 
-#### Scenario: Authorized external CLI Agent
-- **WHEN** the current direct user message names a supported CLI product and a new subagent requests that exact product
-- **THEN** the system allocates an external CLI Agent through Herdr for that request
+#### Scenario: Natural-language Agy request
+- **WHEN** the user asks in natural language to use Agy with a named Gemini model and the Parent chooses `cli: "agy-cli"`
+- **THEN** the system allocates the registered Agy external CLI Agent through Herdr without requiring a fixed authorization sentence
 
-#### Scenario: Stale or mismatched authorization
-- **WHEN** a subagent requests a CLI product that was not authorized by the current direct user message
+#### Scenario: CLI omitted
+- **WHEN** the Parent submits `sub` without a `cli` field
+- **THEN** the Turn uses ordinary Pi execution regardless of an earlier external CLI Turn
+
+#### Scenario: Unknown structured CLI
+- **WHEN** a `sub` request contains a CLI value outside the registered schema
 - **THEN** the request is rejected before an external CLI process or Herdr surface is created
 
 ### Requirement: External CLI Agents use normal Herdr pane allocation
@@ -26,7 +30,7 @@ The system SHALL allocate a running external CLI Agent through the same AILI Her
 The system SHALL launch the selected vendor executable through a fixed, validated, non-shell invocation and SHALL associate the launch with the AILI run and turn identities. Model-generated command text SHALL NOT select the vendor executable, append arbitrary runner flags, or substitute the completion result.
 
 #### Scenario: Fixed launch plan
-- **WHEN** an authorized external CLI Agent starts
+- **WHEN** a registered external CLI Agent starts
 - **THEN** the selected executable, supported runner options, run identity, and working boundary are established before the process begins
 
 ### Requirement: Foreground settlement follows the prompted CUI Agent lifecycle
@@ -48,7 +52,7 @@ A foreground external CLI subagent SHALL remain active until Herdr observes that
 An external CLI call with explicit background behavior SHALL return the same accepted-then-settled lifecycle as an ordinary background subagent. Cancellation, parent shutdown, process loss, and restart reconciliation SHALL produce explicit terminal or lost states and SHALL NOT replay the external CLI prompt automatically.
 
 #### Scenario: Explicit background external CLI
-- **WHEN** the user-authorized external CLI subagent is started in the background
+- **WHEN** a Parent-selected registered external CLI subagent is started in the background
 - **THEN** the initiating call returns accepted and the eventual lifecycle settlement is available through the ordinary Agent coordination surface
 
 ### Requirement: External CLI interactions use policy-bounded parent decisions

@@ -12,7 +12,7 @@
 
 ## 3. Direct external CLI Herdr Agent
 
-- [x] 3.1 Route an exact current-user-authorized `cli` request to the external CLI driver rather than a Pi child model/Bash path; verify stale, mismatched, unavailable, and unsupported requests allocate neither surface nor vendor process.
+- [x] 3.1 Let the Parent model map natural-language intent to a canonical registered `sub.cli` value and route it to the external CLI driver rather than a Pi child/model-Bash path; remove phrase/session authorization parsing, keep omitted `cli` as ordinary Pi, and verify unknown/unavailable/unsupported structured values allocate neither surface nor vendor process.
 - [x] 3.2 Launch the verified vendor executable with fixed non-shell argv, constrained environment/workspace, run metadata, and no model-supplied runner flags; verify fake executables cover argv, environment, login/install/bypass rejection, credential/private-key denial, and nonzero exit.
 - [x] 3.3 Reuse the normal Herdr tab/pane allocator for external CLI Agents while reserving one active pane per live run; verify same-tab split/reuse behavior, normal new-tab fallback, and no active-pane collision.
 - [x] 3.4 Bind foreground settlement to the targeted CUI Agent entering work after the prompt and returning to `idle|done`, while preserving explicit-background accepted-then-settled semantics; verify pre-existing idle, blocked/unknown, text-only output, success, cancellation, parent shutdown, process loss, and no automatic prompt replay.

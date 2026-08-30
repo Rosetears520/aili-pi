@@ -392,13 +392,10 @@ export interface CurrentTurnModelAuthority {
   allowedSelectors?: readonly string[];
   /** Delegated-choice thinking authority defaults to inherit unless explicitly available. */
   thinkingMode?: "inherit" | "available";
-  /** Exact current-turn external CLI allowance. This is separate from model
-   * discovery; it is populated only from trusted direct-user input. */
-  allowedCli?: readonly ExternalCliId[] | ExternalCliId;
 }
 
-export type ExternalCliId = "claude-code" | "gemini-cli" | "codex-cli" | "opencode" | "grok-cli" | "agy-cli";
-export const EXTERNAL_CLI_IDS = ["claude-code", "gemini-cli", "codex-cli", "opencode", "grok-cli", "agy-cli"] as const;
+export type ExternalCliId = "claude-code" | "codex-cli" | "opencode" | "grok-cli" | "agy-cli";
+export const EXTERNAL_CLI_IDS = ["claude-code", "codex-cli", "opencode", "grok-cli", "agy-cli"] as const;
 
 export function isExternalCliId(value: unknown): value is ExternalCliId {
   return typeof value === "string" && (EXTERNAL_CLI_IDS as readonly string[]).includes(value);
@@ -428,14 +425,13 @@ function normalizeCurrentTurnAuthority(authority: CurrentTurnModelAuthority): {
   allowedThinking?: ModelThinking[];
   allowedSelectors?: string[];
   thinkingMode?: "inherit" | "available";
-  allowedCli?: ExternalCliId[];
 } {
   if (!authority || typeof authority !== "object" || Array.isArray(authority)) {
     throw new Error("current-turn model authority is required and must be an object");
   }
   const raw = authority as Record<string, unknown>;
   const unknown = Object.keys(raw).filter((key) => ![
-    "mode", "kind", "allowedModels", "allowedCanonicalModels", "models", "allowedThinking", "allowedCanonicalThinking", "thinking", "allowedSelectors", "thinkingMode", "allowedCli",
+    "mode", "kind", "allowedModels", "allowedCanonicalModels", "models", "allowedThinking", "allowedCanonicalThinking", "thinking", "allowedSelectors", "thinkingMode",
   ].includes(key));
   if (unknown.length > 0) throw new Error(`current-turn model authority contains unknown fields: ${unknown.join(", ")}`);
   if (raw.mode !== undefined && raw.kind !== undefined && raw.mode !== raw.kind) {
@@ -490,14 +486,6 @@ function normalizeCurrentTurnAuthority(authority: CurrentTurnModelAuthority): {
   if (allowedSelectors && (allowedSelectors.length === 0 || new Set(allowedSelectors).size !== allowedSelectors.length)) {
     throw new Error("current-turn model authority allowedSelectors must be non-empty and contain no duplicates");
   }
-  const cliValues = authorityArray<unknown>(raw.allowedCli, "current-turn external CLI allowance");
-  const allowedCli = cliValues?.map((value, index) => {
-    if (!isExternalCliId(value)) throw new Error(`current-turn external CLI allowance[${index}] is not canonical`);
-    return value;
-  });
-  if (allowedCli && (allowedCli.length === 0 || new Set(allowedCli).size !== allowedCli.length)) {
-    throw new Error("current-turn external CLI allowance must be non-empty and contain no duplicates");
-  }
   if (normalizedMode === "inherit-only" && (allowedModels !== undefined || allowedThinking !== undefined || allowedSelectors !== undefined)) {
     throw new Error("inherit-only current-turn model authority cannot contain model/thinking allowances");
   }
@@ -516,18 +504,13 @@ function normalizeCurrentTurnAuthority(authority: CurrentTurnModelAuthority): {
     ...(allowedThinking === undefined ? {} : { allowedThinking }),
     ...(allowedSelectors === undefined ? {} : { allowedSelectors }),
     ...(thinkingMode === undefined ? {} : { thinkingMode }),
-    ...(allowedCli === undefined ? {} : { allowedCli }),
   };
 }
 
-/** External CLI is a separately named one-turn authority. A tool argument
- * never creates it, and an omitted cli remains ordinary Pi execution. */
-export function validateCurrentTurnCliRequest(cli: ExternalCliId | undefined, authority: CurrentTurnModelAuthority): ExternalCliId | undefined {
-  if (cli === undefined) return undefined;
-  const normalized = normalizeCurrentTurnAuthority(authority);
-  if (!normalized.allowedCli?.includes(cli)) {
-    throw new Error(`current-turn external CLI '${cli}' is not authorized; CLI availability does not grant authority`);
-  }
+/** CLI selection is a structured `sub` capability chosen by the Parent model.
+ * The schema/registry establishes identity; availability, backend and
+ * permission checks remain separate fail-closed boundaries. */
+export function validateCurrentTurnCliRequest(cli: ExternalCliId | undefined, _authority: CurrentTurnModelAuthority): ExternalCliId | undefined {
   return cli;
 }
 
@@ -538,7 +521,6 @@ export function validateCurrentTurnAuthority(authority: CurrentTurnModelAuthorit
   allowedThinking?: ModelThinking[];
   allowedSelectors?: string[];
   thinkingMode?: "inherit" | "available";
-  allowedCli?: ExternalCliId[];
 } {
   return normalizeCurrentTurnAuthority(authority);
 }

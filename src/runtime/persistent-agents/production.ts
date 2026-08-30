@@ -412,11 +412,8 @@ export function renderSubagentModelCapabilities(
       : "inherit-only; omit model/thinking or ask the user";
   lines.push("Current-turn subagent model authority");
   lines.push(modelAuthority);
-  const allowedCli = authority.allowedCli === undefined
-    ? []
-    : Array.isArray(authority.allowedCli) ? authority.allowedCli : [authority.allowedCli];
-  lines.push(`External CLI authority: ${allowedCli.slice(0, 5).join(", ") || "none (omitted cli stays Pi)"}`);
-  lines.push("Only a new direct interactive/RPC user message grants model, thinking, or CLI authority.");
+  lines.push("External CLI routing: the Parent may select a registered cli value for sub; omitted cli stays Pi.");
+  lines.push("Only a new direct interactive/RPC user message grants model or thinking authority; CLI execution remains bounded by registry, availability, backend, and permission policy.");
   const closing = `\n${SUBAGENT_CAPABILITY_END}`;
   const body = lines.join("\n");
   return Buffer.byteLength(`${body}${closing}`, "utf8") <= SUBAGENT_CATALOG_MAX_BYTES
@@ -449,35 +446,6 @@ const DELEGATED_MODEL_PATTERNS: readonly RegExp[] = [
 
 export function defaultCurrentTurnModelAuthority(): CurrentTurnModelAuthority {
   return { mode: "inherit-only" };
-}
-
-const EXTERNAL_CLI_PHRASES: ReadonlyArray<{ cli: ExternalCliId; pattern: RegExp }> = [
-  { cli: "claude-code", pattern: /\bclaude\s+code\b/i },
-  { cli: "gemini-cli", pattern: /\bgemini\s+cli\b/i },
-  { cli: "codex-cli", pattern: /\bcodex\s+cli\b/i },
-  { cli: "opencode", pattern: /\bopen\s*code\b/i },
-  { cli: "grok-cli", pattern: /\bgrok\s+cli\b/i },
-  { cli: "agy-cli", pattern: /\bagy\s+cli\b/i },
-];
-
-/** Bare provider/model words deliberately do not match. Negated, multiple, or
- * conflicting product mentions fail closed rather than selecting a runner. */
-export function parseCurrentTurnExternalCliAuthority(prompt: string): ExternalCliId | undefined {
-  const matches: ExternalCliId[] = [];
-  for (const entry of EXTERNAL_CLI_PHRASES) {
-    entry.pattern.lastIndex = 0;
-    const match = entry.pattern.exec(prompt);
-    if (!match) continue;
-    const prefix = prompt.slice(Math.max(0, match.index - 48), match.index);
-    if (/(?:\b(?:do\s+not|don't|never|without|avoid)\s+(?:use|run|choose|select)\s*|(?:不要|别|禁止|勿)\s*(?:用|使用|运行)?\s*)$/i.test(prefix)) return undefined;
-    matches.push(entry.cli);
-  }
-  return matches.length === 1 ? matches[0] : undefined;
-}
-
-function withCurrentTurnCliAuthority(authority: CurrentTurnModelAuthority, prompt: string): CurrentTurnModelAuthority {
-  const cli = parseCurrentTurnExternalCliAuthority(prompt);
-  return cli ? { ...authority, allowedCli: [cli] } : authority;
 }
 
 function explicitSelectorScope(prompt: string): string[] | undefined {
@@ -609,7 +577,7 @@ export function parseCurrentTurnModelAuthority(
   catalog: CurrentTurnModelCatalog | readonly CurrentTurnModelCatalogEntry[],
 ): CurrentTurnModelAuthority {
   if (typeof prompt !== "string" || prompt.trim().length === 0) return defaultCurrentTurnModelAuthority();
-  if (isNegatedDelegatedDirective(prompt)) return withCurrentTurnCliAuthority(defaultCurrentTurnModelAuthority(), prompt);
+  if (isNegatedDelegatedDirective(prompt)) return defaultCurrentTurnModelAuthority();
   const entries = authorityCatalogEntries(catalog);
   const masked = maskDelegatedPhrases(prompt);
   const modelReferences = explicitModelReferences(masked.text);
@@ -631,13 +599,13 @@ export function parseCurrentTurnModelAuthority(
   // Mixing it with an explicit model or an ambiguous thinking directive fails
   // closed instead of guessing which part of the prompt should win.
   if (masked.delegated) {
-    if (modelDirectivePresent || (thinkingDirectivePresent && distinctThinking.length !== 1)) return withCurrentTurnCliAuthority(defaultCurrentTurnModelAuthority(), prompt);
-    return withCurrentTurnCliAuthority({
+    if (modelDirectivePresent || (thinkingDirectivePresent && distinctThinking.length !== 1)) return defaultCurrentTurnModelAuthority();
+    return {
       mode: "delegated-choice",
       thinkingMode: "inherit",
       ...(distinctThinking.length === 1 ? { allowedThinking: distinctThinking, thinkingMode: "available" as const } : {}),
       ...(allowedSelectors === undefined ? {} : { allowedSelectors }),
-    }, prompt);
+    };
   }
   const canonicalReferences = [...new Set(modelReferences.values.filter((value) => value.includes("/")).map((value) => {
     try { return validateModelIdentifier(value).canonical; } catch { return undefined; }
@@ -652,15 +620,15 @@ export function parseCurrentTurnModelAuthority(
       const normalizedValue = value.toLowerCase();
       return normalizedAlias === normalizedValue || normalizedAlias.startsWith(`${normalizedValue} `);
     });
-  })))) return withCurrentTurnCliAuthority(defaultCurrentTurnModelAuthority(), prompt);
-  if (thinkingDirectivePresent && distinctThinking.length !== 1) return withCurrentTurnCliAuthority(defaultCurrentTurnModelAuthority(), prompt);
-  if (!modelDirectivePresent && !thinkingDirectivePresent) return withCurrentTurnCliAuthority(defaultCurrentTurnModelAuthority(), prompt);
-  return withCurrentTurnCliAuthority({
+  })))) return defaultCurrentTurnModelAuthority();
+  if (thinkingDirectivePresent && distinctThinking.length !== 1) return defaultCurrentTurnModelAuthority();
+  if (!modelDirectivePresent && !thinkingDirectivePresent) return defaultCurrentTurnModelAuthority();
+  return {
     mode: "explicit",
     ...(matchedModels.size === 1 ? { allowedModels: [...matchedModels] } : canonicalReferences.length === 1 ? { allowedModels: canonicalReferences } : {}),
     ...(distinctThinking.length === 1 ? { allowedThinking: distinctThinking } : {}),
     ...(allowedSelectors === undefined ? {} : { allowedSelectors }),
-  }, prompt);
+  };
 }
 
 /** Compatibility names for callers that describe the operation as capture/resolve. */

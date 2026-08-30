@@ -36,9 +36,9 @@ Start the supported vendor as a Herdr-recognized Agent, prompt it through the Ag
 
 A state that was already idle before prompting cannot settle the Turn. `blocked` remains an active interaction state, and `unknown`, pane text, visibility, or tab focus are not completion evidence. This matches the requested persistent CUI experience rather than forcing the vendor process to exit after every task.
 
-### 4. Keep CLI selection and YOLO policy user-owned
+### 4. Keep CLI selection structured and policy-bounded
 
-Current-turn exact product authorization remains required. The registry resolves one supported executable, probes bounded `--version`/`--help` data, and constructs an argv from allowlisted fields only. Vendor YOLO/non-interactive flags are optional registry capabilities that become usable only after the installed binary declares them. The result records enabled or unavailable; it never fabricates success.
+The Parent model interprets natural-language intent and chooses a canonical registered `sub.cli` value. Runtime code does not parse user wording or maintain a separate phrase/session authorization state. The registry resolves one supported executable, probes bounded `--version`/`--help` data, and constructs an argv from allowlisted fields only. Vendor YOLO/non-interactive flags are optional registry capabilities that become usable only after the installed binary declares them. The result records enabled or unavailable; it never fabricates success.
 
 The runner never accepts model-generated install, login, bypass, or arbitrary flag fragments. Parent permission policy, credential/private-key denial, workspace limits, cancellation and visible failure reporting remain active.
 

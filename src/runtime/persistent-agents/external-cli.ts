@@ -17,7 +17,6 @@ export interface ExternalCliDefinition {
 
 export const EXTERNAL_CLI_REGISTRY: Readonly<Record<ExternalCliId, ExternalCliDefinition>> = Object.freeze({
   "claude-code": { id: "claude-code", executables: ["claude"], herdrKind: "claude", yolo: { argv: ["--dangerously-skip-permissions"], evidence: /(?:^|\s)--dangerously-skip-permissions(?:\s|,|$)/m } },
-  "gemini-cli": { id: "gemini-cli", executables: ["gemini"], herdrKind: "gemini", yolo: { argv: ["--yolo"], evidence: /(?:^|\s)--yolo(?:\s|,|$)/m } },
   "codex-cli": { id: "codex-cli", executables: ["codex"], herdrKind: "codex", yolo: { argv: ["--dangerously-bypass-approvals-and-sandbox"], evidence: /(?:^|\s)--dangerously-bypass-approvals-and-sandbox(?:\s|,|$)/m } },
   opencode: { id: "opencode", executables: ["opencode"], herdrKind: "opencode", yolo: { argv: ["--yolo"], evidence: /(?:^|\s)--yolo(?:\s|,|$)/m } },
   "grok-cli": { id: "grok-cli", executables: ["grok-cli", "grok"], herdrKind: "grok", genericIdentity: /(?:grok[- ]?cli|xai\s+grok)/i },

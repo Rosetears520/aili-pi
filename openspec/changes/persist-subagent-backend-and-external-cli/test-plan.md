@@ -21,7 +21,7 @@
 |---|---|---|---|---|---|---|
 | 全局 backend 设置、clear、保留 Herdr 配置、原子失败 | `persistent-subagent-backend-preference` | 2.1 | settings、backend tests | `vitest run tests/unit/persistent-agent-backends.test.ts` | 写入/锁/替换/clear fixture | PLANNED |
 | 当前会话立即生效、已有 Agent 冻结、优先级不变 | 同上 | 2.2 | production、backend tests | 同上 + persistent-Agent integration fixture | new/existing/precedence fixture | PLANNED |
-| CLI 仅由当前用户精确产品授权 | `herdr-external-cli-agent` | 3.1 | external-cli、sub/production tests | `vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/persistent-agent-sub.test.ts` | authorized/mismatched/stale/no-allocation fixture | PLANNED |
+| Parent 将自然语言映射为严格注册的 `sub.cli`，runtime 不解析授权短语 | `herdr-external-cli-agent` | 3.1 | external-cli、sub/production tests | `vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/persistent-agent-sub.test.ts` | registered/unknown/unavailable/no-allocation fixture | PLANNED |
 | 固定无 shell argv、凭据拒绝、YOLO truthful | 同上；D3 | 1.3、3.2 | external-cli tests | 同上 | fake executable/help/argv/denial fixture | PLANNED |
 | 普通 Pi subagent tab/pane allocator 复用 | 同上；D2 | 3.3 | Herdr adapter tests | `vitest run tests/unit/herdr-backends.test.ts` | same-tab split/new-tab fallback/no collision fixture | PLANNED |
 | 前台仅在本次 prompt 进入 working 后返回 input-ready 才结算 | 同上；D2/D5 | 1.1、1.2、3.4 | Herdr/sub/production tests | `vitest run tests/unit/herdr-backends.test.ts tests/unit/persistent-agent-sub.test.ts` | pre-idle/working/idle-done/blocked/unknown fixture | PLANNED |
@@ -35,7 +35,7 @@
 | 条件 / Claim | 命令或直接检查 | 为什么足够 | 不支持的结论 |
 |---|---|---|---|
 | Global config writer correctness | `vitest run tests/unit/persistent-agent-backends.test.ts` | 覆盖 schema、解析、优先级、原子失败和 command 行为的纯本地 fixture | 不证明真实 HOME 文件或用户交互已执行 |
-| External launch and authorization | `vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/persistent-agent-sub.test.ts` | 可确定性验证 registry、授权、argv、拒绝与 sub lifecycle 适配 | 不证明任一 vendor CLI 在真实账户下可运行 |
+| External structured routing and launch | `vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/persistent-agent-sub.test.ts` | 可确定性验证 registry、结构化 CLI 选择、argv、拒绝与 sub lifecycle 适配 | 不证明任一 vendor CLI 在真实账户下可运行 |
 | Herdr lifecycle and pane policy | `vitest run tests/unit/herdr-backends.test.ts tests/integration/persistent-agent-production.test.ts` | fake daemon/Agent 能覆盖 tab/pane、post-prompt working guard、input-ready 结算、取消和 Parent integration | 不证明真实 vendor CUI 的检测模式兼容 |
 | Cross-module type coherence | `npm run typecheck` | 捕获 TS contract 和注册面不一致 | 不替代行为或真实 runtime 验证 |
 | Broader regression after focused pass | `npm test` | 仅在实现影响范围仍有未覆盖集成风险时运行 | 不证明发布、安装或外部 CLI 成功 |

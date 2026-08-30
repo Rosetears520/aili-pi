@@ -13,15 +13,16 @@ const entries: CurrentTurnModelCatalogEntry[] = [
 ];
 
 describe("subagent model capability projection", () => {
-  it("keeps catalog discovery separate from direct-user model and CLI authority", () => {
+  it("keeps model authority separate from Parent-selected external CLI routing", () => {
     const authority = parseCurrentTurnModelAuthority("Use Claude Code for the subagent.", entries);
-    expect(authority).toEqual({ mode: "inherit-only", allowedCli: ["claude-code"] });
+    expect(authority).toEqual({ mode: "inherit-only" });
     const text = renderSubagentModelCapabilities(entries, authority);
     expect(text).toContain("zai-coding-cn/glm-5.3-flash");
     expect(text).not.toContain("hidden/no-auth");
     expect(text).toContain("discovery only; not authorization");
-    expect(text).toContain("External CLI authority: claude-code");
-    expect(parseCurrentTurnModelAuthority("Use Agy CLI for the subagent.", entries)).toEqual({ mode: "inherit-only", allowedCli: ["agy-cli"] });
+    expect(text).toContain("External CLI routing: the Parent may select a registered cli value");
+    expect(parseCurrentTurnModelAuthority("Use Agy CLI for the subagent.", entries)).toEqual({ mode: "inherit-only" });
+    expect(parseCurrentTurnModelAuthority("用 agy 启动 gemini-3.7-flash", entries)).toEqual({ mode: "inherit-only" });
     expect(text).toContain("audio/video/ASR");
   });
 

@@ -161,8 +161,8 @@ export const SUB_TOOL_SCHEMA = Type.Object({
   })),
   thinking: Type.Optional(SUB_THINKING_SCHEMA),
   cli: Type.Optional(Type.Union([
-    Type.Literal("claude-code"), Type.Literal("gemini-cli"), Type.Literal("codex-cli"), Type.Literal("opencode"), Type.Literal("grok-cli"), Type.Literal("agy-cli"),
-  ], { description: "Optional one-shot external CLI. It is accepted only when the current direct user message explicitly authorizes this exact product; omitted stays Pi." })),
+    Type.Literal("claude-code"), Type.Literal("codex-cli"), Type.Literal("opencode"), Type.Literal("grok-cli"), Type.Literal("agy-cli"),
+  ], { description: "Optional external CLI for this turn. The exact product must have direct-user authorization in the live Parent session; omitted stays Pi." })),
   snippets: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 128 }), { maxItems: 16, description: "Trusted one-turn prompt modifier IDs; validated against surface and role scope before child startup." })),
   split: Type.Optional(Type.Union([Type.Literal("right"), Type.Literal("down")], {
     description: "Cosmetic herdr-surface hint: direction for the next parallel pane split inside the AILI tab. Ignored on the managed backend and by sequential reuse; finer layout control belongs to the herdr skill.",
@@ -217,7 +217,7 @@ function optionalThinking(value: unknown, label: string): TaskThinking | undefin
 
 function optionalCli(value: unknown, label: string): ExternalCliId | undefined {
   if (value === undefined) return undefined;
-  if (!isExternalCliId(value)) throw new Error(`${label} must be one of: claude-code, gemini-cli, codex-cli, opencode, grok-cli, agy-cli`);
+  if (!isExternalCliId(value)) throw new Error(`${label} must be one of: claude-code, codex-cli, opencode, grok-cli, agy-cli`);
   return value;
 }
 
