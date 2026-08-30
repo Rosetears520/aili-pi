@@ -61,6 +61,7 @@
 - PASS：最终聚焦矩阵，109/109；`npm run typecheck`；strict OpenSpec；adapter evidence verify；extension/package/compatibility isolated rerun，7/7。
 - PARTIAL：完整 `npm test` 为 894 passed、2 skipped、2 failed；失败是并发执行下的 package-load 5 秒超时与 existing Agent running→parked race。两个失败文件随后一起隔离重跑 7/7。完整并行套件不记 PASS。
 - PASS（限定）：真实 Agy CLI 1.1.22 通过 Herdr kind `agy` 在同一 AILI tab 的 sibling pane 启动，使用 help 已确认的 YOLO flag，完成固定无工具 prompt 并回到 input-ready `idle`；测试 pane 已关闭。
+- REGRESSION FIX：真实 `sub` 暴露 live-name `agent_not_ready`；fake Herdr 回归现验证 `agent.get`、`agent.prompt` 和 `agent.read` 均以稳定 pane ID 定位，并以 `AgentInfo.name` 校验冻结身份，而不再比较 `PaneInfo.agent` kind。聚焦矩阵 66/66。
 - UNVERIFIED：本次 Parent 尚未再次 `/reload`，因此真实 smoke 验证的是底层 Herdr/Agy CUI 路径，不是新增 `sub cli: agy-cli` 的热加载公开 schema；其他真实 CLI 产品也未获运行授权。
 - BLOCKED：Herdr blocked 状态没有结构化操作 packet，因此非 YOLO 下无法证明普通确认是否在现有授权内。当前 fail-closed 且不弹用户对话框。
 

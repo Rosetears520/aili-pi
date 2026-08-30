@@ -32,7 +32,7 @@ export interface NormalizedTaskItem {
   name?: string;
   model?: string;
   thinking?: TaskThinking;
-  /** Optional exact current-turn external CLI request; omitted always keeps Pi execution. */
+  /** Optional registered external CLI selected by the Parent; omitted keeps Pi execution. */
   cli?: ExternalCliId;
   async?: boolean;
   tools?: string[];

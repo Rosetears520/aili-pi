@@ -145,8 +145,17 @@ class FakeHerdrServer {
         respond({ ok: true });
         return;
       }
+      case "agent.get": {
+        const pane = this.panes.find((entry) => entry.pane_id === params.target || entry.name === params.target);
+        if (!pane) {
+          socket.write(`${JSON.stringify({ id, error: { code: "agent_not_found", message: "agent target not found" } })}\n`);
+          return;
+        }
+        respond({ type: "agent_info", agent: { ...pane } });
+        return;
+      }
       case "agent.prompt": {
-        const pane = this.panes.find((entry) => entry.agent === params.target);
+        const pane = this.panes.find((entry) => entry.pane_id === params.target || entry.name === params.target);
         const status = this.externalPromptMode === "blocked" ? "blocked" : "working";
         if (pane) pane.agent_status = status;
         respond({ type: "agent_prompted", agent: { ...pane, agent_status: status } });
@@ -154,7 +163,7 @@ class FakeHerdrServer {
         return;
       }
       case "agent.read": {
-        const pane = this.panes.find((entry) => entry.agent === params.target);
+        const pane = this.panes.find((entry) => entry.pane_id === params.target || entry.name === params.target);
         respond({ type: "pane_read", read: { pane_id: pane?.pane_id ?? "missing", workspace_id: pane?.workspace_id ?? "w1", tab_id: pane?.tab_id ?? "w1:t1", source: params.source, format: params.format ?? "text", text: "vendor completed output", revision: pane?.revision ?? 0, truncated: false } });
         return;
       }
@@ -173,11 +182,12 @@ class FakeHerdrServer {
         {
           const pane = this.panes.find((entry) => entry.pane_id === params.pane_id);
           if (pane) {
-            pane.agent = String(params.name ?? "pi");
+            pane.agent = String(params.kind ?? "pi");
+            pane.name = String(params.name ?? "pi");
             pane.agent_status = "idle";
           }
         }
-        respond({ agent: { name: params.name, status: "idle" } });
+        respond({ type: "agent_started", agent: { ...this.panes.find((entry) => entry.pane_id === params.pane_id) }, argv: [params.kind, ...((params.args as string[] | undefined) ?? [])] });
         return;
       case "pane.close":
         this.panes = this.panes.filter((pane) => pane.pane_id !== params.pane_id);
@@ -480,9 +490,10 @@ describe("herdr execution backend end-to-end (fake daemon + real child bridge)",
       expect(start?.params.kind).toBe("codex");
       expect(start?.params.args).toEqual([]);
       const promptCall = server.calls.find((call) => call.method === "agent.prompt");
-      expect(promptCall?.params.target).toBe(start?.params.name);
+      expect(promptCall?.params.target).toBe(start?.params.pane_id);
       expect(typeof promptCall?.params.text).toBe("string");
-      expect(server.calls.some((call) => call.method === "agent.read")).toBe(true);
+      expect(server.calls.filter((call) => call.method === "agent.get").every((call) => call.params.target === start?.params.pane_id)).toBe(true);
+      expect(server.calls.find((call) => call.method === "agent.read")?.params.target).toBe(start?.params.pane_id);
       expect(server.calls.filter((call) => call.method === "agent.start" && call.params.kind === "pi")).toHaveLength(0);
       expect(journal.getState().runs["run-1"]).toMatchObject({ driver: "external-cli", lifecycle: "stopped", stopReason: "cui-input-ready" });
     } finally {

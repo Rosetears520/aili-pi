@@ -447,6 +447,25 @@ export class HerdrExecutionBackend implements ExecutionBackend {
     }
   }
 
+  private async waitForNamedAgent(client: HerdrSocketClient, paneId: string, liveName: string): Promise<Record<string, unknown>> {
+    const deadline = Date.now() + this.startupTimeoutMs;
+    let lastError: unknown;
+    for (;;) {
+      try {
+        const result = await client.call<Record<string, unknown>>("agent.get", { target: paneId });
+        const agent = result.agent && typeof result.agent === "object" ? result.agent as Record<string, unknown> : undefined;
+        if (agent?.pane_id === paneId && agent.name === liveName) return agent;
+        lastError = new Error(`expected ${liveName} in ${paneId}, observed ${String(agent?.name ?? "unnamed")}`);
+      } catch (error) {
+        lastError = error;
+      }
+      if (Date.now() >= deadline) {
+        throw new Error(`Herdr did not retain active Agent ${liveName} in pane ${paneId}: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+
   /** Pane selection must be serialized in-process: two concurrent first
    *  turns would otherwise both see an empty snapshot and each open a tab.
    *  After the first surface exists (claimed), later selections split or
@@ -794,6 +813,7 @@ export class HerdrExecutionBackend implements ExecutionBackend {
           args: [...plan.argv],
           timeout_ms: this.startupTimeoutMs,
         });
+        const activeAgent = await this.waitForNamedAgent(client, surface.paneId, liveName);
         surface.starting = false;
         await setRun("starting", "live");
         await this.options.journal.append({
@@ -819,25 +839,30 @@ export class HerdrExecutionBackend implements ExecutionBackend {
         // ignored; only a working state observed after this call opens the
         // settlement gate for this exact pane/name pair.
         const promptResult = await client.call<Record<string, unknown>>("agent.prompt", {
-          target: liveName,
+          target: surface.paneId,
           text: `${prompt.systemPrompt}\n\n---\n\n${prompt.initialMessage}`,
         });
         const statuses: ExternalCliAgentStatus[] = [];
         const promptedAgent = promptResult.agent && typeof promptResult.agent === "object" ? promptResult.agent as Record<string, unknown> : undefined;
-        const promptStatus = typeof promptedAgent?.agent_status === "string" ? promptedAgent.agent_status : undefined;
+        const promptStatus = typeof promptedAgent?.agent_status === "string"
+          ? promptedAgent.agent_status
+          : typeof activeAgent.agent_status === "string" ? activeAgent.agent_status : undefined;
         if (promptStatus) statuses.push(promptStatus);
         while (projectExternalCliSettlement(statuses) !== "settled") {
           if (input.context.signal.aborted) throw input.context.signal.reason ?? new Error("external CLI turn cancelled");
           await new Promise((resolve) => setTimeout(resolve, 150));
-          const raw = await client.call<unknown>("session.snapshot", {});
-          const snapshot = (raw as { snapshot?: HerdrSnapshot }).snapshot ?? (raw as HerdrSnapshot);
-          const pane = (snapshot.panes ?? []).find((candidate) => candidate.pane_id === surface.paneId);
-          if (!pane) {
+          let agent: Record<string, unknown> | undefined;
+          try {
+            const result = await client.call<Record<string, unknown>>("agent.get", { target: surface.paneId });
+            agent = result.agent && typeof result.agent === "object" ? result.agent as Record<string, unknown> : undefined;
+          } catch {
             await setRun("live", "lost", { failure: "external CUI pane/process was lost; prompt will not be replayed" });
             throw new Error(`${input.agentId}: external CUI pane was lost; prompt was not replayed`);
           }
-          if (pane.agent !== liveName) throw new Error(`${input.agentId}: external CUI Agent identity changed in frozen pane`);
-          const status = String(pane.agent_status ?? "unknown");
+          if (agent?.pane_id !== surface.paneId || agent.name !== liveName) {
+            throw new Error(`${input.agentId}: external CUI Agent identity changed in frozen pane`);
+          }
+          const status = String(agent.agent_status ?? "unknown");
           statuses.push(status);
           if (status === "blocked" && this.options.requestInteraction) {
             // A blocked status alone is non-terminal. The policy callback may
@@ -869,7 +894,7 @@ export class HerdrExecutionBackend implements ExecutionBackend {
           }
         }
         const readResult = await client.call<Record<string, unknown>>("agent.read", {
-          target: liveName,
+          target: surface.paneId,
           source: "recent_unwrapped",
           lines: 200,
           format: "text",

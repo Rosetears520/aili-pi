@@ -74,7 +74,7 @@
         },
         {
           "path": "src/runtime/persistent-agents/backends/herdr/adapter.ts",
-          "sha256": "e8ba1947fc96e3de29b85384d69e5fdd157e9d4436bf3af72b3756220c6b495d"
+          "sha256": "ca597132802ae7d0ea3dc5a6d65fa0e0dead1775fb2d723667913cfd8f7e74e0"
         },
         {
           "path": "tests/unit/persistent-agent-external-cli.test.ts",
@@ -82,7 +82,7 @@
         },
         {
           "path": "tests/unit/herdr-backends.test.ts",
-          "sha256": "a4675c099d2ad4cf464bd9c6f8aecec6c5b75b8b8080ad8429f61f772e5de2b4"
+          "sha256": "eb6a5e11ad3903d4017b9a069c5a940a152750cd9a04b306b79b96de5ce0370f"
         },
         {
           "path": "tests/unit/persistent-agent-sub.test.ts",
