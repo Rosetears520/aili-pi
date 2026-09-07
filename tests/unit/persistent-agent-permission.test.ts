@@ -9,6 +9,9 @@ import {
   findCredentialMaterial,
   ParentApprovalBroker,
   redactCredentialText,
+  SELECTION_CONFIRM_OPTION,
+  SELECTION_DENY_OPTION,
+  selectionQuestionnaireDecision,
   type ApprovalRequestPacket,
 } from "../../src/runtime/persistent-agents/permission.js";
 import { createChildApprovalBridge } from "../../src/runtime/persistent-agents/session-factory.js";
@@ -54,6 +57,47 @@ describe("child pi-permission-modes policy adapter", () => {
     expect(await findCredentialMaterial({ payload: "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----" }, scratch)).toMatchObject({ reason: "private-key material" });
     await expect(assertNoCredentialMaterial("token=secret", "artifact", scratch)).rejects.toThrow(/denied credential/);
     expect(redactCredentialText("token=secret Bearer abc")).toBe("token=<redacted> Bearer <redacted>");
+  });
+});
+
+describe("runtime-owned selection questionnaire", () => {
+  const question = {
+    id: "interaction-1",
+    header: "Subagent choice",
+    question: "Confirm exact candidate",
+    options: [
+      { label: SELECTION_CONFIRM_OPTION, description: "Authorize exact values." },
+      { label: SELECTION_DENY_OPTION, description: "Do not allocate." },
+    ],
+    multiple: false,
+  };
+
+  it("accepts only the matching fixed callback answer", () => {
+    expect(selectionQuestionnaireDecision({ questions: [question], answers: [{ id: question.id, selectedOptions: [SELECTION_CONFIRM_OPTION] }], cancelled: false }, question)).toBe("confirm");
+    expect(selectionQuestionnaireDecision({ questions: [question], answers: [{ id: question.id, selectedOptions: [SELECTION_DENY_OPTION] }], cancelled: false }, question)).toBe("deny");
+    for (const malformed of [
+      { questions: [question], answers: [{ id: question.id, selectedOptions: [SELECTION_CONFIRM_OPTION], customInput: "yes" }], cancelled: false },
+      { questions: [question], answers: [{ id: "other", selectedOptions: [SELECTION_CONFIRM_OPTION] }], cancelled: false },
+      { questions: [question], answers: [{ id: question.id, selectedOptions: ["yes"] }], cancelled: false },
+      { questions: [question], answers: [{ id: question.id, selectedOptions: [SELECTION_CONFIRM_OPTION] }, { id: question.id, selectedOptions: [] }], cancelled: false },
+      { questions: [question], answers: [{ id: question.id, selectedOptions: [SELECTION_CONFIRM_OPTION] }], cancelled: true },
+      { questions: [question], answers: [{ id: question.id, selectedOptions: [SELECTION_CONFIRM_OPTION] }], cancelled: false, unavailable: "false" },
+    ]) expect(selectionQuestionnaireDecision(malformed, question)).toBeUndefined();
+  });
+
+  it("serializes candidates and rechecks a current scope before showing another dialog", async () => {
+    const broker = new ParentApprovalBroker({ hasUI: true, ask: async () => "allow" });
+    let current = false;
+    const shown: string[] = [];
+    const request = (name: string) => broker.requestSelection({
+      agentId: "preflight",
+      jobId: name,
+      candidate: { name },
+      reuse: () => current,
+      render: async (record) => { shown.push(record.id); current = true; return "confirm"; },
+    });
+    await expect(Promise.all([request("one"), request("two")])).resolves.toEqual(["confirm", "reused"]);
+    expect(shown).toHaveLength(1);
   });
 });
 

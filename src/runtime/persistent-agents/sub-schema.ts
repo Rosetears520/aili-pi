@@ -34,6 +34,8 @@ export interface NormalizedTaskItem {
   thinking?: TaskThinking;
   /** Optional registered external CLI selected by the Parent; omitted keeps Pi execution. */
   cli?: ExternalCliId;
+  /** Optional in-memory confirmation scope for one named task. */
+  selectionScope?: string;
   async?: boolean;
   tools?: string[];
   workspace: TaskWorkspaceMode;
@@ -100,7 +102,7 @@ const SUB_THINKING_SCHEMA = Type.Union([
   Type.Literal("xhigh"),
   Type.Literal("max"),
 ], {
-  description: "Optional per-turn thinking override for this one call. Omitted by default; the effective level is resolved per turn. Model-facing values are untrusted and never self-authorizing.",
+  description: "Optional per-turn thinking candidate. For an external CLI, omit it to preserve the vendor default unless the Parent has an exact candidate for runtime confirmation, and never invent it autonomously. It bypasses the Pi catalog and is a separate vendor-native choice: never concatenate it with model or infer it from a model-name suffix. The runtime must discover and obey a unique thinking/reasoning/effort option and its value syntax from the selected installed CLI's frozen --help; ambiguous or enumerated-unsupported values fail. Model-facing values are untrusted until the fixed runtime-owned selection questionnaire confirms them.",
 });
 
 const FormalItemFields = {
@@ -113,7 +115,7 @@ const FormalItemFields = {
   name: Type.Optional(Type.String({ minLength: 1 })),
   model: Type.Optional(Type.String({
     minLength: 1,
-    description: "Optional per-turn provider/model request. Omitted by default; it inherits the current parent resolution unless an authorized per-turn value wins. Model-facing values are untrusted and never self-authorizing. An explicit request that cannot be resolved or authorized fails the whole call instead of falling back.",
+    description: "Optional per-turn provider/model candidate. Omitted by default; it inherits the current parent resolution. Model-facing values are untrusted until the fixed runtime-owned selection questionnaire confirms them. An explicit request that cannot be resolved or authorized fails the whole call instead of falling back.",
   })),
   thinking: Type.Optional(SUB_THINKING_SCHEMA),
   async: Type.Optional(Type.Boolean({ description: "Set false to wait synchronously or true for background execution. Do not send blocking; blocking is profile-only internal metadata." })),
@@ -122,6 +124,12 @@ const FormalItemFields = {
   writeScope: Type.Optional(WriteScopeSchema),
   cwd: Type.Optional(Type.String({ minLength: 1 })),
   split: Type.Optional(Type.Union([Type.Literal("right"), Type.Literal("down")])),
+  selectionScope: Type.Optional(Type.String({
+    minLength: 1,
+    maxLength: 200,
+    pattern: FORMAL_SINGLE_LINE_PATTERN,
+    description: "Optional named one-line task scope for reusing one confirmed choice within the current Parent session and project.",
+  })),
 };
 
 /**
@@ -157,12 +165,18 @@ export const SUB_TOOL_SCHEMA = Type.Object({
   })),
   model: Type.Optional(Type.String({
     minLength: 1,
-    description: "Optional per-turn provider/model request (canonical provider/model, bare id, or an unambiguous catalog alias). Explicit requests are strict: unavailable, ambiguous, unsupported, or denied requests fail this call instead of falling back.",
+    description: "Optional per-turn model candidate. For ordinary Pi use a canonical provider/model, bare id, or unambiguous catalog alias. For an external CLI, omit model to preserve the vendor default unless the Parent has an exact candidate to present for runtime confirmation; never invent it autonomously. If supplied, inspect that installed CLI's --help and use its exposed read-only model-list/catalog capability when available; pass one exact vendor-listed ID unchanged. Never silently fix spelling, invent a base model, strip suffixes such as -high, or infer thinking from the ID. If absent, ambiguous, or unverified, ask the user or omit model for the vendor default. thinking remains separate. The runtime uses frozen help only for unique option-name/value syntax. Explicit requests are strict and never fall back.",
   })),
   thinking: Type.Optional(SUB_THINKING_SCHEMA),
   cli: Type.Optional(Type.Union([
     Type.Literal("claude-code"), Type.Literal("codex-cli"), Type.Literal("opencode"), Type.Literal("grok-cli"), Type.Literal("agy-cli"),
-  ], { description: "Optional external CLI for this turn. The exact product must have direct-user authorization in the live Parent session; omitted stays Pi." })),
+  ], { description: "Optional external CLI candidate for this turn. The runtime-owned selection questionnaire confirms the exact registered product before allocation; omitted stays Pi. Omit model and thinking to preserve vendor defaults unless the Parent has exact candidates for runtime confirmation; missing fields preserve vendor defaults and are never invented. If model is supplied, inspect the installed CLI's --help and its read-only model catalog/list when exposed; use one exact listed ID unchanged, or ask/omit when unverified. Supplied thinking is separate. Runtime frozen-help parsing governs option syntax only; never supply arbitrary runner flags." })),
+  selectionScope: Type.Optional(Type.String({
+    minLength: 1,
+    maxLength: 200,
+    pattern: FORMAL_SINGLE_LINE_PATTERN,
+    description: "Optional named one-line task scope (1-200 characters). A confirmed choice may be reused only within this exact Parent session/project/scope and exact cli/model/thinking fields; omitted applies only to this call.",
+  })),
   snippets: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 128 }), { maxItems: 16, description: "Trusted one-turn prompt modifier IDs; validated against surface and role scope before child startup." })),
   split: Type.Optional(Type.Union([Type.Literal("right"), Type.Literal("down")], {
     description: "Cosmetic herdr-surface hint: direction for the next parallel pane split inside the AILI tab. Ignored on the managed backend and by sequential reuse; finer layout control belongs to the herdr skill.",
@@ -187,7 +201,7 @@ export const FORMAL_TASK_REQUEST_SCHEMA = Type.Union([
   }, { additionalProperties: false }),
 ]);
 
-const SUB_ITEM_KEYS = new Set(["description", "prompt", "subagent_type", "task_id", "background", "model", "thinking", "cli", "snippets", "split"]);
+const SUB_ITEM_KEYS = new Set(["description", "prompt", "subagent_type", "task_id", "background", "model", "thinking", "cli", "selectionScope", "snippets", "split"]);
 const FORMAL_ITEM_KEYS = new Set(Object.keys(FORMAL_ITEM_FIELDS));
 const FORMAL_BATCH_KEYS = new Set(["context", "tasks"]);
 
@@ -207,12 +221,29 @@ function optionalString(value: unknown, label: string): string | undefined {
   return value.trim();
 }
 
+function optionalModel(value: unknown, label: string): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !value || value !== value.trim() || /[\s\0\r\n]/.test(value)) {
+    throw new Error(`${label} must be one exact model identifier without surrounding or internal whitespace`);
+  }
+  return value;
+}
+
 function optionalThinking(value: unknown, label: string): TaskThinking | undefined {
   if (value === undefined) return undefined;
   if (typeof value !== "string" || !(TASK_THINKING_LEVELS as readonly string[]).includes(value)) {
     throw new Error(`${label} must be one of: ${TASK_THINKING_LEVELS.join(", ")}`);
   }
   return value as TaskThinking;
+}
+
+function optionalSelectionScope(value: unknown, label: string): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || value.length < 1 || value.length > 200 || value !== value.trim()
+    || /[\u0000-\u001F\u007F-\u009F\u2028\u2029\r\n]/.test(value)) {
+    throw new Error(`${label} must be a non-empty single-line string of at most 200 characters`);
+  }
+  return value;
 }
 
 function optionalCli(value: unknown, label: string): ExternalCliId | undefined {
@@ -385,8 +416,9 @@ function normalizeItem(
     context: contextParts.length > 0 ? contextParts.join("\n\n") : undefined,
     agent: selector,
     name: optionalString(item.name, `${label}.name`),
-    model: optionalString(item.model, `${label}.model`),
+    model: optionalModel(item.model, `${label}.model`),
     thinking: optionalThinking(item.thinking, `${label}.thinking`),
+    ...(item.selectionScope === undefined ? {} : { selectionScope: optionalSelectionScope(item.selectionScope, `${label}.selectionScope`) }),
     async: item.async as boolean | undefined,
     tools: stringArray(item.tools, `${label}.tools`),
     workspace,
@@ -457,9 +489,10 @@ export function validateSubRequest(raw: unknown, profiles: RoleProfile[]): SubRe
     throw new Error("sub.task_id is not a safe task identity");
   }
   if (input.background !== undefined && typeof input.background !== "boolean") throw new Error("sub.background must be a boolean");
-  const model = optionalString(input.model, "sub.model");
+  const model = optionalModel(input.model, "sub.model");
   const thinking = optionalThinking(input.thinking, "sub.thinking");
   const cli = optionalCli(input.cli, "sub.cli");
+  const selectionScope = optionalSelectionScope(input.selectionScope, "sub.selectionScope");
   const snippets = stringArray(input.snippets, "sub.snippets");
   const split = input.split === "right" || input.split === "down" ? input.split : undefined;
   if (input.split !== undefined && split === undefined) throw new Error("sub.split must be exactly right or down");
@@ -472,6 +505,7 @@ export function validateSubRequest(raw: unknown, profiles: RoleProfile[]): SubRe
       model,
       thinking,
       ...(cli === undefined ? {} : { cli }),
+      ...(selectionScope === undefined ? {} : { selectionScope }),
       async: input.background === undefined ? undefined : input.background,
       workspace: "auto",
       writeScope: { paths: [], resources: [] },

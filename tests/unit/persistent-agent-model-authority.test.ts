@@ -24,61 +24,16 @@ const catalog: CurrentTurnModelCatalogEntry[] = [
 ];
 
 describe("current-turn model authority capture", () => {
-  it("defaults ordinary delegation to direct-parent inheritance", () => {
-    expect(parseCurrentTurnModelAuthority("开个 code-scout 看一下", catalog)).toEqual({ mode: "inherit-only" });
-  });
-
-  it("captures explicit English and Chinese model/thinking directives with an exact named-selector scope", () => {
-    expect(parseCurrentTurnModelAuthority("Use Terra medium for the code-scout worker.", catalog)).toMatchObject({
-      mode: "explicit",
-      allowedModels: ["openai-codex/gpt-5.6-terra"],
-      allowedThinking: ["medium"],
-      allowedSelectors: ["aili.code-scout"],
-    });
-    expect(parseCurrentTurnModelAuthority("用 Terra medium 开一个 code-scout。", catalog)).toMatchObject({
-      mode: "explicit",
-      allowedModels: ["openai-codex/gpt-5.6-terra"],
-      allowedThinking: ["medium"],
-    });
-  });
-
-  it("captures explicit delegated model choice without opening thinking override", () => {
-    expect(parseCurrentTurnModelAuthority("这轮 subagent 的模型你自己根据任务决定。", catalog)).toMatchObject({
-      mode: "delegated-choice",
-      thinkingMode: "inherit",
-    });
-    expect(parseCurrentTurnModelAuthority("Do not let the system choose the worker model.", catalog)).toEqual({ mode: "inherit-only" });
-  });
-
-  it("does not make an exact extended model id ambiguous with its shorter prefix", () => {
-    const overlappingCatalog: CurrentTurnModelCatalogEntry[] = [
-      ...catalog,
-      {
-        provider: "openai-codex",
-        model: "gpt-5.6-sol-new",
-        canonical: "openai-codex/gpt-5.6-sol-new",
-        available: true,
-        authenticated: true,
-        thinkingLevels: ["low", "medium", "high"],
-      },
-    ];
-    expect(parseCurrentTurnModelAuthority("Use openai-codex/gpt-5.6-sol-new for the subagent.", overlappingCatalog)).toEqual({
-      mode: "explicit",
-      allowedModels: ["openai-codex/gpt-5.6-sol-new"],
-    });
-  });
-
-  it("keeps an exact unavailable canonical request explicit so catalog resolution can fail strictly", () => {
-    expect(parseCurrentTurnModelAuthority("Use other/missing for the subagent.", catalog)).toEqual({
-      mode: "explicit",
-      allowedModels: ["other/missing"],
-    });
-  });
-
-  it("fails closed for an unavailable bare name, ambiguous, or negated model reference", () => {
-    expect(parseCurrentTurnModelAuthority("Use Unknown medium for the worker.", catalog)).toEqual({ mode: "inherit-only" });
-    expect(parseCurrentTurnModelAuthority("Use Terra or Sol for the worker.", catalog)).toEqual({ mode: "inherit-only" });
-    expect(parseCurrentTurnModelAuthority("Do not use Terra for the worker.", catalog)).toEqual({ mode: "inherit-only" });
+  it("never derives authorization from Parent wording", () => {
+    for (const prompt of [
+      "开个 code-scout 看一下",
+      "Use Terra medium for the code-scout worker.",
+      "这轮 subagent 的模型你自己根据任务决定。",
+      "Use other/missing for the subagent.",
+      "Do not use Terra for the worker.",
+    ]) {
+      expect(parseCurrentTurnModelAuthority(prompt, catalog)).toEqual({ mode: "inherit-only" });
+    }
   });
 });
 
@@ -96,7 +51,7 @@ describe("structured task model request capture", () => {
     expect(captureTaskModelRequest(item(), { mode: "inherit-only" }, fakeCatalog)).toEqual({ outcome: "absent" });
   });
 
-  it("captures syntactic requests under inherit-only for one fresh confirmation", () => {
+  it("captures structured proposals under inherit-only without granting authority", () => {
     expect(captureTaskModelRequest(item({ model: "openai-codex/gpt-5.6-terra", thinking: "high" }), { mode: "inherit-only" }, fakeCatalog)).toEqual({
       outcome: "captured",
       request: { model: "openai-codex/gpt-5.6-terra", thinking: "high" },

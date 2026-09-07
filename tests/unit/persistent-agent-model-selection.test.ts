@@ -234,31 +234,11 @@ describe("current-turn model authority", () => {
   });
 });
 
-describe("model-facing task confirmation", () => {
-  it("requires fresh UI confirmation and never turns a denied or headless request into an override", async () => {
+describe("model-facing task confirmation compatibility", () => {
+  it("does not authorize through the retired unbound callback", async () => {
     const parent = { canonical: "provider/parent", thinking: "medium" as const };
-    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: false, confirm: async () => "confirm" })).resolves.toBeUndefined();
-    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "deny" })).resolves.toBeUndefined();
-    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "dismiss" })).resolves.toBeUndefined();
-    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => { throw new Error("expired"); } })).resolves.toBeUndefined();
-    await expect(confirmTaskModelRequest({ model: "provider/one" }, undefined, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
-    await expect(confirmTaskModelRequest({ model: "provider/parent" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
-    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: false, confirm: async () => "confirm" })).resolves.toBeUndefined();
-    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toEqual({ model: "provider/one" });
-  });
-
-  it("confirms thinking-only requests with a first-class path", async () => {
-    const parent = { canonical: "provider/parent", thinking: "medium" as const };
-    const seen: string[] = [];
-    await expect(confirmTaskModelRequest({ thinking: "high" }, parent, {
-      hasUI: true,
-      confirm: async ({ requested }) => { seen.push(requested); return "confirm"; },
-    })).resolves.toEqual({ thinking: "high" });
-    expect(seen).toEqual(["provider/parent thinking=high"]);
-    // Same-level thinking as the parent needs no confirmation.
-    await expect(confirmTaskModelRequest({ thinking: "medium" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
-    // Denied thinking-only stays rejected.
-    await expect(confirmTaskModelRequest({ thinking: "high" }, parent, { hasUI: true, confirm: async () => "deny" })).resolves.toBeUndefined();
+    await expect(confirmTaskModelRequest({ model: "provider/one" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
+    await expect(confirmTaskModelRequest({ thinking: "high" }, parent, { hasUI: true, confirm: async () => "confirm" })).resolves.toBeUndefined();
   });
 });
 

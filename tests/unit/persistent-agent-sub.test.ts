@@ -156,6 +156,9 @@ describe("sub schema and coordinator", () => {
     expect(validateSubRequest({ description: "cont", prompt: "more", task_id: "Scout" }, profiles).taskId).toBe("Scout");
     expect(validateSubRequest({ description: "snippet", prompt: "work", subagent_type: "general", snippets: ["diagnose"] }, profiles).item.snippets).toEqual(["diagnose"]);
     expect(validateSubRequest({ description: "cli", prompt: "work", subagent_type: "general", cli: "claude-code" }, profiles).item.cli).toBe("claude-code");
+    expect(validateSubRequest({ description: "scope", prompt: "work", subagent_type: "general", model: "provider/model", selectionScope: "release-42" }, profiles).item.selectionScope).toBe("release-42");
+    expect(() => validateSubRequest({ description: "scope", prompt: "work", subagent_type: "general", selectionScope: " " }, profiles)).toThrow(/selectionScope/);
+    expect(() => validateSubRequest({ description: "scope", prompt: "work", subagent_type: "general", selectionScope: `x${"x".repeat(200)}` }, profiles)).toThrow(/selectionScope/);
     expect(() => validateSubRequest({ description: "cli", prompt: "work", subagent_type: "general", cli: "claude" }, profiles)).toThrow(/sub\.cli must be one of/);
     expect(() => validateSubRequest({ prompt: "no description" }, profiles)).toThrow(/sub\.description is required/);
     expect(() => validateSubRequest({ description: "x" }, profiles)).toThrow(/sub\.prompt is required/);
@@ -163,6 +166,7 @@ describe("sub schema and coordinator", () => {
     expect(() => validateSubRequest({ description: "x", prompt: "y", subagent_type: "aili.general" }, profiles)).toThrow(/not canonical/);
     expect(() => validateSubRequest({ description: "x", prompt: "y", subagent_type: "general", thinking: "turbo" }, profiles)).toThrow(/off, minimal, low, medium, high, xhigh, max/);
     expect(() => validateSubRequest({ description: "x", prompt: "y", subagent_type: "general", task: "legacy" }, profiles)).toThrow(/unknown fields: task/);
+    expect(() => validateSubRequest({ description: "x", prompt: "y", subagent_type: "general", confirmed: true }, profiles)).toThrow(/unknown fields: confirmed/);
     expect(() => validateSubRequest({ description: "x", prompt: "y", subagent_type: "general", tasks: [] }, profiles)).toThrow(/unknown fields: tasks/);
     expect(() => validateSubRequest({ description: "x", prompt: "y", task_id: "../escape" }, profiles)).toThrow(/safe task identity/);
     expect(validateFormalTaskRequest({ task: "formal", agent: "aili.implementer", async: false, formalContext: { changeId: "exact-change" }, continuationAudit: continuationAudit() }, profiles).items[0]).toMatchObject({
@@ -179,7 +183,10 @@ describe("sub schema and coordinator", () => {
     expect(publicSchema).toContain("subagent_type");
     expect(publicSchema).toContain("task_id");
     expect(publicSchema).toContain("background");
-    expect(publicSchema).toContain("per-turn provider/model request");
+    expect(publicSchema).toContain("per-turn model candidate");
+    expect(publicSchema).toContain("selectionScope");
+    expect(publicSchema).toContain("For ordinary Pi use a canonical provider/model");
+    expect(publicSchema).toContain("runtime confirmation");
     expect(publicSchema).not.toContain("gpt-5.6-terra");
     // The public surface has no batch, orchestration, or formal identity fields.
     expect(publicSchema).not.toContain("\"tasks\"");

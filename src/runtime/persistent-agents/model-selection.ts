@@ -23,7 +23,6 @@ export interface SubagentModelDecision {
     | "accepted-direct-user"
     | "accepted-delegated-choice"
     | "confirmed-model-proposal"
-    | "auto-approved-bypass"
     | "rejected-unauthorized"
     | "rejected-unsupported"
     | "inherited";
@@ -511,6 +510,11 @@ function normalizeCurrentTurnAuthority(authority: CurrentTurnModelAuthority): {
  * The schema/registry establishes identity; availability, backend and
  * permission checks remain separate fail-closed boundaries. */
 export function validateCurrentTurnCliRequest(cli: ExternalCliId | undefined, _authority: CurrentTurnModelAuthority): ExternalCliId | undefined {
+  // CLI identity is a structured schema value. Authorization is supplied by
+  // the runtime-owned candidate questionnaire, never by parsing the Parent's
+  // wording or by a model-provided confirmation field.
+  if (cli === undefined) return undefined;
+  if (!isExternalCliId(cli)) throw new Error(`unknown external CLI '${String(cli)}'`);
   return cli;
 }
 
@@ -960,45 +964,23 @@ export interface ModelChangeConfirmation {
 
 export interface TaskModelRequestConfirmation {
   hasUI: boolean;
-  /** Optional hard authority supplied by a direct-user current-turn decision. */
+  /** Legacy compatibility field; public dispatch uses bound selection UI. */
   authority?: CurrentTurnModelAuthority;
   confirm(packet: { parent: string; requested: string }): Promise<"confirm" | "deny" | "dismiss">;
 }
 
-/** Model-facing task arguments are untrusted requests, not direct-user overrides. */
+/**
+ * @deprecated The old unbound confirmation seam is intentionally inert. Model
+ * facing values must go through the runtime-owned selection interaction, which
+ * binds the questionnaire id/options and validates the callback result.
+ */
 export async function confirmTaskModelRequest(
-  requested: TaskModelRequest | undefined,
-  parent: Pick<ResolvedModelChoice, "canonical" | "thinking"> | undefined,
-  confirmation: TaskModelRequestConfirmation,
-  authority?: CurrentTurnModelAuthority,
+  _requested: TaskModelRequest | undefined,
+  _parent: Pick<ResolvedModelChoice, "canonical" | "thinking"> | undefined,
+  _confirmation: TaskModelRequestConfirmation,
+  _authority?: CurrentTurnModelAuthority,
 ): Promise<TaskModelRequest | undefined> {
-  if (!requested) return undefined;
-  const validated = confirmation.authority || authority
-    ? validateCurrentTurnModelRequest(requested, confirmation.authority ?? authority!)
-    : requested;
-  if (!validated?.model && validated?.thinking === undefined) return undefined;
-  const effectiveRequested: TaskModelRequest = {
-    ...(validated?.model === undefined ? {} : { model: validated.model }),
-    ...(validated?.thinking === undefined ? {} : { thinking: validated.thinking }),
-  };
-  // A model-facing argument never becomes authority when no direct Parent
-  // identity is available to present/compare.
-  if (!parent) return undefined;
-  if (effectiveRequested.model !== undefined && effectiveRequested.model === parent.canonical && effectiveRequested.thinking === undefined) return undefined;
-  if (effectiveRequested.model === undefined && effectiveRequested.thinking === parent.thinking) return undefined;
-  if (!confirmation.hasUI) return undefined;
-  const summary = effectiveRequested.model !== undefined
-    ? effectiveRequested.model
-    : `${parent.canonical} thinking=${effectiveRequested.thinking}`;
-  try {
-    return await confirmation.confirm({ parent: parent.canonical, requested: summary }) === "confirm"
-      ? effectiveRequested
-      : undefined;
-  } catch {
-    // Dismissal, expiry, abort, and UI bridge loss all retain normal
-    // configured/parent resolution; none grants the requested model.
-    return undefined;
-  }
+  return undefined;
 }
 
 export class ModelConfigurationService {

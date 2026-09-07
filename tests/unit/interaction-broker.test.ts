@@ -15,6 +15,22 @@ describe("InteractionBroker", () => {
     expect(broker.pendingRecords()).toHaveLength(0);
   });
 
+  it("does not let the generic answer route authorize a runtime-owned selection", async () => {
+    const broker = new InteractionBroker();
+    const pending = broker.request({
+      kind: "selection",
+      agentId: "preflight",
+      jobId: "selection",
+      request: { cli: "codex-cli" },
+      render: async () => new Promise<"confirm" | "deny">(() => undefined),
+      fallback: "deny" as const,
+    });
+    const id = broker.pendingRecords("selection")[0]!.id;
+    expect(broker.answer(id, "confirm")).toBe(false);
+    broker.shutdown();
+    await expect(pending).resolves.toBe("deny");
+  });
+
   it("fails closed on cancellation expiry and shutdown", async () => {
     const broker = new InteractionBroker();
     await expect(broker.request({ kind: "question", agentId: "a", jobId: "j", request: {}, render: async () => new Promise<string>(() => {}), timeoutMs: 5, fallback: "expired" })).resolves.toBe("expired");

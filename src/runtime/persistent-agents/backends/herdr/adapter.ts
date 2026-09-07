@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { connect, type Socket } from "node:net";
 import { join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { loadModeConfig } from "pi-permission-modes/src/config-load.ts";
-import type { TaskExecutionOutput, TaskExecutorInput } from "../../sub-coordinator.js";
-import { createExternalCliLaunchPlan, probeExternalCli, projectExternalCliSettlement, type ExternalCliAgentStatus } from "../../external-cli.js";
+import type { PermissionModeSnapshot, TaskExecutionOutput, TaskExecutorInput } from "../../sub-coordinator.js";
+import { EXTERNAL_CLI_REGISTRY, createExternalCliLaunchPlan, probeExternalCli, type ExternalCliAgentStatus, type ExternalCliDefinition, type ExternalCliLaunchPlan } from "../../external-cli.js";
 import { reconcileUnfinishedCoordinator, type CoordinatorJournal } from "../../storage.js";
 import type { SidecarLayout } from "../../types.js";
 import { assembleChildPrompt } from "../../policy.js";
@@ -40,6 +40,8 @@ export interface HerdrExecutionBackendOptions {
   requestInteraction?: (request: { agentId: string; jobId: string; turnId: string; runId: string; interactionId: string; kind: string; payload: Record<string, unknown>; signal: AbortSignal }) => Promise<unknown>;
   /** Test seam: skip availability detection/install (fake server setups). */
   skipAvailabilitySetup?: boolean;
+  /** Bounded test seam invoked once after authoritative external prompt acceptance. */
+  onExternalPromptAccepted?: (event: { prompt: string; resultPath: string; runId: string; turnId: string }) => void | Promise<void>;
 }
 
 const HERDR_BUILTIN_TOOLS = ["read", "write", "edit", "bash", "grep", "find", "ls"] as const;
@@ -97,10 +99,26 @@ export function buildChildArgv(options: {
   ];
 }
 
-export function herdrRunLoadout(input: TaskExecutorInput, runId: string, cwd: string) {
+function permissionModeSnapshotFor(input: TaskExecutorInput, cwd: string): PermissionModeSnapshot {
+  if (input.permissionModeSnapshot) return input.permissionModeSnapshot;
   const permissionConfig = loadModeConfig(cwd, getAgentDir(), () => undefined);
   const modeName = process.env.PI_PERMISSION_MODE && permissionConfig.modes[process.env.PI_PERMISSION_MODE] ? process.env.PI_PERMISSION_MODE : permissionConfig.defaultMode;
-  const mode = permissionConfig.modes[modeName]!;
+  return { name: modeName, mode: permissionConfig.modes[modeName]! };
+}
+
+function sameExternalLaunchPlan(left: ExternalCliLaunchPlan, right: ExternalCliLaunchPlan): boolean {
+  return left.cli === right.cli
+    && left.executable === right.executable
+    && left.herdrKind === right.herdrKind
+    && left.yolo === right.yolo
+    && (left.executableBinding ?? "Unverified") === (right.executableBinding ?? "Unverified")
+    && JSON.stringify(left.argv) === JSON.stringify(right.argv);
+}
+
+export function herdrRunLoadout(input: TaskExecutorInput, runId: string, cwd: string) {
+  const permission = permissionModeSnapshotFor(input, cwd);
+  const modeName = permission.name;
+  const mode = permission.mode;
   const body = {
     schemaVersion: 2 as const,
     runId,
@@ -112,8 +130,12 @@ export function herdrRunLoadout(input: TaskExecutorInput, runId: string, cwd: st
     snippets: [...(input.item.snippets ?? [])].sort(),
     model: input.modelChoice ? `${input.modelChoice.provider}/${input.modelChoice.model}` : null,
     thinking: input.modelChoice?.thinking ?? null,
+    vendorModel: input.nestedCli ? input.item.model ?? null : null,
+    vendorThinking: input.nestedCli ? input.item.thinking ?? null : null,
     nestedCli: input.nestedCli ?? null,
     runner: input.nestedCli ? "herdr-external-cli/v1" : null,
+    executionBoundary: input.nestedCli ? "trusted-local-vendor" : null,
+    executableBinding: input.nestedCli ? "Unverified" : null,
     // Frozen capability evidence participates in the loadout hash without
     // persisting raw help as durable audit data.
     runnerModifierHash: input.cliProbe ? createHash("sha256").update(JSON.stringify({ cli: input.cliProbe.cli, executable: input.cliProbe.executable, version: input.cliProbe.version, help: input.cliProbe.help, yolo: input.cliProbe.yolo })).digest("hex") : null,
@@ -265,6 +287,113 @@ class BridgeConnection {
   }
 }
 
+const EXTERNAL_RESULT_FILE = "external-result.json";
+const EXTERNAL_RESULT_MAX_BYTES = 64 * 1024;
+const EXTERNAL_RESULT_GRACE_MS = 1_500;
+const EXTERNAL_STARTUP_UI_MAX_BYTES = 64 * 1024;
+
+function externalReadinessMissing(agent: Record<string, unknown> | undefined, paneId: string, liveName: string, target: "pane" | "name"): string | undefined {
+  if (agent?.pane_id !== paneId || agent.name !== liveName) {
+    return `${target} identity missing: expected {pane_id:${paneId}, name:${liveName}}, observed {pane_id:${String(agent?.pane_id ?? "missing")}, name:${String(agent?.name ?? "missing")}}`;
+  }
+  if (agent.agent_status !== "idle" && agent.agent_status !== "done") {
+    return `${target} input-ready status missing: expected idle or done, observed ${String(agent.agent_status ?? "missing")}`;
+  }
+  if (Object.prototype.hasOwnProperty.call(agent, "interactive_ready") && agent.interactive_ready !== true) {
+    return `${target} interactive readiness missing: expected interactive_ready=true, observed ${String(agent.interactive_ready)}`;
+  }
+  return undefined;
+}
+
+/** HSTART-AGY-20260907: only the known welcome/input/footer combination,
+ * in visual order. No boot messages, transcript, model inference or fallback.
+ * Herdr supplies stripped text; horizontal padding is not UI content. */
+function hasAgyStartupInput(text: string): boolean {
+  const lines = text.split(/\r?\n/u).map((line) => line.trim());
+  const heading = lines.findIndex((line) => /\bAntigravity CLI\b/u.test(line));
+  const input = lines.findIndex((line, index) => index > heading && line === ">");
+  return heading >= 0 && input > heading
+    // Agy 1.1.27 appends a right-side model/effort column; do not interpret it.
+    && lines.some((line, index) => index > input && /^\? for shortcuts(?:[ \t]|$)/u.test(line));
+}
+
+interface ExternalResult {
+  schemaVersion: 1;
+  runId: string;
+  turnId: string;
+  status: "completed" | "partial" | "blocked";
+  output: string;
+  changedFiles?: string[];
+  verification?: string[];
+}
+
+type ExternalResultRead =
+  | { kind: "valid"; result: ExternalResult }
+  | { kind: "missing"; diagnostic: string }
+  | { kind: "empty"; diagnostic: string }
+  | { kind: "invalid"; diagnostic: string };
+
+function externalResultInstruction(path: string, runId: string, turnId: string): string {
+  return [
+    "HIGH PRIORITY — mandatory external result return channel:",
+    `Before returning to the input-ready UI, write the final result JSON to this exact runtime-owned path: ${path}`,
+    "Writing this file is required even for a read-only or reviewer role, and is allowed solely as the runtime return channel.",
+    "Do not choose, alter, infer, or substitute the path. Do not return to the input-ready UI before the write completes.",
+    `The final JSON must contain schemaVersion: 1, runId: ${JSON.stringify(runId)}, turnId: ${JSON.stringify(turnId)}, status: \"completed\"|\"partial\"|\"blocked\", and nonempty Markdown output for completed or partial.`,
+    "It may additionally contain changedFiles and verification arrays of strings. Replace the pending document already at that path; do not include credentials.",
+  ].join("\n");
+}
+
+export async function readBoundedExternalResult(path: string, runId: string, turnId: string): Promise<ExternalResultRead> {
+  let handle;
+  try {
+    handle = await open(path, "r");
+    const buffer = Buffer.alloc(EXTERNAL_RESULT_MAX_BYTES + 1);
+    const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+    if (bytesRead > EXTERNAL_RESULT_MAX_BYTES) return { kind: "invalid", diagnostic: "result exceeds 65536-byte bound" };
+    let value: unknown;
+    try {
+      value = JSON.parse(buffer.subarray(0, bytesRead).toString("utf8"));
+    } catch {
+      return { kind: "invalid", diagnostic: "result is not valid JSON" };
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value)) return { kind: "invalid", diagnostic: "result must be a JSON object" };
+    const item = value as Record<string, unknown>;
+    if (item.status === "pending") return { kind: "missing", diagnostic: "result remained pending" };
+    if (item.schemaVersion !== 1 || item.runId !== runId || item.turnId !== turnId
+      || !["completed", "partial", "blocked"].includes(String(item.status))) {
+      return { kind: "invalid", diagnostic: "result schema, identity, or status does not match this run" };
+    }
+    for (const field of ["changedFiles", "verification"] as const) {
+      if (item[field] !== undefined && (!Array.isArray(item[field]) || !(item[field] as unknown[]).every((entry) => typeof entry === "string"))) {
+        return { kind: "invalid", diagnostic: `${field} must be an array of strings when present` };
+      }
+    }
+    if (item.status !== "blocked" && (typeof item.output !== "string" || item.output.trim().length === 0)) {
+      return { kind: "empty", diagnostic: "completed/partial result output is empty" };
+    }
+    if (typeof item.output !== "string") return { kind: "invalid", diagnostic: "result output must be a string" };
+    return { kind: "valid", result: item as unknown as ExternalResult };
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? String((error as { code?: unknown }).code) : "";
+    if (code === "ENOENT") return { kind: "missing", diagnostic: "result file is missing" };
+    return { kind: "invalid", diagnostic: `result read failed${code ? ` (${code.slice(0, 32)})` : ""}` };
+  } finally {
+    await handle?.close().catch(() => undefined);
+  }
+}
+
+async function awaitExternalResult(path: string, runId: string, turnId: string, signal: AbortSignal): Promise<ExternalResultRead> {
+  const deadline = Date.now() + EXTERNAL_RESULT_GRACE_MS;
+  let observed = await readBoundedExternalResult(path, runId, turnId);
+  while (observed.kind === "missing" && Date.now() < deadline) {
+    if (signal.aborted) throw signal.reason ?? new Error("external CLI turn cancelled");
+    await new Promise((resolve) => setTimeout(resolve, Math.min(100, Math.max(1, deadline - Date.now()))));
+    observed = await readBoundedExternalResult(path, runId, turnId);
+  }
+  return observed;
+}
+
 interface SurfaceRecord {
   agentId: string;
   workspaceId: string;
@@ -289,10 +418,10 @@ interface SurfaceRecord {
 }
 
 /**
- * Herdr execution backend (Phase 2: read-only vertical slice). AILI keeps
- * every authority (allocation, journal, evidence); Herdr only provides the
- * persistent terminal surface and process; the child bridge is the sole
- * source of turn-completion evidence.
+ * Herdr execution backend. AILI keeps every authority (allocation, journal,
+ * evidence); Herdr provides the persistent terminal surface/process. Pi child
+ * turns use the bridge, while direct vendor turns use the bounded CUI/result
+ * protocol and remain trusted-local rather than Pi-child sandboxed.
  */
 export class HerdrExecutionBackend implements ExecutionBackend {
   readonly kind = "herdr" as const;
@@ -433,36 +562,131 @@ export class HerdrExecutionBackend implements ExecutionBackend {
     return workspaceId;
   }
 
-  private async startAgentWithRetry(client: HerdrSocketClient, params: Record<string, unknown>): Promise<void> {
-    const deadline = Date.now() + this.startupTimeoutMs;
+  private async startAgentWithRetry(client: HerdrSocketClient, params: Record<string, unknown>, deadline = Date.now() + this.startupTimeoutMs): Promise<void> {
     for (;;) {
+      if (Date.now() >= deadline) throw new Error("Herdr Agent start did not complete before the startup deadline");
       try {
         await client.call("agent.start", params);
         return;
       } catch (error) {
         const busy = error instanceof HerdrProtocolError && error.herdrCode === "agent_pane_busy";
         if (!busy || Date.now() >= deadline) throw error;
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, Math.min(300, Math.max(1, deadline - Date.now()))));
       }
     }
   }
 
-  private async waitForNamedAgent(client: HerdrSocketClient, paneId: string, liveName: string): Promise<Record<string, unknown>> {
-    const deadline = Date.now() + this.startupTimeoutMs;
-    let lastError: unknown;
+  private async callAgent<T>(client: HerdrSocketClient, method: "agent.get" | "agent.prompt" | "agent.read", targetKind: "pane" | "name", params: Record<string, unknown>, deadline?: number): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      if (deadline === undefined) return await client.call<T>(method, params);
+      if (Date.now() >= deadline) throw new Error(`${method} exceeded the startup deadline; prompt was not sent`);
+      // Only observational startup calls use this deadline. Never race/retry
+      // a possibly accepted prompt. Late reads cannot resume the send path.
+      return await Promise.race([
+        client.call<T>(method, params),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`${method} exceeded the startup deadline; prompt was not sent`)), Math.max(1, deadline - Date.now()));
+        }),
+      ]);
+    } catch (error) {
+      if (error instanceof HerdrProtocolError) {
+        throw new HerdrProtocolError(`${method} failed (target-kind=${targetKind})`, error.herdrCode);
+      }
+      throw error;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  private async waitForNamedAgent(client: HerdrSocketClient, paneId: string, liveName: string, deadline = Date.now() + this.startupTimeoutMs, boundStartupCalls = false): Promise<Record<string, unknown>> {
+    let lastMissing = "pane readiness has not been observed";
+    const readinessMissing = (agent: Record<string, unknown> | undefined, target: "pane" | "name") => externalReadinessMissing(agent, paneId, liveName, target);
     for (;;) {
-      try {
-        const result = await client.call<Record<string, unknown>>("agent.get", { target: paneId });
-        const agent = result.agent && typeof result.agent === "object" ? result.agent as Record<string, unknown> : undefined;
-        if (agent?.pane_id === paneId && agent.name === liveName) return agent;
-        lastError = new Error(`expected ${liveName} in ${paneId}, observed ${String(agent?.name ?? "unnamed")}`);
-      } catch (error) {
-        lastError = error;
-      }
       if (Date.now() >= deadline) {
-        throw new Error(`Herdr did not retain active Agent ${liveName} in pane ${paneId}: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+        throw new Error(`Herdr Agent ${liveName} in pane ${paneId} did not reach dual pane/name/status/interactive readiness before startup timeout; last missing: ${lastMissing}`);
       }
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      let paneAgent: Record<string, unknown> | undefined;
+      try {
+        const paneResult = await this.callAgent<Record<string, unknown>>(client, "agent.get", "pane", { target: paneId }, boundStartupCalls ? deadline : undefined);
+        paneAgent = paneResult.agent && typeof paneResult.agent === "object" ? paneResult.agent as Record<string, unknown> : undefined;
+        lastMissing = readinessMissing(paneAgent, "pane") ?? lastMissing;
+      } catch (error) {
+        lastMissing = `pane readiness missing: ${error instanceof Error ? error.message : String(error)}`;
+      }
+
+      if (!readinessMissing(paneAgent, "pane")) {
+        try {
+          const nameResult = await this.callAgent<Record<string, unknown>>(client, "agent.get", "name", { target: liveName }, boundStartupCalls ? deadline : undefined);
+          const nameAgent = nameResult.agent && typeof nameResult.agent === "object" ? nameResult.agent as Record<string, unknown> : undefined;
+          const missing = readinessMissing(nameAgent, "name");
+          if (!missing) return nameAgent!;
+          lastMissing = missing;
+        } catch (error) {
+          const startupPending = error instanceof HerdrProtocolError
+            && (error.herdrCode === "agent_not_ready" || error.herdrCode === "agent_not_found" || error.herdrCode === "not_found");
+          if (!startupPending) throw error;
+          lastMissing = `name readiness missing: ${error.message}`;
+        }
+      }
+
+      if (Date.now() >= deadline) {
+        throw new Error(`Herdr Agent ${liveName} in pane ${paneId} did not reach dual pane/name/status/interactive readiness before startup timeout; last missing: ${lastMissing}`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, Math.min(100, Math.max(1, deadline - Date.now()))));
+    }
+  }
+
+  private async readExternalStartupInput(client: HerdrSocketClient, paneId: string, liveName: string, beforeRead: Record<string, unknown>, deadline: number): Promise<boolean> {
+    const result = await this.callAgent<Record<string, unknown>>(client, "agent.read", "name", {
+      target: liveName,
+      source: "visible",
+      lines: 200,
+      format: "text",
+      strip_ansi: true,
+    }, deadline);
+    const read = result?.read && typeof result.read === "object" ? result.read as Record<string, unknown> : undefined;
+    if (read && read.pane_id !== paneId) throw new Error(`Herdr Agent ${liveName}: startup UI read identity changed in frozen pane`);
+    if (!read || read.source !== "visible" || read.format !== "text" || read.truncated !== false
+      || typeof read.text !== "string" || Buffer.byteLength(read.text, "utf8") > EXTERNAL_STARTUP_UI_MAX_BYTES
+      || !hasAgyStartupInput(read.text)) return false;
+
+    // Recheck BOTH frozen targets after the screen read, without waiting on
+    // an old screen through a status transition. Any transition discards it;
+    // a subsequent attempt must obtain fresh visible UI evidence again.
+    for (const targetKind of ["pane", "name"] as const) {
+      const result = await this.callAgent<Record<string, unknown>>(client, "agent.get", targetKind, { target: targetKind === "pane" ? paneId : liveName }, deadline);
+      const agent = result?.agent && typeof result.agent === "object" ? result.agent as Record<string, unknown> : undefined;
+      if (agent?.pane_id !== paneId || agent.name !== liveName) throw new Error(`Herdr Agent ${liveName}: identity changed after startup UI read`);
+      if (externalReadinessMissing(agent, paneId, liveName, targetKind)
+        || agent.state_change_seq !== beforeRead.state_change_seq) return false;
+    }
+    return true;
+  }
+
+  /** Deliver exactly once after acceptance. Only Herdr's explicit
+   * pre-acceptance `agent_not_ready` rejection is retryable. */
+  private async promptExternalAgent(client: HerdrSocketClient, paneId: string, liveName: string, text: string, deadline: number, startupReadiness?: ExternalCliDefinition["startupReadiness"], signal?: AbortSignal): Promise<Record<string, unknown>> {
+    for (;;) {
+      if (startupReadiness && signal?.aborted) throw signal.reason ?? new Error("external CLI turn cancelled");
+      const activeAgent = await this.waitForNamedAgent(client, paneId, liveName, deadline, startupReadiness !== undefined);
+      if (startupReadiness === "agy-visible-input" && !await this.readExternalStartupInput(client, paneId, liveName, activeAgent, deadline)) {
+        if (Date.now() >= deadline) throw new Error(`Herdr Agent ${liveName} did not show the Agy startup input UI before the startup deadline; prompt was not sent`);
+        await new Promise((resolve) => setTimeout(resolve, Math.min(100, Math.max(1, deadline - Date.now()))));
+        continue;
+      }
+      if (startupReadiness && signal?.aborted) throw signal.reason ?? new Error("external CLI turn cancelled");
+      if (Date.now() >= deadline) throw new Error(`Herdr Agent ${liveName} became ready after the startup deadline; prompt was not sent`);
+      try {
+        // Resolution is authoritative acceptance: return immediately and
+        // never invoke agent.prompt again from this helper.
+        return await this.callAgent<Record<string, unknown>>(client, "agent.prompt", "name", { target: liveName, text });
+      } catch (error) {
+        const rejectedBeforeAcceptance = error instanceof HerdrProtocolError && error.herdrCode === "agent_not_ready";
+        if (!rejectedBeforeAcceptance) throw error;
+        if (Date.now() >= deadline) throw new Error(`Herdr Agent ${liveName} remained agent_not_ready until the startup deadline; prompt was never accepted`);
+        await new Promise((resolve) => setTimeout(resolve, Math.min(100, Math.max(1, deadline - Date.now()))));
+      }
     }
   }
 
@@ -616,7 +840,13 @@ export class HerdrExecutionBackend implements ExecutionBackend {
     if (!tabId || !paneId) throw new Error("herdr surface pane/tab id is missing");
     this.claimedPanes.add(paneId);
 
-    await this.attachIdentity(client, input, paneId, workspaceId, tabId, runId);
+    try {
+      await this.attachIdentity(client, input, paneId, workspaceId, tabId, runId);
+    } catch (error) {
+      this.claimedPanes.delete(paneId);
+      if (!reusedPane) await client.call("pane.close", { pane_id: paneId }).catch(() => undefined);
+      throw error;
+    }
 
     const record: SurfaceRecord = { agentId: input.agentId, workspaceId, tabId, paneId, bridgeDir, sockDir, token, loadoutHash: loadout.loadoutHash, reusedPane, starting: true, busy: true, pendingInteractions: new Set() };
     this.surfaces.set(input.agentId, record);
@@ -716,11 +946,33 @@ export class HerdrExecutionBackend implements ExecutionBackend {
 
   async execute(input: TaskExecutorInput): Promise<TaskExecutionOutput> {
     assertHerdrRoleSupported(input.role, { ...input.item, cli: input.nestedCli });
-    // This deterministic, shell-free check happens only after the authorized
-    // Agent/job/turn exists and before any vendor task invocation. It never
-    // installs, logs in, refreshes credentials, or executes the task through Pi/Bash.
-    const cliProbe = input.nestedCli ? await probeExternalCli(input.nestedCli, input.context.signal) : undefined;
-    if (cliProbe) input = { ...input, cliProbe };
+    // Direct adapter calls are defensive: production preflight normally
+    // supplies the frozen mode/probe/plan. Validate or derive them here before
+    // setup, run, surface, or vendor allocation so invalid options are zero-
+    // allocation failures as well.
+    const permissionModeSnapshot = permissionModeSnapshotFor(input, this.options.cwd);
+    let cliProbe = input.cliProbe;
+    let launchPlan = input.launchPlan;
+    if (input.nestedCli) {
+      cliProbe ??= await probeExternalCli(input.nestedCli, input.context.signal);
+      const expectedPlan = createExternalCliLaunchPlan(cliProbe!, permissionModeSnapshot.name === "yolo", {
+        model: input.item.model,
+        thinking: input.item.thinking,
+      });
+      if (launchPlan && !sameExternalLaunchPlan(launchPlan, expectedPlan)) {
+        throw new Error(`${input.nestedCli}: prevalidated external launch plan drifted before execution`);
+      }
+      launchPlan = expectedPlan;
+    }
+    input = {
+      ...input,
+      permissionModeSnapshot,
+      ...(cliProbe ? { cliProbe } : {}),
+      ...(launchPlan ? { launchPlan } : {}),
+    };
+    if (input.nestedCli && (!input.cliProbe || !input.launchPlan)) {
+      throw new Error(`${input.nestedCli}: external launch plan is missing after preflight`);
+    }
     const snippetDefinitions = input.item.snippets?.length ? await discoverPromptModifiers([{ path: join(getAgentDir(), "snippets"), trusted: true }]) : [];
     const roleAllowedSnippets = snippetDefinitions.filter((definition) => definition.scopes.includes(`role:${input.role.selector}`)).map((definition) => definition.id);
     const snippetResolution = input.item.snippets?.length ? resolvePromptModifiers(
@@ -754,15 +1006,22 @@ export class HerdrExecutionBackend implements ExecutionBackend {
       } satisfies RunRecord,
     }));
     const runBridgeDir = join(this.options.layout.root, "herdr-runs", runId);
-    await mkdir(runBridgeDir, { recursive: true, mode: 0o700 });
-    const runLoadout = herdrRunLoadout(input, runId, this.options.cwd);
-    const agentSessionDir = join(this.options.layout.root, "herdr-sessions", input.agentId);
-    await mkdir(agentSessionDir, { recursive: true, mode: 0o700 });
-    const ceilingPath = join(agentSessionDir, "loadout.json");
-    if (!existsSync(ceilingPath)) await writeFile(ceilingPath, `${JSON.stringify(runLoadout, null, 2)}\n`, { encoding: "utf8", mode: 0o600, flag: "wx" });
-    await writeFile(join(runBridgeDir, "loadout.json"), `${JSON.stringify(runLoadout, null, 2)}\n`, { encoding: "utf8", mode: 0o600, flag: "wx" });
     const setRun = (from: RunRecord["lifecycle"], to: RunRecord["lifecycle"], extra: Record<string, unknown> = {}) =>
       this.options.journal.append({ kind: "run.state", agentId: input.agentId, jobId: input.jobId, turnId: input.turnId, runId, payload: { from, to, ...extra } });
+    let runLoadout: ReturnType<typeof herdrRunLoadout> | undefined;
+    try {
+      await mkdir(runBridgeDir, { recursive: true, mode: 0o700 });
+      runLoadout = herdrRunLoadout(input, runId, this.options.cwd);
+      const agentSessionDir = join(this.options.layout.root, "herdr-sessions", input.agentId);
+      await mkdir(agentSessionDir, { recursive: true, mode: 0o700 });
+      const ceilingPath = join(agentSessionDir, "loadout.json");
+      if (!existsSync(ceilingPath)) await writeFile(ceilingPath, `${JSON.stringify(runLoadout, null, 2)}\n`, { encoding: "utf8", mode: 0o600, flag: "wx" });
+      await writeFile(join(runBridgeDir, "loadout.json"), `${JSON.stringify(runLoadout, null, 2)}\n`, { encoding: "utf8", mode: 0o600, flag: "wx" });
+    } catch (error) {
+      await setRun("allocated", "failed", { failure: `external run initialization failed: ${error instanceof Error ? error.message : String(error)}` }).catch(() => undefined);
+      throw error;
+    }
+    if (!runLoadout) throw new Error(`${runId}: Herdr run loadout was not initialized`);
 
     // A surface whose child bridge died is dropped: continuation proceeds on
     // a fresh surface with the SAME stable session dir/id, so the agent's
@@ -779,26 +1038,60 @@ export class HerdrExecutionBackend implements ExecutionBackend {
     } else {
       await setRun("allocated", "starting");
     }
-    const surface = await this.ensureSurface(input, runId);
+    let surface: SurfaceRecord;
+    try {
+      surface = await this.ensureSurface(input, runId);
+    } catch (error) {
+      await setRun("starting", "failed", { failure: error instanceof Error ? error.message : String(error) }).catch(() => undefined);
+      throw error;
+    }
 
-    const prompt = assembleChildPrompt({
-      runtimeEnvelope: [
-        "Official Pi persistent Agent runtime (herdr backend, external process). The parent conversation is not copied.",
-        `Agent ID: ${input.agentId}`,
-        `Model: ${input.modelChoice ? `${input.modelChoice.provider}/${input.modelChoice.model} (thinking=${input.modelChoice.thinking}, speed=${input.modelChoice.speedTier ?? "standard"})` : "inherited"}`,
-        `Execution surface: Herdr pane ${surface.paneId} (tab ${surface.tabId})`,
-      ].join("\n"),
-      role: input.role,
-      task: snippetResolution ? assemblePromptModifiers("", input.item.task, snippetResolution.ordered).dynamicMessage : input.item.task,
-      context: input.item.context,
-      cwd: this.options.cwd,
-      workspace: { mode: "shared", root: this.options.cwd },
-    });
+    // External Agents receive one short ASCII runtime return path. The
+    // sidecar identity remains authoritative, but vendor tools do not need to
+    // write through the long/user-home/session path (which may contain CJK).
+    const externalResultPath = input.nestedCli ? join(surface.sockDir, EXTERNAL_RESULT_FILE) : undefined;
+    if (externalResultPath) {
+      try {
+        await writeFile(externalResultPath, `${JSON.stringify({ schemaVersion: 1, runId, turnId: input.turnId, status: "pending", output: "" })}\n`, { encoding: "utf8", mode: 0o600 });
+      } catch (error) {
+        await setRun("starting", "failed", { failure: `external result setup failed: ${error instanceof Error ? error.message : String(error)}` }).catch(() => undefined);
+        await this.shutdownSettledSurface(client, surface).catch(() => undefined);
+        throw error;
+      }
+    }
+    let prompt: ReturnType<typeof assembleChildPrompt>;
+    try {
+      prompt = assembleChildPrompt({
+        runtimeEnvelope: [
+          "Official Pi persistent Agent runtime (herdr backend, external process). The parent conversation is not copied.",
+          `Agent ID: ${input.agentId}`,
+          ...(input.nestedCli ? [
+            `External CLI model: ${input.item.model ?? "vendor default"}`,
+            `External CLI thinking: ${input.item.thinking ?? "vendor default"}`,
+            `External CLI permission mode: ${input.permissionModeSnapshot?.name ?? "unknown"}`,
+            "External CLI boundary: trusted-local vendor execution; not a Pi child hard-permission boundary; actual executable binding: Unverified",
+          ] : [
+            `Model: ${input.modelChoice ? `${input.modelChoice.provider}/${input.modelChoice.model} (thinking=${input.modelChoice.thinking}, speed=${input.modelChoice.speedTier ?? "standard"})` : "inherited"}`,
+          ]),
+          `Execution surface: Herdr pane ${surface.paneId} (tab ${surface.tabId})`,
+        ].join("\n"),
+        role: input.role,
+        task: snippetResolution ? assemblePromptModifiers("", input.item.task, snippetResolution.ordered).dynamicMessage : input.item.task,
+        context: input.item.context,
+        cwd: this.options.cwd,
+        workspace: { mode: "shared", root: this.options.cwd },
+      });
+    } catch (error) {
+      await setRun("starting", "failed", { failure: `external prompt setup failed: ${error instanceof Error ? error.message : String(error)}` }).catch(() => undefined);
+      await this.shutdownSettledSurface(client, surface).catch(() => undefined);
+      throw error;
+    }
 
     const liveName = herdrLiveName(this.options.parentId, runNumberFromRunId(runId));
-    if (input.nestedCli && input.cliProbe) {
-      const enableYolo = runLoadout.permission.modeName === "yolo";
-      const plan = createExternalCliLaunchPlan(input.cliProbe, enableYolo);
+    if (input.nestedCli && input.cliProbe && input.launchPlan) {
+      const plan = input.launchPlan;
+      const probe = input.cliProbe;
+      const startupReadiness = EXTERNAL_CLI_REGISTRY[plan.cli].startupReadiness;
       surface.external = true;
       const abort = () => {
         void client.call("pane.close", { pane_id: surface.paneId }).catch(() => undefined);
@@ -806,14 +1099,16 @@ export class HerdrExecutionBackend implements ExecutionBackend {
       };
       input.context.signal.addEventListener("abort", abort, { once: true });
       try {
+        const startupDeadline = Date.now() + this.startupTimeoutMs;
         await this.startAgentWithRetry(client, {
           name: liveName,
           kind: plan.herdrKind,
           pane_id: surface.paneId,
           args: [...plan.argv],
           timeout_ms: this.startupTimeoutMs,
-        });
-        const activeAgent = await this.waitForNamedAgent(client, surface.paneId, liveName);
+        }, startupDeadline);
+        const activeAgent = await this.waitForNamedAgent(client, surface.paneId, liveName, startupDeadline, startupReadiness !== undefined);
+        const prePromptStateSequence = typeof activeAgent.state_change_seq === "number" ? activeAgent.state_change_seq : undefined;
         surface.starting = false;
         await setRun("starting", "live");
         await this.options.journal.append({
@@ -829,7 +1124,12 @@ export class HerdrExecutionBackend implements ExecutionBackend {
             externalCli: plan.cli,
             cuiKind: plan.herdrKind,
             yolo: plan.yolo,
-            capabilityEvidence: { completed: input.cliProbe.completed, identity: input.cliProbe.identity, outputTruncated: input.cliProbe.outputTruncated },
+            executionBoundary: "trusted-local-vendor",
+            executableBinding: plan.executableBinding ?? "Unverified",
+            permissionMode: input.permissionModeSnapshot?.name ?? "unknown",
+            vendorModel: input.item.model ?? null,
+            vendorThinking: input.item.thinking ?? null,
+            capabilityEvidence: { probedExecutable: probe.executable, completed: probe.completed, identity: probe.identity, outputTruncated: probe.outputTruncated, executableBinding: plan.executableBinding ?? "Unverified" },
             settlement: "post-prompt-working-then-idle-or-done",
           },
         });
@@ -838,37 +1138,42 @@ export class HerdrExecutionBackend implements ExecutionBackend {
         // argv or a shell command. A pre-existing idle snapshot is deliberately
         // ignored; only a working state observed after this call opens the
         // settlement gate for this exact pane/name pair.
-        const promptResult = await client.call<Record<string, unknown>>("agent.prompt", {
-          target: surface.paneId,
-          text: `${prompt.systemPrompt}\n\n---\n\n${prompt.initialMessage}`,
-        });
+        // Herdr delivers this as one CUI prompt rather than separate system
+        // and user messages. Keep the mandatory runtime return contract last
+        // so task wording cannot accidentally override the result-file write.
+        const externalPrompt = `${prompt.systemPrompt}\n\n---\n\n${prompt.initialMessage}\n\n---\n\n${externalResultInstruction(externalResultPath!, runId, input.turnId)}`;
+        const promptResult = await this.promptExternalAgent(
+          client,
+          surface.paneId,
+          liveName,
+          externalPrompt,
+          startupDeadline,
+          startupReadiness,
+          input.context.signal,
+        );
+        const transitionDeadline = Date.now() + this.startupTimeoutMs;
+        await this.options.onExternalPromptAccepted?.({ prompt: externalPrompt, resultPath: externalResultPath!, runId, turnId: input.turnId });
         const statuses: ExternalCliAgentStatus[] = [];
-        const promptedAgent = promptResult.agent && typeof promptResult.agent === "object" ? promptResult.agent as Record<string, unknown> : undefined;
-        const promptStatus = typeof promptedAgent?.agent_status === "string"
-          ? promptedAgent.agent_status
-          : typeof activeAgent.agent_status === "string" ? activeAgent.agent_status : undefined;
-        if (promptStatus) statuses.push(promptStatus);
-        while (projectExternalCliSettlement(statuses) !== "settled") {
-          if (input.context.signal.aborted) throw input.context.signal.reason ?? new Error("external CLI turn cancelled");
-          await new Promise((resolve) => setTimeout(resolve, 150));
-          let agent: Record<string, unknown> | undefined;
-          try {
-            const result = await client.call<Record<string, unknown>>("agent.get", { target: surface.paneId });
-            agent = result.agent && typeof result.agent === "object" ? result.agent as Record<string, unknown> : undefined;
-          } catch {
-            await setRun("live", "lost", { failure: "external CUI pane/process was lost; prompt will not be replayed" });
-            throw new Error(`${input.agentId}: external CUI pane was lost; prompt was not replayed`);
-          }
-          if (agent?.pane_id !== surface.paneId || agent.name !== liveName) {
-            throw new Error(`${input.agentId}: external CUI Agent identity changed in frozen pane`);
-          }
-          const status = String(agent.agent_status ?? "unknown");
+        const appendStatus = (status: ExternalCliAgentStatus) => {
           statuses.push(status);
-          if (status === "blocked" && this.options.requestInteraction) {
-            // A blocked status alone is non-terminal. The policy callback may
-            // issue a hard denial, but receives no credential or raw vendor
-            // payload and must never open a user dialog for this interaction.
-            const answer = await this.options.requestInteraction({
+          if (statuses.length > 32) statuses.shift();
+        };
+        const promptedAgent = promptResult.agent && typeof promptResult.agent === "object" ? promptResult.agent as Record<string, unknown> : undefined;
+        const promptAgent = promptedAgent ?? activeAgent;
+        if (promptAgent.pane_id !== surface.paneId || promptAgent.name !== liveName) {
+          throw new Error(`${input.agentId}: external CUI Agent identity changed at prompt acceptance`);
+        }
+        const promptStatus = typeof promptAgent.agent_status === "string" ? promptAgent.agent_status : "unknown";
+        appendStatus(promptStatus);
+        let finalAgent: Record<string, unknown> | undefined = promptAgent;
+        let enteredWorking = promptStatus === "working";
+        const blockedResult = async (): Promise<TaskExecutionOutput> => {
+          // Herdr exposes no bounded operation packet here. Even a callback
+          // that returns an affirmative value cannot authorize a guessed
+          // vendor operation, so every blocked state fails closed without a
+          // user approval dialog.
+          if (this.options.requestInteraction) {
+            await this.options.requestInteraction({
               agentId: input.agentId,
               jobId: input.jobId,
               turnId: input.turnId,
@@ -878,39 +1183,129 @@ export class HerdrExecutionBackend implements ExecutionBackend {
               payload: { disposition: "need-user", externalCli: plan.cli },
               signal: input.context.signal,
             }).catch(() => "deny");
-            if (answer === "deny") {
-              await setRun("live", "failed", { failure: "blocked/need-user: external CUI confirmation lacks existing operation authorization" });
-              await this.shutdownSettledSurface(client, surface);
-              return {
-                status: "failed",
-                output: "blocked/need-user: external CUI confirmation was denied by AILI policy",
-                error: "blocked/need-user",
-                evidence: { externalCli: plan.cli, yolo: plan.yolo, pane: surface.paneId, lifecycle: statuses.slice(-16) },
-                backend: "herdr",
-                driver: "external-cli",
-                runId,
-              };
-            }
           }
+          const error = "blocked/need-user";
+          await setRun("live", "failed", { failure: `${error}: external CUI confirmation lacks existing operation authorization` });
+          await this.shutdownSettledSurface(client, surface);
+          return {
+            status: "failed",
+            output: "blocked/need-user: external CUI confirmation was denied by AILI policy",
+            error,
+            evidence: {
+              externalCli: plan.cli,
+              probedExecutable: probe.executable,
+              vendorModel: input.item.model,
+              vendorThinking: input.item.thinking,
+              yolo: plan.yolo,
+              executionBoundary: "trusted-local-vendor",
+              executableBinding: plan.executableBinding ?? "Unverified",
+              permissionMode: input.permissionModeSnapshot?.name ?? "unknown",
+              pane: surface.paneId,
+              lifecycle: statuses.slice(-16),
+            },
+            backend: "herdr",
+            driver: "external-cli",
+            runId,
+          };
+        };
+        if (promptStatus === "blocked") return await blockedResult();
+        const completionReady = () => {
+          if (!enteredWorking || !finalAgent) return false;
+          if (finalAgent.agent_status !== "idle" && finalAgent.agent_status !== "done") return false;
+          if (Object.prototype.hasOwnProperty.call(finalAgent, "interactive_ready") && finalAgent.interactive_ready !== true) return false;
+          const finalSequence = finalAgent.state_change_seq;
+          if (prePromptStateSequence !== undefined) {
+            return typeof finalSequence === "number" && finalSequence > prePromptStateSequence;
+          }
+          // If only the final view exposes a sequence, there is no safe
+          // baseline proving that this turn changed state; fail rather than
+          // accepting a historical idle as completion.
+          if (typeof finalSequence === "number") {
+            throw new Error(`${input.agentId}: external CUI state_change_seq appeared without a pre-prompt baseline; completion is unverified`);
+          }
+          return true;
+        };
+        while (!completionReady()) {
+          if (input.context.signal.aborted) throw input.context.signal.reason ?? new Error("external CLI turn cancelled");
+          if (!enteredWorking && Date.now() >= transitionDeadline) {
+            throw new Error(`${input.agentId}: external CUI Agent did not enter working after prompt acceptance before the startup transition deadline; prompt was not replayed`);
+          }
+          const delay = enteredWorking ? 150 : Math.min(150, Math.max(1, transitionDeadline - Date.now()));
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          let agent: Record<string, unknown> | undefined;
+          try {
+            const result = await this.callAgent<Record<string, unknown>>(client, "agent.get", "name", { target: liveName });
+            agent = result.agent && typeof result.agent === "object" ? result.agent as Record<string, unknown> : undefined;
+          } catch {
+            await setRun("live", "lost", { failure: "external CUI pane/process was lost; prompt will not be replayed" });
+            throw new Error(`${input.agentId}: external CUI pane was lost; prompt was not replayed`);
+          }
+          if (!agent || agent.pane_id !== surface.paneId || agent.name !== liveName) {
+            throw new Error(`${input.agentId}: external CUI Agent identity changed in frozen pane`);
+          }
+          const status = String(agent.agent_status ?? "unknown");
+          appendStatus(status);
+          finalAgent = agent;
+          if (!enteredWorking && status === "working" && Date.now() >= transitionDeadline) {
+            throw new Error(`${input.agentId}: external CUI Agent did not enter working within the startup transition deadline; prompt was not replayed`);
+          }
+          if (status === "working") enteredWorking = true;
+          if (status === "blocked") return await blockedResult();
         }
-        const readResult = await client.call<Record<string, unknown>>("agent.read", {
-          target: surface.paneId,
+        const readResult = await this.callAgent<Record<string, unknown>>(client, "agent.read", "name", {
+          target: liveName,
           source: "recent_unwrapped",
           lines: 200,
           format: "text",
           strip_ansi: true,
         }).catch(() => undefined);
         const read = readResult?.read && typeof readResult.read === "object" ? readResult.read as Record<string, unknown> : undefined;
-        const rawOutput = typeof read?.text === "string" ? read.text : "";
-        const output = redactCredentialText(rawOutput).slice(-32_768).trim()
-          || `${plan.cli} completed and returned to its input-ready CUI state`;
+        const rawDiagnostic = typeof read?.text === "string" ? read.text : "";
+        const diagnosticExcerpt = redactCredentialText(rawDiagnostic).slice(-4_096).trim();
+        const resultRead = await awaitExternalResult(externalResultPath!, runId, input.turnId, input.context.signal);
+        const evidence = {
+          externalCli: plan.cli,
+          cuiKind: plan.herdrKind,
+          probedExecutable: probe.executable,
+          vendorModel: input.item.model,
+          vendorThinking: input.item.thinking,
+          yolo: plan.yolo,
+          executionBoundary: "trusted-local-vendor",
+          executableBinding: plan.executableBinding ?? "Unverified",
+          permissionMode: input.permissionModeSnapshot?.name ?? "unknown",
+          pane: surface.paneId,
+          lifecycle: statuses.slice(-16),
+          prePromptStateSequence,
+          finalStateSequence: finalAgent?.state_change_seq,
+          ...(diagnosticExcerpt ? { diagnosticExcerpt, diagnosticTruncated: rawDiagnostic.length > 4_096 } : {}),
+        };
+        if (resultRead.kind !== "valid" || resultRead.result.status === "blocked") {
+          const error = resultRead.kind === "missing" ? "external-output-missing"
+            : resultRead.kind === "empty" ? "external-output-empty"
+              : resultRead.kind === "invalid" ? "external-output-invalid"
+                : "external-output-blocked";
+          await setRun("live", "failed", { failure: error });
+          await this.shutdownSettledSurface(client, surface);
+          return {
+            status: "failed",
+            output: resultRead.kind === "valid" ? redactCredentialText(resultRead.result.output).slice(0, EXTERNAL_RESULT_MAX_BYTES) : "",
+            error,
+            evidence: { ...evidence, resultDiagnostic: resultRead.kind === "valid" ? "external Agent reported blocked" : resultRead.diagnostic },
+            backend: "herdr",
+            driver: "external-cli",
+            runId,
+          };
+        }
+        const output = redactCredentialText(resultRead.result.output).slice(0, EXTERNAL_RESULT_MAX_BYTES).trim();
         await setRun("live", "stopping");
-        await setRun("stopping", "stopped", { stopReason: "cui-input-ready" });
+        await setRun("stopping", "stopped", { stopReason: "structured-external-result" });
         surface.busy = false;
         await this.shutdownSettledSurface(client, surface);
         return {
+          status: "completed",
+          result: resultRead.result.status,
           output,
-          evidence: { externalCli: plan.cli, cuiKind: plan.herdrKind, yolo: plan.yolo, pane: surface.paneId, lifecycle: statuses.slice(-16), outputTruncated: rawOutput.length > 32_768 },
+          evidence: { ...evidence, changedFiles: resultRead.result.changedFiles, verification: resultRead.result.verification },
           backend: "herdr",
           driver: "external-cli",
           runId,
@@ -932,7 +1327,10 @@ export class HerdrExecutionBackend implements ExecutionBackend {
       const sessionDir = join(this.options.layout.root, "herdr-sessions", input.agentId);
       const integrationPath = herdrIntegrationExtensionPath();
       if (!integrationPath) {
-        throw new Error("herdr pi integration extension is missing (~/.pi/agent/extensions/herdr-agent-state.ts); run 'herdr integration install pi' before using the herdr backend");
+        const error = new Error("herdr pi integration extension is missing (~/.pi/agent/extensions/herdr-agent-state.ts); run 'herdr integration install pi' before using the herdr backend");
+        await setRun("starting", "failed", { failure: error.message }).catch(() => undefined);
+        await this.shutdownSettledSurface(client, surface).catch(() => undefined);
+        throw error;
       }
       const argv = buildChildArgv({
         bootstrapModulePath: this.options.bootstrapModulePath,
@@ -996,25 +1394,31 @@ export class HerdrExecutionBackend implements ExecutionBackend {
       surface.bridge = fresh;
       bridge = fresh;
     }
-    surface.starting = false;
-    await setRun("starting", "live");
-    await this.options.journal.append({
-      kind: "turn.audit",
-      agentId: input.agentId,
-      jobId: input.jobId,
-      turnId: input.turnId,
-      payload: {
-        backend: "herdr",
-        driver: "pi-cli",
-        runId,
-        surface: { workspace: surface.workspaceId, tab: surface.tabId, pane: surface.paneId, liveName },
-        ...(input.cliProbe ? {
-          nestedCli: input.cliProbe.cli,
-          cliProbe: { executable: input.cliProbe.executable, version: input.cliProbe.version.slice(0, 2_048), completed: input.cliProbe.completed, identity: input.cliProbe.identity, yolo: input.cliProbe.yolo.disposition, outputTruncated: input.cliProbe.outputTruncated },
-          finalCommandEvidence: "model-reported",
-        } : {}),
-      },
-    });
+    try {
+      surface.starting = false;
+      await setRun("starting", "live");
+      await this.options.journal.append({
+        kind: "turn.audit",
+        agentId: input.agentId,
+        jobId: input.jobId,
+        turnId: input.turnId,
+        payload: {
+          backend: "herdr",
+          driver: "pi-cli",
+          runId,
+          surface: { workspace: surface.workspaceId, tab: surface.tabId, pane: surface.paneId, liveName },
+          ...(input.cliProbe ? {
+            nestedCli: input.cliProbe.cli,
+            cliProbe: { executable: input.cliProbe.executable, version: input.cliProbe.version.slice(0, 2_048), completed: input.cliProbe.completed, identity: input.cliProbe.identity, yolo: input.cliProbe.yolo.disposition, outputTruncated: input.cliProbe.outputTruncated },
+            finalCommandEvidence: "model-reported",
+          } : {}),
+        },
+      });
+    } catch (error) {
+      await setRun("starting", "failed", { failure: error instanceof Error ? error.message : String(error) }).catch(() => undefined);
+      await this.shutdownSettledSurface(client, surface).catch(() => undefined);
+      throw error;
+    }
 
     // The role/system context rides in the turn message: pi's
     // --append-system-prompt flag is argv-borne and herdr shell-encodes argv,
@@ -1022,6 +1426,7 @@ export class HerdrExecutionBackend implements ExecutionBackend {
     const submitted = await bridge.command("submit_turn", { runId, jobId: input.jobId, turnId: input.turnId, task: `${prompt.systemPrompt}\n\n---\n\n${prompt.initialMessage}` });
     if (!submitted.ok) {
       await setRun("live", "failed", { failure: `submit_turn rejected: ${submitted.error}` });
+      await this.shutdownSettledSurface(client, surface).catch(() => undefined);
       throw new Error(`herdr child rejected submit_turn: ${submitted.error}`);
     }
 
@@ -1050,6 +1455,7 @@ export class HerdrExecutionBackend implements ExecutionBackend {
       }
     } catch (error) {
       await setRun("live", "failed", { failure: error instanceof Error ? error.message : String(error) }).catch(() => undefined);
+      await this.shutdownSettledSurface(client, surface).catch(() => undefined);
       throw error;
     } finally {
       input.context.signal.removeEventListener("abort", abort);

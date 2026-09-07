@@ -30,6 +30,8 @@ export interface SubCallArgs {
   background?: boolean;
   model?: string;
   thinking?: string;
+  cli?: string;
+  selectionScope?: string;
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -89,6 +91,7 @@ function taskStatus(value: Record<string, unknown>): string {
 interface TaskIdentity {
   name?: string;
   selector?: string;
+  selectionScope?: string;
   requestedModel?: string;
   requestedThinking?: string;
   effectiveModel?: string;
@@ -167,6 +170,7 @@ function taskIdentity(value: Record<string, unknown>): TaskIdentity {
   return {
     name: firstString(value.name, value.agentName),
     selector: firstString(value.selector),
+    selectionScope: firstString(value.selectionScope),
     requestedModel: firstString(value.requestedModel, value.requested, model?.requested),
     requestedThinking: firstString(value.requestedThinking, model?.requestedThinking),
     effectiveModel,
@@ -205,7 +209,20 @@ function taskResultLines(value: Record<string, unknown>, expanded: boolean): str
   const identity = taskIdentity(value);
   const selector = identity.selector;
   if (!selector) throw new Error("malformed task renderer identity");
-  const compactRaw = [identity.name, selector, identity.effectiveModel, identity.thinking, status]
+  const evidence = record(value.evidence);
+  const externalCli = firstString(evidence?.externalCli, value.externalCli);
+  const externalDriver = value.driver === "external-cli" || externalCli !== undefined;
+  const vendorModel = firstString(evidence?.vendorModel);
+  const vendorThinking = firstString(evidence?.vendorThinking);
+  const compactRaw = [
+    identity.name,
+    selector,
+    externalDriver ? `external CLI: ${externalCli ?? "unknown"}` : identity.effectiveModel,
+    externalDriver ? "trusted-local / executable binding: Unverified" : undefined,
+    externalDriver && vendorModel ? `vendor model: ${vendorModel}` : undefined,
+    externalDriver && vendorThinking ? `vendor thinking: ${vendorThinking}` : externalDriver ? undefined : identity.thinking,
+    status,
+  ]
     .filter((item): item is string => Boolean(item))
     .map((item) => boundedDisplayText(item, 160))
     .join(" · ");
@@ -213,10 +230,10 @@ function taskResultLines(value: Record<string, unknown>, expanded: boolean): str
   if (!expanded) return lines;
   const lifecycle = record(value.lifecycle);
   const activity = record(value.activity);
-  const evidence = record(value.evidence);
   const detail: Array<[string, string | undefined]> = [
     // `requested` is retained as the compact compatibility label for the
     // requested model; thinking is always shown as a separate field.
+    ["scope", identity.selectionScope],
     ["requested", identity.requestedModel],
     ["requested thinking", identity.requestedThinking],
     ["effective", identity.effectiveModel],
@@ -240,9 +257,15 @@ function taskResultLines(value: Record<string, unknown>, expanded: boolean): str
     ["turn", firstString(value.turnId)],
     ["backend", firstString(value.backend)],
     ["driver", firstString(value.driver)],
-    ["external CLI", firstString(evidence?.externalCli)],
+    ["external CLI", externalCli],
+    ["probed executable", firstString(evidence?.probedExecutable)],
+    ["vendor model", vendorModel],
+    ["vendor thinking", vendorThinking],
     ["CUI kind", firstString(evidence?.cuiKind)],
     ["YOLO", firstString(evidence?.yolo)],
+    ["permission mode", firstString(evidence?.permissionMode)],
+    ["execution boundary", firstString(evidence?.executionBoundary, value.executionBoundary)],
+    ["executable binding", firstString(evidence?.executableBinding, value.executableBinding)],
     ["pane", firstString(evidence?.pane)],
     ["run", firstString(value.runId)],
     ["activity", firstString(activity?.state)],
@@ -273,14 +296,18 @@ export function renderSubCall(
   const taskId = exactString(args.task_id);
   const requestedModel = exactString(args.model);
   const requestedThinking = exactString(args.thinking);
+  const externalCli = exactString(args.cli);
+  const selectionScope = exactString(args.selectionScope);
   const background = args.background === true;
   const status = context.executionStarted ? "running" : "preparing";
   const identity = [
     taskId ? `continue ${taskId}` : undefined,
     description,
     selector,
-    requestedModel,
-    requestedThinking,
+    externalCli ? `external CLI: ${externalCli}` : undefined,
+    selectionScope ? `scope: ${boundedDisplayText(selectionScope, 160)}` : undefined,
+    requestedModel ? externalCli ? `vendor model: ${requestedModel}` : requestedModel : undefined,
+    requestedThinking ? externalCli ? `vendor thinking: ${requestedThinking}` : requestedThinking : undefined,
     background ? "background" : undefined,
     status,
   ].filter(Boolean);

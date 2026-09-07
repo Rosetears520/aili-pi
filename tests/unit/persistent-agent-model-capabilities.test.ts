@@ -20,7 +20,9 @@ describe("subagent model capability projection", () => {
     expect(text).toContain("zai-coding-cn/glm-5.3-flash");
     expect(text).not.toContain("hidden/no-auth");
     expect(text).toContain("discovery only; not authorization");
-    expect(text).toContain("External CLI routing: the Parent may select a registered cli value");
+    expect(text).toContain("External CLI routing: the Parent may submit one registered cli value as a structured candidate");
+    expect(text).toContain("The runtime shows exact cli/model/thinking");
+    expect(text).toContain("Only the matching runtime-owned questionnaire callback can confirm a candidate");
     expect(parseCurrentTurnModelAuthority("Use Agy CLI for the subagent.", entries)).toEqual({ mode: "inherit-only" });
     expect(parseCurrentTurnModelAuthority("用 agy 启动 gemini-3.7-flash", entries)).toEqual({ mode: "inherit-only" });
     expect(text).toContain("audio/video/ASR");

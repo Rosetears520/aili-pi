@@ -4,12 +4,15 @@ import { connect, createServer, type Server, type Socket } from "node:net";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadRoleProfiles, type RoleProfile } from "../../src/runtime/roles.js";
+import { loadStockDefaults } from "pi-permission-modes/src/config-load.ts";
 import { CoordinatorJournal, ensureSidecarLayout } from "../../src/runtime/persistent-agents/storage.js";
 import type { TaskExecutorInput } from "../../src/runtime/persistent-agents/sub-coordinator.js";
 import { HerdrSocketClient } from "../../src/runtime/persistent-agents/backends/herdr/client.js";
 import { HerdrProtocolError } from "../../src/runtime/persistent-agents/backends/herdr/protocol.js";
 import { bridgeSocketDirFor, generateBridgeToken, herdrLiveName, herdrTabLabel } from "../../src/runtime/persistent-agents/backends/herdr/naming.js";
-import { assertHerdrRoleSupported, buildChildArgv, herdrRunLoadout, HerdrExecutionBackend } from "../../src/runtime/persistent-agents/backends/herdr/adapter.js";
+import { assertHerdrRoleSupported, buildChildArgv, herdrRunLoadout, HerdrExecutionBackend, readBoundedExternalResult, type HerdrExecutionBackendOptions } from "../../src/runtime/persistent-agents/backends/herdr/adapter.js";
+import { detectHerdrIntegrationStatus, parseHerdrIntegrationStatus } from "../../src/runtime/persistent-agents/backends/herdr/availability.js";
+import { EXTERNAL_CLI_REGISTRY } from "../../src/runtime/persistent-agents/external-cli.js";
 import { classifyTurnEnd, createChildBridge, evaluateHerdrChildTool, identityFromArgv, verifyChildLoadout } from "../../src/runtime/persistent-agents/herdr-child/index.js";
 
 let scratch = "";
@@ -42,6 +45,13 @@ afterEach(async () => {
   delete process.env.AILI_CHILD_NO_EXIT;
 });
 
+// HSTART-AGY-20260907: the three known visible startup markers, not a
+// completed answer. Padding/CRLF model stripped terminal rows.
+const AGY_STARTUP_UI = "  Antigravity CLI 1.1.27\r\n\r\n  >   \r\n  ? for shortcuts          Gemini 3.8 Flash · high  \r\n";
+const AGY_STARTUP_UI_SHORT_FOOTER = "  Antigravity CLI\r\n\r\n  >   \r\n  ? for shortcuts  \r\n";
+
+type StartupRead = Record<string, unknown> | "error" | "hang" | "missing";
+
 /** Minimal scriptable stand-in for the Herdr daemon's socket API. */
 class FakeHerdrServer {
   readonly calls: Array<{ method: string; params: Record<string, unknown> }> = [];
@@ -56,6 +66,21 @@ class FakeHerdrServer {
   /** Reject the first agent.start calls targeting this pane (contention). */
   agentStartRejectPane?: { paneId: string; times: number };
   externalPromptMode: "settle" | "blocked" = "settle";
+  /** Simulate the pane record becoming visible before the live-name index. */
+  nameLookupNotReadyTimes = 0;
+  /** Returned identity is correct while input-ready status/interactive readiness lag. */
+  statusNotReadyTimes = 0;
+  interactiveReadyFalseTimes = 0;
+  externalPromptRejectTimes = 0;
+  externalPromptAttemptedCount = 0;
+  externalPromptAcceptedCount = 0;
+  externalPromptBeforeReadyCount = 0;
+  startupReads: StartupRead[] = [];
+  startupReadCount = 0;
+  onStartupRead?: (pane: Record<string, unknown>, count: number) => void;
+  onPromptRejected?: () => void;
+  private agyInputVisible = true;
+  private lastExternalReadinessObserved = false;
   onAgentStart?: (params: Record<string, unknown>) => void;
 
   async start(): Promise<string> {
@@ -146,25 +171,91 @@ class FakeHerdrServer {
         return;
       }
       case "agent.get": {
-        const pane = this.panes.find((entry) => entry.pane_id === params.target || entry.name === params.target);
+        const readinessView = (pane: Record<string, unknown>) => {
+          const view = { ...pane };
+          if (this.statusNotReadyTimes > 0) {
+            this.statusNotReadyTimes -= 1;
+            view.agent_status = "working";
+          }
+          if (this.interactiveReadyFalseTimes > 0) {
+            this.interactiveReadyFalseTimes -= 1;
+            view.interactive_ready = false;
+          }
+          this.lastExternalReadinessObserved = (view.agent_status === "idle" || view.agent_status === "done")
+            && (!("interactive_ready" in view) || view.interactive_ready === true);
+          return view;
+        };
+        const paneTarget = this.panes.find((entry) => entry.pane_id === params.target);
+        if (paneTarget) {
+          respond({ type: "agent_info", agent: readinessView(paneTarget) });
+          return;
+        }
+        const pane = this.panes.find((entry) => entry.name === params.target);
+        if (pane && this.nameLookupNotReadyTimes > 0) {
+          this.nameLookupNotReadyTimes -= 1;
+          socket.write(`${JSON.stringify({ id, error: { code: "agent_not_ready", message: `agent ${String(params.target)} is not an active named agent` } })}\n`);
+          return;
+        }
         if (!pane) {
           socket.write(`${JSON.stringify({ id, error: { code: "agent_not_found", message: "agent target not found" } })}\n`);
           return;
         }
-        respond({ type: "agent_info", agent: { ...pane } });
+        respond({ type: "agent_info", agent: readinessView(pane) });
         return;
       }
       case "agent.prompt": {
-        const pane = this.panes.find((entry) => entry.pane_id === params.target || entry.name === params.target);
+        this.externalPromptAttemptedCount += 1;
+        if (!this.lastExternalReadinessObserved) this.externalPromptBeforeReadyCount += 1;
+        const pane = this.panes.find((entry) => entry.name === params.target);
+        if (!pane) {
+          socket.write(`${JSON.stringify({ id, error: { code: "agent_not_ready", message: `agent ${String(params.target)} is not an active named agent` } })}\n`);
+          return;
+        }
+        if (this.externalPromptRejectTimes > 0) {
+          this.externalPromptRejectTimes -= 1;
+          this.onPromptRejected?.();
+          socket.write(`${JSON.stringify({ id, error: { code: "agent_not_ready", message: "agent is not yet accepting interactive input" } })}\n`);
+          return;
+        }
+        this.externalPromptAcceptedCount += 1;
+        // Herdr accepting PTY input does not mean Agy consumed it. A boot-only
+        // screen cannot manufacture the fake working -> idle transition.
+        if (pane.agent === "agy" && !this.agyInputVisible) {
+          this.externalPromptBeforeReadyCount += 1;
+          respond({ type: "agent_prompted", agent: { ...pane } });
+          return;
+        }
         const status = this.externalPromptMode === "blocked" ? "blocked" : "working";
-        if (pane) pane.agent_status = status;
+        pane.agent_status = status;
+        pane.state_change_seq = Number(pane.state_change_seq ?? 1) + 1;
         respond({ type: "agent_prompted", agent: { ...pane, agent_status: status } });
-        if (this.externalPromptMode === "settle") setTimeout(() => { if (pane) pane.agent_status = "idle"; }, 20);
+        if (this.externalPromptMode === "settle") setTimeout(() => {
+          pane.agent_status = "idle";
+          pane.state_change_seq = Number(pane.state_change_seq ?? 2) + 1;
+        }, 20);
         return;
       }
       case "agent.read": {
-        const pane = this.panes.find((entry) => entry.pane_id === params.target || entry.name === params.target);
-        respond({ type: "pane_read", read: { pane_id: pane?.pane_id ?? "missing", workspace_id: pane?.workspace_id ?? "w1", tab_id: pane?.tab_id ?? "w1:t1", source: params.source, format: params.format ?? "text", text: "vendor completed output", revision: pane?.revision ?? 0, truncated: false } });
+        const pane = this.panes.find((entry) => entry.name === params.target);
+        if (!pane) {
+          socket.write(`${JSON.stringify({ id, error: { code: "agent_not_ready", message: `agent ${String(params.target)} is not an active named agent` } })}\n`);
+          return;
+        }
+        if (params.source === "visible") {
+          this.startupReadCount += 1;
+          const scripted = this.startupReads.length > 1 ? this.startupReads.shift()! : this.startupReads[0];
+          if (scripted === "hang") return;
+          if (scripted === "error") {
+            socket.write(`${JSON.stringify({ id, error: { code: "read_failed", message: "fixture startup read failed" } })}\n`);
+            return;
+          }
+          const read = { pane_id: pane.pane_id, source: "visible", format: "text", text: AGY_STARTUP_UI, truncated: false, ...(typeof scripted === "object" ? scripted : {}) };
+          this.agyInputVisible = (read.text === AGY_STARTUP_UI || read.text === AGY_STARTUP_UI_SHORT_FOOTER) && read.truncated === false;
+          this.onStartupRead?.(pane, this.startupReadCount);
+          respond(scripted === "missing" ? { type: "pane_read" } : { type: "pane_read", read });
+          return;
+        }
+        respond({ type: "pane_read", read: { pane_id: pane.pane_id, workspace_id: pane.workspace_id ?? "w1", tab_id: pane.tab_id ?? "w1:t1", source: params.source, format: params.format ?? "text", text: "vendor completed output", revision: pane.revision ?? 0, truncated: false } });
         return;
       }
       case "agent.start":
@@ -185,6 +276,8 @@ class FakeHerdrServer {
             pane.agent = String(params.kind ?? "pi");
             pane.name = String(params.name ?? "pi");
             pane.agent_status = "idle";
+            pane.state_change_seq = 1;
+            if (params.kind !== "pi") pane.interactive_ready = true;
           }
         }
         respond({ type: "agent_started", agent: { ...this.panes.find((entry) => entry.pane_id === params.pane_id) }, argv: [params.kind, ...((params.args as string[] | undefined) ?? [])] });
@@ -262,9 +355,92 @@ describe("herdr socket client", () => {
     await server.stop();
   });
 
+  it("reproduces agent_not_ready when post-readiness Agent APIs receive a pane id", async () => {
+    const server = new FakeHerdrServer();
+    server.panes = [{ pane_id: "w9:p6", workspace_id: "w9", tab_id: "w9:t1", agent: null, agent_status: "unknown" }];
+    const socketPath = await server.start();
+    const client = new HerdrSocketClient({ socketPath, callTimeoutMs: 2_000 });
+    await client.sync();
+    await client.call("agent.start", { name: "named-agent", kind: "codex", pane_id: "w9:p6", args: [] });
+    await expect(client.call("agent.get", { target: "w9:p6" })).resolves.toMatchObject({ agent: { name: "named-agent", pane_id: "w9:p6" } });
+    await expect(client.call("agent.get", { target: "w9:p6" })).resolves.toMatchObject({ agent: { name: "named-agent", pane_id: "w9:p6" } });
+    await expect(client.call("agent.prompt", { target: "w9:p6", text: "x" })).rejects.toMatchObject({ herdrCode: "agent_not_ready" });
+    await expect(client.call("agent.read", { target: "w9:p6" })).rejects.toMatchObject({ herdrCode: "agent_not_ready" });
+    await expect(client.call("agent.get", { target: "named-agent" })).resolves.toMatchObject({ agent: { pane_id: "w9:p6" } });
+    await client.disconnect();
+    await server.stop();
+  });
+
   it("fails explicitly when the daemon socket is unreachable", async () => {
     const client = new HerdrSocketClient({ socketPath: join(scratch, "missing.sock"), callTimeoutMs: 500 });
     await expect(client.sync()).rejects.toThrow(/cannot connect to herdr socket/);
+  });
+});
+
+describe("herdr integration availability", () => {
+  it("maps only agy-cli to the declarative antigravity integration", () => {
+    expect(EXTERNAL_CLI_REGISTRY["agy-cli"].requiredHerdrIntegration).toBe("antigravity-cli");
+    for (const id of ["claude-code", "codex-cli", "opencode", "grok-cli"] as const) {
+      expect(EXTERNAL_CLI_REGISTRY[id].requiredHerdrIntegration).toBeUndefined();
+    }
+  });
+
+  it("parses only the exact integration id and exact current state", () => {
+    const output = "antigravity-cli-old: current\nantigravity-cli: outdated\npi: current\n";
+    expect(parseHerdrIntegrationStatus(output, "antigravity-cli")).toBe("outdated");
+    expect(parseHerdrIntegrationStatus("antigravity-cli: current\n", "antigravity-cli")).toBe("current");
+    expect(parseHerdrIntegrationStatus("antigravity-cli: current (v2) (/home/user/.gemini/config/hooks/herdr-agent-state.sh)\n", "antigravity-cli")).toBe("current");
+    expect(parseHerdrIntegrationStatus(output, "antigravity")).toBeUndefined();
+    expect(() => parseHerdrIntegrationStatus("", "--bad")).toThrow(/exact lowercase identifier/);
+  });
+
+  it("detects missing/current status with one no-shell read-only command and does not modify HOME", async () => {
+    const binDir = join(scratch, "integration-bin");
+    const homeDir = join(scratch, "integration-home");
+    await mkdir(binDir, { recursive: true });
+    await mkdir(homeDir, { recursive: true });
+    const fakeHerdr = join(binDir, "herdr-fixture");
+    await writeFile(fakeHerdr, "#!/usr/bin/env node\nif (process.argv.slice(2).join(' ') !== 'integration status') process.exit(9)\nprocess.stdout.write(process.env.FIXTURE_STATUS || 'antigravity-cli: missing\\n')\n", { mode: 0o700 });
+    const priorHome = process.env.HOME;
+    process.env.HOME = homeDir;
+    try {
+      process.env.FIXTURE_STATUS = "antigravity-cli: missing\n";
+      await expect(detectHerdrIntegrationStatus("antigravity-cli", fakeHerdr)).resolves.toMatchObject({ status: "missing", current: false });
+      process.env.FIXTURE_STATUS = "antigravity-cli: current\n";
+      await expect(detectHerdrIntegrationStatus("antigravity-cli", fakeHerdr)).resolves.toMatchObject({ status: "current", current: true });
+      expect(await import("node:fs/promises").then(({ readdir }) => readdir(homeDir))).toEqual([]);
+    } finally {
+      if (priorHome === undefined) delete process.env.HOME;
+      else process.env.HOME = priorHome;
+      delete process.env.FIXTURE_STATUS;
+    }
+  });
+});
+
+describe("external CLI structured result evidence", () => {
+  it("classifies pending, empty, invalid identity, and valid correlated results", async () => {
+    const path = join(scratch, "external-result.json");
+    await writeFile(path, JSON.stringify({ schemaVersion: 1, runId: "run-1", turnId: "turn-1", status: "pending", output: "" }));
+    await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "missing" });
+
+    await writeFile(path, JSON.stringify({ schemaVersion: 1, runId: "run-1", turnId: "turn-1", status: "completed", output: "" }));
+    await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "empty" });
+
+    await writeFile(path, JSON.stringify({ schemaVersion: 1, runId: "run-stale", turnId: "turn-1", status: "completed", output: "stale" }));
+    await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "invalid" });
+
+    await writeFile(path, JSON.stringify({ schemaVersion: 1, runId: "run-1", turnId: "turn-1", status: "completed", output: "# Actual review", changedFiles: [], verification: ["checked"] }));
+    await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "valid", result: { status: "completed", output: "# Actual review" } });
+    await writeFile(path, JSON.stringify({ schemaVersion: 1, runId: "run-1", turnId: "turn-1", status: "partial", output: "# Partial review" }));
+    await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "valid", result: { status: "partial", output: "# Partial review" } });
+  });
+
+  it("rejects malformed and oversized result documents", async () => {
+    const path = join(scratch, "external-result-invalid.json");
+    await writeFile(path, "not-json");
+    await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "invalid" });
+    await writeFile(path, "x".repeat(64 * 1024 + 1));
+    await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "invalid" });
   });
 });
 
@@ -307,7 +483,10 @@ describe("herdr naming and gating", () => {
     const withCli = herdrRunLoadout({ ...base, nestedCli: "codex-cli", cliProbe: probeOne }, "run-2", scratch);
     expect(withCli.nestedCli).toBe("codex-cli");
     expect(withCli.runner).toBe("herdr-external-cli/v1");
+    expect(withCli.executableBinding).toBe("Unverified");
+    expect(withCli.executionBoundary).toBe("trusted-local-vendor");
     expect(withCli.runnerModifierHash).toBe(createHash("sha256").update(JSON.stringify({ cli: probeOne.cli, executable: probeOne.executable, version: probeOne.version, help: probeOne.help, yolo: probeOne.yolo })).digest("hex"));
+    expect(herdrRunLoadout({ ...base, nestedCli: "codex-cli", cliProbe: probeOne, permissionModeSnapshot: { name: "build", mode: loadStockDefaults().modes.build } }, "run-mode", scratch).permission.modeName).toBe("build");
     // Raw bounded help never lands in the durable loadout: only its hash does.
     expect(JSON.stringify(withCli)).not.toContain("usage: codex exec");
     const changedProbe = herdrRunLoadout({ ...base, nestedCli: "codex-cli", cliProbe: probeTwo }, "run-3", scratch);
@@ -465,15 +644,246 @@ describe("child bridge server", () => {  it("authenticates commands, replays eve
   });
 });
 
+async function agyStartupFixture(server: FakeHerdrServer, options: Partial<HerdrExecutionBackendOptions> = {}) {
+  const journal = await fixtureJournal("parent-agy-startup");
+  const reviewer = (await loadRoleProfiles()).find((role) => role.selector === "aili.code-reviewer")!;
+  const agentId = "AgyStartup";
+  const timestamp = "2026-09-07T00:00:00.000Z";
+  await journal.append({ kind: "agent.created", agentId, payload: { record: { id: agentId, name: agentId, selector: reviewer.selector, state: "queued", backend: "herdr", driver: "external-cli", createdAt: timestamp, updatedAt: timestamp } } });
+  await journal.append({ kind: "job.created", agentId, jobId: "job-1", payload: { record: { id: "job-1", agentId, state: "queued", createdAt: timestamp, updatedAt: timestamp } } });
+  await journal.append({ kind: "turn.created", agentId, jobId: "job-1", turnId: "turn-1", payload: { record: { id: "turn-1", agentId, jobId: "job-1", state: "queued", createdAt: timestamp, updatedAt: timestamp } } });
+  await journal.append({ kind: "agent.state", agentId, payload: { from: "queued", to: "running", currentJobId: "job-1", currentTurnId: "turn-1" } });
+  await journal.append({ kind: "job.state", agentId, jobId: "job-1", payload: { from: "queued", to: "running" } });
+  await journal.append({ kind: "turn.state", agentId, jobId: "job-1", turnId: "turn-1", payload: { from: "queued", to: "running" } });
+  const socketPath = await server.start();
+  const acceptedPrompts: string[] = [];
+  const backend = new HerdrExecutionBackend({
+    journal, layout: journal.layout, parentId: "parent-agy-startup", cwd: scratch, socketPath,
+    bootstrapModulePath: "/dev/null", skipAvailabilitySetup: true, startupTimeoutMs: 1_000, callTimeoutMs: 5_000,
+    onExternalPromptAccepted: async ({ prompt, resultPath, runId, turnId }) => {
+      acceptedPrompts.push(prompt);
+      await writeFile(resultPath, JSON.stringify({ schemaVersion: 1, runId, turnId, status: "completed", output: "# Agy fixture result" }));
+    },
+    ...options,
+  });
+  const input = executorInput(agentId, reviewer, {
+    nestedCli: "agy-cli",
+    permissionModeSnapshot: { name: "build", mode: loadStockDefaults().modes.build },
+    cliProbe: { cli: "agy-cli", executable: "agy", version: "agy fixture", help: "Usage of agy:", identity: "confirmed", completed: { version: true, help: true }, outputTruncated: false, yolo: { disposition: "yolo-unavailable", argv: [] } },
+    item: { task: "Review only this fixture.\nKeep this exact text: 中文 > ?", agent: reviewer.selector, workspace: "auto", writeScope: { paths: [], resources: [] } },
+  });
+  return { backend, input, journal, acceptedPrompts };
+}
+
+describe("Agy startup visible-input gate (HSTART-AGY-20260907)", () => {
+  it("waits through idle+ready shell/boot screens, then sends the original prompt exactly once", async () => {
+    const server = new FakeHerdrServer();
+    server.startupReads = [{ text: "$ agy\n" }, { text: "Starting CLI UI...\nLogin complete\n" }, { text: AGY_STARTUP_UI }];
+    server.onStartupRead = () => {
+      expect(server.externalPromptAttemptedCount).toBe(0);
+      expect(server.panes[0]).toMatchObject({ agent_status: "idle", interactive_ready: true });
+    };
+    const { backend, input, acceptedPrompts } = await agyStartupFixture(server);
+    try {
+      await expect(backend.execute(input)).resolves.toMatchObject({ status: "completed", output: "# Agy fixture result" });
+      expect(server.startupReadCount).toBe(3);
+      expect(server.externalPromptAttemptedCount).toBe(1);
+      expect(server.externalPromptAcceptedCount).toBe(1);
+      expect(server.externalPromptBeforeReadyCount).toBe(0);
+      const promptIndex = server.calls.findIndex((call) => call.method === "agent.prompt");
+      const prompt = server.calls[promptIndex]!;
+      expect(prompt.params.text).toBe(acceptedPrompts[0]);
+      expect(String(prompt.params.text).split(input.item.task)).toHaveLength(2);
+      expect(server.calls.slice(promptIndex - 3, promptIndex).map((call) => [call.method, call.params.target])).toEqual([
+        ["agent.read", prompt.params.target], ["agent.get", "w1:p1"], ["agent.get", prompt.params.target],
+      ]);
+      for (const call of server.calls.filter((call) => call.method === "agent.read" && call.params.source === "visible")) {
+        expect(call.params).toMatchObject({ target: prompt.params.target, source: "visible", lines: 200, format: "text", strip_ansi: true });
+      }
+    } finally { await server.stop(); }
+  });
+
+  it("also accepts the plain short footer without a right-side column", async () => {
+    const server = new FakeHerdrServer();
+    server.startupReads = [{ text: AGY_STARTUP_UI_SHORT_FOOTER }];
+    const { backend, input } = await agyStartupFixture(server);
+    try {
+      await expect(backend.execute(input)).resolves.toMatchObject({ status: "completed" });
+      expect(server.startupReadCount).toBe(1);
+      expect(server.externalPromptAttemptedCount).toBe(1);
+      expect(server.externalPromptAcceptedCount).toBe(1);
+    } finally { await server.stop(); }
+  });
+
+  const absentScreens: Array<[string, StartupRead]> = [
+    ["shell only", { text: "$ agy\n" }],
+    ["boot only", { text: "Starting CLI UI...\nLogin complete\n" }],
+    ["welcome without input", { text: "Antigravity CLI\n? for shortcuts\n" }],
+    ["nonempty input", { text: "Antigravity CLI\n> old task\n? for shortcuts\n" }],
+    ["missing footer", { text: "Antigravity CLI\n>\n" }],
+    ["embedded footer substring", { text: "Antigravity CLI\n>\nLoading ? for shortcuts          Gemini 3.8 Flash · high\n" }],
+    ["footer without token boundary", { text: "Antigravity CLI\n>\n? for shortcutsExtra\n" }],
+    ["missing heading", { text: ">\n? for shortcuts\n" }],
+    ["markers on one line", { text: "Antigravity CLI > ? for shortcuts" }],
+    ["wrong visual order", { text: "? for shortcuts\n>\nAntigravity CLI\n" }],
+    ["truncated UI", { text: AGY_STARTUP_UI, truncated: true }],
+    ["missing truncation evidence", { text: AGY_STARTUP_UI, truncated: undefined }],
+    ["missing text", { text: undefined }],
+    ["oversized UI", { text: `${AGY_STARTUP_UI}${"x".repeat(64 * 1024)}` }],
+    ["stale scrollback", { text: AGY_STARTUP_UI, source: "recent_unwrapped" }],
+    ["missing read", "missing"],
+    ["read failure", "error"],
+    ["unanswered read", "hang"],
+  ];
+  it.each(absentScreens)("fails boundedly with zero prompts for %s", async (_label, read) => {
+    const server = new FakeHerdrServer();
+    server.startupReads = [read];
+    const { backend, input, journal } = await agyStartupFixture(server, { startupTimeoutMs: 350 });
+    const began = Date.now();
+    try {
+      await expect(backend.execute(input)).rejects.toThrow(/startup (?:deadline|timeout)|read_failed/);
+      expect(Date.now() - began).toBeLessThan(2_000);
+      expect(server.startupReadCount).toBeGreaterThan(0);
+      expect(server.startupReadCount).toBeLessThanOrEqual(5);
+      expect(server.externalPromptAttemptedCount).toBe(0);
+      expect(server.externalPromptAcceptedCount).toBe(0);
+      expect(journal.getState().runs["run-1"]).toMatchObject({ lifecycle: "failed" });
+      expect(server.panes).toEqual([]);
+    } finally { await server.stop(); }
+  });
+
+  it.each(["pane", "name", "read"] as const)("rejects %s identity drift after an otherwise matching UI", async (drift) => {
+    const server = new FakeHerdrServer();
+    if (drift === "read") server.startupReads = [{ pane_id: "w9:p9" }];
+    else server.onStartupRead = (pane) => { pane[drift === "pane" ? "pane_id" : "name"] = "drifted"; };
+    const { backend, input } = await agyStartupFixture(server, { startupTimeoutMs: 350 });
+    try {
+      await expect(backend.execute(input)).rejects.toThrow(/identity changed|agent_not_found/);
+      expect(server.externalPromptAttemptedCount).toBe(0);
+      expect(server.externalPromptAcceptedCount).toBe(0);
+    } finally { await server.stop(); }
+  });
+
+  it.each(["working", "interactive", "sequence"] as const)("discards UI across a post-read %s transition and reads it afresh", async (transition) => {
+    const server = new FakeHerdrServer();
+    server.onStartupRead = (pane, count) => {
+      expect(server.externalPromptAttemptedCount).toBe(0);
+      if (count !== 1) return;
+      if (transition === "working") server.statusNotReadyTimes = 1;
+      if (transition === "interactive") server.interactiveReadyFalseTimes = 1;
+      if (transition === "sequence") pane.state_change_seq = Number(pane.state_change_seq) + 1;
+    };
+    const { backend, input } = await agyStartupFixture(server);
+    try {
+      await expect(backend.execute(input)).resolves.toMatchObject({ status: "completed" });
+      expect(server.startupReadCount).toBe(2);
+      expect(server.externalPromptAttemptedCount).toBe(1);
+      expect(server.externalPromptAcceptedCount).toBe(1);
+    } finally { await server.stop(); }
+  });
+
+  it.each(["working", "blocked", "unknown", "interactive"] as const)("never prompts when post-read %s remains non-ready", async (transition) => {
+    const server = new FakeHerdrServer();
+    server.onStartupRead = (pane) => {
+      if (transition === "interactive") pane.interactive_ready = false;
+      else pane.agent_status = transition;
+    };
+    const { backend, input } = await agyStartupFixture(server, { startupTimeoutMs: 350 });
+    try {
+      await expect(backend.execute(input)).rejects.toThrow(/startup timeout/);
+      expect(server.externalPromptAttemptedCount).toBe(0);
+      expect(server.externalPromptAcceptedCount).toBe(0);
+    } finally { await server.stop(); }
+  });
+
+  it("rechecks visible UI on explicit preacceptance rejection, without changing or replaying accepted text", async () => {
+    const server = new FakeHerdrServer();
+    server.externalPromptRejectTimes = 1;
+    server.onPromptRejected = () => { server.startupReads = [{ text: "Reinitializing UI..." }, { text: AGY_STARTUP_UI }]; };
+    const { backend, input, acceptedPrompts } = await agyStartupFixture(server);
+    try {
+      await expect(backend.execute(input)).resolves.toMatchObject({ status: "completed" });
+      expect(server.startupReadCount).toBe(3);
+      expect(server.externalPromptAttemptedCount).toBe(2);
+      expect(server.externalPromptAcceptedCount).toBe(1);
+      expect(server.calls.filter((call) => call.method === "agent.prompt").map((call) => call.params.text)).toEqual([acceptedPrompts[0], acceptedPrompts[0]]);
+    } finally { await server.stop(); }
+  });
+
+  it("uses the original startup budget rather than granting the visible UI a new timeout", async () => {
+    const server = new FakeHerdrServer();
+    server.agentStartBusyTimes = 1; // consumes the existing 300ms retry interval
+    server.startupReads = [{ text: "Booting..." }];
+    const { backend, input } = await agyStartupFixture(server, { startupTimeoutMs: 550 });
+    try {
+      await expect(backend.execute(input)).rejects.toThrow(/startup (?:deadline|timeout)/);
+      expect(server.startupReadCount).toBeGreaterThan(0);
+      expect(server.startupReadCount).toBeLessThanOrEqual(3);
+      expect(server.externalPromptAttemptedCount).toBe(0);
+    } finally { await server.stop(); }
+  });
+
+  it.each(["claude-code", "codex-cli", "opencode", "grok-cli"] as const)("does not add a pre-prompt UI read for %s", async (cli) => {
+    const server = new FakeHerdrServer();
+    server.startupReads = ["error"];
+    const { backend, input } = await agyStartupFixture(server);
+    input.nestedCli = cli;
+    input.cliProbe = { ...input.cliProbe!, cli, executable: EXTERNAL_CLI_REGISTRY[cli].executables[0]! };
+    try {
+      await expect(backend.execute(input)).resolves.toMatchObject({ status: "completed" });
+      expect(server.startupReadCount).toBe(0);
+      const promptIndex = server.calls.findIndex((call) => call.method === "agent.prompt");
+      expect(server.calls.slice(0, promptIndex).some((call) => call.method === "agent.read")).toBe(false);
+      expect(server.externalPromptAcceptedCount).toBe(1);
+    } finally { await server.stop(); }
+  });
+
+  it("does not send when cancelled during the UI read", async () => {
+    const server = new FakeHerdrServer();
+    const controller = new AbortController();
+    server.onStartupRead = () => controller.abort(new Error("fixture cancelled"));
+    const { backend, input } = await agyStartupFixture(server);
+    input.context = { signal: controller.signal } as never;
+    try {
+      await expect(backend.execute(input)).rejects.toThrow();
+      expect(server.externalPromptAttemptedCount).toBe(0);
+      expect(server.externalPromptAcceptedCount).toBe(0);
+    } finally { await server.stop(); }
+  });
+
+  it.each(["missing", "invalid", "empty", "partial"] as const)("preserves %s result semantics after one accepted Agy prompt", async (kind) => {
+    const server = new FakeHerdrServer();
+    const { backend, input } = await agyStartupFixture(server, {
+      onExternalPromptAccepted: async ({ resultPath, runId, turnId }) => {
+        if (kind === "missing") return; // pending remains pending
+        if (kind === "invalid") { await writeFile(resultPath, "not-json"); return; }
+        await writeFile(resultPath, JSON.stringify({ schemaVersion: 1, runId, turnId, status: kind === "partial" ? "partial" : "completed", output: kind === "empty" ? "" : "# Partial Agy review" }));
+      },
+    });
+    try {
+      const output = await backend.execute(input);
+      if (kind === "partial") expect(output).toMatchObject({ status: "completed", result: "partial", output: "# Partial Agy review" });
+      else expect(output).toMatchObject({ status: "failed", error: `external-output-${kind}` });
+      expect(server.externalPromptAttemptedCount).toBe(1);
+      expect(server.externalPromptAcceptedCount).toBe(1);
+      expect(server.startupReadCount).toBe(1);
+    } finally { await server.stop(); }
+  });
+});
+
 describe("herdr execution backend end-to-end (fake daemon + real child bridge)", () => {
   it("starts an authorized vendor kind directly, prompts it, and applies the post-working guard", async () => {
     const journal = await fixtureJournal("parent-direct-cli");
     const profiles = await loadRoleProfiles();
     const reviewer = profiles.find((role) => role.selector === "aili.code-reviewer")!;
     const server = new FakeHerdrServer();
+    server.nameLookupNotReadyTimes = 1;
+    server.statusNotReadyTimes = 2;
+    server.interactiveReadyFalseTimes = 2;
+    server.externalPromptRejectTimes = 2;
     const socketPath = await server.start();
     const executable = join(scratch, "codex");
-    await writeFile(executable, "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo 'codex 1.0'; else echo 'usage: codex'; fi\n", { mode: 0o700 });
+    await writeFile(executable, "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo 'codex 1.0'; else printf '%s\\n' 'Options:' '  --model <MODEL>' '      Model to use' '  --reasoning-level=<LEVEL>' '      Reasoning effort. Possible values: low, high'; fi\n", { mode: 0o700 });
     const priorPath = process.env.PATH;
     process.env.PATH = `${scratch}:${priorPath ?? ""}`;
     await journal.append({ kind: "agent.created", agentId: "Direct", payload: { record: { id: "Direct", name: "Direct", selector: reviewer.selector, state: "queued", backend: "herdr", driver: "external-cli", createdAt: "2026-08-26T00:00:00.000Z", updatedAt: "2026-08-26T00:00:00.000Z" } } });
@@ -482,20 +892,75 @@ describe("herdr execution backend end-to-end (fake daemon + real child bridge)",
     await journal.append({ kind: "agent.state", agentId: "Direct", payload: { from: "queued", to: "running", currentJobId: "job-1", currentTurnId: "turn-1" } });
     await journal.append({ kind: "job.state", agentId: "Direct", jobId: "job-1", payload: { from: "queued", to: "running" } });
     await journal.append({ kind: "turn.state", agentId: "Direct", jobId: "job-1", turnId: "turn-1", payload: { from: "queued", to: "running" } });
-    const backend = new HerdrExecutionBackend({ journal, layout: journal.layout, parentId: "parent-direct-cli", cwd: scratch, socketPath, bootstrapModulePath: "/dev/null", skipAvailabilitySetup: true, startupTimeoutMs: 2_000 });
+    const backend = new HerdrExecutionBackend({
+      journal, layout: journal.layout, parentId: "parent-direct-cli", cwd: scratch, socketPath,
+      bootstrapModulePath: "/dev/null", skipAvailabilitySetup: true, startupTimeoutMs: 2_000,
+      onExternalPromptAccepted: async ({ resultPath, runId, turnId, prompt }) => {
+        expect(resultPath).toBe(join(bridgeSocketDirFor(join(journal.layout.root, "herdr-runs", runId)), "external-result.json"));
+        expect(resultPath).not.toContain(join(journal.layout.root, "herdr-runs"));
+        expect(/^[\x00-\x7F]+$/u.test(resultPath)).toBe(true);
+        expect(prompt).toContain(resultPath);
+        expect(prompt.indexOf("Review the fixture diff.")).toBeGreaterThanOrEqual(0);
+        expect(prompt.indexOf("HIGH PRIORITY — mandatory external result return channel:")).toBeGreaterThan(prompt.indexOf("Review the fixture diff."));
+        expect(prompt.trimEnd().endsWith("Replace the pending document already at that path; do not include credentials.")).toBe(true);
+        await writeFile(resultPath, JSON.stringify({ schemaVersion: 1, runId, turnId, status: "completed", output: "# Structured review result", changedFiles: [], verification: ["fixture"] }));
+      },
+    });
     try {
-      const output = await backend.execute(executorInput("Direct", reviewer, { nestedCli: "codex-cli" }));
-      expect(output).toMatchObject({ backend: "herdr", driver: "external-cli", runId: "run-1", output: "vendor completed output" });
+      const output = await backend.execute(executorInput("Direct", reviewer, {
+        nestedCli: "codex-cli",
+        item: { task: "Review the fixture diff.", agent: reviewer.selector, model: "vendor-model-high", thinking: "high", workspace: "auto", writeScope: { paths: [], resources: [] } },
+      }));
+      expect(output).toMatchObject({ backend: "herdr", driver: "external-cli", runId: "run-1", output: "# Structured review result", evidence: { vendorModel: "vendor-model-high", vendorThinking: "high", executionBoundary: "trusted-local-vendor", executableBinding: "Unverified", diagnosticExcerpt: "vendor completed output", prePromptStateSequence: 1, finalStateSequence: 3 } });
       const start = server.calls.find((call) => call.method === "agent.start");
       expect(start?.params.kind).toBe("codex");
-      expect(start?.params.args).toEqual([]);
+      expect(start?.params.args).toEqual(["--model", "vendor-model-high", "--reasoning-level=high"]);
+      const liveName = start?.params.name;
       const promptCall = server.calls.find((call) => call.method === "agent.prompt");
-      expect(promptCall?.params.target).toBe(start?.params.pane_id);
+      expect(promptCall?.params.target).toBe(liveName);
       expect(typeof promptCall?.params.text).toBe("string");
-      expect(server.calls.filter((call) => call.method === "agent.get").every((call) => call.params.target === start?.params.pane_id)).toBe(true);
-      expect(server.calls.find((call) => call.method === "agent.read")?.params.target).toBe(start?.params.pane_id);
+      const promptIndex = server.calls.findIndex((call) => call.method === "agent.prompt");
+      const readinessGets = server.calls.slice(0, promptIndex).filter((call) => call.method === "agent.get");
+      expect(readinessGets.some((call) => call.params.target === start?.params.pane_id)).toBe(true);
+      expect(readinessGets.some((call) => call.params.target === liveName)).toBe(true);
+      expect(promptIndex).toBeGreaterThan(server.calls.map((call) => call.method).lastIndexOf("agent.get", promptIndex - 1));
+      expect(server.externalPromptBeforeReadyCount).toBe(0);
+      expect(server.externalPromptAttemptedCount).toBe(3);
+      expect(server.externalPromptAcceptedCount).toBe(1);
+      expect(server.calls.slice(0, promptIndex).some((call) => call.method === "agent.read")).toBe(false);
+      expect(server.startupReadCount).toBe(0);
+      expect(server.calls.find((call) => call.method === "agent.read")?.params.target).toBe(liveName);
       expect(server.calls.filter((call) => call.method === "agent.start" && call.params.kind === "pi")).toHaveLength(0);
-      expect(journal.getState().runs["run-1"]).toMatchObject({ driver: "external-cli", lifecycle: "stopped", stopReason: "cui-input-ready" });
+      expect(journal.getState().runs["run-1"]).toMatchObject({ driver: "external-cli", lifecycle: "stopped", stopReason: "structured-external-result" });
+    } finally {
+      process.env.PATH = priorPath;
+      await server.stop();
+    }
+  });
+
+  it("fails instead of treating welcome-page agent.read text as a completed external result", async () => {
+    const journal = await fixtureJournal("parent-direct-cli-missing-result");
+    const profiles = await loadRoleProfiles();
+    const reviewer = profiles.find((role) => role.selector === "aili.code-reviewer")!;
+    const server = new FakeHerdrServer();
+    const socketPath = await server.start();
+    const executable = join(scratch, "codex");
+    await writeFile(executable, "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo 'codex 1.0'; else echo 'usage: codex'; fi\n", { mode: 0o700 });
+    const priorPath = process.env.PATH;
+    process.env.PATH = `${scratch}:${priorPath ?? ""}`;
+    await journal.append({ kind: "agent.created", agentId: "MissingResult", payload: { record: { id: "MissingResult", name: "MissingResult", selector: reviewer.selector, state: "queued", backend: "herdr", driver: "external-cli", createdAt: "2026-08-26T00:00:00.000Z", updatedAt: "2026-08-26T00:00:00.000Z" } } });
+    await journal.append({ kind: "job.created", agentId: "MissingResult", jobId: "job-1", payload: { record: { id: "job-1", agentId: "MissingResult", state: "queued", createdAt: "2026-08-26T00:00:00.000Z", updatedAt: "2026-08-26T00:00:00.000Z" } } });
+    await journal.append({ kind: "turn.created", agentId: "MissingResult", jobId: "job-1", turnId: "turn-1", payload: { record: { id: "turn-1", agentId: "MissingResult", jobId: "job-1", state: "queued", createdAt: "2026-08-26T00:00:00.000Z", updatedAt: "2026-08-26T00:00:00.000Z" } } });
+    await journal.append({ kind: "agent.state", agentId: "MissingResult", payload: { from: "queued", to: "running", currentJobId: "job-1", currentTurnId: "turn-1" } });
+    await journal.append({ kind: "job.state", agentId: "MissingResult", jobId: "job-1", payload: { from: "queued", to: "running" } });
+    await journal.append({ kind: "turn.state", agentId: "MissingResult", jobId: "job-1", turnId: "turn-1", payload: { from: "queued", to: "running" } });
+    const backend = new HerdrExecutionBackend({ journal, layout: journal.layout, parentId: "parent-direct-cli-missing-result", cwd: scratch, socketPath, bootstrapModulePath: "/dev/null", skipAvailabilitySetup: true, startupTimeoutMs: 2_000 });
+    try {
+      const output = await backend.execute(executorInput("MissingResult", reviewer, { nestedCli: "codex-cli" }));
+      expect(output).toMatchObject({ status: "failed", output: "", error: "external-output-missing", evidence: { diagnosticExcerpt: "vendor completed output" } });
+      expect(server.externalPromptAcceptedCount).toBe(1);
+      expect(server.externalPromptAttemptedCount).toBe(1);
+      expect(journal.getState().runs["run-1"]).toMatchObject({ lifecycle: "failed", failure: "external-output-missing" });
     } finally {
       process.env.PATH = priorPath;
       await server.stop();
@@ -510,7 +975,7 @@ describe("herdr execution backend end-to-end (fake daemon + real child bridge)",
     server.externalPromptMode = "blocked";
     const socketPath = await server.start();
     const executable = join(scratch, "codex");
-    await writeFile(executable, "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo 'codex 1.0'; else echo 'usage: codex'; fi\n", { mode: 0o700 });
+    await writeFile(executable, "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo 'codex 1.0'; else printf '%s\\n' 'Options:' '  --model <MODEL>' '      Model to use' '  --reasoning-level=<LEVEL>' '      Reasoning effort. Possible values: low, high'; fi\n", { mode: 0o700 });
     const priorPath = process.env.PATH;
     process.env.PATH = `${scratch}:${priorPath ?? ""}`;
     await journal.append({ kind: "agent.created", agentId: "Blocked", payload: { record: { id: "Blocked", name: "Blocked", selector: reviewer.selector, state: "queued", backend: "herdr", driver: "external-cli", createdAt: "2026-08-26T00:00:00.000Z", updatedAt: "2026-08-26T00:00:00.000Z" } } });
@@ -526,8 +991,11 @@ describe("herdr execution backend end-to-end (fake daemon + real child bridge)",
       requestInteraction: async (request) => { interactions.push(request.kind); return "deny"; },
     });
     try {
-      const output = await backend.execute(executorInput("Blocked", reviewer, { nestedCli: "codex-cli" }));
-      expect(output).toMatchObject({ status: "failed", driver: "external-cli", error: "blocked/need-user" });
+      const output = await backend.execute(executorInput("Blocked", reviewer, {
+        nestedCli: "codex-cli",
+        item: { task: "Review the fixture diff.", agent: reviewer.selector, model: "vendor-model-high", thinking: "high", workspace: "auto", writeScope: { paths: [], resources: [] } },
+      }));
+      expect(output).toMatchObject({ status: "failed", driver: "external-cli", error: "blocked/need-user", evidence: { vendorModel: "vendor-model-high", vendorThinking: "high" } });
       expect(interactions).toEqual(["external-cui-confirmation"]);
       expect(journal.getState().runs["run-1"]).toMatchObject({ lifecycle: "failed" });
     } finally {
@@ -620,6 +1088,7 @@ describe("herdr execution backend end-to-end (fake daemon + real child bridge)",
     expect(methods.indexOf("tab.create")).toBeLessThan(methods.indexOf("agent.start"));
     expect(methods).toContain("pane.report_metadata");
     expect(methods).toContain("workspace.report_metadata");
+    expect(methods).not.toContain("agent.read");
     const start = server.calls.find((call) => call.method === "agent.start");
     expect(start?.params.name).toMatch(/^ap-[0-9a-f]{6}-1$/);
     expect((start?.params.args as string[]).join(" ")).toContain("--no-extensions");

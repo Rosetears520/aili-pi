@@ -102,12 +102,44 @@ describe("shared sub renderers", () => {
     expect(background).toContain("SUB · parallel · general · background · running");
   });
 
+  it("labels external vendor model and thinking separately without changing model suffixes", () => {
+    const args: SubCallArgs = {
+      description: "vendor turn",
+      prompt: "work",
+      subagent_type: "aili.code-reviewer",
+      cli: "codex-cli",
+      selectionScope: "release-42",
+      model: "vendor-model-high",
+      thinking: "high",
+    };
+    const call = rendered(renderSubCall(args, theme, context(args)));
+    const normalizedCall = call.replace(/\s+/g, " ");
+    expect(normalizedCall).toContain("external CLI: codex-cli");
+    expect(normalizedCall).toContain("scope: release-42");
+    expect(normalizedCall).toContain("vendor model: vendor-model-high");
+    expect(normalizedCall).toContain("vendor thinking: high");
+
+    const output = rendered(renderSubResult(
+      result({ batch: false, results: [taskItem("completed", {
+        driver: "external-cli",
+        evidence: { externalCli: "codex-cli", vendorModel: "vendor-model-high", vendorThinking: "high" },
+      })] }),
+      { expanded: true, isPartial: false },
+      theme,
+      context(args),
+    ));
+    expect(output).toContain("vendor model: vendor-model-high");
+    expect(output).toContain("vendor thinking: high");
+    expect(output).toContain("Unverified");
+  });
+
   it("renders every accepted terminal/nonterminal state without conflating the aggregate", () => {
     const states = [
       ["accepted", { lifecycle: { agent: "queued", job: "queued", turn: "queued" } }, "queued"],
       ["accepted", { lifecycle: { agent: "running", job: "running", turn: "running" } }, "running"],
       ["completed", {}, "completed"],
       ["completed", { formalResultStatus: "partial" }, "partial"],
+      ["completed", { result: "partial" }, "partial"],
       ["failed", {}, "failed"],
       ["failed", { formalResultStatus: "blocked" }, "blocked"],
       ["aborted", {}, "cancelled"],

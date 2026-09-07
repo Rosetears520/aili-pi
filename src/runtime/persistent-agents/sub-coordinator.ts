@@ -1,4 +1,5 @@
 import type { RoleProfile } from "../roles.js";
+import type { ModeDef } from "pi-permission-modes/src/schema.ts";
 import { loadRoleProfiles } from "../roles.js";
 import {
   BACKEND_DRIVERS,
@@ -29,7 +30,7 @@ import {
   type NormalizedTaskItem,
 } from "./sub-schema.js";
 import type { CurrentTurnModelAuthority, ExternalCliId, ModelChoiceSource, ResolvedModelChoice, SubagentModelDecision, ThinkingSource } from "./model-selection.js";
-import type { ExternalCliProbe } from "./external-cli.js";
+import type { ExternalCliLaunchPlan, ExternalCliProbe } from "./external-cli.js";
 import { boundedDisplayText } from "./sub-renderer.js";
 
 export interface TaskExecutionOutput {
@@ -175,6 +176,8 @@ export type SubRequestErrorCode =
   | "SUB_CLI_UNAVAILABLE"
   | "SUB_CLI_PROBE_FAILED"
   | "SUB_CLI_AMBIGUOUS"
+  | "SUB_CLI_CONTINUATION"
+  | "SUB_SELECTION_DENIED"
   | "SUB_EMPTY_RESULT";
 
 export class SubRequestError extends Error {
@@ -182,6 +185,11 @@ export class SubRequestError extends Error {
     super(`${code}: ${message}`);
     this.name = "SubRequestError";
   }
+}
+
+export interface PermissionModeSnapshot {
+  name: string;
+  mode: ModeDef;
 }
 
 export interface TaskExecutorInput {
@@ -209,6 +217,10 @@ export interface TaskExecutorInput {
   nestedCli?: ExternalCliId;
   /** Bounded deterministic version/help evidence, never credentials or argv. */
   cliProbe?: ExternalCliProbe;
+  /** Prevalidated native external-CLI launch plan; never model-supplied. */
+  launchPlan?: ExternalCliLaunchPlan;
+  /** The exact Parent permission-mode snapshot used for this Herdr run. */
+  permissionModeSnapshot?: PermissionModeSnapshot;
 }
 
 export interface OutputTruncation {
@@ -230,6 +242,7 @@ export type TaskEffectiveModeReason =
 
 export interface NormalizedTaskSettlement {
   status: "completed" | "failed" | "aborted";
+  result?: "completed" | "partial";
   taskId: string;
   agentId: string;
   jobId: string;
@@ -249,6 +262,10 @@ export interface NormalizedTaskSettlement {
   truncation: OutputTruncation;
   lifecycle: { agent: "idle" | "aborted"; job: "completed" | "failed" | "aborted"; turn: "completed" | "failed" | "aborted" };
   name?: string;
+  selectionScope?: string;
+  executionBoundary?: "trusted-local-vendor";
+  executableBinding?: "Unverified";
+  externalCli?: ExternalCliId;
   requestedModel?: string | null;
   effectiveModel?: string | null;
   modelLayer?: string | null;
@@ -282,6 +299,10 @@ export interface TaskAcceptedResult {
   effectiveModeReason: "default-async" | "default-sync" | "requested-async" | "requested-sync";
   lifecycle: { agent: string; job: string; turn: string };
   name: string;
+  selectionScope?: string;
+  executionBoundary?: "trusted-local-vendor";
+  executableBinding?: "Unverified";
+  externalCli?: ExternalCliId;
   requestedModel: string | null;
   effectiveModel: string | null;
   modelLayer: string | null;
@@ -327,6 +348,10 @@ export interface TaskLiveSnapshot {
   modelSource?: string;
   thinkingSource?: string;
   source?: string;
+  selectionScope?: string;
+  executionBoundary?: "trusted-local-vendor";
+  executableBinding?: "Unverified";
+  externalCli?: ExternalCliId;
   parentModel?: string;
   parentThinking?: string;
   parentSpeedTier?: string;
@@ -362,7 +387,8 @@ export interface TaskAncestry {
   inheritedPermit: SchedulerPermit;
   /** Frozen direct-parent resolution used by nested work, never the root Main implicitly. */
   parentResolution?: ResolvedModelChoice;
-  /** User-owned authority captured for the latest direct Parent turn. */
+  /** Legacy structural authority compatibility; public candidates use the
+   * runtime-owned selection questionnaire instead. */
   currentTurnModelAuthority?: CurrentTurnModelAuthority;
   /** Compatibility aliases for callers using shorter authority vocabulary. */
   currentTurnAuthority?: CurrentTurnModelAuthority;
@@ -373,6 +399,8 @@ export interface TaskAncestry {
 
 export interface TaskPreflightInput {
   item: NormalizedTaskItem;
+  /** Submission signal used to invalidate a pending candidate before allocation. */
+  signal?: AbortSignal;
   role: RoleProfile;
   ancestry?: TaskAncestry;
   /** Present when this submission continues an existing Child Session. */
@@ -388,6 +416,9 @@ export interface TaskPreflightResult {
   /** Atomically derived with authority/loadout before durable allocation. */
   backend?: ExecutionBackendKind;
   nestedCli?: ExternalCliId;
+  cliProbe?: ExternalCliProbe;
+  launchPlan?: ExternalCliLaunchPlan;
+  permissionModeSnapshot?: PermissionModeSnapshot;
 }
 
 export interface SubCoordinatorOptions {
@@ -426,6 +457,9 @@ interface CreatedTask {
   currentTurnModelAuthority?: CurrentTurnModelAuthority;
   modelDecision?: SubagentModelDecision;
   nestedCli?: ExternalCliId;
+  cliProbe?: ExternalCliProbe;
+  launchPlan?: ExternalCliLaunchPlan;
+  permissionModeSnapshot?: PermissionModeSnapshot;
   effectiveAsync: boolean;
   reason: TaskEffectiveModeReason;
   continuation: boolean;
@@ -612,12 +646,24 @@ export class SubCoordinator {
         if (ancestry ? agent.parentAgentId !== ancestry.parentAgentId : agent.parentAgentId !== undefined) {
           throw new SubRequestError("SUB_OWNERSHIP", `task_id ${taskId} is not owned by this caller`);
         }
+        const frozenDriver = resolveAgentDriver(agent);
+        const frozenCli = typeof agent.metadata?.nestedCli === "string" ? agent.metadata.nestedCli : undefined;
+        if (frozenDriver === "external-cli") {
+          if (item.cli === undefined || item.cli !== frozenCli) {
+            throw new SubRequestError("SUB_CLI_CONTINUATION", `task_id ${taskId} is frozen to external CLI ${frozenCli ?? "(unknown)"}; repeat the exact cli to continue or create a separate Agent`);
+          }
+        } else if (item.cli !== undefined) {
+          if (resolveAgentBackend(agent) === "managed") {
+            throw new SubRequestError("SUB_CLI_MANAGED_CONTINUATION", `task_id ${taskId} has frozen backend managed; create a new Herdr Agent for external CLI use`);
+          }
+          throw new SubRequestError("SUB_CLI_CONTINUATION", `task_id ${taskId} has frozen driver ${frozenDriver}; changing it to external CLI is not allowed, create a new Agent`);
+        }
         const continuedItem: NormalizedTaskItem = { ...item, agent: agent.selector };
         const role = bySelector.get(agent.selector);
         if (!role) throw new Error(`${agent.selector}: role profile is unavailable`);
         // CLI authority/backend/loadout must be derived before backend support
         // checks. A managed identity may never be switched in place to Herdr.
-        const preflight = await this.options.preflight?.({ item: continuedItem, role, ancestry, continuation: { agentId: agent.id } });
+        const preflight = await this.options.preflight?.({ item: continuedItem, role, ancestry, continuation: { agentId: agent.id }, signal: parentSignal });
         const resolved = this.preflightResult(preflight);
         const frozenBackend = resolveAgentBackend(agent);
         if (resolved.backend !== undefined && resolved.backend !== frozenBackend) {
@@ -647,7 +693,7 @@ export class SubCoordinator {
       const protections = await Promise.all(request.items.map((item) => this.resolveFormalProtection(item)));
       const choices = await Promise.all(request.items.map(async (item) => {
         const role = bySelector.get(item.agent)!;
-        return await this.options.preflight?.({ item, role, ancestry });
+        return await this.options.preflight?.({ item, role, ancestry, signal: parentSignal });
       }));
       const needsConfiguredBackend = choices.some((choice) => this.preflightResult(choice).backend === undefined);
       const configuredBackend = needsConfiguredBackend ? await this.resolveSubmissionBackend() : DEFAULT_EXECUTION_BACKEND;
@@ -712,6 +758,8 @@ export class SubCoordinator {
           backend: task.backend,
           driver: task.driver,
           name: task.item.name ?? task.role.name,
+          ...(task.item.selectionScope === undefined ? {} : { selectionScope: task.item.selectionScope }),
+          ...(task.nestedCli === undefined ? {} : { externalCli: task.nestedCli, executionBoundary: "trusted-local-vendor" as const, executableBinding: "Unverified" as const }),
           requestedModel: task.item.model ?? null,
           effectiveModel: task.modelChoice?.canonical ?? null,
           modelLayer: task.modelChoice?.layer ?? null,
@@ -777,6 +825,8 @@ export class SubCoordinator {
       backend: task.backend,
       driver: task.driver,
       requestedModel: task.item.model === undefined ? null : boundedDisplayText(task.item.model, 160),
+      ...(task.item.selectionScope === undefined ? {} : { selectionScope: boundedDisplayText(task.item.selectionScope, 200) }),
+      ...(task.nestedCli === undefined ? {} : { externalCli: task.nestedCli, executionBoundary: "trusted-local-vendor" as const, executableBinding: "Unverified" as const }),
       ...(task.item.model === undefined ? {} : { requested: boundedDisplayText(task.item.model, 160) }),
       ...(task.modelChoice?.canonical ? {
         effectiveModel: boundedDisplayText(task.modelChoice.canonical, 160),
@@ -912,7 +962,7 @@ export class SubCoordinator {
 
   private preflightResult(preflight: ResolvedModelChoice | TaskPreflightResult | undefined): TaskPreflightResult {
     return preflight && typeof preflight === "object" && (
-      "choice" in preflight || "backend" in preflight || "nestedCli" in preflight || "modelDecision" in preflight || "currentTurnModelAuthority" in preflight
+      "choice" in preflight || "backend" in preflight || "nestedCli" in preflight || "modelDecision" in preflight || "currentTurnModelAuthority" in preflight || "cliProbe" in preflight || "launchPlan" in preflight || "permissionModeSnapshot" in preflight
     )
       ? preflight as TaskPreflightResult
       : { choice: preflight as ResolvedModelChoice | undefined };
@@ -935,6 +985,9 @@ export class SubCoordinator {
     const preflightResolved = this.preflightResult(preflight);
     const modelChoice = preflightResolved.choice;
     const nestedCli = preflightResolved.nestedCli;
+    const cliProbe = preflightResolved.cliProbe;
+    const launchPlan = preflightResolved.launchPlan;
+    const permissionModeSnapshot = preflightResolved.permissionModeSnapshot;
     if (preflightResolved.backend !== undefined && preflightResolved.backend !== backend) {
       throw new Error("preallocated backend differs from the submission backend");
     }
@@ -999,6 +1052,7 @@ export class SubCoordinator {
         ...(parentResolution?.thinking ? { parentThinking: parentResolution.thinking } : {}),
         ...(parentResolution?.speedTier ? { parentSpeedTier: parentResolution.speedTier } : {}),
         ...(parentResolution?.source ? { parentSource: parentResolution.source } : {}),
+        ...(nestedCli === undefined ? {} : { nestedCli }),
         ...formalMetadata,
       },
     };
@@ -1018,7 +1072,7 @@ export class SubCoordinator {
     await this.options.journal.append({ kind: "job.created", agentId, jobId, payload: { record: job } });
     await this.options.journal.append({ kind: "turn.created", agentId, jobId, turnId, payload: { record: turn } });
     return await this.attachHandle({
-      item, role, agentId, jobId, turnId, depth, backend, driver: nestedCli ? "external-cli" : BACKEND_DRIVERS[backend], modelChoice, parentResolution, currentTurnModelAuthority, modelDecision, nestedCli,
+      item, role, agentId, jobId, turnId, depth, backend, driver: nestedCli ? "external-cli" : BACKEND_DRIVERS[backend], modelChoice, parentResolution, currentTurnModelAuthority, modelDecision, nestedCli, cliProbe, launchPlan, permissionModeSnapshot,
       effectiveAsync, reason, continuation: false, formalProtection,
     }, ancestry);
   }
@@ -1034,6 +1088,9 @@ export class SubCoordinator {
     const preflightResolved = this.preflightResult(preflight);
     const modelChoice = preflightResolved.choice;
     const nestedCli = preflightResolved.nestedCli;
+    const cliProbe = preflightResolved.cliProbe;
+    const launchPlan = preflightResolved.launchPlan;
+    const permissionModeSnapshot = preflightResolved.permissionModeSnapshot;
     const parentResolution = preflightResolved.parentResolution ?? ancestry?.parentResolution;
     const currentTurnModelAuthority = preflightResolved.currentTurnModelAuthority
       ?? ancestry?.currentTurnModelAuthority
@@ -1073,7 +1130,7 @@ export class SubCoordinator {
     await this.options.journal.append({ kind: "job.created", agentId, jobId, payload: { record: job } });
     await this.options.journal.append({ kind: "turn.created", agentId, jobId, turnId, payload: { record: turn } });
     return await this.attachHandle({
-      item, role, agentId, jobId, turnId, depth, backend, driver, modelChoice, parentResolution, currentTurnModelAuthority, modelDecision, nestedCli,
+      item, role, agentId, jobId, turnId, depth, backend, driver, modelChoice, parentResolution, currentTurnModelAuthority, modelDecision, nestedCli, cliProbe, launchPlan, permissionModeSnapshot,
       effectiveAsync, reason, continuation: true, formalProtection: undefined,
     }, ancestry);
   }
@@ -1224,7 +1281,7 @@ export class SubCoordinator {
       // before awaiting the turn so interval evidence never reports completion
       // itself as the first activity.
       await this.options.journal.append({ kind: "turn.audit", agentId, jobId, turnId, payload: { firstActivityAt: this.clock().toISOString() } });
-      output = await this.options.execute({ agentId, jobId, turnId, item, role, modelChoice, depth, context, formalProtection, parentResolution, currentTurnModelAuthority, modelDecision, continuation, backend, nestedCli: args.nestedCli });
+      output = await this.options.execute({ agentId, jobId, turnId, item, role, modelChoice, depth, context, formalProtection, parentResolution, currentTurnModelAuthority, modelDecision, continuation, backend, nestedCli: args.nestedCli, cliProbe: args.cliProbe, launchPlan: args.launchPlan, permissionModeSnapshot: args.permissionModeSnapshot });
       if (context.signal.aborted) throw context.signal.reason ?? new ScheduledTaskCancelledError(jobId, false);
       if (output.status === "failed") status = "failed";
       // A settled turn must carry a real terminal result. `completed` with an
@@ -1278,7 +1335,7 @@ export class SubCoordinator {
       result = this.settlement(status, agentId, jobId, turnId, role, item, modelChoice, parentResolution, effectiveAsync, reason, backend, driver, output, formalResultStatus);
     }
 
-    if (status === "completed") await this.finishCompleted(agentId, jobId, turnId, formalResultStatus === "partial" ? "partial" : "completed");
+    if (status === "completed") await this.finishCompleted(agentId, jobId, turnId, formalResultStatus === "partial" || output.result === "partial" ? "partial" : "completed");
     else if (status === "aborted") await this.finishAborted(agentId, jobId, turnId, output.error ?? "aborted");
     else await this.finishFailed(
       agentId,
@@ -1351,6 +1408,7 @@ export class SubCoordinator {
         : { agent: "aborted" as const, job: "aborted" as const, turn: "aborted" as const };
     return {
       status,
+      ...(execution.result ? { result: execution.result } : {}),
       taskId: agentId,
       agentId,
       jobId,
@@ -1360,6 +1418,8 @@ export class SubCoordinator {
       driver,
       ...(execution.runId ? { runId: execution.runId } : {}),
       name: item.name ?? role.name,
+      ...(item.selectionScope === undefined ? {} : { selectionScope: item.selectionScope }),
+      ...(driver === "external-cli" ? { ...(item.cli === undefined ? {} : { externalCli: item.cli }), executionBoundary: "trusted-local-vendor" as const, executableBinding: "Unverified" as const } : {}),
       requestedModel: item.model ?? null,
       effectiveModel: modelChoice?.canonical ?? (execution.model?.provider && execution.model.model ? `${execution.model.provider}/${execution.model.model}` : null),
       modelLayer: modelChoice?.layer ?? execution.model?.layer ?? null,

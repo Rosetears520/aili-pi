@@ -1,4 +1,4 @@
-export type InteractionKind = "permission" | "question";
+export type InteractionKind = "permission" | "question" | "selection";
 export type InteractionState = "pending" | "resolved" | "expired" | "cancelled";
 
 export interface InteractionRecord<TRequest = unknown, TAnswer = unknown> {
@@ -32,7 +32,11 @@ export class InteractionBroker {
     const record: InteractionRecord<TRequest, TAnswer> = { id, kind: input.kind, agentId: input.agentId, jobId: input.jobId, ...(input.runId ? { runId: input.runId } : {}), state: "pending", request: input.request, createdAt: new Date(now).toISOString(), ...(input.timeoutMs ? { expiresAt: new Date(now + input.timeoutMs).toISOString() } : {}) };
     let settle!: (answer: TAnswer) => void;
     const gate = new Promise<TAnswer>((resolve) => { settle = resolve; });
-    const pending: Pending<TAnswer> = { record: record as InteractionRecord<unknown, TAnswer>, settle, cancel: () => settle(input.fallback) };
+    const pending: Pending<TAnswer> = {
+      record: record as InteractionRecord<unknown, TAnswer>,
+      settle,
+      cancel: () => { record.state = "cancelled"; settle(input.fallback); },
+    };
     if (input.timeoutMs) pending.timer = setTimeout(() => { record.state = "expired"; settle(input.fallback); }, input.timeoutMs);
     this.pending.set(id, pending as Pending<unknown>);
     const abort = () => { record.state = "cancelled"; settle(input.fallback); };
@@ -49,7 +53,10 @@ export class InteractionBroker {
 
   answer(id: string, answer: unknown): boolean {
     const pending = this.pending.get(id);
-    if (!pending) return false;
+    // Runtime-owned candidate selections are intentionally not answerable by
+    // the generic interaction command. Their questionnaire callback is the
+    // only authorization source, and it validates the bound question/answers.
+    if (!pending || pending.record.kind === "selection") return false;
     pending.record.state = "resolved";
     pending.record.answer = answer;
     pending.settle(answer);
