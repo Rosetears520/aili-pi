@@ -70,7 +70,7 @@ describe("Zentui extension statuses", () => {
     const statuses = collectExtensionStatusSegments(
       new Map([
         ["custom-status", "custom"],
-        ["pi-cache-stats", "OpenAI cache 0/0 · 0M/0M tok"],
+        ["pi-cache-stats", "· OpenAI cache 0/0·0M/0M 0.0%"],
         ["pi-quota-status", "Wk 37% 9:49AM (29/07)"],
       ]),
       config,
@@ -83,7 +83,7 @@ describe("Zentui extension statuses", () => {
   it("hides cache statistics by default so quota remains visible", () => {
     const statuses = collectExtensionStatusSegments(
       new Map([
-        ["pi-cache-stats", "OpenAI cache 0/0 · 0M/0M tok"],
+        ["pi-cache-stats", "· OpenAI cache 0/0·0M/0M 0.0%"],
         ["pi-quota-status", "Wk 37% 9:49AM (29/07)"],
       ]),
       defaultConfig,
@@ -98,7 +98,7 @@ describe("Zentui extension statuses", () => {
     const config = withStatusOverrides({ "pi-cache-stats": "right" });
     const statuses = collectExtensionStatusSegments(
       new Map([
-        ["pi-cache-stats", "OpenAI cache 0/0 · 0M/0M tok"],
+        ["pi-cache-stats", "· OpenAI cache 0/0·0M/0M 0.0%"],
         ["pi-quota-status", "Wk 37% 9:49AM (29/07)"],
       ]),
       config,

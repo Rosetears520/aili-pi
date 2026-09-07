@@ -12,6 +12,9 @@ function harness() {
   let footerFactory: ((tui: any, theme: any, data: any) => any) | undefined;
   const setFooter = vi.fn((factory) => { footerFactory = factory; });
   const events = {
+    emit(channel: string, value: unknown) {
+      eventHandlers.get(channel)?.forEach((handler) => handler(value));
+    },
     on(channel: string, handler: EventHandler) {
       const listeners = eventHandlers.get(channel) ?? new Set<EventHandler>();
       listeners.add(handler);
@@ -42,11 +45,11 @@ function mcpSnapshot(): McpStatusSnapshot {
   return {
     version: MCP_STATUS_SNAPSHOT_VERSION,
     servers: [
-      { name: "one", status: "not-connected", toolCount: 0, disabled: false },
-      { name: "two", status: "cached", toolCount: 2, disabled: false },
-      { name: "three", status: "not-connected", toolCount: 0, disabled: false },
-      { name: "four", status: "not-connected", toolCount: 0, disabled: false },
-      { name: "off", status: "disabled", toolCount: 0, disabled: true },
+      { name: "one", status: "not-connected", listenState: "disconnected", toolCount: 0, disabled: false },
+      { name: "two", status: "cached", listenState: "not-listening", toolCount: 2, disabled: false },
+      { name: "three", status: "not-connected", listenState: "disconnected", toolCount: 0, disabled: false },
+      { name: "four", status: "not-connected", listenState: "disconnected", toolCount: 0, disabled: false },
+      { name: "off", status: "disabled", listenState: "disconnected", toolCount: 0, disabled: true },
     ],
     totalTools: 2,
     totalResources: 0,
@@ -68,6 +71,7 @@ describe("Pi-native footer runtime", () => {
       getExtensionStatuses: () => new Map([
         ["aili-provider-retry", "retrying"],
         ["pi-quota-status", "Wk 72%"],
+        ["pi-cache-stats", "· OpenAI cache 3/10·0.002M/0.005M 40.0%"],
       ]),
       getGitBranch: () => "main",
     });
@@ -81,6 +85,7 @@ describe("Pi-native footer runtime", () => {
     expect(lines.map((line: string) => visibleWidth(line))).toEqual([120, 120]);
     expect(lines[1]).not.toContain("17k/272k (6%)");
     expect(lines.join(" ")).not.toContain("ctx 90%");
+    expect(lines.join(" ")).not.toContain("OpenAI cache");
     component.dispose();
   });
 

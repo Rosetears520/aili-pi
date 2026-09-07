@@ -27,6 +27,7 @@ function response(status: number, body: unknown): FetchResponseLike {
 describe("Web settings Gateway convergence", () => {
   it.each([
     ["mcp.configure", "set_disabled", { cwd: "/workspace", name: "docs", disabled: true }],
+    ["mcp.configure", "set_lifecycle", { cwd: "/workspace", name: "docs", lifecycle: "lazy-keep-alive" }],
     ["keybinds.configure", "replace", { bindings: { "mode.cycle": ["alt+m"] } }],
     ["project_trust.configure", "trust", { cwd: "/workspace" }],
   ] as const)("sends %s only through the configuration RuntimeHost", async (capability, commandType, args) => {

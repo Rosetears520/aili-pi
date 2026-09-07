@@ -1,6 +1,5 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { Api, Context, Model, Tool } from "@earendil-works/pi-ai";
-import { hasApi } from "@earendil-works/pi-ai";
 import {
 	buildContextEntries,
 	buildSessionContext,
@@ -19,6 +18,7 @@ import {
 	latestCheckpoint,
 	projectCheckpointContext,
 } from "./checkpoint.js";
+import { resolveCompactionRoute, usesResponsesCompactionApi } from "./model-api.js";
 import { hasCheckpointMarker, rewriteCheckpointMarker } from "./protocol.js";
 import { requestRemoteCompaction } from "./remote.js";
 import {
@@ -27,13 +27,9 @@ import {
 	type CodexCompactSettingsState,
 	createCodexCompactSettingsRuntime,
 } from "./settings.js";
-import { showCodexCompactMenu } from "./settings-menu.js";
+import { terminalText } from "./terminal.js";
 
 const STATUS_KEY = "codex-compact";
-
-function isSupportedModel(model: Model<Api> | undefined): model is Model<"openai-codex-responses"> {
-	return model?.provider === "openai-codex" && hasApi(model, "openai-codex-responses");
-}
 
 function activeCheckpoint(ctx: ExtensionContext) {
 	return latestCheckpoint(ctx.sessionManager.getBranch());
@@ -42,8 +38,10 @@ function activeCheckpoint(ctx: ExtensionContext) {
 function isCheckpointCompatible(
 	details: CodexCheckpointDetails,
 	model: Model<Api> | undefined,
-): model is Model<"openai-codex-responses"> {
-	return isSupportedModel(model) && model.id === details.modelId;
+): boolean {
+	return (
+		usesResponsesCompactionApi(model) && model.api === details.api && model.id === details.modelId
+	);
 }
 
 function keptMessages(event: SessionBeforeCompactEvent): AgentMessage[] {
@@ -59,33 +57,37 @@ function keptMessages(event: SessionBeforeCompactEvent): AgentMessage[] {
 }
 
 function activeTools(pi: ExtensionAPI): Tool[] {
-	const enabled = new Set(pi.getActiveTools());
-	return pi
-		.getAllTools()
-		.filter((tool) => enabled.has(tool.name))
-		.map((tool) => ({
-			name: tool.name,
-			description: tool.description,
-			parameters: tool.parameters,
-		}));
+	const available = new Map(pi.getAllTools().map((tool) => [tool.name, tool]));
+	return pi.getActiveTools().flatMap((name) => {
+		const tool = available.get(name);
+		return tool
+			? [
+					{
+						name: tool.name,
+						description: tool.description,
+						parameters: tool.parameters,
+					},
+				]
+			: [];
+	});
 }
 
 function projectedCurrentMessages(
 	event: SessionBeforeCompactEvent,
-	model: Model<"openai-codex-responses">,
+	model: Model<Api>,
 ): { messages: AgentMessage[]; prior?: CodexCheckpointDetails } {
 	const leafId = event.branchEntries.at(-1)?.id ?? null;
 	const session = buildSessionContext(event.branchEntries, leafId);
-	const prior = latestCheckpoint(event.branchEntries)?.details;
+	const prior = latestCheckpoint(event.branchEntries);
 	if (!prior) return { messages: session.messages };
-	if (prior.modelId !== model.id) {
-		throw new Error("The active opaque checkpoint belongs to a different Codex model");
+	if (prior.details.api !== model.api || prior.details.modelId !== model.id) {
+		throw new Error("The active opaque checkpoint belongs to a different Responses model");
 	}
-	const projected = projectCheckpointContext(session.messages, prior);
+	const projected = projectCheckpointContext(session.messages, prior.details, prior.entry.summary);
 	if (!projected) {
 		throw new Error("The previous opaque checkpoint could not be projected safely");
 	}
-	return { messages: projected, prior };
+	return { messages: projected, prior: prior.details };
 }
 
 function notifyFailure(
@@ -94,8 +96,8 @@ function notifyFailure(
 	settings: CodexCompactSettings,
 ): void {
 	if (!ctx.hasUI || !settings.notifyOnFallback) return;
-	const message = error instanceof Error ? error.message : String(error);
-	ctx.ui.notify(`Codex remote compaction failed; using Pi compaction. ${message}`, "warning");
+	const message = terminalText(error instanceof Error ? error.message : String(error));
+	ctx.ui.notify(`Responses compaction failed; using Pi compaction. ${message}`, "warning");
 }
 
 function sessionStillOwned(ctx: ExtensionContext, sessionId: string, signal: AbortSignal): boolean {
@@ -107,20 +109,25 @@ async function compactRemotely(
 	event: SessionBeforeCompactEvent,
 	ctx: ExtensionContext,
 	settings: CodexCompactSettings,
+	ownerSignal: AbortSignal,
 	fetch?: typeof globalThis.fetch,
 ) {
 	const model = ctx.model;
-	if (!settings.enabled || !isSupportedModel(model)) return undefined;
+	const route = resolveCompactionRoute(model, settings);
+	if (route.kind === "native" || !usesResponsesCompactionApi(model)) return undefined;
+	const signal = AbortSignal.any([event.signal, ownerSignal]);
+	if (signal.aborted) return { cancel: true };
 	const sessionId = ctx.sessionManager.getSessionId();
-	ctx.ui.setStatus(STATUS_KEY, "Codex remote compaction…");
+	ctx.ui.setStatus(
+		STATUS_KEY,
+		route.protocol === "remote-v2" ? "Responses Remote V2…" : "Responses Compact API…",
+	);
 	try {
 		const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
-		if (!sessionStillOwned(ctx, sessionId, event.signal)) return { cancel: true };
-		if (!auth.ok || !auth.apiKey) {
-			throw new Error(auth.ok ? "OpenAI Codex OAuth token is unavailable" : auth.error);
-		}
+		if (!sessionStillOwned(ctx, sessionId, signal)) return { cancel: true };
+		if (!auth.ok) throw new Error(auth.error);
 		const provider = ctx.modelRegistry.getProvider(model.provider);
-		if (!provider) throw new Error("OpenAI Codex provider is unavailable");
+		if (!provider) throw new Error("The active Responses provider is unavailable");
 		const current = projectedCurrentMessages(event, model);
 		const context: Context = {
 			systemPrompt: ctx.getSystemPrompt(),
@@ -131,10 +138,11 @@ async function compactRemotely(
 			provider,
 			model,
 			context,
+			protocol: route.protocol,
 			apiKey: auth.apiKey,
 			headers: auth.headers,
 			env: auth.env,
-			signal: event.signal,
+			signal,
 			priorCheckpoint: current.prior
 				? {
 						marker: checkpointMarker(current.prior.checkpointId),
@@ -145,12 +153,17 @@ async function compactRemotely(
 			maxRetries: settings.maxRetries,
 			fetch,
 		});
-		if (!sessionStillOwned(ctx, sessionId, event.signal)) return { cancel: true };
-		const replacementHistory = buildReplacementHistory(response.promptInput, response.item, {
-			tokenBudget: settings.replacementTokenBudget,
-		});
+		if (!sessionStillOwned(ctx, sessionId, signal)) return { cancel: true };
+		const replacementHistory = buildReplacementHistory(
+			response.compactedOutput?.slice(0, -1) ?? response.promptInput,
+			response.item,
+			{ tokenBudget: settings.replacementTokenBudget },
+		);
 		const details = createCheckpointDetails({
+			provider: model.provider,
+			api: route.api,
 			modelId: model.id,
+			protocol: route.protocol,
 			replacementHistory,
 			keptMessages: keptMessages(event),
 		});
@@ -164,7 +177,7 @@ async function compactRemotely(
 			},
 		};
 	} catch (error) {
-		if (event.signal.aborted || ctx.sessionManager.getSessionId() !== sessionId) {
+		if (signal.aborted || ctx.sessionManager.getSessionId() !== sessionId) {
 			return { cancel: true };
 		}
 		notifyFailure(ctx, error, settings);
@@ -184,12 +197,16 @@ export function createCodexCompactExtension(
 		let generation = 0;
 
 		pi.registerCommand("codex-compact", {
-			description: "Compact now or configure Codex Remote Compaction V2",
-			handler: async (_args, ctx) => {
+			description: "Compact now or configure Responses compaction",
+			handler: async (args, ctx) => {
+				if (args.trim()) throw new Error("Usage: /codex-compact");
 				const ownerGeneration = generation;
+				const controller = sessionController;
+				const { showCodexCompactMenu } = await import("./settings-menu.js");
+				if (ownerGeneration !== generation || controller.signal.aborted) return;
 				await showCodexCompactMenu(settingsRuntime, ctx, {
-					signal: sessionController.signal,
-					isCurrent: () => ownerGeneration === generation && !sessionController.signal.aborted,
+					signal: controller.signal,
+					isCurrent: () => ownerGeneration === generation && !controller.signal.aborted,
 				});
 			},
 		});
@@ -208,7 +225,7 @@ export function createCodexCompactExtension(
 				if (sessionController.signal.aborted || ownerGeneration !== generation) return;
 				if (ctx.hasUI) {
 					ctx.ui.notify(
-						`Could not load pi-codex-compact.json; using defaults. ${error instanceof Error ? error.message : String(error)}`,
+						`Could not load pi-codex-compact.json; using defaults. ${terminalText(error instanceof Error ? error.message : String(error))}`,
 						"warning",
 					);
 				}
@@ -223,21 +240,32 @@ export function createCodexCompactExtension(
 			}
 			if (ctx.hasUI && state.kind === "invalid") {
 				ctx.ui.notify(
-					`Invalid pi-codex-compact.json; using defaults without overwriting it. ${state.issue}`,
+					`Invalid pi-codex-compact.json; using defaults without overwriting it. ${terminalText(state.issue ?? "unknown validation error")}`,
 					"warning",
 				);
 			}
 		});
 
 		pi.on("session_before_compact", (event, ctx) =>
-			compactRemotely(pi, event, ctx, settingsRuntime.get().settings, options.fetch),
+			compactRemotely(
+				pi,
+				event,
+				ctx,
+				settingsRuntime.get().settings,
+				sessionController.signal,
+				options.fetch,
+			),
 		);
 
 		pi.on("context", (event, ctx) => {
 			if (!settingsRuntime.get().settings.enabled) return undefined;
 			const checkpoint = activeCheckpoint(ctx);
 			if (!checkpoint || !isCheckpointCompatible(checkpoint.details, ctx.model)) return undefined;
-			const messages = projectCheckpointContext(event.messages, checkpoint.details);
+			const messages = projectCheckpointContext(
+				event.messages,
+				checkpoint.details,
+				checkpoint.entry.summary,
+			);
 			return messages ? { messages } : undefined;
 		});
 
@@ -259,7 +287,7 @@ export function createCodexCompactExtension(
 			providerWarnings.add(key);
 			if (ctx.hasUI) {
 				ctx.ui.notify(
-					"The active Codex checkpoint cannot replay on this model; Pi will expose only its fallback marker and retained recent messages.",
+					"The active Responses checkpoint cannot replay on this model; Pi will expose only its fallback marker and retained recent messages.",
 					"warning",
 				);
 			}

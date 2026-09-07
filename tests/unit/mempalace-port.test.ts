@@ -24,15 +24,15 @@ function candidate(kind: MemoryKind = "project-decision", supersedes?: string): 
   const base = { schemaVersion: 1 as const, id: `candidate-${kind}`, kind, applicability, content: `stable ${kind}`, confidence: 0.9, support: (kind === "preference" ? "explicit" : kind === "reusable-solution" ? "verified" : "accepted") as "explicit" | "accepted" | "verified", sourceIds: ["source-1"], sourceEntryIds: ["entry-1"], sourceProject: "/trusted/project", sourceCutoff: { schemaVersion: 1 as const, sessionId: "session", branchId: "main", fromEntryId: "1", coversUpToId: "2", sourceCount: 2, estimatedTokens: 20, contentHash: "a".repeat(64) }, ...(supersedes ? { supersedes } : {}) };
   return { ...base, fingerprint: canonicalCandidateFingerprint(base) };
 }
-function port(invoker: FakeSessionMcpInvoker, authority = new StandingMemoryAuthority(policy()), supportsSupersede = false) { return new SessionMemPalacePort({ invoker, authority, mapping, server: "memory", agentId: "agent", sessionId: "session", supportsSupersede, providerVersion: "3.7.0" }); }
+function port(invoker: FakeSessionMcpInvoker, authority = new StandingMemoryAuthority(policy()), supportsSupersede = false) { return new SessionMemPalacePort({ invoker, authority, mapping, server: "memory", agentId: "agent", sessionId: "session", supportsSupersede, providerVersion: "3.9.0" }); }
 
 describe("Parent-owned MemPalace port", () => {
   it("fails closed before lazy binding and requires exact provider version evidence", async () => {
     const delegate = new DelegatingMemPalacePort();
     await expect(delegate.search({ query: "decision", maximumResults: 4, kinds: ["project-decision"] })).resolves.toMatchObject({ status: "unavailable" });
-    expect(DEFAULT_MEMPALACE_VERSION_EVIDENCE).toEqual({ accepted: "3.7.0" });
-    expect(exactMemPalaceVersionCompatible({ accepted: "3.7.0", installed: "3.6.0" })).toBe(false);
-    expect(exactMemPalaceVersionCompatible({ accepted: "3.7.0", installed: "3.7.0" })).toBe(true);
+    expect(DEFAULT_MEMPALACE_VERSION_EVIDENCE).toEqual({ accepted: "3.9.0" });
+    expect(exactMemPalaceVersionCompatible({ accepted: "3.9.0", installed: "3.7.0" })).toBe(false);
+    expect(exactMemPalaceVersionCompatible({ accepted: "3.9.0", installed: "3.9.0" })).toBe(true);
   });
 
   it("uses only the injected session invocation seam and exact bounded operations", async () => {
@@ -62,7 +62,7 @@ describe("Parent-owned MemPalace port", () => {
   it("fails closed for revoked, mismatched, unavailable, auth-required and cancelled operations", async () => {
     const invoker = new FakeSessionMcpInvoker(); const authority = new StandingMemoryAuthority(policy()); const subject = port(invoker, authority);
     const withoutVersionEvidence = new SessionMemPalacePort({ invoker, authority, mapping, server: "memory", agentId: "agent", sessionId: "session" });
-    const mismatchedVersion = new SessionMemPalacePort({ invoker, authority, mapping, server: "memory", agentId: "agent", sessionId: "session", providerVersion: "3.6.0" });
+    const mismatchedVersion = new SessionMemPalacePort({ invoker, authority, mapping, server: "memory", agentId: "agent", sessionId: "session", providerVersion: "3.7.0" });
     await expect(withoutVersionEvidence.search({ query: "decision", maximumResults: 4, kinds: ["project-decision"] })).resolves.toMatchObject({ status: "unavailable", reason: expect.stringContaining("not been evidenced") });
     await expect(mismatchedVersion.search({ query: "decision", maximumResults: 4, kinds: ["project-decision"] })).resolves.toMatchObject({ status: "unavailable" });
     authority.revoke("2026-08-28T00:00:00.000Z");

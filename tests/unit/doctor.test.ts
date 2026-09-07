@@ -119,7 +119,7 @@ describe("capability registry", () => {
     expect(localMemory.adapterOwner).toMatch(/default-on token\/high-value hybrid observer.*side-effect-only pre-compaction hook/);
     expect(localMemory.risk.sideEffect).toBe("bounded-in-process-session-observation-and-recall");
     expect(durableMemory.adapterOwner).toContain("existing session adapter");
-    expect(durableMemory.optionalPack?.enableGuidance).toMatch(/exact MemPalace 3\.7\.0.*3\.6\.0 is a mismatch\/Unverified/);
+    expect(durableMemory.optionalPack?.enableGuidance).toMatch(/exact MemPalace 3\.9\.0.*installed evidence is exact 3\.9\.0.*fail closed/);
     expect(durableMemory.optionalPack?.missingBehavior).toMatch(/fail closed.*no disk cache.*fallback store/i);
   });
 
@@ -332,11 +332,11 @@ describe("shared workflow doctor compatibility", () => {
 
 describe("doctor", () => {
   it("reports both JSON evidence and a human non-pass without swallowing missing work", async () => {
-    const report = await runDoctor({ getCommands: () => commands }, { home: DOCTOR_HOME, mempalaceInstalledVersion: "3.6.0" });
+    const report = await runDoctor({ getCommands: () => commands }, { home: DOCTOR_HOME, mempalaceInstalledVersion: "3.7.0" });
     expect(report.status).toBe("NON_PASS");
     expect(report.results).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "skill.snapshot", status: "PASS" }),
-      expect.objectContaining({ id: "package.resources", status: "PASS", evidence: expect.stringMatching(/prompts=rose-aili-owned; native_ui=minimal-footer; web_skill=pi-web-access@0\.13\.0; foreground_web=excluded/) }),
+      expect.objectContaining({ id: "package.resources", status: "PASS", evidence: expect.stringMatching(/prompts=rose-aili-owned; native_ui=minimal-footer; web=pi-web-access@0\.27\.0; package_skills=none; foreground_web=excluded/) }),
       expect.objectContaining({ id: "rose.prompts", status: "PASS", evidence: expect.stringContaining("one rose-aili global owner") }),
       expect.objectContaining({ id: "capability.registry", status: "PASS" }),
       expect.objectContaining({ id: "optional.packs", status: "SKIP" }),
@@ -346,7 +346,7 @@ describe("doctor", () => {
       expect.objectContaining({ id: "global.resources", status: expect.stringMatching(/^(PASS|UNVERIFIED)$/) }),
       expect.objectContaining({ id: "shared.workflows", status: "ERROR", evidence: expect.stringContaining("compatibility=missing") }),
       expect.objectContaining({ id: "memory.observational", status: "PASS", evidence: expect.stringMatching(/local=default-on; observer=token\+high-value-managed-internal;.*pre_compaction=side-effect-only-return-undefined; compaction_change=none; disk_cache=none/) }),
-      expect.objectContaining({ id: "memory.mempalace", status: "UNVERIFIED", evidence: expect.stringMatching(/accepted=3\.7\.0; installed=3\.6\.0; compatibility=mismatch;.*bridge=existing-session-mcp-adapter; standing_authority=session-scoped; automatic_durable=fail-closed;.*live_write=not-run-unverified/) }),
+      expect.objectContaining({ id: "memory.mempalace", status: "UNVERIFIED", evidence: expect.stringMatching(/accepted=3\.9\.0; installed=3\.7\.0; compatibility=mismatch;.*bridge=existing-session-mcp-adapter; standing_authority=session-scoped; automatic_durable=fail-closed;.*live_write=not-run-unverified/) }),
       expect.objectContaining({ id: "provenance", status: "PASS" }),
     ]));
     expect(formatDoctorReport(report)).toContain("AILI doctor: NON_PASS");

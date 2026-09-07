@@ -9,12 +9,13 @@ export type ConfigurationCapability =
   | "mcp.configure"
   | "keybinds.configure"
   | "project_trust.configure";
+export type ConfigurationCommandType = string | ((body: Record<string, JsonValue>) => string);
 
 /** Retained route adapter. It translates only; all mutation ownership stays in the Runtime Gateway. */
 export async function translateConfigurationRoute(
   request: Request,
   capability: ConfigurationCapability,
-  commandType: string,
+  commandType: ConfigurationCommandType,
   mapArguments: (body: Record<string, JsonValue>) => Readonly<Record<string, JsonValue>> = (body) => body,
   mapExecutionFailureStatus?: (reason: string) => number,
 ): Promise<Response> {
@@ -39,13 +40,14 @@ export async function translateConfigurationRoute(
     const suppliedRequestId = request.headers.get("x-request-id");
     const requestId = suppliedRequestId && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(suppliedRequestId)
       ? suppliedRequestId : `facade-${randomUUID()}`;
+    const resolvedCommandType = typeof commandType === "function" ? commandType(value as Record<string, JsonValue>) : commandType;
     const envelope = createMutationEnvelope({
       requestId,
       clientId: auth.body.clientId,
       snapshot,
       sessionLeaf: "configuration",
       capability,
-      commandType,
+      commandType: resolvedCommandType,
       arguments: mapArguments(value as Record<string, JsonValue>),
       requestedAt: new Date().toISOString(),
     });

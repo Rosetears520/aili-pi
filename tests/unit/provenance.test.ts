@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { validateProvenance } from "../../src/runtime/registry.js";
-import { renderSourceNotice } from "../../scripts/generate-provenance.js";
+import { integrityToSpdxChecksum, renderSourceNotice, validateDependencySource } from "../../scripts/generate-provenance.js";
 
 describe("provenance and SBOM", () => {
   it("renders optional upstream attribution without claiming copied files", () => {
@@ -31,9 +31,9 @@ describe("provenance and SBOM", () => {
       readFile(new URL("../../manifests/provenance.json", import.meta.url), "utf8").then(JSON.parse),
       readFile(new URL("../../THIRD_PARTY_NOTICES.md", import.meta.url), "utf8"),
     ]);
-    expect(provenance.sources).toHaveLength(19);
+    expect(provenance.sources).toHaveLength(20);
     expect(provenance.sources.filter((item: { status: string }) => item.status === "adapted")).toHaveLength(9);
-    expect(provenance.sources.filter((item: { status: string }) => item.status === "dependency")).toHaveLength(5);
+    expect(provenance.sources.filter((item: { status: string }) => item.status === "dependency")).toHaveLength(6);
     expect(provenance.sources.filter((item: { status: string }) => item.status === "reference-only")).toHaveLength(5);
     expect(provenance.sources.find((item: { name: string }) => item.name === "Oh My Pi reference")).toMatchObject({
       status: "reference-only",
@@ -63,8 +63,19 @@ describe("provenance and SBOM", () => {
     expect(provenance.sources.find((item: { name: string }) => item.name === "pi-markdown-preview")).toBeUndefined();
     expect(provenance.sources.find((item: { name: string }) => item.name === "pi-mcp-adapter")).toEqual(expect.objectContaining({
       status: "dependency",
-      version: "2.23.0",
-      revision: "49e25be1cb917329980eb7a40786c5b91dddb277",
+      version: "2.32.1",
+      revision: "10a45367e033a32026987a75d6f401e37340c86f",
+    }));
+    expect(provenance.sources.find((item: { name: string }) => item.name === "pi-codex-compact")).toEqual(expect.objectContaining({
+      status: "dependency",
+      version: "0.52.0",
+      revision: "04aae270c51cf4de70479d84317eb15ac8e20e33",
+      sourceFiles: expect.arrayContaining(["upstream/pi-codex-compact-0.52.0-src/**"]),
+    }));
+    expect(provenance.sources.find((item: { name: string }) => item.name === "pi-tui-kit")).toEqual(expect.objectContaining({
+      status: "dependency",
+      version: "0.60.0",
+      revision: "a96c77a6415076182c6817d2abd6739e59418401",
     }));
     expect(provenance.sources.find((item: { name: string }) => item.name === "pi-permission-modes")).toEqual(expect.objectContaining({
       status: "adapted",
@@ -92,6 +103,16 @@ describe("provenance and SBOM", () => {
     expect(notices).not.toContain("Version: undefined");
   });
 
+  it("rejects dependency provenance version and license drift from the root lock", async () => {
+    const [provenance, lock] = await Promise.all([
+      readFile(new URL("../../manifests/provenance.json", import.meta.url), "utf8").then(JSON.parse),
+      readFile(new URL("../../package-lock.json", import.meta.url), "utf8").then(JSON.parse),
+    ]);
+    const source = provenance.sources.find((item: { name: string }) => item.name === "pi-mcp-adapter");
+    expect(() => validateDependencySource({ ...source, version: "0.0.0" }, lock.packages)).toThrow(/does not match lock/);
+    expect(() => validateDependencySource({ ...source, license: "Apache-2.0" }, lock.packages)).toThrow(/does not match lock/);
+  });
+
   it("binds aili-workflows provenance to the exact rose-aili release", async () => {
     const [provenance, notices] = await Promise.all([
       readFile(new URL("../../manifests/provenance.json", import.meta.url), "utf8").then(JSON.parse),
@@ -105,6 +126,27 @@ describe("provenance and SBOM", () => {
     });
     expect(notices).toContain("Revision: a5284ee105a084392a944aee04313dcf7c294a64");
     expect(notices).toContain("Version: 0.4.8");
+  });
+
+  it("converts locked npm SHA512 integrity to canonical SPDX hex", async () => {
+    const [lock, sbom] = await Promise.all([
+      readFile(new URL("../../package-lock.json", import.meta.url), "utf8").then(JSON.parse),
+      readFile(new URL("../../manifests/sbom.json", import.meta.url), "utf8").then(JSON.parse),
+    ]);
+    for (const [path, locked] of Object.entries(lock.packages as Record<string, { integrity?: string }>)) {
+      if (!locked.integrity) continue;
+      const record = sbom.packages.find((item: { comment?: string }) => item.comment?.includes(`lock path=${path};`));
+      expect(record).toBeDefined();
+      expect(record.checksums).toEqual([{ algorithm: "SHA512", checksumValue: integrityToSpdxChecksum(locked.integrity) }]);
+    }
+    expect(integrityToSpdxChecksum("sha512-QXKLJnukHn1ZQhywAu1O5SrOXoEMm/ZRrKO9pI5CERgmHrE2zgq/KH97Hs1RmVrszTlH9iVw2KTwndIguAvTVg=="))
+      .toMatch(/^[a-f0-9]{128}$/);
+  });
+
+  it("rejects unsupported algorithms and malformed SHA512 integrity", () => {
+    expect(() => integrityToSpdxChecksum("sha1-abc")).toThrow(/unsupported or invalid npm integrity/);
+    expect(() => integrityToSpdxChecksum("sha512-YQ==")).toThrow(/must decode to exactly 64 bytes/);
+    expect(() => integrityToSpdxChecksum("sha512-")).toThrow(/unsupported or invalid npm integrity/);
   });
 
   it("emits a deterministic SPDX 2.3 inventory with locked package integrity", async () => {
@@ -123,8 +165,8 @@ describe("provenance and SBOM", () => {
     });
     expect(sbom.packages.length).toBeGreaterThan(100);
     expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "@earendil-works/pi-coding-agent", versionInfo: "0.84.4", licenseDeclared: "MIT" }));
-    expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "pi-mcp-adapter", versionInfo: "2.23.0", licenseDeclared: "MIT" }));
-    expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "@narumitw/pi-codex-compact", versionInfo: "0.50.0", licenseDeclared: "MIT" }));
+    expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "pi-mcp-adapter", versionInfo: "2.32.1", licenseDeclared: "MIT" }));
+    expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "@narumitw/pi-codex-compact", versionInfo: "0.52.0", licenseDeclared: "MIT" }));
     expect(sbom.packages).toContainEqual(expect.objectContaining({ name: "billion-context-pi", versionInfo: "0.1.34", licenseDeclared: "MIT" }));
     expect(sbom.relationships).toHaveLength(sbom.packages.length - 1);
   });

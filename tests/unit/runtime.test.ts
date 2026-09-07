@@ -23,12 +23,20 @@ async function runtimeHarness(
   activeTools = ["read", "grep", "find", "ls", "write", "edit", "bash", "sub"],
 ) {
   const beforeStart: BeforeStartHandler[] = [];
+  const registeredEvents: string[] = [];
   const registeredCommands: string[] = [];
   const registeredShortcuts: string[] = [];
   const registeredTools: string[] = [];
   const registeredToolDefinitions: Array<{ name: string; description?: string; promptSnippet?: string; promptGuidelines?: string[]; parameters?: unknown }> = [];
   const pi = new Proxy({
-    on(event: string, handler: BeforeStartHandler) { if (event === "before_agent_start") beforeStart.push(handler); },
+    events: {
+      on() { return () => {}; },
+      emit() {},
+    },
+    on(event: string, handler: BeforeStartHandler) {
+      registeredEvents.push(event);
+      if (event === "before_agent_start") beforeStart.push(handler);
+    },
     getCommands: () => [...commands, ...registeredCommands.map((name) => command(name, "extension"))],
     getAllTools: () => registeredToolDefinitions.map((tool) => ({
       ...tool,
@@ -48,7 +56,7 @@ async function runtimeHarness(
     sendMessage() {},
   }, { get(target, property, receiver) { return property in target ? Reflect.get(target, property, receiver) : () => undefined; } }) as unknown as ExtensionAPI;
   await ailiPi(pi);
-  return { beforeStart, registeredCommands, registeredShortcuts, registeredTools, registeredToolDefinitions, pi };
+  return { beforeStart, registeredEvents, registeredCommands, registeredShortcuts, registeredTools, registeredToolDefinitions, pi };
 }
 
 function event(contextFiles?: Array<{ path: string; content: string }>): BeforeAgentStartEvent {
@@ -86,7 +94,7 @@ describe("AILI runtime composition", () => {
   it("registers delegated and selected community surfaces without legacy AILI mode controls", async () => {
     const harness = await runtimeHarness();
     expect(harness.registeredCommands).toEqual(expect.arrayContaining([
-      "aili-doctor", "memory-auto", "perm", "cache-optimizer",
+      "aili-doctor", "memory-auto", "perm",
     ]));
     expect(harness.registeredCommands).not.toContain("aili-install-global-resources");
     expect(harness.registeredCommands).not.toContain("aili-compact");
@@ -94,10 +102,25 @@ describe("AILI runtime composition", () => {
       "preview", "preview-browser", "preview-pdf", "preview-clear-cache", "lsp",
     ].includes(name))).toEqual([]);
     expect(harness.registeredCommands).not.toContain("aili-mode");
+    // The complete runtime also contains intentional same-name registrations
+    // owned by existing native/permission wrappers and environment-driven MCP
+    // surfaces. Count only this change's Web/Cache/Codex contract by name.
+    for (const name of ["web_search", "source_check", "fetch_content", "get_search_content", "compress", "decompress", "search_context", "acp_status"] as const) {
+      expect(harness.registeredTools.filter((candidate) => candidate === name), `${name} registration attempts`).toHaveLength(1);
+    }
+    for (const name of ["websearch", "curator", "search", "google-account", "cache-optimizer", "codex-compact"] as const) {
+      expect(harness.registeredCommands.filter((candidate) => candidate === name), `${name} registration attempts`).toHaveLength(1);
+    }
+    // Two context owners are intentional (ACP and Codex). The compact event
+    // additionally has the side-effect-only observational-memory barrier; the
+    // provider-request hook also has Cache and Pi retry observers.
+    expect(harness.registeredEvents.filter((name) => name === "context")).toHaveLength(2);
+    expect(harness.registeredEvents.filter((name) => name === "session_before_compact")).toHaveLength(3);
+    expect(harness.registeredEvents.filter((name) => name === "before_provider_request")).toHaveLength(3);
     expect(harness.registeredShortcuts).toContain("alt+m");
     expect(harness.registeredShortcuts).not.toContain("ctrl+shift+alt+a");
     expect(harness.registeredTools).toEqual(expect.arrayContaining([
-      "sub", "mcp", "mcpScript", "compress", "decompress", "search_context", "acp_status", "web_search", "fetch_content", "get_search_content",
+      "sub", "mcp", "mcpScript",
     ]));
     expect(harness.registeredTools).toContain("hub");
     expect(harness.registeredTools.filter((name) => name.startsWith("aili_compact") || [

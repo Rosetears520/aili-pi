@@ -74,11 +74,8 @@ export default function nativeFooter(pi: ExtensionAPI): void {
   let activeContext: ExtensionContext | undefined;
   let requestMcpRender: (() => void) | undefined;
   const events = pi.events;
-  const canObserveMcp = typeof events?.on === "function";
-  const mcpStatus = canObserveMcp ? subscribeMcpStatus(pi) : undefined;
-  const unsubscribeMcpRender = canObserveMcp
-    ? events.on(MCP_STATUS_EVENT, () => requestMcpRender?.())
-    : () => {};
+  const mcpStatus = subscribeMcpStatus(pi);
+  const unsubscribeMcpRender = events.on(MCP_STATUS_EVENT, () => requestMcpRender?.());
 
   observeTelemetryEvents(pi);
 
@@ -132,8 +129,8 @@ export default function nativeFooter(pi: ExtensionAPI): void {
             permissionMode: plainDisplayText(statuses.get(PERMISSION_STATUS_KEY)),
             retry: plainDisplayText(statuses.get(RETRY_STATUS_KEY)),
             ...contextUsageSnapshot(ctx),
-            mcpConnectedCount: mcp?.connectedCount ?? 0,
-            mcpEnabledCount: mcp ? Math.max(0, mcp.servers.length - mcp.disabledCount) : 0,
+            mcpConnectedCount: mcp.connectedCount,
+            mcpEnabledCount: Math.max(0, mcp.servers.length - mcp.disabledCount),
             clock: timeLabel(),
             gitBranch: footerData.getGitBranch() ?? undefined,
             // Worktree-aware: inside a linked worktree basename(cwd) is a
@@ -157,7 +154,7 @@ export default function nativeFooter(pi: ExtensionAPI): void {
   pi.on("session_shutdown", () => {
     clear();
     unsubscribeMcpRender();
-    mcpStatus?.dispose();
+    mcpStatus.dispose();
   });
   pi.on("model_select", (_event, ctx) => {
     if (activeContext === ctx) install(ctx);

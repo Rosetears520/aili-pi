@@ -109,7 +109,7 @@ describe("session-owned MCP invoker", () => {
     harness.lifecycle("session_start");
     harness.emit(MCP_STATUS_EVENT, {
       version: MCP_STATUS_SNAPSHOT_VERSION,
-      servers: [{ name: "memory-server", status: "connected", toolCount: 1, disabled: false }],
+      servers: [{ name: "memory-server", status: "connected", listenState: "active", toolCount: 1, disabled: false }],
       totalTools: 1,
       totalResources: 0,
       connectedCount: 1,
@@ -127,7 +127,7 @@ describe("session-owned MCP invoker", () => {
     createAiliMcpExtension({ config: { mcpServers: {} } })(harness.pi);
     harness.emit(MCP_STATUS_EVENT, {
       version: MCP_STATUS_SNAPSHOT_VERSION,
-      servers: [{ name: "memory-server", status: "failed", toolCount: 0, disabled: false }],
+      servers: [{ name: "memory-server", status: "failed", listenState: "disconnected", toolCount: 0, disabled: false }],
       totalTools: 0,
       totalResources: 0,
       connectedCount: 0,

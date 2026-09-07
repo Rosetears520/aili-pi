@@ -8,8 +8,8 @@ const PERMISSION_MODE_MODULE = "../vendor/pi-permission-modes/index.ts";
 export const NATIVE_INTEGRATIONS = [
   "pi-permission-modes@2.2.0 (AILI multiline-glob adaptation)",
   "pi-quota-status@0.3.0",
-  "pi-web-access@0.13.0",
-  "pi-cache-optimizer@2.6.18",
+  "pi-web-access@0.27.0",
+  "pi-cache-optimizer@2.8.6",
 ] as const;
 
 const INTEGRATION_MODULES = [

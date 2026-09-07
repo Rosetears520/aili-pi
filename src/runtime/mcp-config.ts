@@ -6,11 +6,11 @@ import type { McpConfig, ServerEntry } from "pi-mcp-adapter/types";
 import { MEMPALACE_PATH } from "./mempalace.js";
 
 export const ACCEPTED_MCP_SERVER_VERSIONS = Object.freeze({
-  mempalace: "3.7.0",
-  context7: "4.0.2",
-  playwright: "0.0.79",
-  codegraph: "1.5.0",
-  graphify: "0.9.41",
+  mempalace: "3.9.0",
+  context7: "4.0.5",
+  playwright: "0.0.80",
+  codegraph: "1.6.0",
+  graphify: "0.9.54",
 });
 
 export interface CodeGraphSelection {
@@ -40,13 +40,13 @@ export function resolveCodeGraphSelection(
 export function acceptedMcpServers(selection = resolveCodeGraphSelection()): Record<string, ServerEntry> {
   const codegraph = selection.strategy === "path" && selection.binaryPath
     ? { command: selection.binaryPath, args: ["serve", "--mcp"] }
-    : { command: "npx", args: ["-y", "@colbymchenry/codegraph@1.5.0", "serve", "--mcp"] };
+    : { command: "npx", args: ["-y", `@colbymchenry/codegraph@${ACCEPTED_MCP_SERVER_VERSIONS.codegraph}`, "serve", "--mcp"] };
   return {
     mempalace: { command: "mempalace-mcp", args: ["--palace", MEMPALACE_PATH], env: { MEMPALACE_PALACE_PATH: MEMPALACE_PATH }, lifecycle: "keep-alive" },
     // Context7 discovers its optional credential from the process environment;
     // do not persist even a placeholder in the shared user config.
-    context7: { command: "npx", args: ["-y", "@upstash/context7-mcp@4.0.2"], lifecycle: "keep-alive" },
-    playwright: { command: "npx", args: ["-y", "@playwright/mcp@0.0.79", "--browser", "chromium"], lifecycle: "keep-alive" },
+    context7: { command: "npx", args: ["-y", `@upstash/context7-mcp@${ACCEPTED_MCP_SERVER_VERSIONS.context7}`], lifecycle: "keep-alive" },
+    playwright: { command: "npx", args: ["-y", `@playwright/mcp@${ACCEPTED_MCP_SERVER_VERSIONS.playwright}`, "--browser", "chromium"], lifecycle: "keep-alive" },
     codegraph: { ...codegraph, lifecycle: "keep-alive" },
     graphify: { command: "graphify-mcp", args: ["graphify-out/graph.json"], lifecycle: "keep-alive" },
   };

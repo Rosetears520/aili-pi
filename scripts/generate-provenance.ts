@@ -8,8 +8,28 @@ const readJson = async <T>(path: string): Promise<T> => JSON.parse(await readFil
 const hash = (value: string): string => createHash("sha256").update(value).digest("hex");
 const spdxId = (value: string): string => `SPDXRef-${value.replace(/[^A-Za-z0-9.-]+/g, "-")}-${hash(value).slice(0, 10)}`;
 
+/** Convert npm's canonical SHA512 integrity encoding to SPDX's hex checksum. */
+export function integrityToSpdxChecksum(integrity: string): string {
+  const match = /^sha512-([A-Za-z0-9+/]+={0,2})$/.exec(integrity);
+  if (!match) {
+    throw new Error(`unsupported or invalid npm integrity (expected sha512-base64): ${integrity}`);
+  }
+  const encoded = match[1]!;
+  let digest: Buffer;
+  try {
+    digest = Buffer.from(encoded, "base64");
+  } catch (error) {
+    throw new Error(`invalid npm SHA512 integrity encoding: ${integrity}`, { cause: error });
+  }
+  if (digest.length !== 64 || digest.toString("base64") !== encoded) {
+    throw new Error(`npm SHA512 integrity must decode to exactly 64 bytes: ${integrity}`);
+  }
+  return digest.toString("hex");
+}
+
 export interface ProvenanceSource {
   name: string;
+  packageName?: string;
   repository: string;
   revision: string;
   version: string;
@@ -22,7 +42,7 @@ export interface ProvenanceSource {
   attribution?: string;
 }
 
-interface LockedPackage {
+export interface LockedPackage {
   version?: string;
   resolved?: string;
   integrity?: string;
@@ -36,6 +56,15 @@ function packageName(path: string): string {
   const tail = path.slice(path.lastIndexOf(marker) + marker.length);
   const parts = tail.split("/");
   return parts[0]!.startsWith("@") ? `${parts[0]}/${parts[1]}` : parts[0]!;
+}
+
+export function validateDependencySource(source: ProvenanceSource, packages: Record<string, LockedPackage>): void {
+  if (source.status !== "dependency") return;
+  if (!source.packageName) throw new Error(`${source.name}: dependency packageName is required`);
+  const locked = packages[`node_modules/${source.packageName}`];
+  if (!locked?.version) throw new Error(`${source.name}: root lock package ${source.packageName} is missing`);
+  if (locked.version !== source.version) throw new Error(`${source.name}: provenance version ${source.version} does not match lock ${locked.version}`);
+  if (locked.license && locked.license !== source.license) throw new Error(`${source.name}: provenance license ${source.license} does not match lock ${locked.license}`);
 }
 
 export function renderSourceNotice(source: ProvenanceSource): string {
@@ -76,6 +105,7 @@ async function generate(created: string): Promise<{ notices: string; sbom: objec
     if (source.status === "adapted" && (source.sourceFiles.length === 0 || source.symbols.length === 0 || source.localChanges.length === 0)) throw new Error(`${source.name}: adapted source detail is incomplete`);
     if (source.status === "reference-only" && (source.sourceFiles.length > 0 || source.symbols.length > 0 || source.localChanges.length > 0)) throw new Error(`${source.name}: reference-only source must not claim reused code`);
     if (source.status === "dependency" && (source.sourceFiles.length === 0 || source.symbols.length === 0 || source.localChanges.length === 0)) throw new Error(`${source.name}: dependency source detail is incomplete`);
+    validateDependencySource(source, lock.packages);
   }
 
   const packages = Object.entries(lock.packages)
@@ -88,7 +118,7 @@ async function generate(created: string): Promise<{ notices: string; sbom: objec
       filesAnalyzed: false,
       licenseConcluded: value.license ?? "NOASSERTION",
       licenseDeclared: value.license ?? "NOASSERTION",
-      checksums: value.integrity ? [{ algorithm: "SHA512", checksumValue: value.integrity.replace(/^sha512-/, "") }] : [],
+      checksums: value.integrity === undefined ? [] : [{ algorithm: "SHA512", checksumValue: integrityToSpdxChecksum(value.integrity) }],
       primaryPackagePurpose: "LIBRARY",
       comment: `npm lock path=${path}; development=${Boolean(value.dev)}; optional=${Boolean(value.optional)}`,
     }))

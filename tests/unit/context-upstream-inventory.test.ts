@@ -30,9 +30,11 @@ describe("frozen context and retry upstream inventory", () => {
     const retry = JSON.parse(await readFile(new URL("upstream/pi-retry-0.31.0/package.json", root), "utf8"));
     const codex = JSON.parse(await readFile(new URL("node_modules/@narumitw/pi-codex-compact/package.json", root), "utf8"));
     expect(retry).toMatchObject({ version: "0.31.0", license: "MIT" });
-    expect(codex).toMatchObject({ version: "0.50.0", license: "MIT" });
+    expect(codex).toMatchObject({ version: "0.52.0", license: "MIT" });
     expect(sha256(await readFile(new URL("upstream/pi-retry-0.31.0/src/retry.ts", root)))).toMatch(/^[a-f0-9]{64}$/);
-    expect(await readFile(new URL("upstream/pi-codex-compact-0.50.0-LICENSE", root), "utf8")).toContain("MIT License");
+    expect(await readFile(new URL("upstream/pi-codex-compact-0.52.0-LICENSE", root), "utf8")).toContain("MIT License");
+    expect(await readFile(new URL("upstream/pi-codex-compact-0.52.0-README.md", root), "utf8")).toContain('default `auto` protocol');
+    expect(await readFile(new URL("upstream/pi-codex-compact-0.52.0-src/model-api.ts", root), "utf8")).toContain('? "remote-v2"');
   });
 });
 

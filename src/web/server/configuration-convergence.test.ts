@@ -8,12 +8,13 @@ test("configuration Runtime Gateway advertises only the exact bounded command ma
     "models.configure": ["replace"],
     "plugins.configure": ["plugin_action"],
     "skills.configure": ["toggle_model_invocation", "install", "update"],
-    "mcp.configure": ["set_disabled"],
+    "mcp.configure": ["set_disabled", "set_lifecycle"],
     "keybinds.configure": ["replace"],
     "project_trust.configure": ["trust"],
   });
   assert.equal(isConfigurationCommand("skills.configure", "toggle_model_invocation"), true);
   assert.equal(isConfigurationCommand("mcp.configure", "set_disabled"), true);
+  assert.equal(isConfigurationCommand("mcp.configure", "set_lifecycle"), true);
   assert.equal(isConfigurationCommand("project_trust.configure", "replace"), false);
   assert.equal(isConfigurationCommand("plugins.configure", "install"), false);
   assert.equal(isConfigurationCommand("models.configure", "merge"), false);

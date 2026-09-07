@@ -12,7 +12,7 @@ import {
 import { writeModelsConfig } from "../lib/models-config-store.js";
 import { mergeKeybinds } from "../lib/aili-keybinds.js";
 import { getAllowedFileRoots, isExistingFilePathAllowed, isWindowsAbsolutePath } from "../lib/file-access.js";
-import { listMcpPanelServers, setMcpPanelServerDisabled } from "../lib/mcp-panel-access.js";
+import { listMcpPanelServers, setMcpPanelServerDisabled, setMcpPanelServerLifecycle } from "../lib/mcp-panel-access.js";
 import { invalidateModelsCache } from "../lib/models-cache.js";
 import { getProjectTrustStatus, trustProject } from "../lib/project-trust.js";
 import { runNpx } from "../lib/npx.js";
@@ -25,7 +25,7 @@ export const CONFIGURATION_COMMANDS = Object.freeze({
   "models.configure": Object.freeze(["replace"]),
   "plugins.configure": Object.freeze(["plugin_action"]),
   "skills.configure": Object.freeze(["toggle_model_invocation", "install", "update"]),
-  "mcp.configure": Object.freeze(["set_disabled"]),
+  "mcp.configure": Object.freeze(["set_disabled", "set_lifecycle"]),
   "keybinds.configure": Object.freeze(["replace"]),
   "project_trust.configure": Object.freeze(["trust"]),
 } as const);
@@ -53,7 +53,7 @@ export class ConfigurationMutationService {
       return { result: { success: true } };
     }
     if (capability === "plugins.configure") return { result: await mutatePlugin(args) as JsonValue };
-    if (capability === "mcp.configure") return { result: await configureMcp(args) };
+    if (capability === "mcp.configure") return { result: await configureMcp(commandType, args) };
     if (capability === "keybinds.configure") return { result: configureKeybinds(args) };
     if (capability === "project_trust.configure") return { result: await configureProjectTrust(args) };
     if (commandType === "toggle_model_invocation") return { result: await toggleSkill(args) };
@@ -145,14 +145,21 @@ async function updateSkill(args: Readonly<Record<string, JsonValue>>): Promise<J
   return { success: true, output: boundedOutput(`${stdout}${stderr}`) };
 }
 
-async function configureMcp(args: Readonly<Record<string, JsonValue>>): Promise<JsonValue> {
+async function configureMcp(commandType: string, args: Readonly<Record<string, JsonValue>>): Promise<JsonValue> {
   const requestedCwd = requiredString(args.cwd, "cwd").trim();
   if (!path.isAbsolute(requestedCwd) && !isWindowsAbsolutePath(requestedCwd)) throw new Error("cwd must be an absolute path");
   const cwd = path.isAbsolute(requestedCwd) ? path.resolve(requestedCwd) : requestedCwd;
   const name = requiredString(args.name, "name");
-  if (typeof args.disabled !== "boolean") throw new Error("disabled must be a boolean");
-  await assertAllowedCwd(cwd);
-  const changed = setMcpPanelServerDisabled(name, args.disabled, cwd).changed;
+  let changed: boolean;
+  if (commandType === "set_disabled") {
+    const disabled = requiredBoolean(args.disabled, "disabled");
+    await assertAllowedCwd(cwd);
+    changed = setMcpPanelServerDisabled(name, disabled, cwd).changed;
+  } else {
+    const lifecycle = requiredString(args.lifecycle, "lifecycle");
+    await assertAllowedCwd(cwd);
+    changed = setMcpPanelServerLifecycle(name, lifecycle, cwd).changed;
+  }
   return { changed, servers: listMcpPanelServers(cwd).servers as unknown as JsonValue, reloadHint: true };
 }
 
@@ -198,4 +205,5 @@ function setPackageDisabled(settings: SettingsManager, source: string, scope: "g
 }
 function object(value: JsonValue | undefined): Record<string, unknown> { if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("config required"); return value as Record<string, unknown>; }
 function requiredString(value: JsonValue | undefined, name: string): string { if (typeof value !== "string" || !value.trim() || value.includes("\0")) throw new Error(`${name} required`); return value; }
+function requiredBoolean(value: JsonValue | undefined, name: string): boolean { if (typeof value !== "boolean") throw new Error(`${name} must be a boolean`); return value; }
 function boundedOutput(value: string): string { return value.replace(/\x1B\[[0-9;]*m/g, "").slice(-4 * 1024); }

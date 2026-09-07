@@ -48,7 +48,7 @@
     {
       "id": "mcp.runtime",
       "provider": "pi-mcp-adapter",
-      "adapterOwner": "pi-mcp-adapter@2.23.0 composed by src/runtime/mcp.ts",
+      "adapterOwner": "pi-mcp-adapter@2.32.1 composed by src/runtime/mcp.ts",
       "platforms": ["linux"],
       "class": "required",
       "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "external-provider-state" },
@@ -58,7 +58,7 @@
     {
       "id": "context.compaction",
       "provider": "aili-context-runtime",
-      "adapterOwner": "src/runtime/context-runtime.ts with @narumitw/pi-codex-compact@0.50.0 and complete upstream/billion-context-pi@0.1.34",
+      "adapterOwner": "src/runtime/context-runtime.ts with @narumitw/pi-codex-compact@0.52.0 and complete upstream/billion-context-pi@0.1.34",
       "platforms": ["linux"],
       "class": "required",
       "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "session-context-and-provider-state" },
@@ -78,7 +78,7 @@
     {
       "id": "memory.provider.mempalace",
       "provider": "aili-core",
-      "adapterOwner": "one Palace through the existing session adapter in src/runtime/mcp.ts via pi-mcp-adapter@2.23.0",
+      "adapterOwner": "one Palace through the existing session adapter in src/runtime/mcp.ts via pi-mcp-adapter@2.32.1",
       "platforms": ["linux"],
       "class": "optional",
       "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "session-authorized-external-search-and-checkpoint" },
@@ -87,7 +87,7 @@
       "optionalPack": {
         "id": "mempalace-memory",
         "missingBehavior": "Automatic durable operations fail closed; local observation may continue, and no disk cache, outbox, second Palace, or fallback store is created.",
-        "enableGuidance": "Require exact MemPalace 3.7.0 compatibility evidence plus session-scoped standing authorization for the trusted Palace/project and exact search/checkpoint tools. Current installed evidence 3.6.0 is a mismatch/Unverified and must not be upgraded implicitly.",
+        "enableGuidance": "Require exact MemPalace 3.9.0 compatibility evidence plus session-scoped standing authorization for the trusted Palace/project and exact search/checkpoint tools. Current installed evidence is exact 3.9.0; each session must still probe and fail closed on absent or mismatched evidence.",
         "sideEffects": ["bounded external Palace search and non-destructive checkpoint through the existing session MCP adapter"],
         "futureOwner": "aili-pi"
       }
@@ -115,7 +115,7 @@
     {
       "id": "web.fetch",
       "provider": "pi-web-access",
-      "adapterOwner": "pi-web-access@0.13.0",
+      "adapterOwner": "pi-web-access@0.27.0 (complete upstream Extension surface; no AILI gate or provider copy)",
       "platforms": ["linux"],
       "class": "required",
       "risk": { "secret": "possible", "network": "provider-dependent", "sideEffect": "external-read-local-cache-and-process" },

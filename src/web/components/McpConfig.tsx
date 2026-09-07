@@ -5,15 +5,32 @@ import { useI18n } from "@/hooks/useI18n";
 import { getGatewayClient } from "@/gateway-client";
 
 // MCP management panel (webui-mcp-management). Config-layer truth only in v1:
-// per-server identity + disabled state from the adapter's merged config, and
-// toggles persisted through the adapter's own project-layer writer — never a
+// per-server identity, disabled state, and lifecycle from the shared global
+// config, persisted through the adapter's public global writer — never a
 // second configuration authority, never server definitions or credentials.
 // The effect-timing hint states the adapter's honest semantics (applies on
 // session reload); the panel never auto-reloads or auto-reconnects.
 
+type McpLifecycle = "eager" | "keep-alive" | "lazy" | "lazy-keep-alive";
+type McpPanelMode = McpLifecycle | "disabled";
+
+const MCP_PANEL_MODES = ["eager", "keep-alive", "lazy", "lazy-keep-alive", "disabled"] as const;
+const MCP_MODE_LABEL_KEYS: Record<McpPanelMode, string> = {
+  eager: "mcp.lifecycleEager",
+  "keep-alive": "mcp.lifecycleKeepAlive",
+  lazy: "mcp.lifecycleLazy",
+  "lazy-keep-alive": "mcp.lifecycleLazyKeepAlive",
+  disabled: "mcp.stateDisabled",
+};
+
+function isMcpPanelMode(value: string): value is McpPanelMode {
+  return (MCP_PANEL_MODES as readonly string[]).includes(value);
+}
+
 interface McpPanelServer {
   name: string;
   disabled: boolean;
+  lifecycle: McpLifecycle;
 }
 
 interface McpRuntimeServer {
@@ -63,15 +80,21 @@ export function McpConfig({ cwd, onClose }: { cwd: string; onClose: () => void }
 
   useEffect(load, [load]);
 
-  const toggle = useCallback(async (server: McpPanelServer) => {
+  const changeMode = useCallback(async (server: McpPanelServer, mode: McpPanelMode) => {
     setBusyNames((prev) => new Set(prev).add(server.name));
     setError(null);
     try {
-      const mutation = await getGatewayClient().configure(
-        "mcp.configure",
-        "set_disabled",
-        { cwd, name: server.name, disabled: !server.disabled },
-      );
+      const mutation = mode === "disabled"
+        ? await getGatewayClient().configure(
+          "mcp.configure",
+          "set_disabled",
+          { cwd, name: server.name, disabled: true },
+        )
+        : await getGatewayClient().configure(
+          "mcp.configure",
+          "set_lifecycle",
+          { cwd, name: server.name, lifecycle: mode },
+        );
       if (mutation.disposition !== "completed") throw new Error(mutation.reason);
       const data = mutation.result as { servers?: McpPanelServer[] } | undefined;
       setServers(data?.servers ?? []);
@@ -132,15 +155,18 @@ export function McpConfig({ cwd, onClose }: { cwd: string; onClose: () => void }
                 );
               })()}
               <span style={{ fontSize: 11, color: server.disabled ? "var(--text-dim)" : "#15a06a", flexShrink: 0 }}>{server.disabled ? t("mcp.stateDisabled") : t("mcp.stateEnabled")}</span>
-              <button
-                type="button"
+              <select
+                aria-label={t("mcp.mode", { name: server.name })}
+                value={server.disabled ? "disabled" : server.lifecycle}
                 disabled={busyNames.has(server.name)}
-                onClick={() => void toggle(server)}
-                title={server.disabled ? t("mcp.enable", { name: server.name }) : t("mcp.disable", { name: server.name })}
-                style={{ height: 22, padding: "0 9px", flexShrink: 0, border: "1px solid var(--border)", borderRadius: 5, background: "var(--bg-panel)", color: server.disabled ? "var(--text-muted)" : "#15a06a", fontSize: 11, cursor: "pointer" }}
+                onChange={(event) => {
+                  const mode = event.currentTarget.value;
+                  if (isMcpPanelMode(mode)) void changeMode(server, mode);
+                }}
+                style={{ height: 24, maxWidth: 150, flexShrink: 0, border: "1px solid var(--border)", borderRadius: 5, background: "var(--bg-panel)", color: "var(--text)", fontSize: 11, cursor: "pointer" }}
               >
-                {server.disabled ? t("mcp.actionEnable") : t("mcp.actionDisable")}
-              </button>
+                {MCP_PANEL_MODES.map((mode) => <option key={mode} value={mode}>{t(MCP_MODE_LABEL_KEYS[mode])}</option>)}
+              </select>
             </div>
           ))}
           {servers !== null && servers.length === 0 && !error && (

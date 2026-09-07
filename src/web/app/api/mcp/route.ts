@@ -3,6 +3,7 @@ import { isAbsolute } from "node:path";
 import { listMcpPanelServers } from "@/lib/mcp-panel-access";
 import { translateConfigurationRoute } from "@/server/configuration-route-facade";
 import { readMcpRuntimeSnapshot } from "../../../../runtime/mcp-runtime-store.ts";
+import type { JsonValue } from "../../../../runtime/web/contracts.ts";
 import { getAllowedFileRoots, isExistingFilePathAllowed, isWindowsAbsolutePath } from "@/lib/file-access";
 export async function GET(request: NextRequest) {
   const cwd = request.nextUrl.searchParams.get("cwd")?.trim() ?? "";
@@ -23,5 +24,11 @@ export async function GET(request: NextRequest) {
 
 // Retained URL: translation only. Runtime Gateway is the sole mutation owner.
 export async function PATCH(request: NextRequest) {
-  return translateConfigurationRoute(request, "mcp.configure", "set_disabled", undefined, () => 400);
+  return translateConfigurationRoute(
+    request,
+    "mcp.configure",
+    (body: Record<string, JsonValue>) => Object.hasOwn(body, "lifecycle") ? "set_lifecycle" : "set_disabled",
+    undefined,
+    () => 400,
+  );
 }

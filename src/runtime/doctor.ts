@@ -323,18 +323,19 @@ export async function runDoctor(
       pi?: { extensions?: string[]; prompts?: string[]; skills?: string[]; themes?: string[] };
     };
     const dependencies = (packageJson as { dependencies?: Record<string, string> }).dependencies ?? {};
-    const expectedDependencies = ["@narumitw/pi-codex-compact@0.50.0", "acp-kernel@0.0.19", "pi-mcp-adapter@2.23.0", "pi-permission-modes@2.2.0", "pi-quota-status@0.3.0", "pi-web-access@0.13.0"];
+    const expectedDependencies = ["@narumitw/pi-codex-compact@0.52.0", "@narumitw/pi-tui-kit@0.60.0", "acp-kernel@0.0.19", "pi-cache-optimizer@2.8.6", "pi-mcp-adapter@2.32.1", "pi-permission-modes@2.2.0", "pi-quota-status@0.3.0", "pi-web-access@0.27.0"];
     const dependencyState = expectedDependencies.every((entry) => {
       const separator = entry.lastIndexOf("@");
       return dependencies[entry.slice(0, separator)] === entry.slice(separator + 1);
     });
     results.push({ id: "package", status: dependencyState ? "PASS" : "ERROR", evidence: `version=${packageJson.version ?? "unverified"}; node=${packageJson.engines?.node ?? "unverified"}; native_dependencies=${dependencyState ? "exact" : "drift"}` });
     const resources = [...(packageJson.pi?.extensions ?? []), ...(packageJson.pi?.skills ?? []), ...(packageJson.pi?.themes ?? [])];
-    const expectedResources = ["./extensions/index.ts", "./node_modules/pi-web-access/skills"];
+    const expectedResources = ["./extensions/index.ts"];
     const resourceState = packageJson.pi?.prompts === undefined
+      && packageJson.pi?.skills === undefined
       && resources.length === expectedResources.length
       && expectedResources.every((resource) => resources.includes(resource));
-    results.push({ id: "package.resources", status: resourceState ? "PASS" : "ERROR", evidence: `declared=${resources.length}; prompts=${packageJson.pi?.prompts === undefined ? "rose-aili-owned" : "duplicate"}; native_ui=${resourceState ? "minimal-footer" : "drift"}; web_skill=${resourceState ? "pi-web-access@0.13.0" : "drift"}; foreground_web=excluded` });
+    results.push({ id: "package.resources", status: resourceState ? "PASS" : "ERROR", evidence: `declared=${resources.length}; prompts=${packageJson.pi?.prompts === undefined ? "rose-aili-owned" : "duplicate"}; native_ui=${resourceState ? "minimal-footer" : "drift"}; web=pi-web-access@0.27.0; package_skills=${packageJson.pi?.skills === undefined ? "none" : "drift"}; foreground_web=excluded` });
   } catch (error) {
     results.push({ id: "package", status: "ERROR", evidence: boundedError(error) });
   }

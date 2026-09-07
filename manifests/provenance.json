@@ -65,24 +65,27 @@
     },
     {
       "name": "pi-mcp-adapter",
+      "packageName": "pi-mcp-adapter",
       "repository": "https://github.com/nicobailon/pi-mcp-adapter.git",
-      "revision": "49e25be1cb917329980eb7a40786c5b91dddb277",
-      "version": "2.23.0",
+      "revision": "10a45367e033a32026987a75d6f401e37340c86f",
+      "version": "2.32.1",
       "license": "MIT",
       "status": "dependency",
       "sourceFiles": [
         "index.ts",
         "types.ts",
         "mcp-status.ts",
-        "tool-approval.ts"
+        "tool-approval.ts",
+        "config.ts"
       ],
       "symbols": [
         "createMcpAdapter",
-        "MCP status snapshots",
-        "multi-origin tool approval event"
+        "MCP status snapshots and listen-state contract",
+        "multi-origin tool approval event",
+        "writeSharedServerEntry public config writer"
       ],
       "localChanges": [
-        "AILI composes a fresh factory for Parent and each persistent Worker through src/runtime/mcp.ts; no upstream source is copied and the dependency is not registered as a second Pi package"
+        "AILI composes a fresh factory for Parent and each persistent Worker through src/runtime/mcp.ts and uses the public config writer for canonical shared-config updates; no upstream source is copied and the dependency is not registered as a second Pi package"
       ],
       "verification": [
         "tests/unit/mcp-config.test.ts",
@@ -127,30 +130,61 @@
     },
     {
       "name": "pi-codex-compact",
+      "packageName": "@narumitw/pi-codex-compact",
       "repository": "https://github.com/narumiruna/pi-extensions.git",
-      "revision": "c98af43a6c71c5839b2e0671db71ed1cc1fc0c51",
-      "version": "0.50.0",
+      "revision": "04aae270c51cf4de70479d84317eb15ac8e20e33",
+      "version": "0.52.0",
       "license": "MIT",
       "status": "dependency",
       "sourceFiles": [
         "node_modules/@narumitw/pi-codex-compact/src/**",
-        "upstream/pi-codex-compact-0.50.0-src/**",
-        "upstream/pi-codex-compact-0.50.0-LICENSE",
-        "upstream/pi-codex-compact-0.50.0-README.md"
+        "upstream/pi-codex-compact-0.52.0-src/**",
+        "upstream/pi-codex-compact-0.52.0-LICENSE",
+        "upstream/pi-codex-compact-0.52.0-README.md"
       ],
       "symbols": [
         "Codex Remote Compaction V2",
+        "protocol:auto route selection",
         "opaque checkpoint marker/fingerprint replay",
         "Pi-native fallback"
       ],
       "localChanges": [
-        "composed only for canonical openai-codex/openai-codex-responses turns",
-        "settings view forces extension transport maxRetries=0 so Pi owns retries"
+        "composed only for canonical openai-codex/openai-codex-responses turns; upstream generic OpenAI and Azure Responses routes are not adopted by AILI",
+        "settings view preserves protocol and forces extension transport maxRetries=0 so Pi owns retries"
       ],
       "verification": [
         "tests/unit/context-upstream-inventory.test.ts",
         "tests/unit/context-provider-router.test.ts",
         "tests/integration/context-runtime-load.test.ts",
+        "tests/integration/codex-remote-compaction-compat.test.ts",
+        "npm run typecheck"
+      ]
+    },
+    {
+      "name": "pi-tui-kit",
+      "packageName": "@narumitw/pi-tui-kit",
+      "repository": "https://github.com/narumiruna/pi-extensions.git",
+      "revision": "a96c77a6415076182c6817d2abd6739e59418401",
+      "version": "0.60.0",
+      "license": "MIT",
+      "status": "dependency",
+      "sourceFiles": [
+        "node_modules/@narumitw/pi-tui-kit/**"
+      ],
+      "symbols": [
+        "defineMenu",
+        "runMenu",
+        "runTask",
+        "RunMenuResult"
+      ],
+      "localChanges": [
+        "the root 0.60.0 package supplies existing File Context menu/task seams",
+        "Codex Compact retains its declared ^0.59.0-compatible nested 0.59.0 copy without an override"
+      ],
+      "verification": [
+        "tests/unit/file-context-inventory.test.ts",
+        "tests/unit/file-context-tui.test.ts",
+        "tests/unit/package.test.ts",
         "npm run typecheck"
       ]
     },
@@ -216,6 +250,7 @@
     },
     {
       "name": "pi-quota-status",
+      "packageName": "pi-quota-status",
       "repository": "https://github.com/hafiezul/pi-quota-status.git",
       "revision": "742b3e40b88fbf3d5dcd9d39af96d37bd26bb436",
       "version": "0.3.0",
@@ -244,23 +279,31 @@
     },
     {
       "name": "pi-web-access",
-      "repository": "https://github.com/ttttmr/pi-web-access.git",
-      "revision": "npm:0.13.0",
-      "version": "0.13.0",
+      "packageName": "pi-web-access",
+      "repository": "https://github.com/nicobailon/pi-web-access.git",
+      "revision": "8f11a0a94988093b0ea5d725d18e8dcabacd2373",
+      "version": "0.27.0",
       "license": "MIT",
       "status": "dependency",
       "sourceFiles": [
-        "index.ts",
-        "skills/"
+        "npm tarball *.ts",
+        "package.json",
+        "README.md",
+        "CHANGELOG.md",
+        "SECURITY.md",
+        "banner.png",
+        "pi-web-fetch-demo.mp4"
       ],
       "symbols": [
-        "web_search",
-        "fetch_content",
-        "get_search_content",
-        "curator and bundled librarian skill"
+        "default Extension",
+        "web_search, source_check, fetch_content, get_search_content",
+        "/websearch, /curator, /search, /google-account",
+        "provider routing, extraction, curator, activity monitor, and session-aware retrieval"
       ],
       "localChanges": [
-        "AILI initializes the complete pinned upstream surface through its sole Extension entry; no upstream source is copied"
+        "AILI imports the unchanged default entry once through its sole Extension entry",
+        "no upstream source or provider behavior is copied, gated, or narrowed",
+        "AILI declares no pi-web-access skill resource"
       ],
       "verification": [
         "tests/unit/runtime.test.ts",
@@ -269,9 +312,10 @@
     },
     {
       "name": "pi-cache-optimizer",
+      "packageName": "pi-cache-optimizer",
       "repository": "https://github.com/jiangge/pi-cache-optimizer.git",
-      "revision": "npm:2.6.18",
-      "version": "2.6.18",
+      "revision": "ffe55ed307c057c7fa5d2d2872d19f43b9318943",
+      "version": "2.8.6",
       "license": "MIT",
       "status": "dependency",
       "sourceFiles": [
@@ -280,11 +324,15 @@
       "symbols": [
         "default Extension",
         "/cache-optimizer",
-        "cache statistics",
-        "prompt cache hooks"
+        "cache statistics/status",
+        "prompt cache hooks",
+        "versioned router and cache-hint seams"
       ],
       "localChanges": [
-        "AILI initializes the pinned upstream extension through its single Extension entry; the Pi-native minimal footer gives model and quota status priority while leaving cache commands and collection unchanged; no upstream source is copied"
+        "AILI initializes the pinned upstream extension through its single Extension entry",
+        "the Pi-native minimal footer leaves the upstream cache status unmodified and does not render it",
+        "commands, collection, and the interactive fix-only models.json mutation boundary remain upstream-owned",
+        "no upstream source is copied"
       ],
       "verification": [
         "tests/unit/runtime.test.ts",
@@ -397,7 +445,7 @@
       ],
       "localChanges": [
         "AILI keeps selection and snapshot policy independent of the restored TUI controller",
-        "the companion @narumitw/pi-tui-kit dependency is installed and pinned exactly to 0.53.0",
+        "the root companion @narumitw/pi-tui-kit dependency is installed and pinned exactly to 0.60.0 while the accepted nested Codex dependency may retain 0.59.0",
         "the adapter preserves the legacy bounded search commands while routing /file-context browse and /file-context-browse through the restored explorer",
         "filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git reads and diff output remain bounded by the local 5-second/1.1 MiB limits"
       ],

@@ -17,7 +17,7 @@ import { resolve } from "node:path";
 import type { Action } from "pi-permission-modes/src/schema.ts";
 import { publishMcpRuntimeSnapshot } from "./mcp-runtime-store.js";
 
-export const MCP_ADAPTER_VERSION = "2.23.0";
+export const MCP_ADAPTER_VERSION = "2.32.1";
 export const MCP_TOOL_NAMES = ["mcp", "mcpScript"] as const;
 
 export type SessionMcpServerState = "connected" | "cached" | "failed" | "needs-auth" | "not-connected" | "disabled";
@@ -76,6 +76,15 @@ function validServerStatus(value: unknown): value is McpServerRuntimeStatus {
     || value === "disabled";
 }
 
+function validListenState(value: unknown): boolean {
+  return value === "active"
+    || value === "dropped"
+    || value === "re-establishing"
+    || value === "legacy"
+    || value === "not-listening"
+    || value === "disconnected";
+}
+
 export function isMcpStatusSnapshot(value: unknown): value is McpStatusSnapshot {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const candidate = value as Partial<McpStatusSnapshot>;
@@ -85,16 +94,40 @@ export function isMcpStatusSnapshot(value: unknown): value is McpStatusSnapshot 
       && typeof server === "object"
       && typeof server.name === "string"
       && validServerStatus(server.status)
-      && Number.isInteger(server.toolCount)
+      && validListenState(server.listenState)
+      && (server.catalogStale === undefined || typeof server.catalogStale === "boolean")
+      && Number.isInteger(server.toolCount) && server.toolCount >= 0
+      && (server.resourceCount === undefined || (Number.isInteger(server.resourceCount) && server.resourceCount >= 0))
+      && (server.failedAgoSeconds === undefined || (Number.isInteger(server.failedAgoSeconds) && server.failedAgoSeconds >= 0))
       && typeof server.disabled === "boolean")
     && [candidate.totalTools, candidate.totalResources, candidate.connectedCount, candidate.disabledCount]
       .every((count) => Number.isInteger(count) && Number(count) >= 0);
 }
 
+function projectMcpStatusSnapshot(snapshot: McpStatusSnapshot): McpStatusSnapshot {
+  return {
+    version: snapshot.version,
+    servers: snapshot.servers.map((server) => ({
+      name: server.name,
+      status: server.status,
+      listenState: server.listenState,
+      toolCount: server.toolCount,
+      ...(server.resourceCount !== undefined ? { resourceCount: server.resourceCount } : {}),
+      ...(server.failedAgoSeconds !== undefined ? { failedAgoSeconds: server.failedAgoSeconds } : {}),
+      disabled: server.disabled,
+      ...(server.catalogStale !== undefined ? { catalogStale: server.catalogStale } : {}),
+    })),
+    totalTools: snapshot.totalTools,
+    totalResources: snapshot.totalResources,
+    connectedCount: snapshot.connectedCount,
+    disabledCount: snapshot.disabledCount,
+  };
+}
+
 export function subscribeMcpStatus(pi: Pick<ExtensionAPI, "events">): McpStatusStore {
   let current = structuredClone(EMPTY_STATUS);
   const unsubscribe = pi.events.on(MCP_STATUS_EVENT, (value) => {
-    if (isMcpStatusSnapshot(value)) current = structuredClone(value);
+    if (isMcpStatusSnapshot(value)) current = projectMcpStatusSnapshot(value);
   });
   return {
     snapshot: () => structuredClone(current),
@@ -239,20 +272,18 @@ export function createAiliMcpExtension(options: AiliMcpExtensionOptions = {}): E
       binding.statuses.clear();
     });
     pi.on("session_shutdown", () => { binding.generation += 1; binding.context = undefined; binding.tool = undefined; binding.statuses.clear(); });
-    if (typeof pi.events?.on === "function") {
-      pi.events.on(MCP_STATUS_EVENT, (value) => {
-        if (!isMcpStatusSnapshot(value)) return;
-        binding.statuses = new Map(value.servers.map((server) => [server.name, server.status]));
-      });
-      pi.events.on(MCP_TOOL_APPROVAL_REQUEST_EVENT, (value) => {
-        const active = automaticApproval.getStore();
-        if (!active || active.claimed || !value || typeof value !== "object" || Array.isArray(value)) return;
-        const request = value as McpToolApprovalRequest;
-        if (request.origin !== "proxy" || request.serverName !== active.server || request.originalToolName !== active.tool) return;
-        let hash: string; try { hash = argsHash(request.args); } catch { return; }
-        if (hash === active.argsHash && request.claim(() => "allow_once")) active.claimed = true;
-      });
-    }
+    pi.events.on(MCP_STATUS_EVENT, (value) => {
+      if (!isMcpStatusSnapshot(value)) return;
+      binding.statuses = new Map(value.servers.map((server) => [server.name, server.status]));
+    });
+    pi.events.on(MCP_TOOL_APPROVAL_REQUEST_EVENT, (value) => {
+      const active = automaticApproval.getStore();
+      if (!active || active.claimed || !value || typeof value !== "object" || Array.isArray(value)) return;
+      const request = value as McpToolApprovalRequest;
+      if (request.origin !== "proxy" || request.serverName !== active.server || request.originalToolName !== active.tool) return;
+      let hash: string; try { hash = argsHash(request.args); } catch { return; }
+      if (hash === active.argsHash && request.claim(() => "allow_once")) active.claimed = true;
+    });
     approval?.(pi);
     const decorated = new Proxy(pi, {
       get(target, property) {
@@ -269,13 +300,10 @@ export function createAiliMcpExtension(options: AiliMcpExtensionOptions = {}): E
     });
     adapter(decorated);
     // Feed the process-level runtime snapshot store for the web MCP panel
-    // (latest view wins; the web side validates and redacts on read). Guarded:
-    // minimal harnesses (unit tests) may omit the event bus entirely.
-    if (typeof pi.events?.on === "function") {
-      const store = subscribeMcpStatus(pi);
-      pi.events.on(MCP_STATUS_EVENT, () => publishMcpRuntimeSnapshot(store.snapshot()));
-      publishMcpRuntimeSnapshot(store.snapshot());
-    }
+    // (latest view wins; the web side validates and redacts on read).
+    const store = subscribeMcpStatus(pi);
+    pi.events.on(MCP_STATUS_EVENT, () => publishMcpRuntimeSnapshot(store.snapshot()));
+    publishMcpRuntimeSnapshot(store.snapshot());
   };
 }
 

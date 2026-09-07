@@ -248,8 +248,8 @@ function assertPackedInventory(files: Array<{ path: string }>, manifest: PiManif
     }
   }
   if (manifest.pi?.prompts !== undefined) throw new Error("packed candidate duplicates rose-aili Workflow prompts");
-  if (manifest.pi?.skills?.length !== 1 || manifest.pi.skills[0] !== "./node_modules/pi-web-access/skills") {
-    throw new Error("packed candidate Pi skill declaration is not the required bundled resource");
+  if (manifest.pi?.skills !== undefined) {
+    throw new Error("packed candidate must not declare Pi skills");
   }
 }
 
@@ -260,11 +260,7 @@ async function assertInstalledPiResources(root: string, manifest: PiManifest): P
     ...(manifest.pi?.themes ?? []),
   ];
   for (const resource of packageResources) await access(resolve(root, resource));
-  const managedNodeModules = dirname(dirname(root));
-  for (const resource of manifest.pi?.skills ?? []) {
-    const dependencyRelative = resource.replace(/^\.\/node_modules\//, "");
-    await access(join(managedNodeModules, dependencyRelative));
-  }
+  if (manifest.pi?.skills !== undefined) throw new Error("installed Package unexpectedly declares Pi skills");
 }
 
 async function assertVersion(root: string, version: string, stage: string): Promise<void> {

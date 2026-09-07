@@ -29,12 +29,12 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 
 - Status: dependency
 - Source: https://github.com/nicobailon/pi-mcp-adapter.git
-- Revision: 49e25be1cb917329980eb7a40786c5b91dddb277
-- Version: 2.23.0
+- Revision: 10a45367e033a32026987a75d6f401e37340c86f
+- Version: 2.32.1
 - License: MIT
-- Source files: index.ts, types.ts, mcp-status.ts, tool-approval.ts
-- Reused symbols/patterns: createMcpAdapter, MCP status snapshots, multi-origin tool approval event
-- Local changes: AILI composes a fresh factory for Parent and each persistent Worker through src/runtime/mcp.ts; no upstream source is copied and the dependency is not registered as a second Pi package
+- Source files: index.ts, types.ts, mcp-status.ts, tool-approval.ts, config.ts
+- Reused symbols/patterns: createMcpAdapter, MCP status snapshots and listen-state contract, multi-origin tool approval event, writeSharedServerEntry public config writer
+- Local changes: AILI composes a fresh factory for Parent and each persistent Worker through src/runtime/mcp.ts and uses the public config writer for canonical shared-config updates; no upstream source is copied and the dependency is not registered as a second Pi package
 
 ## billion-context-pi
 
@@ -51,12 +51,23 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 
 - Status: dependency
 - Source: https://github.com/narumiruna/pi-extensions.git
-- Revision: c98af43a6c71c5839b2e0671db71ed1cc1fc0c51
-- Version: 0.50.0
+- Revision: 04aae270c51cf4de70479d84317eb15ac8e20e33
+- Version: 0.52.0
 - License: MIT
-- Source files: node_modules/@narumitw/pi-codex-compact/src/**, upstream/pi-codex-compact-0.50.0-src/**, upstream/pi-codex-compact-0.50.0-LICENSE, upstream/pi-codex-compact-0.50.0-README.md
-- Reused symbols/patterns: Codex Remote Compaction V2, opaque checkpoint marker/fingerprint replay, Pi-native fallback
-- Local changes: composed only for canonical openai-codex/openai-codex-responses turns; settings view forces extension transport maxRetries=0 so Pi owns retries
+- Source files: node_modules/@narumitw/pi-codex-compact/src/**, upstream/pi-codex-compact-0.52.0-src/**, upstream/pi-codex-compact-0.52.0-LICENSE, upstream/pi-codex-compact-0.52.0-README.md
+- Reused symbols/patterns: Codex Remote Compaction V2, protocol:auto route selection, opaque checkpoint marker/fingerprint replay, Pi-native fallback
+- Local changes: composed only for canonical openai-codex/openai-codex-responses turns; upstream generic OpenAI and Azure Responses routes are not adopted by AILI; settings view preserves protocol and forces extension transport maxRetries=0 so Pi owns retries
+
+## pi-tui-kit
+
+- Status: dependency
+- Source: https://github.com/narumiruna/pi-extensions.git
+- Revision: a96c77a6415076182c6817d2abd6739e59418401
+- Version: 0.60.0
+- License: MIT
+- Source files: node_modules/@narumitw/pi-tui-kit/**
+- Reused symbols/patterns: defineMenu, runMenu, runTask, RunMenuResult
+- Local changes: the root 0.60.0 package supplies existing File Context menu/task seams; Codex Compact retains its declared ^0.59.0-compatible nested 0.59.0 copy without an override
 
 ## pi-retry
 
@@ -94,24 +105,24 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 ## pi-web-access
 
 - Status: dependency
-- Source: https://github.com/ttttmr/pi-web-access.git
-- Revision: npm:0.13.0
-- Version: 0.13.0
+- Source: https://github.com/nicobailon/pi-web-access.git
+- Revision: 8f11a0a94988093b0ea5d725d18e8dcabacd2373
+- Version: 0.27.0
 - License: MIT
-- Source files: index.ts, skills/
-- Reused symbols/patterns: web_search, fetch_content, get_search_content, curator and bundled librarian skill
-- Local changes: AILI initializes the complete pinned upstream surface through its sole Extension entry; no upstream source is copied
+- Source files: npm tarball *.ts, package.json, README.md, CHANGELOG.md, SECURITY.md, banner.png, pi-web-fetch-demo.mp4
+- Reused symbols/patterns: default Extension, web_search, source_check, fetch_content, get_search_content, /websearch, /curator, /search, /google-account, provider routing, extraction, curator, activity monitor, and session-aware retrieval
+- Local changes: AILI imports the unchanged default entry once through its sole Extension entry; no upstream source or provider behavior is copied, gated, or narrowed; AILI declares no pi-web-access skill resource
 
 ## pi-cache-optimizer
 
 - Status: dependency
 - Source: https://github.com/jiangge/pi-cache-optimizer.git
-- Revision: npm:2.6.18
-- Version: 2.6.18
+- Revision: ffe55ed307c057c7fa5d2d2872d19f43b9318943
+- Version: 2.8.6
 - License: MIT
 - Source files: index.ts
-- Reused symbols/patterns: default Extension, /cache-optimizer, cache statistics, prompt cache hooks
-- Local changes: AILI initializes the pinned upstream extension through its single Extension entry; the Pi-native minimal footer gives model and quota status priority while leaving cache commands and collection unchanged; no upstream source is copied
+- Reused symbols/patterns: default Extension, /cache-optimizer, cache statistics/status, prompt cache hooks, versioned router and cache-hint seams
+- Local changes: AILI initializes the pinned upstream extension through its single Extension entry; the Pi-native minimal footer leaves the upstream cache status unmodified and does not render it; commands, collection, and the interactive fix-only models.json mutation boundary remain upstream-owned; no upstream source is copied
 
 ## pi-sakura-cyberdeck
 
@@ -144,7 +155,7 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 - License: MIT
 - Source files: upstream/pi-file-context-0.53.0/package.json, upstream/pi-file-context-0.53.0/SOURCE_INVENTORY.json, upstream/pi-file-context-0.53.0/LICENSE, licenses/pi-file-context-MIT.txt, src/runtime/file-context.ts, extensions/file-context/index.ts, extensions/file-context/file-context.ts, extensions/file-context/file-context-explorer.ts, extensions/file-context/file-context-menu.ts, extensions/file-context/file-context-preview-ui.ts, extensions/file-context/file-context-settings.ts, extensions/file-context/content-search.ts, extensions/file-context/content-search-session.ts, extensions/file-context/content-search-ui.ts, extensions/file-context/file-search.ts, extensions/file-context/git-context.ts
 - Reused symbols/patterns: F8 File Context Explorer, Git status browser, diff and changed-hunk navigation, bounded file/content search, line-range selections, Git blame/history/revision views, immutable prompt snapshots, SHA-256 provenance, deterministic token estimate
-- Local changes: AILI keeps selection and snapshot policy independent of the restored TUI controller; the companion @narumitw/pi-tui-kit dependency is installed and pinned exactly to 0.53.0; the adapter preserves the legacy bounded search commands while routing /file-context browse and /file-context-browse through the restored explorer; filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git reads and diff output remain bounded by the local 5-second/1.1 MiB limits
+- Local changes: AILI keeps selection and snapshot policy independent of the restored TUI controller; the root companion @narumitw/pi-tui-kit dependency is installed and pinned exactly to 0.60.0 while the accepted nested Codex dependency may retain 0.59.0; the adapter preserves the legacy bounded search commands while routing /file-context browse and /file-context-browse through the restored explorer; filesystem selection rejects root escapes, symlink escapes, binaries, and previews over 1 MiB; Git reads and diff output remain bounded by the local 5-second/1.1 MiB limits
 
 ## PiCraft questionnaire
 
@@ -214,6 +225,6 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 
 ## npm dependency inventory
 
-The exact 881-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
+The exact 976-entry package-lock inventory, versions, integrity values, dependency scope, and declared licenses is recorded in `manifests/sbom.json`.
 
 Runtime dependencies are initialized through the single AILI Extension entry. Package-owned third-party adaptations are copied only where their provenance sourceFiles explicitly name repository paths.

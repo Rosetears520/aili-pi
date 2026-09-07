@@ -1,14 +1,17 @@
 import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { discoverAndLoadExtensions } from "@earendil-works/pi-coding-agent";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const entry = fileURLToPath(new URL("../../extensions/index.ts", import.meta.url));
 
 describe("offline packaged runtime discovery", () => {
   it("loads the complete owned Extension surface without runtime source fetch", async () => {
-    const result = await discoverAndLoadExtensions([entry], root, `${root}/.tmp/pi-integration-agent`);
+    const providerFetch = vi.fn(async () => { throw new Error("provider request is not allowed during initialization"); });
+    vi.stubGlobal("fetch", providerFetch);
+    try {
+      const result = await discoverAndLoadExtensions([entry], root, `${root}/.tmp/pi-integration-agent`);
     expect(result.errors).toEqual([]);
     expect(result.extensions).toHaveLength(1);
     const extension = result.extensions[0]!;
@@ -16,7 +19,7 @@ describe("offline packaged runtime discovery", () => {
     const tools = [...extension.tools.keys()];
     const shortcuts = [...extension.shortcuts.keys()];
     expect(commands).toEqual(expect.arrayContaining([
-      "aili-doctor", "aili-agent-model", "codex-fast", "perm", "quota", "cache-optimizer",
+      "aili-doctor", "aili-agent-model", "codex-fast", "perm", "quota", "cache-optimizer", "websearch", "curator", "search", "google-account",
     ]));
     expect(commands).not.toContain("aili-install-global-resources");
     expect(commands.filter((name) => [
@@ -25,7 +28,7 @@ describe("offline packaged runtime discovery", () => {
     expect(commands).not.toContain("aili-mode");
     expect(commands).not.toContain("aili-compact");
     expect(tools).toEqual(expect.arrayContaining([
-      "sub", "mcp", "mcpScript", "web_search", "fetch_content", "get_search_content",
+      "sub", "mcp", "mcpScript", "web_search", "source_check", "fetch_content", "get_search_content",
     ]));
     expect(tools.filter((name) => ["preview_export", "lsp_diagnostics", "lsp_fix"].includes(name))).toEqual([]);
     expect(tools).not.toContain("subagent");
@@ -35,7 +38,11 @@ describe("offline packaged runtime discovery", () => {
     ].includes(name))).toEqual([]);
     expect(shortcuts).toContain("alt+m");
     expect(shortcuts).not.toContain("ctrl+shift+alt+a");
-    expect([...extension.handlers.keys()]).toEqual(expect.arrayContaining(["before_agent_start", "session_start", "tool_call"]));
+      expect([...extension.handlers.keys()]).toEqual(expect.arrayContaining(["before_agent_start", "session_start", "tool_call"]));
+      expect(providerFetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("keeps the pinned repository snapshot without publishing or registering it as a Pi skill source", async () => {
@@ -54,8 +61,7 @@ describe("offline packaged runtime discovery", () => {
     expect(roles.records).toHaveLength(21);
     expect(roles.bundledSelectors).toEqual(expect.arrayContaining(["general", "aili.code-scout", "aili.implementer", "aili.solution-architect"]));
     expect(packageJson.pi.prompts).toBeUndefined();
-    expect(packageJson.pi.skills).toEqual(["./node_modules/pi-web-access/skills"]);
-    expect(await readFile(new URL("../../node_modules/pi-web-access/skills/librarian/SKILL.md", import.meta.url), "utf8")).toContain("Librarian");
+    expect(packageJson.pi.skills).toBeUndefined();
     await Promise.all(skillDirectories.map((name) => readFile(new URL(`../../skills/${name}/SKILL.md`, import.meta.url), "utf8")));
   });
 });

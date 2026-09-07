@@ -228,7 +228,7 @@ export class GatewayClient {
   /** Mutates bounded settings/security state through the opaque non-AgentSession RuntimeHost. */
   public async configure(
     capability: "models.configure" | "plugins.configure" | "skills.configure" | "mcp.configure" | "keybinds.configure" | "project_trust.configure",
-    commandType: "replace" | "plugin_action" | "toggle_model_invocation" | "install" | "update" | "set_disabled" | "trust",
+    commandType: "replace" | "plugin_action" | "toggle_model_invocation" | "install" | "update" | "set_disabled" | "set_lifecycle" | "trust",
     args: Readonly<Record<string, JsonValue>>,
   ): Promise<MutationResultV1> {
     let clientId = this.clientId;

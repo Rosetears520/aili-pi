@@ -47,8 +47,8 @@ describe("Pi package baseline", () => {
     expect(manifest.devDependencies?.["@earendil-works/pi-tui"]).toBe("0.84.4");
     expect(manifest.peerDependencies?.["@earendil-works/pi-coding-agent"]).toBe("*");
     expect(manifest.dependencies).toEqual({
-      "@narumitw/pi-codex-compact": "0.50.0",
-      "@narumitw/pi-tui-kit": "0.53.0",
+      "@narumitw/pi-codex-compact": "0.52.0",
+      "@narumitw/pi-tui-kit": "0.60.0",
       // Terminal phase (add-webui-coding-workspace, user-approved 2026-08-20):
       // user PTY, WebSocket transport, and the xterm front-end.
       "@xterm/addon-fit": "^0.10.0",
@@ -56,12 +56,12 @@ describe("Pi package baseline", () => {
       "acp-kernel": "0.0.19",
       "js-yaml": "5.2.3",
       next: "16.3.1",
-      "pi-cache-optimizer": "2.6.18",
-      "pi-mcp-adapter": "2.23.0",
+      "pi-cache-optimizer": "2.8.6",
+      "pi-mcp-adapter": "2.32.1",
       "pi-permission-modes": "2.2.0",
       "pi-quota-status": "0.3.0",
       "node-pty": "^1.1.0",
-      "pi-web-access": "0.13.0",
+      "pi-web-access": "0.27.0",
       "proper-lockfile": "4.1.2",
       react: "19.2.4",
       "react-dom": "19.2.4",
@@ -73,12 +73,26 @@ describe("Pi package baseline", () => {
     expect(JSON.stringify(manifest.overrides ?? {})).not.toContain("372000");
   });
 
+  it("binds the installed Web and Cache identities and the repository-local Web inventory", async () => {
+    const [web, cache, inventory] = await Promise.all([
+      readFile(new URL("../../node_modules/pi-web-access/package.json", import.meta.url), "utf8").then(JSON.parse),
+      readFile(new URL("../../node_modules/pi-cache-optimizer/package.json", import.meta.url), "utf8").then(JSON.parse),
+      readFile(new URL("../../docs/pi-web-access-0.27.0-inventory.md", import.meta.url), "utf8"),
+    ]);
+    expect(web).toMatchObject({ name: "pi-web-access", version: "0.27.0", pi: { extensions: ["./index.ts"] } });
+    expect(web.pi.skills).toBeUndefined();
+    expect(cache).toMatchObject({ name: "pi-cache-optimizer", version: "2.8.6", pi: { extensions: ["./index.ts"] } });
+    expect(inventory).toContain("Source presence and registration paths are not live-provider validation");
+    expect(inventory).toContain("`web_search` (`webSearch`)");
+    expect(inventory).toContain("`source_check` (`sourceCheck`)");
+    expect(inventory).toContain("AILI intentionally adds none of these gates");
+  });
+
   it("keeps Web building manual: no install-time hook runs or references the Web build", async () => {
     const manifest = await readManifest();
     expect(manifest.bin).toEqual({ "pi-web": "./bin/pi-web.js", "pi-changes": "./bin/pi-changes.js", "aili-pi": "./bin/aili-pi.js" });
     expect(manifest.pi).toEqual({
       extensions: ["./extensions/index.ts"],
-      skills: ["./node_modules/pi-web-access/skills"],
     });
     expect(manifest.scripts?.["build:web"]).toContain("scripts/build-web.ts");
     for (const hook of ["prepack", "prepare", "prepublish", "prepublishOnly", "postpack", "build", "web"]) {
@@ -127,7 +141,7 @@ describe("Pi package baseline", () => {
     expect(manifest.files).not.toContain("prompts/");
   });
 
-  it("keeps the repository snapshot out of the package and registers only the Pi-owned web skill", async () => {
+  it("keeps the repository snapshot out of the package and registers no package skills", async () => {
     const manifest = await readManifest();
     expect(manifest.files).not.toContain("skills/");
     expect(manifest.files).toEqual(expect.arrayContaining([
@@ -135,7 +149,7 @@ describe("Pi package baseline", () => {
       "!upstream/aili-workflows-runtime/prompts/",
       "!upstream/billion-context-pi/AGENTS.md",
     ]));
-    expect(manifest.pi?.skills).toEqual(["./node_modules/pi-web-access/skills"]);
+    expect(manifest.pi?.skills).toBeUndefined();
   });
 
   it("includes user documentation and generated provenance gates", async () => {
@@ -163,12 +177,16 @@ describe("Pi package baseline", () => {
     expect(readme).toContain("npx -y rose-aili@0.4.8 update");
     expect(readme).toContain("A moving `rose-aili@latest`");
     expect(readme).toContain("Pi alone installs, lists, updates, and removes the Package resources");
+    expect(readme).toContain("AILI declares no Pi package skills");
+    expect(readme).toContain("pi-web-access@0.27.0");
+    expect(readme).toContain("pi-cache-optimizer@2.8.6");
+    expect(readme).not.toContain("bundled librarian skill");
     expect(readme).toContain("58-skill/562-file verification snapshot");
     expect(readme).toContain("20 specialized `aili.*` selectors");
     expect(readme).toContain("no longer registers `/aili-install-global-resources`");
     expect(readme).toContain("not included in the npm tarball");
     expect(readme).toContain("/memory-auto t");
-    expect(readme).toContain("inspected user-level environment reported exact `3.7.0`");
+    expect(readme).toContain("inspected user-level environment reported exact `3.9.0`");
     expect(readme).toContain("side-effect-only checkpoint barrier");
     expect(automaticMemory).toContain("Token-volume and deterministic high-value-event triggers");
     expect(automaticMemory).toContain("searchable across projects");

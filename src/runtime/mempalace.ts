@@ -3,7 +3,7 @@ import { lstat, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 
-export const MEMPALACE_VERSION = "3.7.0";
+export const MEMPALACE_VERSION = "3.9.0";
 /** One user-owned Palace without embedding the package author's home path. */
 export const MEMPALACE_PATH = join(homedir(), "code", "ai", ".mempalace");
 

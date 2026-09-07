@@ -9,7 +9,7 @@ afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recur
 
 describe("MemPalace deterministic mapping", () => {
   it("retains only the accepted provider contract version", () => {
-    expect(MEMPALACE_VERSION).toBe("3.7.0");
+    expect(MEMPALACE_VERSION).toBe("3.9.0");
   });
 
   it("maps one trusted canonical project and stable Agent deterministically", async () => {
