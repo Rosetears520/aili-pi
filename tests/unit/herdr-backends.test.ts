@@ -65,7 +65,9 @@ class FakeHerdrServer {
   agentStartBusyTimes = 0;
   /** Reject the first agent.start calls targeting this pane (contention). */
   agentStartRejectPane?: { paneId: string; times: number };
-  externalPromptMode: "settle" | "blocked" = "settle";
+  externalPromptMode: "settle" | "blocked" | "idle" | "unknown" = "settle";
+  /** Fresh post-acceptance agent.get views, for socket-driven synchronization. */
+  readonly externalObservations: Array<Record<string, unknown>> = [];
   /** Simulate the pane record becoming visible before the live-name index. */
   nameLookupNotReadyTimes = 0;
   /** Returned identity is correct while input-ready status/interactive readiness lag. */
@@ -181,6 +183,7 @@ class FakeHerdrServer {
             this.interactiveReadyFalseTimes -= 1;
             view.interactive_ready = false;
           }
+          if (this.externalPromptAcceptedCount > 0) this.externalObservations.push({ ...view });
           this.lastExternalReadinessObserved = (view.agent_status === "idle" || view.agent_status === "done")
             && (!("interactive_ready" in view) || view.interactive_ready === true);
           return view;
@@ -225,7 +228,7 @@ class FakeHerdrServer {
           respond({ type: "agent_prompted", agent: { ...pane } });
           return;
         }
-        const status = this.externalPromptMode === "blocked" ? "blocked" : "working";
+        const status = this.externalPromptMode === "settle" ? "working" : this.externalPromptMode;
         pane.agent_status = status;
         pane.state_change_seq = Number(pane.state_change_seq ?? 1) + 1;
         respond({ type: "agent_prompted", agent: { ...pane, agent_status: status } });
@@ -435,12 +438,38 @@ describe("external CLI structured result evidence", () => {
     await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "valid", result: { status: "partial", output: "# Partial review" } });
   });
 
-  it("rejects malformed and oversized result documents", async () => {
+  it("distinguishes transient writes from oversized documents and read I/O failures", async () => {
     const path = join(scratch, "external-result-invalid.json");
+    await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "missing" });
+    await writeFile(path, "");
+    await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "empty", transient: true });
     await writeFile(path, "not-json");
-    await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "invalid" });
+    await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "invalid", transient: true });
     await writeFile(path, "x".repeat(64 * 1024 + 1));
-    await expect(readBoundedExternalResult(path, "run-1", "turn-1")).resolves.toMatchObject({ kind: "invalid" });
+    expect(await readBoundedExternalResult(path, "run-1", "turn-1")).toEqual({ kind: "invalid", diagnostic: "result exceeds 65536-byte bound" });
+    await rm(path);
+    await mkdir(path);
+    expect(await readBoundedExternalResult(path, "run-1", "turn-1")).toEqual({ kind: "invalid", diagnostic: "result read failed (EISDIR)" });
+  });
+
+  it.each([
+    ["run identity", { runId: "stale-run" }],
+    ["turn identity", { turnId: "stale-turn" }],
+    ["schema", { schemaVersion: 2 }],
+    ["status", { status: "success" }],
+    ["non-string final status", { status: ["completed"] }],
+    ["non-string pending status", { status: ["pending"] }],
+    ["changedFiles", { changedFiles: [1] }],
+    ["verification", { verification: "unchecked" }],
+    ["output type", { output: null }],
+  ] as const)("rejects stable %s errors even in pending documents", async (_label, invalidFields) => {
+    const path = join(scratch, "external-result-stable-invalid.json");
+    for (const status of ["completed", "pending"]) {
+      await writeFile(path, JSON.stringify({ schemaVersion: 1, runId: "run-1", turnId: "turn-1", status, output: "result", ...invalidFields }));
+      const result = await readBoundedExternalResult(path, "run-1", "turn-1");
+      expect(result).toMatchObject({ kind: "invalid" });
+      expect(result).not.toHaveProperty("transient");
+    }
   });
 });
 
@@ -851,22 +880,232 @@ describe("Agy startup visible-input gate (HSTART-AGY-20260907)", () => {
     } finally { await server.stop(); }
   });
 
-  it.each(["missing", "invalid", "empty", "partial"] as const)("preserves %s result semantics after one accepted Agy prompt", async (kind) => {
+  it.each(["invalid", "empty", "empty-file", "partial"] as const)("preserves %s result semantics after one accepted Agy prompt", async (kind) => {
     const server = new FakeHerdrServer();
     const { backend, input } = await agyStartupFixture(server, {
       onExternalPromptAccepted: async ({ resultPath, runId, turnId }) => {
-        if (kind === "missing") return; // pending remains pending
+        if (kind === "empty-file") { await writeFile(resultPath, ""); return; }
         if (kind === "invalid") { await writeFile(resultPath, "not-json"); return; }
         await writeFile(resultPath, JSON.stringify({ schemaVersion: 1, runId, turnId, status: kind === "partial" ? "partial" : "completed", output: kind === "empty" ? "" : "# Partial Agy review" }));
       },
     });
     try {
+      const began = Date.now();
       const output = await backend.execute(input);
       if (kind === "partial") expect(output).toMatchObject({ status: "completed", result: "partial", output: "# Partial Agy review" });
-      else expect(output).toMatchObject({ status: "failed", error: `external-output-${kind}` });
+      else {
+        expect(output).toMatchObject({ status: "failed", error: `external-output-${kind === "empty-file" ? "empty" : kind}` });
+        expect(Date.now() - began).toBeGreaterThanOrEqual(1_500);
+        expect(server.externalObservations.length).toBeGreaterThan(2);
+        expect(server.panes).toEqual([]);
+      }
       expect(server.externalPromptAttemptedCount).toBe(1);
       expect(server.externalPromptAcceptedCount).toBe(1);
       expect(server.startupReadCount).toBe(1);
+    } finally { await server.stop(); }
+  });
+});
+
+// Reuse the startup fixture, but leave the runtime's pending document alone.
+// Real socket observations synchronize phases; real timers exercise the old
+// 1.5s failure window without advancing timers ahead of filesystem/socket I/O.
+async function pendingExternalFixture(server: FakeHerdrServer, initialText?: string) {
+  let resultPath = "";
+  const fixture = await agyStartupFixture(server, {
+    onExternalPromptAccepted: async (event) => {
+      resultPath = event.resultPath;
+      if (initialText !== undefined) await writeFile(resultPath, initialText);
+    },
+  });
+  const controller = new AbortController();
+  fixture.input.context = { signal: controller.signal } as never;
+  let settled = false;
+  const execution = fixture.backend.execute(fixture.input);
+  // Observe both outcomes immediately, including unexpected early failure.
+  void execution.then(() => { settled = true; }, () => { settled = true; });
+  return {
+    ...fixture, controller, execution,
+    get resultPath() { return resultPath; },
+    isSettled: () => settled,
+    stop: async () => {
+      controller.abort(new Error("fixture cleanup"));
+      await execution.catch(() => undefined);
+      await server.stop();
+    },
+  };
+}
+
+describe("external asynchronous completion (HASYNC-AGY-20260907)", () => {
+  it.each([
+    ["pending", "completed"], ["pending", "partial"], ["missing", "completed"],
+  ] as const)("retains idle + %s beyond the old grace, then returns delayed %s", async (kind, status) => {
+    const server = new FakeHerdrServer();
+    const fixture = await pendingExternalFixture(server);
+    try {
+      await expect.poll(() => server.externalObservations.at(-1)?.agent_status).toBe("idle");
+      if (kind === "missing") await rm(fixture.resultPath);
+      const observed = server.externalObservations.length;
+      const began = Date.now();
+      await new Promise((resolve) => setTimeout(resolve, 1_750));
+      expect(Date.now() - began).toBeGreaterThan(1_500);
+      expect(fixture.isSettled()).toBe(false);
+      expect(server.externalObservations.length).toBeGreaterThan(observed + 2);
+      expect(server.panes).toHaveLength(1);
+      expect(server.calls.some((call) => call.method === "pane.close" || call.method === "tab.close")).toBe(false);
+      expect(fixture.backend.surfaceOverview()).toMatchObject([{ agentId: fixture.input.agentId, busy: true }]);
+      expect(fixture.journal.getState().runs["run-1"]).toMatchObject({ lifecycle: "live" });
+      // No more working transitions: only the result changes while still idle.
+      await writeFile(fixture.resultPath, JSON.stringify({ schemaVersion: 1, runId: "run-1", turnId: "turn-1", status, output: "# Delayed result" }));
+      await expect(fixture.execution).resolves.toMatchObject({ status: "completed", result: status, output: "# Delayed result" });
+      expect(server.externalPromptAcceptedCount).toBe(1);
+      expect(server.externalPromptAttemptedCount).toBe(1);
+      expect(server.panes).toEqual([]);
+      expect(fixture.journal.getState().runs["run-1"]).toMatchObject({ lifecycle: "stopped" });
+    } finally { await fixture.stop(); }
+  });
+
+  it("keeps sampling after idle/pending and does not consume a valid result while working or non-ready", async () => {
+    const server = new FakeHerdrServer();
+    const fixture = await pendingExternalFixture(server);
+    try {
+      await expect.poll(() => server.externalObservations.at(-1)?.agent_status).toBe("idle");
+      const pane = server.panes[0]!;
+      pane.agent_status = "working";
+      pane.state_change_seq = 4;
+      await expect.poll(() => server.externalObservations.at(-1)?.agent_status).toBe("working");
+      await writeFile(fixture.resultPath, JSON.stringify({ schemaVersion: 1, runId: "run-1", turnId: "turn-1", status: "completed", output: "# Resumed result" }));
+      const observed = server.externalObservations.length;
+      await expect.poll(() => server.externalObservations.length).toBeGreaterThan(observed + 1);
+      expect(fixture.isSettled()).toBe(false);
+      pane.agent_status = "idle";
+      pane.interactive_ready = false;
+      await expect.poll(() => server.externalObservations.at(-1)?.interactive_ready).toBe(false);
+      expect(fixture.isSettled()).toBe(false);
+      pane.interactive_ready = true;
+      pane.state_change_seq = 1; // historical sequence cannot settle this turn
+      await expect.poll(() => server.externalObservations.at(-1)?.state_change_seq).toBe(1);
+      expect(fixture.isSettled()).toBe(false);
+      expect(fixture.backend.surfaceOverview()).toMatchObject([{ busy: true }]);
+      expect(server.calls.some((call) => call.method === "pane.close" || call.method === "tab.close")).toBe(false);
+      pane.agent_status = "done";
+      pane.state_change_seq = 5;
+      const output = await fixture.execution;
+      expect(output).toMatchObject({ status: "completed", output: "# Resumed result", evidence: { finalStateSequence: 5 } });
+      expect((output.evidence as { lifecycle: string[] }).lifecycle).toEqual(expect.arrayContaining(["working", "idle", "done"]));
+      expect(server.externalPromptAttemptedCount).toBe(1);
+    } finally { await fixture.stop(); }
+  });
+
+  it.each(["empty-file", "half-json", "empty-output"] as const)("recovers a transient %s write while continuing lifecycle observations", async (kind) => {
+    const server = new FakeHerdrServer();
+    const initial = kind === "empty-file" ? "" : kind === "half-json" ? '{"schemaVersion":1,'
+      : JSON.stringify({ schemaVersion: 1, runId: "run-1", turnId: "turn-1", status: "completed", output: " " });
+    const fixture = await pendingExternalFixture(server, initial);
+    try {
+      await expect.poll(() => server.externalObservations.length).toBeGreaterThanOrEqual(2);
+      expect(fixture.isSettled()).toBe(false);
+      // Exercise a truncate/half-JSON/final overwrite, not an atomic rename.
+      await writeFile(fixture.resultPath, '{"schemaVersion":1,"runId":');
+      const observed = server.externalObservations.length;
+      await expect.poll(() => server.externalObservations.length).toBeGreaterThan(observed + 1);
+      expect(fixture.isSettled()).toBe(false);
+      await writeFile(fixture.resultPath, JSON.stringify({ schemaVersion: 1, runId: "run-1", turnId: "turn-1", status: "completed", output: "# Recovered write" }));
+      await expect(fixture.execution).resolves.toMatchObject({ status: "completed", output: "# Recovered write" });
+      expect(server.externalPromptAttemptedCount).toBe(1);
+    } finally { await fixture.stop(); }
+  });
+
+  it.each(["working", "unknown", "interactive", "sequence"] as const)("invalidates the idle write grace when current %s readiness is lost", async (loss) => {
+    const server = new FakeHerdrServer();
+    const fixture = await pendingExternalFixture(server, '{"schemaVersion":');
+    try {
+      // Two fresh idle observations ensure the initial retry window opened.
+      await expect.poll(() => server.externalObservations.length).toBeGreaterThanOrEqual(2);
+      const pane = server.panes[0]!;
+      if (loss === "interactive") pane.interactive_ready = false;
+      else if (loss === "sequence") pane.state_change_seq = 1;
+      else pane.agent_status = loss;
+      const observed = server.externalObservations.length;
+      await expect.poll(() => server.externalObservations.length).toBeGreaterThan(observed);
+      await new Promise((resolve) => setTimeout(resolve, 1_750));
+      expect(fixture.isSettled()).toBe(false);
+      expect(fixture.journal.getState().runs["run-1"]).toMatchObject({ lifecycle: "live" });
+      expect(server.panes).toHaveLength(1);
+      pane.agent_status = "idle";
+      pane.interactive_ready = true;
+      pane.state_change_seq = 5;
+      const beforeReady = server.externalObservations.length;
+      // The still-malformed file gets a NEW grace, not the expired old one.
+      await expect.poll(() => server.externalObservations.length).toBeGreaterThan(beforeReady + 1);
+      expect(fixture.isSettled()).toBe(false);
+      await writeFile(fixture.resultPath, JSON.stringify({ schemaVersion: 1, runId: "run-1", turnId: "turn-1", status: "completed", output: "# Fresh idle result" }));
+      await expect(fixture.execution).resolves.toMatchObject({ status: "completed", output: "# Fresh idle result" });
+      expect(server.externalPromptAttemptedCount).toBe(1);
+    } finally { await fixture.stop(); }
+  });
+
+  it.each([
+    ["final identity", { runId: "stale-run" }, "external-output-invalid"],
+    ["pending run identity", { status: "pending", runId: "stale-run" }, "external-output-invalid"],
+    ["pending turn identity", { status: "pending", turnId: "stale-turn" }, "external-output-invalid"],
+    ["pending schema", { status: "pending", schemaVersion: 2 }, "external-output-invalid"],
+    ["final status", { status: "success" }, "external-output-invalid"],
+    ["pending optional field", { status: "pending", verification: [false] }, "external-output-invalid"],
+    ["blocked result", { status: "blocked", output: "" }, "external-output-blocked"],
+  ] as const)("fails %s without retrying it as a write in progress", async (_label, fields, error) => {
+    const server = new FakeHerdrServer();
+    const fixture = await pendingExternalFixture(server, JSON.stringify({ schemaVersion: 1, runId: "run-1", turnId: "turn-1", status: "completed", output: "result", ...fields }));
+    try {
+      await expect(fixture.execution).resolves.toMatchObject({ status: "failed", error });
+      expect(server.externalObservations).toHaveLength(1);
+      expect(server.externalPromptAttemptedCount).toBe(1);
+      expect(fixture.journal.getState().runs["run-1"]).toMatchObject({ lifecycle: "failed" });
+      expect(server.panes).toEqual([]);
+    } finally { await fixture.stop(); }
+  });
+
+  it.each(["cancel", "loss", "blocked"] as const)("terminates explicitly on %s while awaiting a delayed pending result", async (terminal) => {
+    const server = new FakeHerdrServer();
+    const fixture = await pendingExternalFixture(server);
+    try {
+      await expect.poll(() => server.externalObservations.at(-1)?.agent_status).toBe("idle");
+      await new Promise((resolve) => setTimeout(resolve, 1_750));
+      expect(fixture.isSettled()).toBe(false);
+      expect(fixture.journal.getState().runs["run-1"]).toMatchObject({ lifecycle: "live" });
+      if (terminal === "cancel") fixture.controller.abort(new Error("fixture cancelled pending result"));
+      else if (terminal === "loss") server.panes = [];
+      else server.panes[0]!.agent_status = "blocked";
+      if (terminal === "blocked") await expect(fixture.execution).resolves.toMatchObject({ status: "failed", error: "blocked/need-user" });
+      else await expect(fixture.execution).rejects.toThrow(terminal === "cancel" ? /fixture cancelled pending result/ : /pane was lost; prompt was not replayed/);
+      expect(fixture.journal.getState().runs["run-1"]).toMatchObject({ lifecycle: terminal === "loss" ? "lost" : "failed" });
+      expect(fixture.backend.surfaceOverview()).toEqual([]);
+      expect(server.panes).toEqual([]);
+      expect(server.externalPromptAttemptedCount).toBe(1);
+      expect(server.externalPromptAcceptedCount).toBe(1);
+    } finally { await fixture.stop(); }
+  });
+
+  it.each(["pane", "name"] as const)("rejects frozen %s identity drift during pending wait", async (identity) => {
+    const server = new FakeHerdrServer();
+    const fixture = await pendingExternalFixture(server);
+    try {
+      await expect.poll(() => server.externalObservations.at(-1)?.agent_status).toBe("idle");
+      server.panes[0]![identity === "pane" ? "pane_id" : "name"] = "drifted";
+      await expect(fixture.execution).rejects.toThrow(/identity changed|pane was lost/);
+      expect(fixture.backend.surfaceOverview()).toEqual([]);
+      expect(server.externalPromptAttemptedCount).toBe(1);
+    } finally { await fixture.stop(); }
+  });
+
+  it.each(["idle", "unknown"] as const)("still bounds unobserved working when a valid result accompanies persistent %s", async (status) => {
+    const server = new FakeHerdrServer();
+    server.externalPromptMode = status;
+    const { backend, input, journal } = await agyStartupFixture(server, { startupTimeoutMs: 350 });
+    try {
+      await expect(backend.execute(input)).rejects.toThrow(/did not enter working.*startup transition deadline/);
+      expect(journal.getState().runs["run-1"]).toMatchObject({ lifecycle: "failed" });
+      expect(server.panes).toEqual([]);
+      expect(server.externalPromptAttemptedCount).toBe(1);
     } finally { await server.stop(); }
   });
 });
@@ -903,6 +1142,8 @@ describe("herdr execution backend end-to-end (fake daemon + real child bridge)",
         expect(prompt.indexOf("Review the fixture diff.")).toBeGreaterThanOrEqual(0);
         expect(prompt.indexOf("HIGH PRIORITY — mandatory external result return channel:")).toBeGreaterThan(prompt.indexOf("Review the fixture diff."));
         expect(prompt.trimEnd().endsWith("Replace the pending document already at that path; do not include credentials.")).toBe(true);
+        expect(prompt).toContain("The file already exists: overwrite it");
+        expect(prompt).toContain("Wait for any background tools needed by this task to finish");
         await writeFile(resultPath, JSON.stringify({ schemaVersion: 1, runId, turnId, status: "completed", output: "# Structured review result", changedFiles: [], verification: ["fixture"] }));
       },
     });
@@ -932,35 +1173,6 @@ describe("herdr execution backend end-to-end (fake daemon + real child bridge)",
       expect(server.calls.find((call) => call.method === "agent.read")?.params.target).toBe(liveName);
       expect(server.calls.filter((call) => call.method === "agent.start" && call.params.kind === "pi")).toHaveLength(0);
       expect(journal.getState().runs["run-1"]).toMatchObject({ driver: "external-cli", lifecycle: "stopped", stopReason: "structured-external-result" });
-    } finally {
-      process.env.PATH = priorPath;
-      await server.stop();
-    }
-  });
-
-  it("fails instead of treating welcome-page agent.read text as a completed external result", async () => {
-    const journal = await fixtureJournal("parent-direct-cli-missing-result");
-    const profiles = await loadRoleProfiles();
-    const reviewer = profiles.find((role) => role.selector === "aili.code-reviewer")!;
-    const server = new FakeHerdrServer();
-    const socketPath = await server.start();
-    const executable = join(scratch, "codex");
-    await writeFile(executable, "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo 'codex 1.0'; else echo 'usage: codex'; fi\n", { mode: 0o700 });
-    const priorPath = process.env.PATH;
-    process.env.PATH = `${scratch}:${priorPath ?? ""}`;
-    await journal.append({ kind: "agent.created", agentId: "MissingResult", payload: { record: { id: "MissingResult", name: "MissingResult", selector: reviewer.selector, state: "queued", backend: "herdr", driver: "external-cli", createdAt: "2026-08-26T00:00:00.000Z", updatedAt: "2026-08-26T00:00:00.000Z" } } });
-    await journal.append({ kind: "job.created", agentId: "MissingResult", jobId: "job-1", payload: { record: { id: "job-1", agentId: "MissingResult", state: "queued", createdAt: "2026-08-26T00:00:00.000Z", updatedAt: "2026-08-26T00:00:00.000Z" } } });
-    await journal.append({ kind: "turn.created", agentId: "MissingResult", jobId: "job-1", turnId: "turn-1", payload: { record: { id: "turn-1", agentId: "MissingResult", jobId: "job-1", state: "queued", createdAt: "2026-08-26T00:00:00.000Z", updatedAt: "2026-08-26T00:00:00.000Z" } } });
-    await journal.append({ kind: "agent.state", agentId: "MissingResult", payload: { from: "queued", to: "running", currentJobId: "job-1", currentTurnId: "turn-1" } });
-    await journal.append({ kind: "job.state", agentId: "MissingResult", jobId: "job-1", payload: { from: "queued", to: "running" } });
-    await journal.append({ kind: "turn.state", agentId: "MissingResult", jobId: "job-1", turnId: "turn-1", payload: { from: "queued", to: "running" } });
-    const backend = new HerdrExecutionBackend({ journal, layout: journal.layout, parentId: "parent-direct-cli-missing-result", cwd: scratch, socketPath, bootstrapModulePath: "/dev/null", skipAvailabilitySetup: true, startupTimeoutMs: 2_000 });
-    try {
-      const output = await backend.execute(executorInput("MissingResult", reviewer, { nestedCli: "codex-cli" }));
-      expect(output).toMatchObject({ status: "failed", output: "", error: "external-output-missing", evidence: { diagnosticExcerpt: "vendor completed output" } });
-      expect(server.externalPromptAcceptedCount).toBe(1);
-      expect(server.externalPromptAttemptedCount).toBe(1);
-      expect(journal.getState().runs["run-1"]).toMatchObject({ lifecycle: "failed", failure: "external-output-missing" });
     } finally {
       process.env.PATH = priorPath;
       await server.stop();

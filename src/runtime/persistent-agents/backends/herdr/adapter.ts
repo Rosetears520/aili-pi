@@ -330,15 +330,16 @@ interface ExternalResult {
 type ExternalResultRead =
   | { kind: "valid"; result: ExternalResult }
   | { kind: "missing"; diagnostic: string }
-  | { kind: "empty"; diagnostic: string }
-  | { kind: "invalid"; diagnostic: string };
+  | { kind: "empty"; diagnostic: string; transient: true }
+  | { kind: "invalid"; diagnostic: string; transient?: true };
 
 function externalResultInstruction(path: string, runId: string, turnId: string): string {
   return [
     "HIGH PRIORITY — mandatory external result return channel:",
     `Before returning to the input-ready UI, write the final result JSON to this exact runtime-owned path: ${path}`,
     "Writing this file is required even for a read-only or reviewer role, and is allowed solely as the runtime return channel.",
-    "Do not choose, alter, infer, or substitute the path. Do not return to the input-ready UI before the write completes.",
+    "Do not choose, alter, infer, or substitute the path. Wait for any background tools needed by this task to finish before writing the final result. Do not return to the input-ready UI before the write completes.",
+    "The file already exists: overwrite it rather than requiring creation of a new file.",
     `The final JSON must contain schemaVersion: 1, runId: ${JSON.stringify(runId)}, turnId: ${JSON.stringify(turnId)}, status: \"completed\"|\"partial\"|\"blocked\", and nonempty Markdown output for completed or partial.`,
     "It may additionally contain changedFiles and verification arrays of strings. Replace the pending document already at that path; do not include credentials.",
   ].join("\n");
@@ -351,17 +352,20 @@ export async function readBoundedExternalResult(path: string, runId: string, tur
     const buffer = Buffer.alloc(EXTERNAL_RESULT_MAX_BYTES + 1);
     const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
     if (bytesRead > EXTERNAL_RESULT_MAX_BYTES) return { kind: "invalid", diagnostic: "result exceeds 65536-byte bound" };
+    const text = buffer.subarray(0, bytesRead).toString("utf8");
+    if (!text.trim()) return { kind: "empty", diagnostic: "result file is empty", transient: true };
     let value: unknown;
     try {
-      value = JSON.parse(buffer.subarray(0, bytesRead).toString("utf8"));
+      value = JSON.parse(text);
     } catch {
-      return { kind: "invalid", diagnostic: "result is not valid JSON" };
+      return { kind: "invalid", diagnostic: "result is not valid JSON", transient: true };
     }
     if (!value || typeof value !== "object" || Array.isArray(value)) return { kind: "invalid", diagnostic: "result must be a JSON object" };
     const item = value as Record<string, unknown>;
-    if (item.status === "pending") return { kind: "missing", diagnostic: "result remained pending" };
+    // Pending is a wait state only for a well-formed document belonging to
+    // this exact run/turn; it must not bypass the stable protocol checks.
     if (item.schemaVersion !== 1 || item.runId !== runId || item.turnId !== turnId
-      || !["completed", "partial", "blocked"].includes(String(item.status))) {
+      || typeof item.status !== "string" || !["pending", "completed", "partial", "blocked"].includes(item.status)) {
       return { kind: "invalid", diagnostic: "result schema, identity, or status does not match this run" };
     }
     for (const field of ["changedFiles", "verification"] as const) {
@@ -369,10 +373,11 @@ export async function readBoundedExternalResult(path: string, runId: string, tur
         return { kind: "invalid", diagnostic: `${field} must be an array of strings when present` };
       }
     }
-    if (item.status !== "blocked" && (typeof item.output !== "string" || item.output.trim().length === 0)) {
-      return { kind: "empty", diagnostic: "completed/partial result output is empty" };
-    }
     if (typeof item.output !== "string") return { kind: "invalid", diagnostic: "result output must be a string" };
+    if (item.status === "pending") return { kind: "missing", diagnostic: "result remained pending" };
+    if (item.status !== "blocked" && item.output.trim().length === 0) {
+      return { kind: "empty", diagnostic: "completed/partial result output is empty", transient: true };
+    }
     return { kind: "valid", result: item as unknown as ExternalResult };
   } catch (error) {
     const code = error && typeof error === "object" && "code" in error ? String((error as { code?: unknown }).code) : "";
@@ -381,17 +386,6 @@ export async function readBoundedExternalResult(path: string, runId: string, tur
   } finally {
     await handle?.close().catch(() => undefined);
   }
-}
-
-async function awaitExternalResult(path: string, runId: string, turnId: string, signal: AbortSignal): Promise<ExternalResultRead> {
-  const deadline = Date.now() + EXTERNAL_RESULT_GRACE_MS;
-  let observed = await readBoundedExternalResult(path, runId, turnId);
-  while (observed.kind === "missing" && Date.now() < deadline) {
-    if (signal.aborted) throw signal.reason ?? new Error("external CLI turn cancelled");
-    await new Promise((resolve) => setTimeout(resolve, Math.min(100, Math.max(1, deadline - Date.now()))));
-    observed = await readBoundedExternalResult(path, runId, turnId);
-  }
-  return observed;
 }
 
 interface SurfaceRecord {
@@ -1225,18 +1219,22 @@ export class HerdrExecutionBackend implements ExecutionBackend {
           }
           return true;
         };
-        while (!completionReady()) {
+        let resultRead: ExternalResultRead;
+        let writeGraceDeadline: number | undefined;
+        for (;;) {
           if (input.context.signal.aborted) throw input.context.signal.reason ?? new Error("external CLI turn cancelled");
           if (!enteredWorking && Date.now() >= transitionDeadline) {
             throw new Error(`${input.agentId}: external CUI Agent did not enter working after prompt acceptance before the startup transition deadline; prompt was not replayed`);
           }
           const delay = enteredWorking ? 150 : Math.min(150, Math.max(1, transitionDeadline - Date.now()));
           await new Promise((resolve) => setTimeout(resolve, delay));
+          if (input.context.signal.aborted) throw input.context.signal.reason ?? new Error("external CLI turn cancelled");
           let agent: Record<string, unknown> | undefined;
           try {
             const result = await this.callAgent<Record<string, unknown>>(client, "agent.get", "name", { target: liveName });
             agent = result.agent && typeof result.agent === "object" ? result.agent as Record<string, unknown> : undefined;
           } catch {
+            if (input.context.signal.aborted) throw input.context.signal.reason ?? new Error("external CLI turn cancelled");
             await setRun("live", "lost", { failure: "external CUI pane/process was lost; prompt will not be replayed" });
             throw new Error(`${input.agentId}: external CUI pane was lost; prompt was not replayed`);
           }
@@ -1250,7 +1248,27 @@ export class HerdrExecutionBackend implements ExecutionBackend {
             throw new Error(`${input.agentId}: external CUI Agent did not enter working within the startup transition deadline; prompt was not replayed`);
           }
           if (status === "working") enteredWorking = true;
+          if (input.context.signal.aborted) throw input.context.signal.reason ?? new Error("external CLI turn cancelled");
           if (status === "blocked") return await blockedResult();
+          if (!completionReady()) {
+            // A resumed task (or lost readiness) invalidates the old idle
+            // write window. Neither historical idle nor a file can settle it.
+            writeGraceDeadline = undefined;
+            continue;
+          }
+          resultRead = await readBoundedExternalResult(externalResultPath!, runId, input.turnId);
+          if (input.context.signal.aborted) throw input.context.signal.reason ?? new Error("external CLI turn cancelled");
+          if (resultRead.kind === "missing") {
+            // Matching pending/missing can outlive an idle UI indefinitely.
+            // Keep the busy surface and monitor lifecycle; never replay work.
+            writeGraceDeadline = undefined;
+            continue;
+          }
+          if (resultRead.kind === "valid" || !resultRead.transient) break;
+          // Only empty/partially written output gets a bounded write grace,
+          // shared across transient forms while CURRENT readiness persists.
+          writeGraceDeadline ??= Date.now() + EXTERNAL_RESULT_GRACE_MS;
+          if (Date.now() >= writeGraceDeadline) break;
         }
         const readResult = await this.callAgent<Record<string, unknown>>(client, "agent.read", "name", {
           target: liveName,
@@ -1262,7 +1280,7 @@ export class HerdrExecutionBackend implements ExecutionBackend {
         const read = readResult?.read && typeof readResult.read === "object" ? readResult.read as Record<string, unknown> : undefined;
         const rawDiagnostic = typeof read?.text === "string" ? read.text : "";
         const diagnosticExcerpt = redactCredentialText(rawDiagnostic).slice(-4_096).trim();
-        const resultRead = await awaitExternalResult(externalResultPath!, runId, input.turnId, input.context.signal);
+        if (input.context.signal.aborted) throw input.context.signal.reason ?? new Error("external CLI turn cancelled");
         const evidence = {
           externalCli: plan.cli,
           cuiKind: plan.herdrKind,
@@ -1280,10 +1298,9 @@ export class HerdrExecutionBackend implements ExecutionBackend {
           ...(diagnosticExcerpt ? { diagnosticExcerpt, diagnosticTruncated: rawDiagnostic.length > 4_096 } : {}),
         };
         if (resultRead.kind !== "valid" || resultRead.result.status === "blocked") {
-          const error = resultRead.kind === "missing" ? "external-output-missing"
-            : resultRead.kind === "empty" ? "external-output-empty"
-              : resultRead.kind === "invalid" ? "external-output-invalid"
-                : "external-output-blocked";
+          const error = resultRead.kind === "empty" ? "external-output-empty"
+            : resultRead.kind === "invalid" ? "external-output-invalid"
+              : "external-output-blocked";
           await setRun("live", "failed", { failure: error });
           await this.shutdownSettledSurface(client, surface);
           return {
