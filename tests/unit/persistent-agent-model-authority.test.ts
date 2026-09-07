@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { captureTaskModelRequest, ContextModelCatalog, parseCurrentTurnModelAuthority, type CurrentTurnModelCatalog, type CurrentTurnModelCatalogEntry } from "../../src/runtime/persistent-agents/production.js";
-import { resolveModelChoice } from "../../src/runtime/persistent-agents/model-selection.js";
+import { resolveModelChoice, resolveSubModelIdentifier, type SubModelCatalog } from "../../src/runtime/persistent-agents/model-selection.js";
 
 const catalog: CurrentTurnModelCatalogEntry[] = [
   {
@@ -96,6 +96,22 @@ describe("structured task model request capture", () => {
 
     const thinking = captureTaskModelRequest(item({ thinking: "high" }), authority, fakeCatalog);
     expect(thinking.outcome).toBe("rejected");
+  });
+});
+
+describe("strict structured model identity", () => {
+  it("accepts unique aliases but never substitutes unavailable, unauthenticated, ambiguous or mismatched IDs", async () => {
+    const strict: SubModelCatalog = {
+      enumerate: () => catalog,
+      resolve: async (id) => catalog.find((entry) => entry.canonical === id),
+      resolveParentFallback: async () => catalog[0],
+    };
+    expect(await resolveSubModelIdentifier("Terra", strict)).toMatchObject({ canonical: "openai-codex/gpt-5.6-terra" });
+    await expect(resolveSubModelIdentifier("missing", strict)).rejects.toThrow(/SUB_MODEL_UNAVAILABLE/);
+    await expect(resolveSubModelIdentifier("Terra", { ...strict, enumerate: () => [catalog[0]!, { ...catalog[0]!, provider: "other", canonical: "other/gpt-5.6-terra" }] })).rejects.toThrow(/SUB_MODEL_AMBIGUOUS/);
+    for (const entry of [{ ...catalog[0]!, available: false }, { ...catalog[0]!, authenticated: false }, catalog[1]!]) {
+      await expect(resolveSubModelIdentifier(catalog[0]!.canonical!, { ...strict, resolve: async () => entry })).rejects.toThrow(/SUB_MODEL_UNAVAILABLE/);
+    }
   });
 });
 

@@ -9,9 +9,6 @@ import {
   findCredentialMaterial,
   ParentApprovalBroker,
   redactCredentialText,
-  SELECTION_CONFIRM_OPTION,
-  SELECTION_DENY_OPTION,
-  selectionQuestionnaireDecision,
   type ApprovalRequestPacket,
 } from "../../src/runtime/persistent-agents/permission.js";
 import { createChildApprovalBridge } from "../../src/runtime/persistent-agents/session-factory.js";
@@ -60,48 +57,25 @@ describe("child pi-permission-modes policy adapter", () => {
   });
 });
 
-describe("runtime-owned selection questionnaire", () => {
-  const question = {
-    id: "interaction-1",
-    header: "Subagent choice",
-    question: "Confirm exact candidate",
-    options: [
-      { label: SELECTION_CONFIRM_OPTION, description: "Authorize exact values." },
-      { label: SELECTION_DENY_OPTION, description: "Do not allocate." },
-    ],
-    multiple: false,
-  };
-
-  it("accepts only the matching fixed callback answer", () => {
-    expect(selectionQuestionnaireDecision({ questions: [question], answers: [{ id: question.id, selectedOptions: [SELECTION_CONFIRM_OPTION] }], cancelled: false }, question)).toBe("confirm");
-    expect(selectionQuestionnaireDecision({ questions: [question], answers: [{ id: question.id, selectedOptions: [SELECTION_DENY_OPTION] }], cancelled: false }, question)).toBe("deny");
-    for (const malformed of [
-      { questions: [question], answers: [{ id: question.id, selectedOptions: [SELECTION_CONFIRM_OPTION], customInput: "yes" }], cancelled: false },
-      { questions: [question], answers: [{ id: "other", selectedOptions: [SELECTION_CONFIRM_OPTION] }], cancelled: false },
-      { questions: [question], answers: [{ id: question.id, selectedOptions: ["yes"] }], cancelled: false },
-      { questions: [question], answers: [{ id: question.id, selectedOptions: [SELECTION_CONFIRM_OPTION] }, { id: question.id, selectedOptions: [] }], cancelled: false },
-      { questions: [question], answers: [{ id: question.id, selectedOptions: [SELECTION_CONFIRM_OPTION] }], cancelled: true },
-      { questions: [question], answers: [{ id: question.id, selectedOptions: [SELECTION_CONFIRM_OPTION] }], cancelled: false, unavailable: "false" },
-    ]) expect(selectionQuestionnaireDecision(malformed, question)).toBeUndefined();
-  });
-
-  it("serializes candidates and rechecks a current scope before showing another dialog", async () => {
-    const broker = new ParentApprovalBroker({ hasUI: true, ask: async () => "allow" });
-    let current = false;
-    const shown: string[] = [];
-    const request = (name: string) => broker.requestSelection({
-      agentId: "preflight",
-      jobId: name,
-      candidate: { name },
-      reuse: () => current,
-      render: async (record) => { shown.push(record.id); current = true; return "confirm"; },
-    });
-    await expect(Promise.all([request("one"), request("two")])).resolves.toEqual(["confirm", "reused"]);
-    expect(shown).toHaveLength(1);
-  });
-});
-
 describe("parent approval broker", () => {
+  it("retains normal questions without selection-only machinery", async () => {
+    const broker = new ParentApprovalBroker({ hasUI: true, ask: async () => "deny" });
+    expect("requestSelection" in broker).toBe(false);
+    const render = vi.fn(async () => "clarified");
+    expect(await broker.requestQuestion({ agentId: "A", jobId: "J", question: "Which file?", render, fallback: "deny" })).toBe("clarified");
+    expect(render).toHaveBeenCalledOnce();
+  });
+
+  it("denies headless tool asks even after a structured task was accepted", async () => {
+    const resolver = new ChildPermissionResolver({ mode: loadStockDefaults().modes.default, cwd: scratch, sandboxExecutorAvailable: false });
+    const ask = vi.fn(async () => "allow" as const);
+    const broker = new ParentApprovalBroker({ hasUI: false, ask });
+    const permission = brokeredChildPermission(resolver, broker, { agentId: "structured-task", jobId: "J" });
+    expect(await permission.decide("write", { path: join(scratch, "file.ts") })).toBe("ask");
+    expect(await permission.requestApproval({ toolName: "write", summary: "structured task still needs tool permission" })).toBe("deny");
+    expect(ask).not.toHaveBeenCalled();
+  });
+
   it("denies without UI and requires a fresh prompt for every ask", async () => {
     const packets: ApprovalRequestPacket[] = [];
     const noUi = new ParentApprovalBroker({ hasUI: false, ask: async () => "allow" });

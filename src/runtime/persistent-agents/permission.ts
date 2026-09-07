@@ -3,8 +3,7 @@ import { analyzeBash } from "pi-permission-modes/src/bash-parse.ts";
 import type { Action, ModeDef, Surface } from "pi-permission-modes/src/schema.ts";
 import { decide, decideBashCommand, mostRestrictive } from "../../vendor/pi-permission-modes/resolve.js";
 import { bashMentionsCredentialPath, isProtectedChildPath } from "../credential-guard.js";
-import { InteractionBroker, type InteractionRecord } from "./interaction-broker.js";
-import type { QuestionnaireQuestion } from "../../questionnaire/model.js";
+import { InteractionBroker } from "./interaction-broker.js";
 
 const FILE_SURFACE: Record<string, Surface> = {
   read: "read",
@@ -153,68 +152,6 @@ export interface ApprovalRequestPacket {
   modeLabel: string;
 }
 
-/** Fixed labels for the runtime-owned candidate questionnaire. These are
- * deliberately not accepted through the generic interaction answer path. */
-export const SELECTION_CONFIRM_OPTION = "Confirm this selection";
-export const SELECTION_DENY_OPTION = "Deny";
-export type SelectionDecision = "confirm" | "deny";
-
-export interface SelectionRequestPacket {
-  requestId: string;
-  agentId: string;
-  jobId: string;
-  candidate: Record<string, unknown>;
-}
-
-function exactKeys(value: Record<string, unknown>, allowed: readonly string[]): boolean {
-  const expected = new Set(allowed);
-  return Object.keys(value).every((key) => expected.has(key))
-    && allowed.every((key) => Object.prototype.hasOwnProperty.call(value, key) || key === "description" || key === "recommended" || key === "unavailable");
-}
-
-function sameQuestion(left: QuestionnaireQuestion, right: QuestionnaireQuestion): boolean {
-  if (!left || typeof left !== "object" || !Array.isArray(left.options)
-    || !right || typeof right !== "object" || !Array.isArray(right.options)) return false;
-  if (!exactKeys(left as unknown as Record<string, unknown>, ["id", "header", "question", "options", "multiple", "recommended"])) return false;
-  if (left.id !== right.id || left.header !== right.header || left.question !== right.question || left.multiple !== right.multiple) return false;
-  if ((left.recommended ?? undefined) !== (right.recommended ?? undefined)) return false;
-  if (left.options.length !== right.options.length) return false;
-  return left.options.every((option, index) => {
-    const expected = right.options[index];
-    if (!expected || !exactKeys(option as unknown as Record<string, unknown>, ["label", "description"])) return false;
-    return option.label === expected.label && (option.description ?? undefined) === (expected.description ?? undefined);
-  });
-}
-
-/** Validate the complete result returned by askUserQuestionnaire for the
- * runtime-owned selection. Any custom/extra/mismatched answer is rejected. */
-export function selectionQuestionnaireDecision(
-  result: unknown,
-  expected: QuestionnaireQuestion,
-): SelectionDecision | undefined {
-  if (!result || typeof result !== "object" || Array.isArray(result)) return undefined;
-  const raw = result as Record<string, unknown>;
-  if (!exactKeys(raw, ["questions", "answers", "cancelled", "unavailable"])) return undefined;
-  if (Object.prototype.hasOwnProperty.call(raw, "unavailable") && typeof raw.unavailable !== "boolean") return undefined;
-  if (raw.cancelled !== false || raw.unavailable === true) return undefined;
-  if (!expected || typeof expected !== "object" || !Array.isArray(expected.options)) return undefined;
-  if (expected.multiple !== false
-    || expected.options.length !== 2
-    || expected.options[0]?.label !== SELECTION_CONFIRM_OPTION
-    || expected.options[1]?.label !== SELECTION_DENY_OPTION) return undefined;
-  if (!Array.isArray(raw.questions) || raw.questions.length !== 1 || !sameQuestion(raw.questions[0] as QuestionnaireQuestion, expected)) return undefined;
-  if (!Array.isArray(raw.answers) || raw.answers.length !== 1) return undefined;
-  const answer = raw.answers[0];
-  if (!answer || typeof answer !== "object" || Array.isArray(answer)) return undefined;
-  const answerRecord = answer as Record<string, unknown>;
-  if (!exactKeys(answerRecord, ["id", "selectedOptions"])) return undefined;
-  if (answerRecord.id !== expected.id || !Array.isArray(answerRecord.selectedOptions) || answerRecord.selectedOptions.length !== 1) return undefined;
-  const selected = answerRecord.selectedOptions[0];
-  if (selected === SELECTION_CONFIRM_OPTION) return "confirm";
-  if (selected === SELECTION_DENY_OPTION) return "deny";
-  return undefined;
-}
-
 export function brokeredChildPermission(
   resolver: ChildPermissionResolver,
   broker: ParentApprovalBroker,
@@ -237,10 +174,6 @@ export function brokeredChildPermission(
 
 export class ParentApprovalBroker {
   private readonly interactions = new InteractionBroker();
-  /** All candidate dialogs share the existing interaction broker and are
-   * serialized so a waiting same-scope request can recheck before rendering. */
-  private selectionTail: Promise<void> = Promise.resolve();
-  private selectionClosed = false;
 
   constructor(private readonly prompt: ApprovalPrompt) {}
 
@@ -266,40 +199,9 @@ export class ParentApprovalBroker {
     return this.interactions.request({ kind: "question", agentId: input.agentId, jobId: input.jobId, request: { question: input.question }, render: input.render, fallback: input.fallback, signal: input.signal });
   }
 
-  async requestSelection(input: {
-    agentId: string;
-    jobId: string;
-    candidate: Record<string, unknown>;
-    render: (record: InteractionRecord<Record<string, unknown>, SelectionDecision>) => Promise<SelectionDecision>;
-    reuse?: () => boolean;
-    /** Runs inside the serialized selection operation before waiters recheck. */
-    onConfirmed?: () => void;
-    signal?: AbortSignal;
-  }): Promise<SelectionDecision | "reused"> {
-    const operation = this.selectionTail.then(async () => {
-      if (this.selectionClosed) return "deny" as const;
-      if (input.reuse?.()) return "reused" as const;
-      if (!this.prompt.hasUI || input.signal?.aborted) return "deny" as const;
-      const decision = await this.interactions.request<Record<string, unknown>, SelectionDecision>({
-        kind: "selection",
-        agentId: input.agentId,
-        jobId: input.jobId,
-        request: input.candidate,
-        render: input.render,
-        fallback: "deny" as const,
-        signal: input.signal,
-      });
-      if (decision === "confirm") input.onConfirmed?.();
-      return decision;
-    });
-    this.selectionTail = operation.then(() => undefined, () => undefined);
-    return await operation;
-  }
-
   pendingInteractions(jobId?: string) { return this.interactions.pendingRecords(jobId); }
   answerInteraction(id: string, answer: unknown): boolean { return this.interactions.answer(id, answer); }
   shutdown(): void {
-    this.selectionClosed = true;
     this.interactions.shutdown();
   }
 }

@@ -15,20 +15,21 @@ describe("InteractionBroker", () => {
     expect(broker.pendingRecords()).toHaveLength(0);
   });
 
-  it("does not let the generic answer route authorize a runtime-owned selection", async () => {
+  it("keeps generic questions answerable and never reuses a settled answer", async () => {
     const broker = new InteractionBroker();
     const pending = broker.request({
-      kind: "selection",
-      agentId: "preflight",
-      jobId: "selection",
-      request: { cli: "codex-cli" },
-      render: async () => new Promise<"confirm" | "deny">(() => undefined),
-      fallback: "deny" as const,
+      kind: "question",
+      agentId: "worker",
+      jobId: "job",
+      request: { question: "Which fixture?" },
+      render: async () => new Promise<string>(() => undefined),
+      fallback: "deny",
     });
-    const id = broker.pendingRecords("selection")[0]!.id;
-    expect(broker.answer(id, "confirm")).toBe(false);
-    broker.shutdown();
-    await expect(pending).resolves.toBe("deny");
+    const id = broker.pendingRecords("job")[0]!.id;
+    expect(broker.answer(id, "fixture-a")).toBe(true);
+    await expect(pending).resolves.toBe("fixture-a");
+    expect(broker.answer(id, "fixture-b")).toBe(false);
+    expect(broker.pendingRecords()).toEqual([]);
   });
 
   it("fails closed on cancellation expiry and shutdown", async () => {

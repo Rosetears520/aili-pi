@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import {
   createAgentSession,
@@ -8,6 +8,7 @@ import {
   SessionManager,
   SettingsManager,
   type ExtensionFactory,
+  type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import {
   createAssistantMessageEventStream,
@@ -22,7 +23,10 @@ import { installPersistentAgentSandboxProvider } from "../../src/runtime/persist
 import permissionModes from "../../src/vendor/pi-permission-modes/index.js";
 import { persistentTaskAwarePermissionApi } from "../../src/runtime/native-integrations.js";
 import { PersistentAgentProduction } from "../../src/runtime/persistent-agents/production.js";
-import { SELECTION_CONFIRM_OPTION } from "../../src/runtime/persistent-agents/permission.js";
+import { ModelConfigStore } from "../../src/runtime/persistent-agents/model-selection.js";
+import { PersistentAgentRuntime, type PersistentAgentRuntimeOptions } from "../../src/runtime/persistent-agents/runtime.js";
+import * as herdr from "../../src/runtime/persistent-agents/backends/herdr/adapter.js";
+import * as externalCli from "../../src/runtime/persistent-agents/external-cli.js";
 import {
   observePersistentSandboxTask,
   PERSISTENT_SANDBOX_MARKER_BYTES,
@@ -61,12 +65,13 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   vi.unstubAllEnvs();
   await rm(scratch, { recursive: true, force: true });
 });
 
 describe("production persistent Agent controlled path", () => {
-  it("projects the exact Parent prompt into direct-user authority before managed dispatch", async () => {
+  it("launches an exact structured model request headlessly without claiming user confirmation", async () => {
     vi.stubEnv("PI_PERMISSION_MODE", "build");
     const cwd = join(scratch, "yolo-project");
     const sessionDir = join(scratch, "yolo-sessions");
@@ -157,13 +162,20 @@ describe("production persistent Agent controlled path", () => {
       thinkingLevel: "off",
     });
     await created.session.bindExtensions({ mode: "print" });
-    // Print mode has no UI. Natural-language Parent wording and the model's
-    // structured candidate cannot authorize a launch without the bound
-    // questionnaire callback, so the request must fail before allocation.
-    await created.session.prompt(`Use ${requestedCanonical} for the subagent in this turn.`, { expandPromptTemplates: false, source: "interactive" });
-    const taskResult = created.session.state.messages.find((message) => message.role === "toolResult" && message.toolName === "sub");
-    expect(taskResult).toMatchObject({ isError: true });
-    expect(JSON.stringify(taskResult)).toContain("SUB_SELECTION_DENIED");
+    // No selection UI exists in print mode. Only the structured request, not
+    // a runtime interpretation of this prompt, supplies the per-turn fields.
+    try {
+      await created.session.prompt(`Use ${requestedCanonical} for the subagent in this turn.`, { expandPromptTemplates: false, source: "interactive" });
+      const taskResult = created.session.state.messages.find((message) => message.role === "toolResult" && message.toolName === "sub");
+      expect(taskResult).toMatchObject({ isError: false, details: { results: [{
+        status: "completed", effectiveModel: requestedCanonical, source: "structured-request",
+        modelDecision: { overrideDecision: "accepted-structured-request" },
+      }] } });
+      expect(JSON.stringify(taskResult)).not.toContain("confirmed-model-proposal");
+    } finally {
+      await created.session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" });
+      created.session.dispose();
+    }
   });
 
   it("admits the canonical task and completes one authenticated controlled child sandbox operation", async () => {
@@ -380,162 +392,319 @@ describe("production persistent Agent controlled path", () => {
     }
   }, 20_000);
 
-  it("binds questionnaire confirmation to managed dispatch, beats persistent roles, and reuses only exact scoped choices", async () => {
-    const fixture = await createSelectionFixture();
+  it("dispatches new, continued, changed-scope and concurrent requests without selection UI or config leakage", async () => {
+    const fixture = await createStructuredRequestFixture();
     try {
+      const configBefore = await readFile(fixture.configPath, "utf8");
       const prompt = async (text: string) => {
         const start = fixture.created.session.state.messages.length;
         await fixture.created.session.prompt(text, { expandPromptTemplates: false, source: "interactive" });
-        return fixture.created.session.state.messages
-          .slice(start)
+        return fixture.created.session.state.messages.slice(start)
           .filter((candidate) => candidate.role === "toolResult" && candidate.toolName === "sub")
           .flatMap((candidate) => (candidate as any).details?.results ?? []);
       };
-
       const first = (await prompt("first"))[0];
       expect(first).toMatchObject({
-        status: "completed",
-        selector: "general",
-        selectionScope: "scope-a",
-        requestedModel: fixture.requestedCanonical,
-        effectiveModel: fixture.requestedCanonical,
-        modelLayer: "direct-user-turn",
-        thinking: "high",
-        model: { modelSource: "direct-user-turn", thinkingSource: "direct-user-turn" },
-        modelDecision: { overrideDecision: "confirmed-model-proposal" },
+        status: "completed", selector: "general", selectionScope: "scope-a",
+        requestedModel: fixture.requestedCanonical, effectiveModel: fixture.requestedCanonical,
+        modelLayer: "one-shot", source: "structured-request", thinking: "high",
+        model: { modelSource: "structured-request", thinkingSource: "structured-request" },
+        modelDecision: { overrideDecision: "accepted-structured-request" },
       });
-      expect(fixture.questionnaire).toHaveBeenCalledTimes(1);
-      expect(fixture.questionnaireCalls[0]?.[0]).toMatchObject({
-        options: [
-          expect.objectContaining({ label: SELECTION_CONFIRM_OPTION }),
-          expect.objectContaining({ label: "Deny" }),
-        ],
-      });
-      expect(fixture.questionnaireCalls[0]?.[0]?.question).toEqual(expect.stringContaining(`task scope: scope-a`));
-      expect(fixture.questionnaireCalls[0]?.[0]?.question).toEqual(expect.stringContaining(`project:`));
-      expect(fixture.questionnaireCalls[0]?.[0]?.question).toEqual(expect.stringContaining(`model: ${fixture.requestedCanonical}`));
-      expect(fixture.questionnaireCalls[0]?.[0]?.question).toEqual(expect.stringContaining("thinking: high"));
-      expect(fixture.questionnaireCalls[0]?.[0]?.question).toEqual(expect.stringContaining("execution boundary: managed Pi child"));
-
-      // A different role is still the same exact user-approved scope/loadout;
-      // it must not inherit the persistent role's model by accident or reopen UI.
-      const review = (await prompt("review"))[0];
-      expect(review).toMatchObject({
-        selector: "aili.code-scout",
-        selectionScope: "scope-a",
-        effectiveModel: fixture.requestedCanonical,
-        modelLayer: "direct-user-turn",
-        thinking: "high",
-      });
-      expect(fixture.questionnaire).toHaveBeenCalledTimes(1);
-
-      // Changing a bound dimension replaces the binding and requires a fresh
-      // exact questionnaire confirmation.
-      const changed = (await prompt("changed"))[0];
-      expect(changed).toMatchObject({
-        selector: "aili.code-scout",
-        selectionScope: "scope-a",
-        effectiveModel: fixture.requestedCanonical,
-        modelLayer: "direct-user-turn",
-        thinking: "low",
-      });
-      expect(fixture.questionnaire).toHaveBeenCalledTimes(2);
-
-      // Scope is part of the binding even when every execution value is equal.
-      const otherScope = (await prompt("other scope"))[0];
-      expect(otherScope).toMatchObject({
-        selector: "general",
-        selectionScope: "scope-b",
-        effectiveModel: fixture.requestedCanonical,
-        modelLayer: "direct-user-turn",
-        thinking: "low",
-      });
-      expect(fixture.questionnaire).toHaveBeenCalledTimes(3);
-
-      // Concurrent same-scope candidates serialize through the selection broker:
-      // both are real managed dispatches, but only one questionnaire is shown.
+      expect((await prompt("review"))[0]).toMatchObject({ status: "completed", selector: "aili.code-scout", selectionScope: "scope-a", effectiveModel: fixture.requestedCanonical, thinking: "high" });
+      expect((await prompt("changed"))[0]).toMatchObject({ status: "completed", selectionScope: "scope-a", thinking: "low" });
+      expect((await prompt("other scope"))[0]).toMatchObject({ status: "completed", selectionScope: "scope-b", thinking: "low" });
       const parallel = await prompt("parallel");
       expect(parallel).toHaveLength(2);
       expect(parallel).toEqual(expect.arrayContaining([
-        expect.objectContaining({ selector: "general", selectionScope: "scope-c", effectiveModel: fixture.requestedCanonical, modelLayer: "direct-user-turn" }),
-        expect.objectContaining({ selector: "aili.code-scout", selectionScope: "scope-c", effectiveModel: fixture.requestedCanonical, modelLayer: "direct-user-turn" }),
+        expect.objectContaining({ status: "completed", selector: "general", selectionScope: "scope-c", effectiveModel: fixture.requestedCanonical, source: "structured-request" }),
+        expect.objectContaining({ status: "completed", selector: "aili.code-scout", selectionScope: "scope-c", effectiveModel: fixture.requestedCanonical, source: "structured-request" }),
       ]));
-      expect(fixture.questionnaire).toHaveBeenCalledTimes(4);
+
+      const state = await parentState(fixture.production);
+      const submit = (extra: Record<string, unknown>) => state.runtime.sub.submit({ description: "next", prompt: "controlled follow-up", task_id: first.taskId, ...extra });
+      // An explicit instance override applies to this actual continuation ID,
+      // but each supplied structured field still outranks it independently.
+      await state.runtime.journal.append({ kind: "model.put", agentId: first.taskId, payload: { model: fixture.requestedCanonical, thinking: "low" } });
+      const modelsBefore = structuredClone(state.runtime.journal.getState().models);
+      expect((await submit({ thinking: "high", selectionScope: "scope-a" })).results[0]).toMatchObject({ status: "completed", taskId: first.taskId, model: { modelSource: "instance-override", thinkingSource: "structured-request" }, thinking: "high" });
+      expect((await submit({ model: fixture.requestedCanonical, selectionScope: "changed-label" })).results[0]).toMatchObject({ status: "completed", model: { modelSource: "structured-request", thinkingSource: "instance-override" }, thinking: "low" });
+      const omitted = (await submit({})).results[0]!;
+      expect(omitted).toMatchObject({ status: "completed", taskId: first.taskId, source: "instance-override", thinking: "low" });
+      expect(omitted.selectionScope).toBeUndefined();
+      expect(omitted.modelDecision).toBeUndefined();
+      const fresh = await state.runtime.sub.submit({ description: "no-scope", prompt: "controlled fresh child", subagent_type: "general", model: fixture.requestedCanonical });
+      expect(fresh.results[0]).toMatchObject({ status: "completed", model: { modelSource: "structured-request", thinkingSource: "user-role-override" }, thinking: "off" });
+      const defaults = await state.runtime.sub.submit({ description: "defaults", prompt: "controlled defaults", subagent_type: "general" });
+      expect(defaults.results[0]).toMatchObject({ status: "completed", effectiveModel: `${providerName}/${model.id}`, source: "user-role-override", thinking: "off" });
+      expect(await readFile(fixture.configPath, "utf8")).toBe(configBefore);
+      expect(state.runtime.journal.getState().models).toEqual(modelsBefore);
+      expect(state.runtime.journal.getState().turns[first.turnId]?.metadata).toMatchObject({ source: "structured-request", modelSource: "structured-request", thinkingSource: "structured-request", overrideDecision: "accepted-structured-request" });
+      expect(fixture.questionnaire).not.toHaveBeenCalled();
+      expect(state.runtime.activity.list().some((event) => event.data?.interactionKind === "selection")).toBe(false);
     } finally {
       await fixture.created.session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" }).catch(() => undefined);
       fixture.created.session.dispose();
     }
   }, 30_000);
-
-  it("rejects a late confirmation after the Parent session/project boundary changes before allocation", async () => {
-    const fixture = await createSelectionFixture();
-    try {
-      const alternateCwd = join(scratch, "switched-project");
-      await mkdir(alternateCwd, { recursive: true });
-      fixture.setQuestionnaire(async (questions) => {
-        const parents = (fixture.production as unknown as { parents: Map<string, Promise<any>> }).parents;
-        const state = await [...parents.values()][0]!;
-        const currentSessionManager = state.context.sessionManager;
-        const switchedSessionManager = new Proxy(currentSessionManager, {
-          get(target, property, receiver) {
-            if (property === "getSessionId") return () => "switched-parent-session";
-            return Reflect.get(target, property, receiver);
-          },
-        });
-        // This models the host completing a session/project switch while the
-        // questionnaire callback is still pending. Returning Confirm after the
-        // mutation proves the late answer cannot allocate a managed Agent.
-        state.context = { ...state.context, cwd: alternateCwd, sessionManager: switchedSessionManager };
-        return {
-          questions,
-          answers: [{ id: questions[0]!.id, selectedOptions: [SELECTION_CONFIRM_OPTION] }],
-          cancelled: false,
-        };
-      });
-
-      await fixture.created.session.prompt("first", { expandPromptTemplates: false, source: "interactive" });
-      const taskResult = [...fixture.created.session.state.messages].reverse().find((candidate) => candidate.role === "toolResult" && candidate.toolName === "sub");
-      expect(taskResult).toMatchObject({ isError: true });
-      expect(JSON.stringify(taskResult)).toContain("SUB_SELECTION_DENIED");
-      expect(fixture.questionnaire).toHaveBeenCalledTimes(1);
-      const state = await [...(fixture.production as unknown as { parents: Map<string, Promise<any>> }).parents.values()][0]!;
-      expect(Object.keys(state.runtime.journal.getState().agents)).toHaveLength(0);
-    } finally {
-      await fixture.created.session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" }).catch(() => undefined);
-      fixture.created.session.dispose();
-    }
-  }, 20_000);
-
-  it("rejects a late confirmation after the Parent turn is aborted", async () => {
-    const fixture = await createSelectionFixture();
-    try {
-      fixture.setQuestionnaire(async (questions) => {
-        const parents = (fixture.production as unknown as { parents: Map<string, Promise<any>> }).parents;
-        const state = await [...parents.values()][0]!;
-        const aborted = new AbortController();
-        aborted.abort();
-        state.context = { ...state.context, signal: aborted.signal };
-        return {
-          questions,
-          answers: [{ id: questions[0]!.id, selectedOptions: [SELECTION_CONFIRM_OPTION] }],
-          cancelled: false,
-        };
-      });
-
-      await fixture.created.session.prompt("first", { expandPromptTemplates: false, source: "interactive" });
-      const taskResult = [...fixture.created.session.state.messages].reverse().find((candidate) => candidate.role === "toolResult" && candidate.toolName === "sub");
-      expect(taskResult).toMatchObject({ isError: true });
-      expect(JSON.stringify(taskResult)).toContain("SUB_SELECTION_DENIED");
-      const state = await [...(fixture.production as unknown as { parents: Map<string, Promise<any>> }).parents.values()][0]!;
-      expect(Object.keys(state.runtime.journal.getState().agents)).toHaveLength(0);
-    } finally {
-      await fixture.created.session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" }).catch(() => undefined);
-      fixture.created.session.dispose();
-    }
-  }, 20_000);
 });
 
-async function createSelectionFixture() {
+describe("production structured preallocation boundaries", () => {
+  it.each(["explicit", "omitted", "external"] as const)("rejects late invalidation during async %s preparation with zero allocation", async (requestKind) => {
+    const fixture = await createPreflightFixture();
+    const request = requestKind === "external" ? { cli: "codex-cli", model: "vendor-model-high", thinking: "high" }
+      : requestKind === "explicit" ? { model: fixture.canonical, thinking: "high" } : {};
+    try {
+      const alternateCwd = join(scratch, "other-project");
+      await mkdir(alternateCwd, { recursive: true });
+      const originalLoad = ModelConfigStore.prototype.load;
+      const load = requestKind === "external" ? undefined : vi.spyOn(ModelConfigStore.prototype, "load");
+      for (const mutation of ["request-abort", "context-abort", "session", "session-path", "project", "missing-project", "canonical-project", "reload", "shutdown"] as const) {
+        fixture.state.context = fixture.context;
+        const entered = deferred<void>();
+        const release = deferred<void>();
+        if (requestKind === "external") {
+          fixture.probe.mockImplementationOnce(async () => {
+            entered.resolve();
+            await release.promise;
+            return fixture.cliProbe;
+          });
+        } else {
+          load!.mockImplementationOnce(async function(this: ModelConfigStore, trusted) {
+            const loaded = await originalLoad.call(this, trusted);
+            entered.resolve();
+            await release.promise;
+            return loaded;
+          });
+        }
+        const alias = join(scratch, `project-alias-${requestKind}-${mutation}`);
+        if (mutation === "canonical-project") {
+          await symlink(fixture.context.cwd, alias);
+          fixture.state.context = { ...fixture.context, cwd: alias };
+        }
+        const controller = new AbortController();
+        const pending = fixture.submit({ ...request, selectionScope: "same-label" }, controller.signal);
+        const rejected = expect(pending).rejects.toThrow(/SUB_SELECTION_DENIED.*preflight expired/);
+        await entered.promise;
+        if (mutation === "request-abort") controller.abort();
+        else if (mutation === "context-abort") {
+          const aborted = new AbortController(); aborted.abort();
+          fixture.state.context = { ...fixture.state.context, signal: aborted.signal };
+        } else if (mutation === "session" || mutation === "session-path") {
+          fixture.state.context = { ...fixture.state.context, sessionManager: {
+            ...fixture.context.sessionManager,
+            ...(mutation === "session" ? { getSessionId: () => "other-parent" } : { getSessionFile: () => join(scratch, "other-parent.jsonl") }),
+          } };
+        } else if (mutation === "canonical-project") {
+          await rm(alias);
+          await symlink(alternateCwd, alias);
+        } else if (mutation === "project" || mutation === "missing-project") {
+          fixture.state.context = { ...fixture.context, cwd: mutation === "project" ? alternateCwd : join(scratch, "missing-project") };
+        } else {
+          await fixture.emit(mutation === "reload" ? "session_start" : "session_shutdown");
+        }
+        release.resolve();
+        await rejected;
+        expect(fixture.state.runtime.journal.getState()).toMatchObject({ lastSequence: 0, agents: {}, jobs: {}, turns: {}, runs: {} });
+        expect(fixture.managedExecute).not.toHaveBeenCalled();
+        expect(fixture.externalExecute).not.toHaveBeenCalled();
+        expect(fixture.questionnaire).not.toHaveBeenCalled();
+        // This loop never allocates work. Shutdown is the final mutation, so
+        // no closed scheduler is reused for a successful submission.
+      }
+    } finally { await fixture.close(); }
+  }, 20_000);
+
+  it.each([false, true])("does not allocate a continuation turn after async boundary loss (external=%s)", async (external) => {
+    const fixture = await createPreflightFixture();
+    try {
+      const fields = external ? { cli: "codex-cli" } : { model: fixture.canonical };
+      const first = (await fixture.submit(fields)).results[0]!;
+      const before = fixture.state.runtime.journal.getState();
+      const entered = deferred<void>();
+      const release = deferred<void>();
+      if (external) fixture.probe.mockImplementationOnce(async () => { entered.resolve(); await release.promise; return fixture.cliProbe; });
+      else {
+        const originalLoad = ModelConfigStore.prototype.load;
+        vi.spyOn(ModelConfigStore.prototype, "load").mockImplementationOnce(async function(this: ModelConfigStore, trusted) {
+          const configs = await originalLoad.call(this, trusted);
+          entered.resolve(); await release.promise; return configs;
+        });
+      }
+      const pending = fixture.submit({ ...fields, task_id: first.taskId, selectionScope: "different-label" });
+      const rejected = expect(pending).rejects.toThrow(/preflight expired/);
+      await entered.promise;
+      fixture.state.context = { ...fixture.context, sessionManager: { ...fixture.context.sessionManager, getSessionId: () => "switched" } };
+      release.resolve();
+      await rejected;
+      expect(fixture.state.runtime.journal.getState()).toEqual(before);
+      expect(fixture.managedExecute.mock.calls.length + fixture.externalExecute.mock.calls.length).toBe(1);
+      expect(fixture.questionnaire).not.toHaveBeenCalled();
+    } finally { await fixture.close(); }
+  });
+
+  it("accepts stable canonical project aliases and checks equivalent fresh contexts without a selection cache", async () => {
+    const fixture = await createPreflightFixture();
+    try {
+      const alias = join(scratch, "same-project-alias");
+      await symlink(fixture.context.cwd, alias);
+      fixture.state.context = { ...fixture.context, cwd: alias };
+      const originalLoad = ModelConfigStore.prototype.load;
+      vi.spyOn(ModelConfigStore.prototype, "load").mockImplementationOnce(async function(this: ModelConfigStore, trusted) {
+        const configs = await originalLoad.call(this, trusted);
+        fixture.state.context = { ...fixture.state.context };
+        return configs;
+      });
+      expect((await fixture.submit({ model: fixture.canonical })).results[0]).toMatchObject({ status: "completed", source: "structured-request" });
+      expect(fixture.questionnaire).not.toHaveBeenCalled();
+    } finally { await fixture.close(); }
+  });
+
+  it.each(["request", "context"] as const)("rejects an initially aborted %s signal even when the other signal is live", async (kind) => {
+    const fixture = await createPreflightFixture();
+    const aborted = new AbortController(); aborted.abort();
+    const live = new AbortController();
+    try {
+      if (kind === "context") fixture.state.context = { ...fixture.context, signal: aborted.signal };
+      await expect(fixture.submit({ model: fixture.canonical }, kind === "request" ? aborted.signal : live.signal)).rejects.toThrow(/already aborted before preflight/);
+      expect(fixture.state.runtime.journal.getState()).toMatchObject({ lastSequence: 0, agents: {}, jobs: {}, turns: {} });
+      expect(fixture.probe).not.toHaveBeenCalled();
+    } finally { await fixture.close(); }
+  });
+
+  it("fails strict catalog, thinking, schema and vendor-help checks before any allocation", async () => {
+    const fixture = await createPreflightFixture();
+    try {
+      for (const [request, error] of [
+        [{ model: "missing/model" }, /SUB_MODEL_UNAVAILABLE/],
+        [{ model: `${providerName}/unavailable` }, /SUB_MODEL_UNAVAILABLE/],
+        [{ model: `${providerName}/no-auth` }, /SUB_MODEL_UNAVAILABLE/],
+        [{ model: "ambiguous" }, /SUB_MODEL_AMBIGUOUS/],
+        [{ model: `${providerName}/${model.id}`, thinking: "high" }, /SUB_THINKING_UNSUPPORTED/],
+        [{ thinking: "turbo" }, /thinking/],
+        [{ cli: "unknown" }, /sub.cli/],
+        [{ confirmed: true }, /unknown fields/],
+        [{ model: " vendor-model " }, /exact model/],
+        [{ selectionScope: "bad\nlabel" }, /selectionScope/],
+        [{ cli: "codex-cli", thinking: "max" }, /does not enumerate thinking/],
+        [{ cli: "codex-cli", model: "--runner-flag" }, /runner flag/],
+      ] as const) await expect(fixture.submit(request)).rejects.toThrow(error);
+      fixture.probe.mockResolvedValueOnce({ ...fixture.cliProbe, help: "Options:\n  --json\n      Print JSON" });
+      await expect(fixture.submit({ cli: "codex-cli", model: "vendor-model" })).rejects.toThrow(/no uniquely identifiable/);
+      fixture.probe.mockResolvedValueOnce({ ...fixture.cliProbe, help: "Options:\n  --model <MODEL>\n      Model to use\n  --fallback-model <MODEL>\n      Model to use" });
+      await expect(fixture.submit({ cli: "codex-cli", model: "vendor-model" })).rejects.toThrow(/SUB_CLI_AMBIGUOUS/);
+      expect(fixture.state.runtime.journal.getState()).toMatchObject({ lastSequence: 0, agents: {}, jobs: {}, turns: {}, runs: {} });
+      expect(fixture.managedExecute).not.toHaveBeenCalled();
+      expect(fixture.externalExecute).not.toHaveBeenCalled();
+      expect(fixture.questionnaire).not.toHaveBeenCalled();
+    } finally { await fixture.close(); }
+  });
+
+  it("keeps external fields exact, labels descriptive, and continuation drivers frozen without selection UI", async () => {
+    const fixture = await createPreflightFixture();
+    try {
+      const first = (await fixture.submit({ cli: "codex-cli", model: "vendor-model-high", thinking: "high" })).results[0]!;
+      expect(first).toMatchObject({ status: "completed", backend: "herdr", driver: "external-cli", modelDecision: { overrideDecision: "accepted-structured-request" } });
+      expect(fixture.externalExecute.mock.calls[0]![0].launchPlan).toMatchObject({ argv: ["--model", "vendor-model-high", "--effort", "high"], executableBinding: "Unverified" });
+      for (const selectionScope of [undefined, "same", "same", "changed"]) {
+        await fixture.submit({ task_id: first.taskId, cli: "codex-cli", selectionScope });
+        expect(fixture.externalExecute.mock.calls.at(-1)![0].launchPlan?.argv).toEqual([]);
+      }
+      const parallel = await Promise.all([fixture.submit({ cli: "codex-cli", selectionScope: "same" }), fixture.submit({ cli: "codex-cli", selectionScope: "same" })]);
+      expect(parallel.map((result) => result.results[0]!.status)).toEqual(["completed", "completed"]);
+      const before = fixture.state.runtime.journal.getState().lastSequence;
+      await expect(fixture.submit({ task_id: first.taskId, selectionScope: "same" })).rejects.toThrow(/SUB_CLI_CONTINUATION/);
+      await expect(fixture.submit({ task_id: first.taskId, cli: "claude-code", selectionScope: "changed" })).rejects.toThrow(/SUB_CLI_CONTINUATION/);
+      expect(fixture.state.runtime.journal.getState().lastSequence).toBe(before);
+      const managed = (await fixture.submit({})).results[0]!;
+      await expect(fixture.submit({ task_id: managed.taskId, cli: "codex-cli", selectionScope: "same" })).rejects.toThrow(/SUB_CLI_MANAGED_CONTINUATION/);
+      expect(fixture.questionnaire).not.toHaveBeenCalled();
+      expect(fixture.select).not.toHaveBeenCalled();
+    } finally { await fixture.close(); }
+  });
+
+  it("preserves headless tool denial, ordinary questionnaire routing, and no-packet external denial", async () => {
+    const fixture = await createPreflightFixture();
+    try {
+      await fixture.submit({ model: fixture.canonical, thinking: "high", selectionScope: "label" });
+      const request = (fixture.state.runtime as unknown as { options: PersistentAgentRuntimeOptions }).options.requestInteraction!;
+      const packet = { agentId: "fixture", jobId: "job", turnId: "turn", runId: "run", interactionId: "question", payload: { toolName: "write", summary: "ordinary write" }, signal: new AbortController().signal };
+      expect(await request({ ...packet, kind: "permission" })).toBe("deny");
+      expect(fixture.select).not.toHaveBeenCalled();
+      fixture.state.context = { ...fixture.context, hasUI: true };
+      fixture.select.mockResolvedValueOnce("Allow once");
+      expect(await request({ ...packet, kind: "permission" })).toBe("allow");
+      expect(await request({ ...packet, kind: "question", payload: { question: "Which file?", options: ["fixture.ts"] } })).toBe("fixture.ts");
+      expect(fixture.questionnaire).toHaveBeenCalledOnce();
+      expect(await request({ ...packet, kind: "external-cui-confirmation" })).toBe("deny");
+      expect(fixture.select).toHaveBeenCalledOnce();
+      expect(fixture.questionnaire).toHaveBeenCalledOnce();
+    } finally { await fixture.close(); }
+  });
+});
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
+}
+
+interface TestParentState { context: ExtensionContext; runtime: PersistentAgentRuntime; }
+async function parentState(production: PersistentAgentProduction): Promise<TestParentState> {
+  return await [...(production as unknown as { parents: Map<string, Promise<TestParentState>> }).parents.values()][0]!;
+}
+
+/** Real production/coordinator preallocation with fake catalog/probe/executors;
+ * never invokes a provider, vendor task, Herdr surface, or host executable. */
+async function createPreflightFixture() {
+  const cwd = join(scratch, "preflight-project");
+  await mkdir(cwd, { recursive: true });
+  const parentPath = join(scratch, "preflight-parent.jsonl");
+  await writeFile(parentPath, "fixture parent\n");
+  const canonical = `${providerName}/reasoning`;
+  const models = [model, { ...model, id: "reasoning", reasoning: true }, { ...model, id: "unavailable" }, { ...model, id: "no-auth" }, { ...model, id: "ambiguous" }, { ...model, provider: "other-fixture", id: "ambiguous" }];
+  const select = vi.fn(async (): Promise<string | undefined> => undefined);
+  const questionnaire = vi.fn(async (questions: any[]) => ({ questions, answers: [{ id: questions[0].id, selectedOptions: ["fixture.ts"] }], cancelled: false }));
+  const context = {
+    cwd, hasUI: false, mode: "rpc", model, thinkingLevel: "off", scopedModels: [],
+    isProjectTrusted: () => true,
+    sessionManager: { getSessionFile: () => parentPath, getSessionId: () => "preflight-parent", getEntries: () => [] },
+    modelRegistry: {
+      getAll: () => models,
+      getAvailable: () => models.filter((entry) => entry.id !== "unavailable"),
+      hasConfiguredAuth: (entry: Model<any>) => entry.id !== "no-auth",
+      find: (provider: string, id: string) => models.find((entry) => entry.provider === provider && entry.id === id),
+    },
+    ui: { select, questionnaire, notify: vi.fn() },
+  } as unknown as ExtensionContext;
+  const handlers = new Map<string, (event: unknown, context: ExtensionContext) => unknown>();
+  const production = new PersistentAgentProduction({
+    registerTool: vi.fn(), registerCommand: vi.fn(), getActiveTools: () => ["sub"],
+    getAllTools: () => { throw new Error("unbound fixture discovery"); },
+    on: (event: string, handler: (event: unknown, context: ExtensionContext) => unknown) => handlers.set(event, handler),
+    sendMessage: vi.fn(),
+  } as never);
+  await production.register();
+  const state = await (production as unknown as { parent(context: ExtensionContext): Promise<TestParentState> }).parent(context);
+  const managedExecute = vi.spyOn(state.runtime.backends.require("managed"), "execute").mockImplementation(async (input) => ({ output: "fake managed complete", model: input.modelChoice }));
+  const externalExecute = vi.spyOn(state.runtime.herdrBackend, "execute").mockResolvedValue({ output: "fake external complete" });
+  vi.spyOn(herdr, "probeHerdrDaemon").mockResolvedValue({ socketReachable: true } as Awaited<ReturnType<typeof herdr.probeHerdrDaemon>>);
+  const cliProbe: externalCli.ExternalCliProbe = {
+    cli: "codex-cli", executable: "codex", version: "fixture 1.0",
+    help: "Options:\n  --model <MODEL>\n      Model to use\n  --effort <LEVEL>\n      Reasoning effort. Possible values: low, medium, high",
+    identity: "confirmed", completed: { version: true, help: true }, outputTruncated: false,
+    yolo: { disposition: "yolo-unavailable", argv: [] },
+  };
+  const probe = vi.spyOn(externalCli, "probeExternalCli").mockResolvedValue(cliProbe);
+  return {
+    production, state, context, canonical, questionnaire, select, probe, cliProbe, managedExecute, externalExecute,
+    submit: (extra: Record<string, unknown>, signal?: AbortSignal) => state.runtime.sub.submit({ description: "fixture", prompt: "one bounded fixture turn", subagent_type: "aili.code-scout", ...extra }, undefined, signal),
+    emit: async (event: string) => { await handlers.get(event)?.({ type: event, reason: "reload" }, context); },
+    close: async () => { await handlers.get("session_shutdown")?.({ type: "session_shutdown", reason: "quit" }, context); },
+  };
+}
+
+async function createStructuredRequestFixture() {
   const cwd = join(scratch, "selection-project");
   const sessionDir = join(scratch, "selection-sessions");
   const agentDir = join(scratch, "home", ".pi", "agent");
@@ -622,16 +791,7 @@ async function createSelectionFixture() {
   await loader.reload();
   expect(loader.getExtensions().errors).toEqual([]);
   const manager = SessionManager.create(cwd, sessionDir, { id: "selection-parent" });
-  const questionnaireCalls: any[][] = [];
-  let questionnaireImpl: (questions: any[]) => Promise<unknown> = async (questions) => ({
-    questions,
-    answers: [{ id: questions[0]!.id, selectedOptions: [SELECTION_CONFIRM_OPTION] }],
-    cancelled: false,
-  });
-  const questionnaire = vi.fn(async (questions: any[]) => {
-    questionnaireCalls.push(questions);
-    return await questionnaireImpl(questions);
-  });
+  const questionnaire = vi.fn(async () => { throw new Error("selection UI must not be called"); });
   const created = await createAgentSession({
     cwd,
     agentDir,
@@ -648,8 +808,7 @@ async function createSelectionFixture() {
     production: production!,
     requestedCanonical,
     questionnaire,
-    questionnaireCalls,
-    setQuestionnaire: (implementation: (questions: any[]) => Promise<unknown>) => { questionnaireImpl = implementation; },
+    configPath: join(agentDir, "aili", "model-overrides.json"),
   };
 }
 

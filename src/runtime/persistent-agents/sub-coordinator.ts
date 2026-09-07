@@ -387,8 +387,8 @@ export interface TaskAncestry {
   inheritedPermit: SchedulerPermit;
   /** Frozen direct-parent resolution used by nested work, never the root Main implicitly. */
   parentResolution?: ResolvedModelChoice;
-  /** Legacy structural authority compatibility; public candidates use the
-   * runtime-owned selection questionnaire instead. */
+  /** Legacy structural authority compatibility; public dispatch uses strict
+   * per-turn structured requests after Parent requirements alignment. */
   currentTurnModelAuthority?: CurrentTurnModelAuthority;
   /** Compatibility aliases for callers using shorter authority vocabulary. */
   currentTurnAuthority?: CurrentTurnModelAuthority;
@@ -499,7 +499,7 @@ function modelAuditSources(choice: ResolvedModelChoice | undefined): {
   if (!choice) return {};
   const modelSource = choice.modelSource ?? choice.source;
   const thinkingSource = choice.thinkingSource
-    ?? (choice.layer === "parent-fallback" ? "inherited-parent" : choice.layer === "one-shot" ? "user-one-shot" : "model-default");
+    ?? (choice.layer === "parent-fallback" ? "inherited-parent" : choice.layer === "one-shot" ? (choice.source === "structured-request" ? "structured-request" : "user-one-shot") : "model-default");
   return {
     ...(modelSource === undefined ? {} : { modelSource }),
     ...(thinkingSource === undefined ? {} : { thinkingSource }),

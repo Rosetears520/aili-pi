@@ -196,6 +196,19 @@ describe("shared sub renderers", () => {
     expect(expanded).toContain("thinking source: model-default");
   });
 
+  it("displays neutral structured sources and descriptive scopes while retaining legacy source readability", () => {
+    for (const source of ["structured-request", "confirmed-one-shot", "user-one-shot", "direct-user-turn"]) {
+      const text = rendered(renderSubResult(
+        result({ batch: false, results: [taskItem("completed", { selectionScope: "release-42", modelSource: source, thinkingSource: source })] }),
+        { expanded: true, isPartial: false }, theme, context({ prompt: "x" }),
+      ));
+      expect(text).toContain(`model source: ${source}`);
+      expect(text).toContain(`thinking source: ${source}`);
+      expect(text).toContain("release-42");
+      expect(text).not.toContain("Confirm this selection");
+    }
+  });
+
   it("shows expanded model, mode, ids and references from structured details", () => {
     const text = rendered(renderSubResult(
       result({ batch: false, results: [taskItem("completed")] }),

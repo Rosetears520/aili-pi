@@ -84,47 +84,56 @@ describe("direct-parent model resolution", () => {
     parentThinking: "medium" as const,
   };
 
-  it("keeps confirmed proposals below persistent user configuration and above inheritance", async () => {
-    expect(await resolveModelChoice(base, catalog())).toMatchObject({ canonical: "provider/instance", layer: "instance", source: "instance-override", modelSource: "instance-override", thinking: "high", thinkingSource: "confirmed-one-shot", oneShot: false });
-    expect(await resolveModelChoice({ ...base, instance: { model: "provider/instance", thinking: "low" } }, catalog())).toMatchObject({ canonical: "provider/instance", thinking: "low", thinkingSource: "instance-override" });
-    expect(await resolveModelChoice({ ...base, instance: undefined }, catalog())).toMatchObject({ canonical: "provider/project", layer: "project-role", source: "project-role-override", modelSource: "project-role-override" });
-    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined }, catalog())).toMatchObject({ canonical: "provider/user", layer: "user-role", source: "user-role-override", modelSource: "user-role-override" });
-    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined }, catalog())).toMatchObject({ canonical: "provider/one", layer: "one-shot", source: "confirmed-one-shot", modelSource: "confirmed-one-shot", oneShot: true, thinking: "high", thinkingSource: "confirmed-one-shot" });
+  it("ranks per-turn structured fields above every persistent layer without claiming confirmation", async () => {
+    for (const persistent of [base, { ...base, instance: undefined }, { ...base, instance: undefined, projectRole: undefined }]) {
+      expect(await resolveModelChoice(persistent, catalog())).toMatchObject({ canonical: "provider/one", layer: "one-shot", source: "structured-request", modelSource: "structured-request", thinking: "high", thinkingSource: "structured-request", oneShot: true, persistent: false });
+    }
+    expect(await resolveModelChoice({ ...base, instance: { model: "provider/instance", thinking: "low" } }, catalog())).toMatchObject({ canonical: "provider/one", thinking: "high", thinkingSource: "structured-request" });
+    expect(await resolveModelChoice({ ...base, oneShot: undefined }, catalog())).toMatchObject({ canonical: "provider/instance", layer: "instance", source: "instance-override" });
+    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined }, catalog())).toMatchObject({ canonical: "provider/project", layer: "project-role", source: "project-role-override" });
+    expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined }, catalog())).toMatchObject({ canonical: "provider/user", layer: "user-role", source: "user-role-override" });
     expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "high", speedTier: "priority" } }, catalog())).toMatchObject({ canonical: "provider/parent", source: "inherited-parent", modelSource: "inherited-parent", thinking: "high", thinkingSource: "inherited-parent", speedTier: "priority" });
     expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined }, catalog())).toMatchObject({ canonical: "provider/profile", layer: "profile", source: "profile-fallback", modelSource: "profile-fallback" });
     expect(await resolveModelChoice({ ...base, oneShot: undefined, instance: undefined, projectRole: undefined, userRole: undefined, profile: undefined }, catalog())).toMatchObject({ canonical: "provider/parent", layer: "runtime-fallback", source: "runtime-fallback", modelSource: "runtime-fallback" });
   });
 
   it("applies a direct user-turn instruction above every other layer", async () => {
-    expect(await resolveModelChoice({ ...base, directUserTurn: { model: "provider/one" } }, catalog())).toMatchObject({
-      canonical: "provider/one",
+    expect(await resolveModelChoice({ ...base, directUserTurn: { model: "provider/project" } }, catalog())).toMatchObject({
+      canonical: "provider/project",
       layer: "direct-user-turn",
       source: "direct-user-turn",
       modelSource: "direct-user-turn",
       oneShot: false,
       persistent: false,
     });
-    // A thinking-only direct instruction outranks persistent thinking while
-    // the persistent layer still provides the model.
-    expect(await resolveModelChoice({ ...base, instance: { model: "provider/instance", thinking: "low" }, directUserTurn: { thinking: "high" } }, catalog())).toMatchObject({
-      canonical: "provider/instance",
-      layer: "instance",
-      modelSource: "instance-override",
+    // A thinking-only direct instruction outranks oneShot thinking while
+    // the structured request still independently provides the model.
+    expect(await resolveModelChoice({ ...base, oneShot: { model: "provider/one", thinking: "low" }, directUserTurn: { thinking: "high" } }, catalog())).toMatchObject({
+      canonical: "provider/one",
+      layer: "one-shot",
+      modelSource: "structured-request",
       thinking: "high",
       thinkingSource: "direct-user-turn",
     });
+  });
+
+  it("resolves structured model and thinking independently above persistent fields", async () => {
+    const configured = { ...base, instance: { model: "provider/instance", thinking: "low" as const } };
+    expect(await resolveModelChoice({ ...configured, oneShot: { model: "provider/one" } }, catalog())).toMatchObject({ canonical: "provider/one", modelSource: "structured-request", thinking: "low", thinkingSource: "instance-override" });
+    expect(await resolveModelChoice({ ...configured, oneShot: { thinking: "high" } }, catalog())).toMatchObject({ canonical: "provider/instance", modelSource: "instance-override", thinking: "high", thinkingSource: "structured-request" });
+    expect(await resolveModelChoice({ ...base, oneShot: { model: "provider/one" }, projectRole: { model: "provider/project", thinking: "medium" } }, catalog())).toMatchObject({ canonical: "provider/one", thinking: "medium", thinkingSource: "project-role-override" });
+    expect(await resolveModelChoice({ ...base, oneShot: { thinking: "low" }, instance: undefined, projectTrusted: false }, catalog())).toMatchObject({ canonical: "provider/user", thinking: "low", modelSource: "user-role-override", thinkingSource: "structured-request" });
   });
 
   it("uses the target Pi default rather than Parent xhigh after a model-only switch", async () => {
     const glm: CatalogModel = { provider: "zai-coding-cn", model: "glm-5.3-flash", available: true, authenticated: true, thinkingLevels: ["off", "medium", "max"], defaultThinking: "medium" };
     const result = await resolveModelChoice({
       ...base,
-      oneShot: undefined,
       instance: undefined,
       projectRole: undefined,
       userRole: undefined,
       profile: undefined,
-      directUserTurn: { model: "zai-coding-cn/glm-5.3-flash" },
+      oneShot: { model: "zai-coding-cn/glm-5.3-flash" },
       parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "xhigh", speedTier: "standard" },
     }, catalog({ resolve: async (id) => id === "zai-coding-cn/glm-5.3-flash" ? glm : models[id] }));
     expect(result).toMatchObject({ canonical: "zai-coding-cn/glm-5.3-flash", thinking: "medium", thinkingSource: "model-default" });
@@ -196,8 +205,8 @@ describe("direct-parent model resolution", () => {
       journal,
       configs,
       catalog: catalog(),
-    })).toMatchObject({ canonical: "provider/instance", layer: "instance", modelSource: "instance-override" });
-    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "provider/project" } }, catalog())).toMatchObject({ canonical: "provider/project", layer: "one-shot", modelSource: "confirmed-one-shot" });
+    })).toMatchObject({ canonical: "provider/one", layer: "one-shot", modelSource: "structured-request" });
+    expect(await resolveModelChoice({ ...base, instance: undefined, projectRole: undefined, userRole: undefined, oneShot: { model: "provider/project" } }, catalog())).toMatchObject({ canonical: "provider/project", layer: "one-shot", modelSource: "structured-request" });
     expect(await readFile(globalPath, "utf8")).toBe(beforeBytes);
     expect(journal.getState().models).toEqual(beforeState);
     expect(await resolveAgentModel({
@@ -224,7 +233,7 @@ describe("current-turn model authority", () => {
     expect(validateCurrentTurnModelRequest({ model: "one" }, { mode: "delegated-choice", models: "available" })).toEqual({ model: "one" });
     expect(() => validateCurrentTurnModelRequest({ thinking: "high" }, { mode: "delegated-choice", models: "available" })).toThrow(/delegated model-choice/);
     expect(validateCurrentTurnModelRequest({ thinking: "high" }, { mode: "delegated-choice", models: "available", thinkingMode: "available" })).toEqual({ thinking: "high" });
-    await expect(resolveModelChoice({ selector: "general", agentId: "Worker", projectTrusted: true, oneShotThinking: "high", parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "medium", speedTier: "standard" } }, catalog())).resolves.toMatchObject({ canonical: "provider/parent", thinking: "high", thinkingSource: "confirmed-one-shot", source: "confirmed-one-shot" });
+    await expect(resolveModelChoice({ selector: "general", agentId: "Worker", projectTrusted: true, oneShotThinking: "high", parent: { provider: "provider", model: "parent", canonical: "provider/parent", thinking: "medium", speedTier: "standard" } }, catalog())).resolves.toMatchObject({ canonical: "provider/parent", thinking: "high", thinkingSource: "structured-request", source: "structured-request" });
   });
 
   it("rejects malformed authority instead of treating it as permission", () => {

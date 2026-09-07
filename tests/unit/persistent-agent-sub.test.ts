@@ -183,10 +183,13 @@ describe("sub schema and coordinator", () => {
     expect(publicSchema).toContain("subagent_type");
     expect(publicSchema).toContain("task_id");
     expect(publicSchema).toContain("background");
-    expect(publicSchema).toContain("per-turn model candidate");
+    expect(publicSchema).toContain("per-turn model request");
     expect(publicSchema).toContain("selectionScope");
     expect(publicSchema).toContain("For ordinary Pi use a canonical provider/model");
-    expect(publicSchema).toContain("runtime confirmation");
+    expect(publicSchema).toContain("without extra selection confirmation");
+    expect(publicSchema).toContain("Parent requirements alignment");
+    expect(publicSchema).toContain("never grants permission, caches authorization");
+    expect(publicSchema).not.toContain("questionnaire");
     expect(publicSchema).not.toContain("gpt-5.6-terra");
     // The public surface has no batch, orchestration, or formal identity fields.
     expect(publicSchema).not.toContain("\"tasks\"");
@@ -233,6 +236,17 @@ describe("sub schema and coordinator", () => {
     expect(acceptedTwo.results[0]).toMatchObject({ status: "accepted", model: { provider: "provider", model: "two", layer: "parent-fallback", thinking: "medium" } });
     expect(acceptedFixture.journal.getState().turns["turn-1"].metadata).toMatchObject({ effectiveModel: "provider/one", modelLayer: "one-shot", thinking: "high" });
     expect(acceptedFixture.journal.getState().turns["turn-2"].metadata).toMatchObject({ effectiveModel: "provider/two", modelLayer: "parent-fallback", thinking: "medium" });
+  });
+
+  it.each(["structured-request", "confirmed-one-shot", "user-one-shot"] as const)("preserves %s audit projections without reinterpreting legacy sources", async (source) => {
+    const choice: ResolvedModelChoice = { provider: "provider", model: "one", canonical: "provider/one", layer: "one-shot", thinking: "high", source, persistent: false, oneShot: true };
+    const updates: unknown[] = [];
+    const { coordinator, journal } = await fixtureCoordinator({ preflight: async () => ({ choice, modelDecision: { requestedModel: "provider/one", requestedThinking: "high", overrideDecision: "accepted-structured-request" } }) });
+    const response = await coordinator.submit({ description: "audit", prompt: "work", subagent_type: "general", model: "provider/one", selectionScope: "descriptive" }, undefined, undefined, (update) => updates.push(update.details));
+    expect(response.results[0]).toMatchObject({ source, selectionScope: "descriptive", modelDecision: { overrideDecision: "accepted-structured-request" } });
+    const thinkingSource = source === "structured-request" ? source : "user-one-shot";
+    expect(updates[0]).toMatchObject({ source, modelSource: source, thinkingSource, selectionScope: "descriptive" });
+    expect(journal.getState().turns["turn-1"]!.metadata).toMatchObject({ source, modelSource: source, thinkingSource });
   });
 
   it("derives CLI backend authority only inside preallocation and rejects non-Herdr or switched-in-place CLI use", async () => {

@@ -9,8 +9,8 @@ import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 
 export type ModelLayer = "direct-user-turn" | "one-shot" | "instance" | "project-role" | "user-role" | "profile" | "parent-fallback" | "runtime-fallback";
 /** Compatibility source retained for existing audit consumers. */
-export type ModelSource = "direct-user-turn" | "confirmed-one-shot" | "user-one-shot" | "instance-override" | "project-role-override" | "user-role-override" | "inherited-parent" | "profile-fallback" | "runtime-fallback";
-export type ModelChoiceSource = "direct-user-turn" | "user-one-shot" | "confirmed-one-shot" | "instance-override" | "project-role-override" | "user-role-override" | "inherited-parent" | "profile-fallback" | "runtime-fallback";
+export type ModelSource = "structured-request" | "direct-user-turn" | "confirmed-one-shot" | "user-one-shot" | "instance-override" | "project-role-override" | "user-role-override" | "inherited-parent" | "profile-fallback" | "runtime-fallback";
+export type ModelChoiceSource = "structured-request" | "direct-user-turn" | "user-one-shot" | "confirmed-one-shot" | "instance-override" | "project-role-override" | "user-role-override" | "inherited-parent" | "profile-fallback" | "runtime-fallback";
 export type ThinkingSource = ModelChoiceSource | "model-default";
 export type ModelThinking = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 export type SpeedTier = "standard" | "priority";
@@ -21,6 +21,7 @@ export interface SubagentModelDecision {
   requestedThinking: ModelThinking | null;
   overrideDecision:
     | "accepted-direct-user"
+    | "accepted-structured-request"
     | "accepted-delegated-choice"
     | "confirmed-model-proposal"
     | "rejected-unauthorized"
@@ -281,7 +282,8 @@ export async function resolveSubModelIdentifier(
     if (!resolved) throw new SubModelRequestError("SUB_MODEL_UNAVAILABLE", `model '${canonical}' is not in the catalog`);
     if (!resolved.available) throw new SubModelRequestError("SUB_MODEL_UNAVAILABLE", `model '${canonical}' is unavailable`);
     if (!resolved.authenticated) throw new SubModelRequestError("SUB_MODEL_UNAVAILABLE", `model '${canonical}' is not authenticated`);
-    return { ...resolved, canonical: `${resolved.provider}/${resolved.model}` };
+    if (`${resolved.provider}/${resolved.model}` !== canonical) throw new SubModelRequestError("SUB_MODEL_UNAVAILABLE", `catalog identity did not match explicit model '${canonical}'; no substitution is permitted`);
+    return { ...resolved, canonical };
   }
   validateBareModelIdentifier(value);
   const enumerated = (catalog.enumerate?.() ?? []).map((entry) => ({ ...entry, canonical: entryCanonical(entry) }));
@@ -510,9 +512,8 @@ function normalizeCurrentTurnAuthority(authority: CurrentTurnModelAuthority): {
  * The schema/registry establishes identity; availability, backend and
  * permission checks remain separate fail-closed boundaries. */
 export function validateCurrentTurnCliRequest(cli: ExternalCliId | undefined, _authority: CurrentTurnModelAuthority): ExternalCliId | undefined {
-  // CLI identity is a structured schema value. Authorization is supplied by
-  // the runtime-owned candidate questionnaire, never by parsing the Parent's
-  // wording or by a model-provided confirmation field.
+  // The Parent aligns requirements before submitting the structured value.
+  // Identity validation is not tool permission or proof of that alignment.
   if (cli === undefined) return undefined;
   if (!isExternalCliId(cli)) throw new Error(`unknown external CLI '${String(cli)}'`);
   return cli;
@@ -673,7 +674,8 @@ export const assertCurrentTurnPermission = assertCurrentTurnModelRequest;
 export interface ResolveModelInput {
   selector: string;
   agentId: string;
-  /** Already-authorized one-shot values. Use the hard validator above first. */
+  /** Per-turn structured request, above persistent fields and never persisted.
+   *  Public dispatch strictly resolves catalog identity before passing it here. */
   oneShot?: TaskModelRequest;
   /** Already-authorized current-turn user instruction (explicit or delegated
    *  authority). Ranks above every persistent layer and applies without a
@@ -784,12 +786,10 @@ export async function resolveModelChoice(input: ResolveModelInput, catalog: Mode
   };
   const layers: ResolutionLayer[] = [
     { layer: "direct-user-turn", value: input.directUserTurn, persistent: false, source: "direct-user-turn", modelSource: "direct-user-turn" },
+    { layer: "one-shot", value: oneShot, persistent: false, source: "structured-request", modelSource: "structured-request" },
     { layer: "instance", value: input.instance, persistent: true, source: "instance-override", modelSource: "instance-override" },
     { layer: "project-role", value: input.projectTrusted ? input.projectRole : undefined, persistent: true, source: "project-role-override", modelSource: "project-role-override" },
     { layer: "user-role", value: input.userRole, persistent: true, source: "user-role-override", modelSource: "user-role-override" },
-    // A confirmed model proposal is user-approved for one dispatch, but does
-    // not override persistent user-owned configuration.
-    { layer: "one-shot", value: oneShot, persistent: false, source: "confirmed-one-shot", modelSource: "confirmed-one-shot" },
   ];
   // Model and thinking resolve independently in the same authority order.
   const modelLayer = layers.find((candidate) => typeof candidate.value?.model === "string" && candidate.value.model.trim().length > 0);
@@ -964,15 +964,15 @@ export interface ModelChangeConfirmation {
 
 export interface TaskModelRequestConfirmation {
   hasUI: boolean;
-  /** Legacy compatibility field; public dispatch uses bound selection UI. */
+  /** Legacy compatibility field; public dispatch uses a structured request. */
   authority?: CurrentTurnModelAuthority;
   confirm(packet: { parent: string; requested: string }): Promise<"confirm" | "deny" | "dismiss">;
 }
 
 /**
- * @deprecated The old unbound confirmation seam is intentionally inert. Model
- * facing values must go through the runtime-owned selection interaction, which
- * binds the questionnaire id/options and validates the callback result.
+ * @deprecated The old unbound confirmation seam is intentionally inert.
+ * Public per-turn requests use strict preflight without a selection dialog;
+ * durable model configuration changes still require their own confirmation.
  */
 export async function confirmTaskModelRequest(
   _requested: TaskModelRequest | undefined,

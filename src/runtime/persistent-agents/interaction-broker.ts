@@ -1,4 +1,4 @@
-export type InteractionKind = "permission" | "question" | "selection";
+export type InteractionKind = "permission" | "question";
 export type InteractionState = "pending" | "resolved" | "expired" | "cancelled";
 
 export interface InteractionRecord<TRequest = unknown, TAnswer = unknown> {
@@ -53,10 +53,7 @@ export class InteractionBroker {
 
   answer(id: string, answer: unknown): boolean {
     const pending = this.pending.get(id);
-    // Runtime-owned candidate selections are intentionally not answerable by
-    // the generic interaction command. Their questionnaire callback is the
-    // only authorization source, and it validates the bound question/answers.
-    if (!pending || pending.record.kind === "selection") return false;
+    if (!pending) return false;
     pending.record.state = "resolved";
     pending.record.answer = answer;
     pending.settle(answer);

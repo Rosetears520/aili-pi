@@ -34,7 +34,7 @@ export interface NormalizedTaskItem {
   thinking?: TaskThinking;
   /** Optional registered external CLI selected by the Parent; omitted keeps Pi execution. */
   cli?: ExternalCliId;
-  /** Optional in-memory confirmation scope for one named task. */
+  /** Optional descriptive task label; never permission or an authorization cache. */
   selectionScope?: string;
   async?: boolean;
   tools?: string[];
@@ -102,7 +102,7 @@ const SUB_THINKING_SCHEMA = Type.Union([
   Type.Literal("xhigh"),
   Type.Literal("max"),
 ], {
-  description: "Optional per-turn thinking candidate. For an external CLI, omit it to preserve the vendor default unless the Parent has an exact candidate for runtime confirmation, and never invent it autonomously. It bypasses the Pi catalog and is a separate vendor-native choice: never concatenate it with model or infer it from a model-name suffix. The runtime must discover and obey a unique thinking/reasoning/effort option and its value syntax from the selected installed CLI's frozen --help; ambiguous or enumerated-unsupported values fail. Model-facing values are untrusted until the fixed runtime-owned selection questionnaire confirms them.",
+  description: "Optional per-turn thinking request after Parent requirements alignment; strictly validated without extra selection confirmation. It independently overrides persistent thinking for this turn only. For an external CLI, omit it to preserve the vendor default unless requirements specify an exact value; never invent it. It bypasses the Pi catalog and is a separate vendor-native choice: never concatenate it with model or infer it from a model-name suffix. The runtime must discover and obey a unique thinking/reasoning/effort option and its value syntax from the selected installed CLI's frozen --help; ambiguous or enumerated-unsupported values fail.",
 });
 
 const FormalItemFields = {
@@ -115,7 +115,7 @@ const FormalItemFields = {
   name: Type.Optional(Type.String({ minLength: 1 })),
   model: Type.Optional(Type.String({
     minLength: 1,
-    description: "Optional per-turn provider/model candidate. Omitted by default; it inherits the current parent resolution. Model-facing values are untrusted until the fixed runtime-owned selection questionnaire confirms them. An explicit request that cannot be resolved or authorized fails the whole call instead of falling back.",
+    description: "Optional per-turn provider/model request after Parent requirements alignment. It overrides persistent model fields for this turn only; omission retains configured/default resolution. Strict validation runs without extra selection confirmation and an unusable explicit request fails the whole call instead of falling back.",
   })),
   thinking: Type.Optional(SUB_THINKING_SCHEMA),
   async: Type.Optional(Type.Boolean({ description: "Set false to wait synchronously or true for background execution. Do not send blocking; blocking is profile-only internal metadata." })),
@@ -128,7 +128,7 @@ const FormalItemFields = {
     minLength: 1,
     maxLength: 200,
     pattern: FORMAL_SINGLE_LINE_PATTERN,
-    description: "Optional named one-line task scope for reusing one confirmed choice within the current Parent session and project.",
+    description: "Optional descriptive one-line task label; never permission or an authorization cache.",
   })),
 };
 
@@ -165,17 +165,17 @@ export const SUB_TOOL_SCHEMA = Type.Object({
   })),
   model: Type.Optional(Type.String({
     minLength: 1,
-    description: "Optional per-turn model candidate. For ordinary Pi use a canonical provider/model, bare id, or unambiguous catalog alias. For an external CLI, omit model to preserve the vendor default unless the Parent has an exact candidate to present for runtime confirmation; never invent it autonomously. If supplied, inspect that installed CLI's --help and use its exposed read-only model-list/catalog capability when available; pass one exact vendor-listed ID unchanged. Never silently fix spelling, invent a base model, strip suffixes such as -high, or infer thinking from the ID. If absent, ambiguous, or unverified, ask the user or omit model for the vendor default. thinking remains separate. The runtime uses frozen help only for unique option-name/value syntax. Explicit requests are strict and never fall back.",
+    description: "Optional per-turn model request after Parent requirements alignment; strictly validated without extra selection confirmation. It independently overrides persistent model fields for this turn only; omission retains configured/default resolution. For ordinary Pi use a canonical provider/model, bare id, or unambiguous catalog alias. For an external CLI, omit model to preserve the vendor default unless requirements specify an exact ID; never invent it autonomously. If supplied, inspect that installed CLI's --help and use its exposed read-only model-list/catalog capability when available; pass one exact vendor-listed ID unchanged. Never silently fix spelling, invent a base model, strip suffixes such as -high, or infer thinking from the ID. If absent, ambiguous, or unverified, ask the user or omit model for the vendor default. thinking remains separate. The runtime uses frozen help only for unique option-name/value syntax. Explicit requests are strict and never fall back.",
   })),
   thinking: Type.Optional(SUB_THINKING_SCHEMA),
   cli: Type.Optional(Type.Union([
     Type.Literal("claude-code"), Type.Literal("codex-cli"), Type.Literal("opencode"), Type.Literal("grok-cli"), Type.Literal("agy-cli"),
-  ], { description: "Optional external CLI candidate for this turn. The runtime-owned selection questionnaire confirms the exact registered product before allocation; omitted stays Pi. Omit model and thinking to preserve vendor defaults unless the Parent has exact candidates for runtime confirmation; missing fields preserve vendor defaults and are never invented. If model is supplied, inspect the installed CLI's --help and its read-only model catalog/list when exposed; use one exact listed ID unchanged, or ask/omit when unverified. Supplied thinking is separate. Runtime frozen-help parsing governs option syntax only; never supply arbitrary runner flags." })),
+  ], { description: "Optional registered external CLI request after Parent requirements alignment. Strict preflight runs without extra selection confirmation; omitted stays Pi on new Agents. Continuations must repeat their frozen cli. Omit model and thinking to preserve vendor defaults unless requirements specify exact values; missing fields preserve vendor defaults and are never invented. If model is supplied, inspect the installed CLI's --help and its read-only model catalog/list when exposed; use one exact listed ID unchanged, or ask/omit when unverified. Supplied thinking is separate. Runtime frozen-help parsing governs option syntax only; never supply arbitrary runner flags." })),
   selectionScope: Type.Optional(Type.String({
     minLength: 1,
     maxLength: 200,
     pattern: FORMAL_SINGLE_LINE_PATTERN,
-    description: "Optional named one-line task scope (1-200 characters). A confirmed choice may be reused only within this exact Parent session/project/scope and exact cli/model/thinking fields; omitted applies only to this call.",
+    description: "Optional descriptive one-line task label (1-200 characters). Validated and displayed only; never grants permission, caches authorization, or changes model defaults or frozen backend/driver.",
   })),
   snippets: Type.Optional(Type.Array(Type.String({ minLength: 1, maxLength: 128 }), { maxItems: 16, description: "Trusted one-turn prompt modifier IDs; validated against surface and role scope before child startup." })),
   split: Type.Optional(Type.Union([Type.Literal("right"), Type.Literal("down")], {
