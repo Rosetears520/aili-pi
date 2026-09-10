@@ -11,4 +11,5 @@ OpenSpec 针对本 change 的严格校验通过（1 passed，0 failed，issues �
 C2：使用干净发布tag来源及核验过registry完整性的tarball身份，完成0.4.13同步、加载约束、doctor、提示和文档适配；未修改package-lock或全局安装。
 C3：工作区聚焦检查86项通过；仅本任务的暂存候选导出后9文件85项及类型检查通过，少的一项为其他任务未提交测试，保持隔离。生成链、compatibility/provenance检查通过。
 兼容性保持真实限制：18 optional、40 blocked等待新revision adapter证据；未修改旧证据冒充新版已验证。真实模型B01–B11与重启会话效果未验证，详情见pi-0.4.13-verification.md。
-C4：已隔离暂存重叠文件中的本任务区块；下一步检查剩余工作区改动与原基线一致、确认远端后提交和push。
+C4：已隔离暂存重叠文件中的本任务区块；剩余工作区增删行逐项与原基线一致，暂存diff检查及本change严格校验通过。远端main与提交前本地HEAD一致。
+交付：实现提交2bd121d已成功非强制推送origin/main（0c24f63 → 2bd121d）。本记录补记实际交付，不宣称npm发布、消费者安装或真实模型行为已验证。
