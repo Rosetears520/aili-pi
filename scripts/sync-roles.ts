@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 const ROOT = resolve(import.meta.dirname, "..");
 const ROLES_DIR = join(ROOT, "roles");
 const MANIFEST_PATH = join(ROOT, "manifests", "roles.json");
-const SOURCE_COMMIT = "a5284ee105a084392a944aee04313dcf7c294a64";
+const SOURCE_COMMIT = "2fb0f64f165bba9f3d70acb60c8923c1efec0d93";
 const SOURCE_REPOSITORY = "https://github.com/Rosetears520/aili-workflows.git";
 const PROFILE_VERSION = 2;
 const RUNTIME_ADAPTER_VERSION = 2;

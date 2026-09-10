@@ -7,10 +7,10 @@ blocking: false
 aili-profile-version: 2
 aili-runtime-adapter-version: 2
 aili-source-kind: canonical-adapter
-aili-source-revision: a5284ee105a084392a944aee04313dcf7c294a64
+aili-source-revision: 2fb0f64f165bba9f3d70acb60c8923c1efec0d93
 ---
 
-<!-- GENERATED: aili-runtime-projections/v1; canonical_inputs: adapters/opencode/adapter.json, adapters/pi/adapter.json, core/governance/decision-core.md, core/governance/operating-discipline.md, core/roles/roles.json, manifests/runtime-projections.json; input_sha256: 3e7a8bde72ce9fe5d719f6af3ea69a665e77b19d59dda9039425b0421cda6a6d; do not edit directly -->
+<!-- GENERATED: aili-runtime-projections/v1; canonical_inputs: adapters/opencode/adapter.json, adapters/pi/adapter.json, core/governance/decision-core.md, core/governance/operating-discipline.md, core/roles/roles.json, manifests/runtime-projections.json; input_sha256: 3f6790eba8aee1b0544ed286b89a6d0249e6aef5417ec9ff0a8fe5a4abbd61a6; do not edit directly -->
 
 # Convergence Reviewer
 

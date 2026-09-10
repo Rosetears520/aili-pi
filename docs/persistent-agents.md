@@ -19,11 +19,17 @@ There is no separate create/send/wait/manage step and no polling companion:
 - `task_id` is the continuable Child Session identity (it maps 1:1 to the stable Agent ID). It is not a job handle and not a wait ticket.
 - A still-running `task_id` returns `SUB_BUSY`; there is no steer, queueing, or mailbox.
 
-## Progress and optional task notes
+## Lightweight TODO and Progress
 
-Multi-step work keeps a `progress.txt` at the owning task or change root. The orchestrating model creates it when absent and appends concise free-form status, evidence, blockers, and the next action. It has no fixed grammar, event vocabulary, timestamp requirement, field order, or format-validation gate.
+The `rose-aili@0.4.13` shared guide retains the reference filename `formal-task-board.md`, but does not instruct new tasks to create a Board. ROSE must maintain `todo.md` and `progress.txt` for tracked multi-action work, delegation, dependencies, blockers, cross-turn work, or an explicit request. After resolving the task and allowed directory, list observable actions before substantive execution. Simple Q&A and one step without follow-up need neither file unless requested.
 
-`formal-task-board.md` is optional human-readable task-notes Markdown. It is not a protocol, is not required by `sub`, and must not be parsed or validated on dispatch, settlement, or completion. Agent/job/turn state belongs to the runtime Journal; OpenSpec validates only its native planning artifacts. Workers return evidence to the orchestrator and do not write either continuity file themselves.
+Keep both files at one root: the explicit user target, then the existing project task convention, otherwise propose repository-local `tasks/<task-slug>/` and obey placement-approval rules. Reuse the root on continuation; a change directory's presence does not select that change. Neither OpenSpec nor `tasks.md` is required. If writing is forbidden or unavailable, give an in-conversation TODO and explicitly say it is not persisted; do not switch directories to bypass restrictions.
+
+Update TODO in place on start, completion, blocking, scope change, and before pause or closeout. Normally highlight one current action; show genuine independent parallelism honestly. Preserve unfinished actions, blocker reasons and next decisions, and cancellation reasons. Failed checks and uninspected Worker returns are not done. Reference accepted plan/task IDs and expand only current execution details, not the complete `tasks.md` tree.
+
+Append Progress only for meaningful results, trade-offs, verification, blocker changes, and useful pause context, with evidence references and unverified limits—not each tool call, duplicate lists, or raw transcripts. Resume reads TODO first, then recent or referenced Progress as needed; old evidence and historical authorization do not become fresh. Existing free text remains valid without timestamp, event vocabulary, field order, or history-size thresholds.
+
+ROSE alone writes the main task's two files; Workers return evidence for inspection and disposition. Agent/job/turn/join/settlement state belongs to the runtime Journal. Neither notes file grants permission, proves completion, or has a parser/format gate on dispatch, settlement, or completion. Preserve legacy `formal-task-board.md` unchanged as history; on resume, extract only relevant current actions into TODO using current evidence. Never parse, repair, replay, rename, delete, automatically migrate, or dual-write the old Board.
 
 The former `formal_task` tool is removed. Legacy board validators remain compatibility code only and are not part of the public `sub` execution path.
 

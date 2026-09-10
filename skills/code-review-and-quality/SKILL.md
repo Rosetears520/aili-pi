@@ -366,10 +366,11 @@ Part of code review is dependency review:
 
 ## Verification
 
-After the bounded review is complete:
+Before reporting the bounded review delivered:
 
-- [ ] All Critical issues are resolved
-- [ ] All Important issues are resolved or explicitly deferred with justification
-- [ ] Fresh evidence supports only the reviewed claims
-- [ ] The canonical owner selects any required test/build check
+- [ ] Requested scope examined, with inspected coverage and any missing coverage explicitly returned; partial coverage is not claimed fully reviewed
+- [ ] Findings, severity, evidence anchors, actual evidence gaps, and recommendation returned
+- [ ] Fresh evidence supports only the reviewed claims; supported facts are not `Unverified` solely because the report is chat-only
+- [ ] Unresolved Critical/Important findings still block acceptance of the subject under the Verdict Gate, not delivery of a complete negative report
+- [ ] The canonical owner selects any required test/build check; report delivery authorizes no repair and implies no corrected, accepted, verified, or release-ready subject
 - [ ] Remaining scope and `Unverified` risks are documented

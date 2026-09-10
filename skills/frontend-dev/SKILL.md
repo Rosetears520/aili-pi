@@ -88,7 +88,7 @@ The specialized design/accessibility/safety constraints apply when their feature
 Generate all image/video/audio assets using `scripts/`. NEVER use placeholder URLs (unsplash, picsum, placeholder.com, via.placeholder, placehold.co, etc.) or external URLs.
 
 1. Parse asset requirements (type, style, spec, usage)
-2. Craft optimized prompts; obtain only the exact external generation approval when policy requires it, without adding a separate prompt-approval gate
+2. Craft optimized prompts; obtain required exact external generation approval for the operation and bound inputs, without a separate prompt-approval gate unless the user explicitly requests one
 3. Execute via scripts, save to project — do NOT proceed to Phase 5 until all assets are saved locally
 
 🔴 CHECKPOINT / 🛑 STOP: If the request only needs layout/components and does not require premium media, motion, copy, or generative art, return the mismatch to ROSE before generating assets; this skill does not invoke `frontend-ui-engineering`.
@@ -290,7 +290,7 @@ Env: `MINIMAX_API_KEY` (required).
 ## 3.2 Workflow
 1. **Parse:** type, quantity, style, spec, usage
 2. **Craft prompt:** Be specific (composition, lighting, style). **NEVER** include text in image prompts.
-3. **Execute:** Return the exact external generation operation to ROSE for approval when required, then run it; do not add a second prompt-approval gate
+3. **Execute:** Return the exact external generation operation and bound inputs to ROSE for approval when required, then run it. Valid approval covering the pending operation and inputs needs no second prompt approval unless the user explicitly requested prompt review. Inputs changed beyond approved scope require the applicable approval; fees, external-service use, credentials, and runtime permission gates remain unchanged
 4. **Save:** `<project>/public/assets/{images,videos,audio}/` as `{type}-{descriptor}-{timestamp}.{ext}` — **MUST save locally**
 5. **Post-process:** Images → WebP, Videos → ffmpeg compress, Audio → normalize
 6. **Deliver:** File path + code snippet + CSS suggestion
@@ -460,7 +460,7 @@ Refine, don't add. Make it crisp. Polish into masterpiece.
 - [ ] Dependencies verified in `package.json`
 - [ ] **No placeholder URLs** — grep the output for `unsplash`, `picsum`, `placeholder`, `placehold`, `via.placeholder`, `lorem.space`, `dummyimage`. If ANY found, STOP and replace with generated assets before delivering.
 - [ ] **All media assets exist as local files** in the project's assets directory
-- [ ] Asset prompts confirmed with user before generation
+- [ ] Required exact generation approval covers the operation and bound inputs, including any changes beyond approved scope; separate prompt approval is satisfied only when explicitly requested by the user
 - [ ] MiniMax/env/script failures were either recovered or explicitly reported with a user-approved fallback
 
 ---

@@ -49,8 +49,8 @@ Shared Skills/workflows and the Pi Package have two independent lifecycle owners
 **Shared Skills/workflows — explicit user-owned lifecycle.** Install or update them only by explicitly running `npx -y rose-aili@<exact-or-user-selected-version> install --profile pi` or `npx -y rose-aili@<exact-or-user-selected-version> update --profile pi`. The accepted exact baseline is:
 
 ```sh
-npx -y rose-aili@0.4.8 install --profile pi
-npx -y rose-aili@0.4.8 update --profile pi
+npx -y rose-aili@0.4.13 install --profile pi
+npx -y rose-aili@0.4.13 update --profile pi
 ```
 
 Choose a different version deliberately when needed. A moving `rose-aili@latest` may be a convenience command, but it is not valid doctor or release evidence; those claims require an exact version.
@@ -72,7 +72,7 @@ Removal is destructive for this Package. It does not remove Pi and must not be p
 
 ### Global Workflow ownership
 
-`rose-aili@0.4.8` owns global Pi `AGENTS.md` and Workflow prompts under `~/.pi/agent/`. The Package neither registers nor packages those prompt/global-context resources; it consumes only the pinned package-owned generated runtime subset. It no longer registers `/aili-install-global-resources` or writes `~/.pi/agent/APPEND_SYSTEM.md` and `~/.pi/agent/agents/aili/`. Doctor reports legacy marker/profile files without rewriting or deleting them; cleanup remains manual and separately authorized.
+`rose-aili@0.4.13` owns global Pi `AGENTS.md` and Workflow prompts under `~/.pi/agent/`. The Package neither registers nor packages those prompt/global-context resources; it consumes only the pinned package-owned generated runtime subset. It no longer registers `/aili-install-global-resources` or writes `~/.pi/agent/APPEND_SYSTEM.md` and `~/.pi/agent/agents/aili/`. Doctor reports legacy marker/profile files without rewriting or deleting them; cleanup remains manual and separately authorized.
 
 ## Pi-native UI
 
@@ -136,7 +136,7 @@ Background results are delivered automatically, and the Parent may also coordina
 
 ## Provenance and reproducibility
 
-- `upstream/aili-workflows.lock.json` pins the exact canonical 58-skill/562-file verification snapshot and Pi runtime bundle from `rose-aili@0.4.8` commit `a5284ee105a084392a944aee04313dcf7c294a64`.
+- `upstream/aili-workflows.lock.json` pins the exact canonical skill verification snapshot and Pi runtime bundle from `rose-aili@0.4.13` commit `2fb0f64f165bba9f3d70acb60c8923c1efec0d93`; the generated lock owns file counts and hashes.
 - `upstream/aili-workflows-runtime/` contains the hash-bound generated Pi system, role metadata, selection map, protocols, installation contract, and provenance consumed by the runtime.
 - `upstream/pi-permission-modes.lock.json` pins the exact upstream and adapted permission runtime files and semantic diff.
 - `manifests/skill-compatibility.json` records one compatibility state per skill.

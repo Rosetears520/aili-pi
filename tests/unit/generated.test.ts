@@ -122,14 +122,20 @@ describe("generated skill baseline", () => {
     expect(lock.skillCount).toBe(58);
     expect(lock.release).toMatchObject({
       package: "rose-aili",
-      version: "0.4.8",
-      npmGitHead: "a5284ee105a084392a944aee04313dcf7c294a64",
-      tarballSha256: "cfc3b90e982900dcc17cf841066f6eee022cc2b97f27bb40e39494ac77bed910",
+      version: "0.4.13",
+      npmGitHead: "2fb0f64f165bba9f3d70acb60c8923c1efec0d93",
+      tarballSha256: "50745b6984002f80d7189ec96d619f1ac9b61746af09ff9a2ff00454a7d32bba",
       protocols: {
-        agentSelection: { protocol: "aili-agent-selection/v1", sha256: "936d29442a1efc01d1fc0ed80cd319d733dafb6ff8c4c0cffbfd09ed6b2335d3" },
+        agentSelection: {
+          protocol: "aili-agent-selection/v1",
+          sha256: createHash("sha256").update(await readFile(new URL("../../skills/parallel-subagent-dispatch/references/agent-selection-matrix.md", import.meta.url))).digest("hex"),
+        },
       },
       references: {
-        formalTaskNotes: { path: ".agents/skills/aili-delivery-flow/references/formal-task-board.md", sha256: "b3f74e4fea3b3dd9e35bea4d59e447d051f4a9195fbdb75f6393b19f95460bcb" },
+        formalTaskNotes: {
+          path: ".agents/skills/aili-delivery-flow/references/formal-task-board.md",
+          sha256: createHash("sha256").update(await readFile(new URL("../../skills/aili-delivery-flow/references/formal-task-board.md", import.meta.url))).digest("hex"),
+        },
       },
     });
     expect(lock.release.canonicalSpecialists).toHaveLength(20);

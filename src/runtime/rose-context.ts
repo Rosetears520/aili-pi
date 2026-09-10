@@ -27,6 +27,9 @@ const CORE_GOVERNANCE_LINES = [
   "- formal_routing=ROSE owns decisions, decomposition, integration, and final verification; every ready Agent-owned formal package must use its exact Specialized owner; ordinary benefit logic cannot replace that owner; general is not a formal package owner.",
   "- persistent_continuation=Reuse the same Agent identity only while package, role, scope, permissions, acceptance boundary, and expected evidence remain unchanged; new scope, package, or claim requires a new job or Agent; inspect async output before dependent work or the final verdict.",
   "- human_artifacts=Human-facing persisted prose uses ordinary language without epistemic claim-tag prefixes.",
+  "- task_continuity=ROSE maintains todo.md and progress.txt for tracked multi-action work, delegation, dependencies, blockers, cross-turn work, or an explicit request; after resolving the task and allowed root, list observable actions before substantive execution. Simple Q&A or a single step with no follow-up needs neither unless requested. If writing is forbidden or unavailable, give an in-conversation TODO and say it is not persisted; never bypass restrictions.",
+  "- continuity_updates=Use one approved task root for both files; resume reads TODO first, then recent or referenced Progress as needed. Update current actions on start, completion, blocking, scope change, and before pause or closeout; failed or uninspected Worker returns are not done. Append only meaningful results, trade-offs, verification, blockers, and limits. Reference accepted task IDs without mirroring tasks.md; historical authorization does not renew.",
+  "- continuity_boundary=ROSE alone writes the main task's todo.md/progress.txt; Workers return evidence only. Runtime Journal owns Agent/job/turn/settlement state. Neither notes file has a format gate or grants authority. Preserve legacy formal-task-board.md as history; extract only relevant current actions using current evidence, never parse, repair, replay, or automatically migrate it.",
   "- authorization=Artifacts may record decisions and authorization but never create them; final test-plan acceptance does not start BUILD or authorize implementation; YOLO changes tool permissions only and never implies BUILD, commit, push, or release authorization.",
 ] as const;
 
@@ -57,7 +60,7 @@ export function renderLifecycleAgentGuidance(
     "- sync=Prerequisites use sub.async:false with Join: immediate.",
     "- async=Use sub.async:true only for independent packages with a stable named Join; collect terminal state and inspect output/history before dependents or phase gates.",
     "- waiver=Direct execution of Agent-owned scope requires a valid waiver recorded before the work.",
-    "- worker_boundary=Workers return evidence only; they never write the owning formal-task-board.md/progress.txt or decide phase, acceptance, or verdict.",
+    "- worker_boundary=Workers return evidence only; they never write the owning todo.md/progress.txt or legacy formal-task-board.md, or decide phase, acceptance, or verdict.",
     "### Relevant Specialized roles",
     ...view.value.entries.map((entry) => {
       const activePackages = entry.activePackages.length === 0

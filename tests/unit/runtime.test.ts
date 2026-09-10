@@ -181,6 +181,34 @@ describe("AILI runtime composition", () => {
     expect(template.match(/<!-- AILI-PI:ROSE:END -->/g)).toHaveLength(1);
   });
 
+  it("injects lightweight continuity discipline without adding a notes gate", async () => {
+    const harness = await runtimeHarness();
+    const tool = harness.registeredToolDefinitions.find((entry) => entry.name === "sub")!;
+    const lifecycle = { profiles: await loadRoleProfiles(), phase: "BUILD", activeOwners: [] };
+    for (const surface of [
+      tool.promptGuidelines?.join("\n") ?? "",
+      buildRoseAppendix(event(), harness.pi),
+      buildRoseAppendix(event(), harness.pi, lifecycle),
+    ]) {
+      expect(surface).toContain("todo.md");
+      expect(surface).toContain("progress.txt");
+      expect(surface).toMatch(/delegation, dependencies, blockers, cross-turn work/);
+      expect(surface).toMatch(/writing is forbidden or unavailable/i);
+      expect(surface).toContain("not persisted");
+      expect(surface).toMatch(/resume reads TODO first/i);
+      expect(surface).toMatch(/uninspected Worker returns are not done/i);
+      expect(surface).toMatch(/historical authorization does not renew/i);
+      expect(surface).toMatch(/Workers return evidence only/i);
+      expect(surface).toMatch(/Runtime Journal owns Agent\/job\/turn\/settlement state/);
+      expect(surface).toMatch(/Preserve legacy formal-task-board.md as history/i);
+      expect(surface).toMatch(/(?:no|Neither.*) format gate|neither.*format gate/i);
+      expect(surface).not.toContain("formal-task-board.md is optional");
+    }
+    expect(tool.description).toContain("todo.md and progress.txt");
+    expect(tool.description).toContain("Neither file is a format gate");
+    expect(JSON.stringify(tool.parameters)).not.toMatch(/todo\.md|progress\.txt|formal-task-board\.md/);
+  });
+
   it("renders only current phase recommendations and nonterminal Agent Owners from explicit lifecycle input", async () => {
     const harness = await runtimeHarness();
     const profiles = await loadRoleProfiles();

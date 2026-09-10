@@ -3,7 +3,7 @@ description: "AILI command: /local-review"
 argument-hint: "[request]"
 ---
 
-<!-- GENERATED: aili-runtime-projections/v1; canonical_inputs: adapters/opencode/adapter.json, adapters/pi/adapter.json, core/commands/local-review.md, core/governance/decision-core.md, core/governance/operating-discipline.md, core/roles/roles.json, manifests/runtime-projections.json; input_sha256: 5d863f4fcb4bcc5e4a06970c9a5a826a1c065e1a5b1e21af9fcb858984b14a10; do not edit directly -->
+<!-- GENERATED: aili-runtime-projections/v1; canonical_inputs: adapters/opencode/adapter.json, adapters/pi/adapter.json, core/commands/local-review.md, core/governance/decision-core.md, core/governance/operating-discipline.md, core/roles/roles.json, manifests/runtime-projections.json; input_sha256: f41a12b44af8cba31edd4ac7d2a5af1680ef2f2f72a38866f571ce292ebf6389; do not edit directly -->
 
 # /local-review
 

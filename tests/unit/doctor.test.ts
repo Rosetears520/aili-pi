@@ -112,8 +112,24 @@ describe("capability registry", () => {
       "repo.read", "repo.write", "subagent.dispatch", "web.fetch",
     ]);
     expect(compatibility.records).toHaveLength(58);
-    expect(new Set(compatibility.records.map((record) => record.status))).toEqual(new Set(["optional", "native", "adapted"]));
-    expect(compatibility.records.filter((record) => record.requiredCapabilities.includes("subagent.dispatch")).every((record) => record.status === "adapted" && record.unverified.length === 0)).toBe(true);
+    // Historical adapter evidence is retained, not promoted to this release.
+    // sync:adapters marks revision-mismatched evidence unverified and blocks
+    // affected skills until fresh revision-bound evidence is supplied.
+    const evidence = JSON.parse(await readFile(new URL("../../manifests/adapter-evidence.json", import.meta.url), "utf8")) as {
+      records: Array<{ capability?: string; sourceRevision: string; status: string }>;
+    };
+    const lock = JSON.parse(await readFile(new URL("../../upstream/aili-workflows.lock.json", import.meta.url), "utf8")) as { commit: string };
+    for (const capability of ["repo.read", "subagent.dispatch"]) {
+      const record = evidence.records.find((item) => item.capability === capability)!;
+      expect(record).toBeDefined();
+      const fresh = record.sourceRevision === lock.commit && record.status !== "unverified";
+      const affected = compatibility.records.filter((item) => item.requiredCapabilities.includes(capability));
+      expect(affected.length).toBeGreaterThan(0);
+      for (const skill of affected) {
+        expect(skill.status).toBe(fresh ? record.status : "blocked");
+        expect(skill.unverified.length === 0).toBe(fresh);
+      }
+    }
     const localMemory = capabilities.capabilities.find((item) => item.id === "memory.observational")!;
     const durableMemory = capabilities.capabilities.find((item) => item.id === "memory.provider.mempalace")!;
     expect(localMemory.adapterOwner).toMatch(/default-on token\/high-value hybrid observer.*side-effect-only pre-compaction hook/);
@@ -255,7 +271,7 @@ describe("shared workflow doctor compatibility", () => {
       expect(report.results).toContainEqual(expect.objectContaining({
         id: "shared.workflows",
         status: "ERROR",
-        evidence: expect.stringMatching(/compatibility=missing; source_match=unknown;.*remediation=npx -y rose-aili@0\.4\.8 install/),
+        evidence: expect.stringMatching(/compatibility=missing; source_match=unknown;.*remediation=npx -y rose-aili@0\.4\.13 install/),
       }));
       await expectFixtureUnchanged(fixture);
     } finally {
@@ -286,9 +302,16 @@ describe("shared workflow doctor compatibility", () => {
     }
 
     for (const board of [
-      canonicalBoard.replace("`formal-task-board.md` is an optional human-readable notes file", "optional notes"),
-      canonicalBoard.replace("Never parse or format-validate it", "Parse it"),
-      canonicalBoard.replace("Only the orchestrator writes `progress.txt`", "Workers may write progress"),
+      "arbitrary free-form notes are not an installed shared guide",
+      "# Formal Task Notes and Runtime State\n## Authority boundaries\n## Progress continuity\n`formal-task-board.md` is an optional human-readable notes file\nNever parse or format-validate it\nOnly the orchestrator writes `progress.txt`",
+      canonicalBoard.replace("# Lightweight TODO and Progress", "# Other guide"),
+      canonicalBoard.replace("The main model (ROSE) must create and maintain `todo.md` and `progress.txt`", "Notes are always optional"),
+      canonicalBoard.replace("When writing is forbidden or unavailable, use an in-conversation TODO", "Always write files"),
+      canonicalBoard.replace("Resume reads the selected task's TODO first", "Always reread all history"),
+      canonicalBoard.replace("preserve the original `formal-task-board.md` as history without renaming or deleting it", "Delete the old Board"),
+      canonicalBoard.replace("Never parse or format-validate them", "Parse them"),
+      canonicalBoard.replace("They do not edit `todo.md` or `progress.txt`", "Workers may write progress"),
+      canonicalBoard.replace("ROSE alone maintains the main task's two files", "Any Worker maintains the files"),
     ]) {
       const fixture = await createSharedFixture({ board });
       try {
@@ -315,7 +338,7 @@ describe("shared workflow doctor compatibility", () => {
       const report = await runDoctor({ getCommands: () => commands }, { home: fixture.home });
       const result = report.results.find((item) => item.id === "shared.workflows")!;
       expect(result.status).toBe("UNVERIFIED");
-      expect(result.evidence).toContain("remediation=npx -y rose-aili@0.4.8 update");
+      expect(result.evidence).toContain("remediation=npx -y rose-aili@0.4.13 update");
       expect(result.evidence).not.toContain(fixture.home);
       await expectFixtureUnchanged(fixture);
     } finally {

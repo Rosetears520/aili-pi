@@ -21,7 +21,7 @@ Stop when:
 ## Rules
 
 - `Package ID` names one bounded work-package identity.
-- `Role ID` is the selected canonical role. Formal Agent-owned work uses the exact owner derived from the accepted contract; optional Markdown notes do not assign ownership, and `general` is invalid.
+- `Role ID` is the selected canonical role. Formal Agent-owned work uses the exact owner derived from the accepted contract; TODO/Progress and optional Markdown notes do not assign ownership, and `general` is invalid.
 - `Assignment` names one bounded outcome.
 - `Scope` names the files, repository, cwd, or evidence sources.
 - `Forbidden scope` names explicit exclusions and operations the package must not perform.
@@ -37,7 +37,7 @@ Stop when:
 - A terminal, failed, empty, blocked, or partial session is not automatically retried. ROSE handles the bounded gap directly or reports the blocker.
 - Under the current OpenCode Task adapter, the same `subagent_type` may receive a later fresh packet only when a fresh ordinary specialist-preferred decision or a ready formal exact-owner package independently justifies it; the new Task omits every prior `task_id`.
 - A packet narrows runtime authority; it never grants a tool, path, edit, command, network call, or delegation permission.
-- Every non-ROSE subagent remains non-delegating.
+- Every non-ROSE subagent remains non-delegating. Workers return evidence and never edit the main task's `todo.md` or `progress.txt`; those are main-model-only continuity, not package format gates.
 - ROSE retains lifecycle, approval, integration, reconciliation, and final-verdict ownership.
 - For an approved A33 attached repository, `Scope` names exactly one declared repository/cwd and the packet references exactly one current `WT-001` context. The compact reference contains only context id, evidence version, freshness, and mode.
 - Never copy, rebind, or reinterpret WT-001 host/source/target identity, keys, paths, Git state, approval, operation class, risk, delta, command/cwd, or containment facts. A duplicate is non-authoritative and blocks dispatch.

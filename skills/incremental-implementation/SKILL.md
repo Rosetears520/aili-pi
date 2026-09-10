@@ -218,7 +218,7 @@ After each increment, record only applicable evidence:
 | Trigger | First action | If still unresolved |
 |---|---|---|
 | Tests fail after a slice | Stop next-slice work; identify whether failure is from this slice or pre-existing | Revert or narrow the slice; report unrelated failures instead of piling on fixes |
-| Working tree is dirty before a slice | Inspect status and separate task-related from unrelated changes | Ask whether to continue, branch/worktree, or pause; do not mix unrelated edits silently |
+| Working tree is dirty before a slice | Classify the changes: if all are current-task-owned, within accepted scope, and non-conflicting, continue the next authorized slice without reapproval solely for dirty state | Unrelated, unknown, or conflicting changes use the existing workspace gate and any valid current-tree authorization; otherwise stop affected writes. Do not silently stash, clean, overwrite, switch branches, or create a branch/worktree; protected-branch and exact Git-operation rules remain unchanged |
 | Slice grows past the planned behavior/files | Stop and cut scope to a focused independently verifiable complete behavior | Return the oversized remainder to the task queue; do not finish it in the same increment |
 | No automated test exists | Decide whether the exact claim needs a focused test or other evidence | Use the lifecycle-selected manual/static check and mark any remaining gap `Unverified` |
 

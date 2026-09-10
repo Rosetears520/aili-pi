@@ -9,8 +9,8 @@ const BUNDLE_URL = new URL("upstream/aili-workflows-runtime/", ROOT);
 const SUPPORTED_LOCK_SCHEMA = 1;
 const SUPPORTED_RUNTIME_SCHEMA = 1;
 const EXPECTED_PACKAGE = "rose-aili";
-const EXPECTED_VERSION = "0.4.8";
-const EXPECTED_COMMIT = "a5284ee105a084392a944aee04313dcf7c294a64";
+const EXPECTED_VERSION = "0.4.13";
+const EXPECTED_COMMIT = "2fb0f64f165bba9f3d70acb60c8923c1efec0d93";
 const MAX_ARTIFACT_BYTES = 512 * 1024;
 
 export const WORKFLOW_RUNTIME_ARTIFACTS = Object.freeze({

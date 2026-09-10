@@ -150,8 +150,8 @@ describe("thin Unix bootstrap", () => {
     expect(result.stdout).toContain("pi_state=installed aili_state=installed");
     expect(result.stdout).toContain("platform=linux architecture=x86_64");
     expect(result.stdout).toContain("shared_workflows_status=not-run owner=explicit-user-command");
-    expect(result.stdout).toContain("shared_workflows_install_command=npx -y rose-aili@0.4.8 install");
-    expect(result.stdout).toContain("shared_workflows_update_command=npx -y rose-aili@0.4.8 update");
+    expect(result.stdout).toContain("shared_workflows_install_command=npx -y rose-aili@0.4.13 install");
+    expect(result.stdout).toContain("shared_workflows_update_command=npx -y rose-aili@0.4.13 update");
     expect(result.stdout).toContain("pi_package_update_command=pi update npm:@rosetears/aili-pi");
     expect(result.stdout).toContain("pi_package_remove_command=pi remove npm:@rosetears/aili-pi");
     const log = await readFile(fx.log, "utf8");

@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "source": {
     "repository": "https://github.com/Rosetears520/aili-workflows.git",
-    "commit": "a5284ee105a084392a944aee04313dcf7c294a64",
-    "tree": "771664584c66bfdd4525f691754aadec3eaa5558",
-    "contentHash": "8b1f2b11e26ac286efaf421eb222854178c94cfd4739bcd55279b2f4ab6d8c97",
+    "commit": "2fb0f64f165bba9f3d70acb60c8923c1efec0d93",
+    "tree": "0047c8f9ee88a4306207321527840fd475dc9b29",
+    "contentHash": "d7fefd6a2a59effb3a4746aaa94c25aff3cc6e11e2e2402054747434fa1507b6",
     "release": {
       "package": "rose-aili",
-      "version": "0.4.8",
-      "npmGitHead": "a5284ee105a084392a944aee04313dcf7c294a64",
-      "tarballSha256": "cfc3b90e982900dcc17cf841066f6eee022cc2b97f27bb40e39494ac77bed910",
+      "version": "0.4.13",
+      "npmGitHead": "2fb0f64f165bba9f3d70acb60c8923c1efec0d93",
+      "tarballSha256": "50745b6984002f80d7189ec96d619f1ac9b61746af09ff9a2ff00454a7d32bba",
       "protocols": {
         "agentSelection": {
           "protocol": "aili-agent-selection/v1",
@@ -21,8 +21,8 @@
       "references": {
         "formalTaskNotes": {
           "path": ".agents/skills/aili-delivery-flow/references/formal-task-board.md",
-          "sha256": "b3f74e4fea3b3dd9e35bea4d59e447d051f4a9195fbdb75f6393b19f95460bcb",
-          "bytes": 2993
+          "sha256": "e51d51ed1e3a0a7930202f33ef778fad32ed586d4b81d99a760161f084ad9156",
+          "bytes": 7422
         }
       },
       "canonicalSpecialists": [
@@ -129,35 +129,37 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "aili-delivery-flow",
       "sourcePath": ".agents/skills/aili-delivery-flow",
-      "sourceHash": "49e0131177f39d8763ad190d53acb9f8476e42947d24d84af5ccd45f4050c901",
+      "sourceHash": "efa32e8ae1b546772b5add7b82ca5fee09568bea03e2966e30aaaa448eb30e45",
       "files": [
         {
           "path": "references/artifact-contracts.md",
-          "sha256": "e2fc1969435cc76852aea04bc92c0cdd7aaef3e9f69ad13cb086d58764ca74a6",
-          "bytes": 18296
+          "sha256": "b2c2c5af72738d2c0f8384e83c991e1dfd3d39dae7f6fe03f1269b380433af2d",
+          "bytes": 19656
         },
         {
           "path": "references/backend-routing.md",
-          "sha256": "07006caead35c07dac2801053c2ab86ede2fb31582a050eccbcaed92476c0ce5",
-          "bytes": 10162
+          "sha256": "790b5d5aa9a70e5ec3af8d8c97cad0cc4dc54282cdacf06c2c61c3d66c3e9b5d",
+          "bytes": 10519
         },
         {
           "path": "references/build-execution-loop.md",
-          "sha256": "57662398cf784c0d5df493ef83c3fd025689b9840deb2c9fe62097cdbcc0b1b0",
-          "bytes": 15535
+          "sha256": "5319451780c157303fdcbb652b9aca9e4cc6b0dc8e9dccce4041c9ccb9d2917b",
+          "bytes": 17267
         },
         {
           "path": "references/build-goal-mode.md",
@@ -166,23 +168,23 @@
         },
         {
           "path": "references/direct-vs-delegated-work.md",
-          "sha256": "81b8b9fefdd58862568ca42e0e35f96447c3352b4442cd6d39a6d7ffb97d4e7f",
-          "bytes": 4332
+          "sha256": "a503c04169cea3ff5e1bc3b9798ef458620344d1c09cd78d162557082a0914dd",
+          "bytes": 4518
         },
         {
           "path": "references/formal-task-board.md",
-          "sha256": "b3f74e4fea3b3dd9e35bea4d59e447d051f4a9195fbdb75f6393b19f95460bcb",
-          "bytes": 2993
+          "sha256": "e51d51ed1e3a0a7930202f33ef778fad32ed586d4b81d99a760161f084ad9156",
+          "bytes": 7422
         },
         {
           "path": "references/implementation-packages.md",
-          "sha256": "73d0aa4de22ef8d0d8d7898a89b58d631c8a0c47c012132e6a29b1f6ccf7ae81",
-          "bytes": 9823
+          "sha256": "0ca212a318ec05f4cc44d5acdc886eaf08de7787003372cd58d273af7020075e",
+          "bytes": 9991
         },
         {
           "path": "references/lifecycle.md",
-          "sha256": "a575f7bcd9d15b53160a4be9554475732f0ea735f7b9c7c91df59f58ed84d11f",
-          "bytes": 26665
+          "sha256": "cc5aa9634dc29264379b2b26ec2b3931f93e01dc7120e10cf25d8dae4ec65f4d",
+          "bytes": 29393
         },
         {
           "path": "references/protocols/acceptance-test-plan.md",
@@ -211,8 +213,8 @@
         },
         {
           "path": "references/protocols/implementation-package.md",
-          "sha256": "79f4effe1c3fdc0ebf6b54490e784b8aceb8011403b5460385a45d3059554a95",
-          "bytes": 4857
+          "sha256": "6a55ad0c280b73d8cbbefd982a0ec290c17b41236fceb451b38465b4776b142c",
+          "bytes": 4995
         },
         {
           "path": "references/protocols/research-evidence-pack.md",
@@ -236,8 +238,8 @@
         },
         {
           "path": "references/protocols/subagent-task-packet.md",
-          "sha256": "9dc6d5d585a6f7b1eb6c5d07023997e67fa567a44c572ec8ffc1af890a3bb706",
-          "bytes": 3799
+          "sha256": "88c8f52fa998b65f38484c0d51635fa298c7f218c891e8570adf128b35fbecee",
+          "bytes": 3965
         },
         {
           "path": "references/protocols/worktree-context.md",
@@ -261,8 +263,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "31eb493f93abcec9f2c1d4e8f6b07a8a7d00e1c8071a70fbd50ee766d082c321",
-          "bytes": 16552
+          "sha256": "429ca5044abc07bc0d98b2639d0052ec839762f34c2d5305b03b43e2a4a38b8f",
+          "bytes": 18482
         }
       ],
       "triggers": {
@@ -306,7 +308,7 @@
               "path": "references/lifecycle.md",
               "lines": [
                 21,
-                116
+                118
               ]
             },
             {
@@ -346,7 +348,7 @@
               "path": "SKILL.md",
               "lines": [
                 54,
-                112
+                114
               ]
             }
           ]
@@ -367,9 +369,9 @@
                 68,
                 114,
                 115,
-                118,
                 122,
                 124,
+                132,
                 133,
                 134,
                 135
@@ -392,14 +394,17 @@
               "lines": [
                 9,
                 19,
-                27,
-                113
+                25,
+                29,
+                85,
+                115
               ]
             },
             {
               "path": "references/direct-vs-delegated-work.md",
               "lines": [
                 11,
+                13,
                 17,
                 28,
                 40
@@ -408,11 +413,14 @@
             {
               "path": "references/formal-task-board.md",
               "lines": [
-                1,
-                3,
                 7,
                 8,
-                15
+                15,
+                17,
+                27,
+                33,
+                35,
+                72
               ]
             },
             {
@@ -436,11 +444,12 @@
               "lines": [
                 7,
                 39,
-                41,
-                49,
-                119,
-                123,
-                125
+                43,
+                51,
+                91,
+                121,
+                125,
+                127
               ]
             },
             {
@@ -497,7 +506,8 @@
                 1,
                 34,
                 35,
-                38
+                38,
+                40
               ]
             },
             {
@@ -535,13 +545,14 @@
               "path": "SKILL.md",
               "lines": [
                 18,
-                52,
                 54,
-                92,
+                78,
                 94,
-                95,
-                99,
-                121
+                96,
+                97,
+                101,
+                106,
+                123
               ]
             }
           ]
@@ -559,7 +570,7 @@
             {
               "path": "references/build-execution-loop.md",
               "lines": [
-                99
+                101
               ]
             },
             {
@@ -585,7 +596,6 @@
                 104,
                 108,
                 113,
-                114,
                 115,
                 133
               ]
@@ -610,13 +620,14 @@
             {
               "path": "references/build-execution-loop.md",
               "lines": [
-                113
+                115
               ]
             },
             {
               "path": "references/formal-task-board.md",
               "lines": [
-                15
+                3,
+                17
               ]
             },
             {
@@ -628,14 +639,15 @@
             {
               "path": "references/lifecycle.md",
               "lines": [
+                7,
                 11,
-                62,
-                70,
-                73,
-                87,
-                88,
-                116,
-                125
+                64,
+                72,
+                75,
+                89,
+                90,
+                118,
+                127
               ]
             },
             {
@@ -687,8 +699,8 @@
             {
               "path": "SKILL.md",
               "lines": [
-                110,
-                112
+                112,
+                114
               ]
             }
           ]
@@ -714,8 +726,8 @@
             {
               "path": "references/build-execution-loop.md",
               "lines": [
-                91,
-                99
+                93,
+                101
               ]
             },
             {
@@ -727,7 +739,8 @@
             {
               "path": "references/formal-task-board.md",
               "lines": [
-                11
+                11,
+                72
               ]
             },
             {
@@ -742,12 +755,13 @@
               "lines": [
                 7,
                 34,
-                52,
-                96,
-                110,
-                119,
-                120,
-                121
+                54,
+                98,
+                112,
+                121,
+                122,
+                123,
+                137
               ]
             },
             {
@@ -790,10 +804,10 @@
               "path": "SKILL.md",
               "lines": [
                 72,
-                85,
-                95,
-                99,
-                108
+                87,
+                97,
+                101,
+                110
               ]
             }
           ]
@@ -806,16 +820,18 @@
         "repo.read"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "src/runtime/persistent-agents/production.ts",
+      "adapterOwner": "planned:src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
-        "npm run typecheck",
-        "vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/herdr-backends.test.ts tests/unit/persistent-agent-sub.test.ts tests/unit/persistent-agent-backends.test.ts tests/unit/persistent-agent-storage.test.ts",
-        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/package-runtime.test.ts"
+        "pending:npm run typecheck",
+        "pending:vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/herdr-backends.test.ts tests/unit/persistent-agent-sub.test.ts tests/unit/persistent-agent-backends.test.ts tests/unit/persistent-agent-storage.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/package-runtime.test.ts"
       ],
-      "status": "adapted",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: subagent.dispatch.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "android-native-dev",
@@ -1032,15 +1048,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "browser-qa",
@@ -1265,15 +1283,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "chart-visualization",
@@ -1312,15 +1332,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "ci-cd-and-automation",
@@ -1387,25 +1409,27 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "code-review-and-quality",
       "sourcePath": ".agents/skills/code-review-and-quality",
-      "sourceHash": "2fa0bd0ad416277561b9858d21c1562d5574c79e74d2cedfaf8130d43311a892",
+      "sourceHash": "8a6c1de5c1668ba155df89aa5e64faa4cfdf722b8785385961901a4732869880",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "c3552b8b44dde7c29ee2d40def0c08669130cf28ee9ddd728604e5e43c9c1698",
-          "bytes": 17942
+          "sha256": "789b846259a37ef0c49b68fb7a6983ad1afa10a3e7ad9e34c842fd33a36b977c",
+          "bytes": 18409
         }
       ],
       "triggers": {
@@ -1443,7 +1467,8 @@
             {
               "path": "SKILL.md",
               "lines": [
-                283
+                283,
+                375
               ]
             }
           ]
@@ -1456,15 +1481,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "code-review-quality-gates",
@@ -1521,15 +1548,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "code-simplification",
@@ -1578,15 +1607,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "comment-accuracy-review",
@@ -1626,15 +1657,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "consulting-analysis",
@@ -1673,15 +1706,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "context-engineering",
@@ -1768,15 +1803,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "coverage-review",
@@ -1802,15 +1839,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "data-analysis",
@@ -1851,15 +1890,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "deprecation-and-migration",
@@ -1900,15 +1941,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "documentation-and-adrs",
@@ -1984,15 +2027,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "e2e-artifact-handling",
@@ -2018,15 +2063,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "explain-by-allegory",
@@ -2054,15 +2101,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "flutter-dev",
@@ -2243,7 +2292,7 @@
     {
       "name": "frontend-dev",
       "sourcePath": ".agents/skills/frontend-dev",
-      "sourceHash": "679ff503e5eb5049de00203c2a0e5b0f7dfce676b7efe862daab5bbb10059b97",
+      "sourceHash": "01c959e38bac95d9ad2866445efe871d88145d3350ef64b9b92a1b7ba8d921cf",
       "files": [
         {
           "path": "canvas-fonts/ArsenalSC-OFL.txt",
@@ -2722,8 +2771,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "2207467fc218c33f6847606e3bdde3d3451fba1a222ce0d7c548142ea421cb37",
-          "bytes": 20417
+          "sha256": "efb538e8e2d6f049fb4077b302bdb663e07df88a2651b622e79edb0498cbfb3e",
+          "bytes": 20883
         },
         {
           "path": "templates/generator_template.js",
@@ -2953,15 +3002,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "fullstack-dev",
@@ -3102,15 +3153,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "git-workflow-and-versioning",
@@ -3233,15 +3286,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "github-evidence-triage",
@@ -3450,15 +3505,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "harness-issue-triage",
@@ -3558,15 +3615,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "idea-refine",
@@ -3659,25 +3718,27 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "incremental-implementation",
       "sourcePath": ".agents/skills/incremental-implementation",
-      "sourceHash": "0401326b4864f25799962c158e5d1c58d9545960ef1e53846d545db88a8363e2",
+      "sourceHash": "77579e8352b648abf8de5712b1010c803d65dffbee602c73546ca883b3d8e868",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "fa389bc4573236bcd6b5b58257236967cfb75ddb73cf88ab976c5ac5c5833efd",
-          "bytes": 11640
+          "sha256": "9ec63cbab1d254c0074a9bec4707775d9ee0205532fd3a9bc0849e1d97601298",
+          "bytes": 11962
         }
       ],
       "triggers": {
@@ -3726,15 +3787,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "ios-application-dev",
@@ -5118,15 +5181,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "parallel-subagent-dispatch",
@@ -5221,16 +5286,18 @@
         "repo.read"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "src/runtime/persistent-agents/production.ts",
+      "adapterOwner": "planned:src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
-        "npm run typecheck",
-        "vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/herdr-backends.test.ts tests/unit/persistent-agent-sub.test.ts tests/unit/persistent-agent-backends.test.ts tests/unit/persistent-agent-storage.test.ts",
-        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/package-runtime.test.ts"
+        "pending:npm run typecheck",
+        "pending:vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/herdr-backends.test.ts tests/unit/persistent-agent-sub.test.ts tests/unit/persistent-agent-backends.test.ts tests/unit/persistent-agent-storage.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/package-runtime.test.ts"
       ],
-      "status": "adapted",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: subagent.dispatch.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "performance-optimization",
@@ -5306,15 +5373,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "planning-and-task-breakdown",
@@ -5415,15 +5484,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "pptx-generator",
@@ -6161,15 +6232,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "react-native-dev",
@@ -6386,7 +6459,7 @@
     {
       "name": "requirements-grilling",
       "sourcePath": ".agents/skills/requirements-grilling",
-      "sourceHash": "26396302c168730d84efed49f2d1d27a1827ac566760f3816ac2b0c4ac81e349",
+      "sourceHash": "87fd2a7be1ddfc0a405bfb6c4c0f56cad82e9ec6e945b3fbad0c26d6faf34522",
       "files": [
         {
           "path": "references/ADR-FORMAT.md",
@@ -6450,8 +6523,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "b885400ef69c5cf9ccc05aac7ab9e66f97dda14850de7ad7d342f2615015d0ad",
-          "bytes": 44603
+          "sha256": "d1ead9382ac35dd455691f244a936864ef98dc347dda3b3daf9f6340a47199c0",
+          "bytes": 48720
         }
       ],
       "triggers": {
@@ -6496,6 +6569,7 @@
               "lines": [
                 96,
                 105,
+                150,
                 210,
                 264,
                 271,
@@ -6539,10 +6613,8 @@
                 116,
                 130,
                 134,
-                136,
                 140,
                 141,
-                150,
                 152,
                 155,
                 179,
@@ -6603,15 +6675,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "review-pipeline",
@@ -6653,16 +6727,18 @@
         "repo.read"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "src/runtime/persistent-agents/production.ts",
+      "adapterOwner": "planned:src/runtime/persistent-agents/production.ts",
       "verification": [
         "snapshot-hash:verified",
-        "npm run typecheck",
-        "vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/herdr-backends.test.ts tests/unit/persistent-agent-sub.test.ts tests/unit/persistent-agent-backends.test.ts tests/unit/persistent-agent-storage.test.ts",
-        "vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/package-runtime.test.ts"
+        "pending:npm run typecheck",
+        "pending:vitest run tests/unit/persistent-agent-external-cli.test.ts tests/unit/herdr-backends.test.ts tests/unit/persistent-agent-sub.test.ts tests/unit/persistent-agent-backends.test.ts tests/unit/persistent-agent-storage.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-runtime.test.ts tests/integration/persistent-agent-production.test.ts tests/integration/package-runtime.test.ts"
       ],
-      "status": "adapted",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: subagent.dispatch.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: subagent.dispatch.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "security-and-hardening",
@@ -6737,15 +6813,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "shader-dev",
@@ -7265,15 +7343,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "silent-failure-hunting",
@@ -7302,25 +7382,27 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "source-driven-development",
       "sourcePath": ".agents/skills/source-driven-development",
-      "sourceHash": "bb8203a92ddee66e2d36039b8a8782549ca21a372401bb2563ff3c51a2fc83df",
+      "sourceHash": "4d38f5fb1b80466ded791bc8e4e608d5a0ef2985ee10992972872654245d91f6",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "08071a74bc37916cf833a57323290521aa050f13c2a2b2028530efd8aa533a4d",
-          "bytes": 12066
+          "sha256": "7ffdf37314e4ae9ba79fa55b8decdf9cd2f0a90e25db53bfdb6878bac52e294f",
+          "bytes": 12858
         }
       ],
       "triggers": {
@@ -7357,7 +7439,10 @@
               "lines": [
                 22,
                 23,
-                190
+                140,
+                190,
+                207,
+                222
               ]
             }
           ]
@@ -7496,15 +7581,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "strategy-stress-test",
@@ -7545,15 +7632,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "systematic-literature-review",
@@ -7607,7 +7696,7 @@
     {
       "name": "test-document-generator",
       "sourcePath": ".agents/skills/test-document-generator",
-      "sourceHash": "51332a2ccfd18e9f907ce4c58553ee9bec56b682f4de1bbe192c67cab53e464b",
+      "sourceHash": "38ebeb9f5d6d981d4321ac32886e430f3887e148048609904444e3fb16fc809e",
       "files": [
         {
           "path": "references/test-document-template.md",
@@ -7616,8 +7705,8 @@
         },
         {
           "path": "SKILL.md",
-          "sha256": "0136df98107802438efa90bb7ec2ef7f24d1c6109ac6f01950cb29e178fb7a9e",
-          "bytes": 9608
+          "sha256": "9146a93b46d51e059d769c838a0d353eb53ac64a24c992ece27f518ba45eed03",
+          "bytes": 10851
         }
       ],
       "triggers": {
@@ -7685,15 +7774,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "test-driven-development",
@@ -7777,15 +7868,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     },
     {
       "name": "write-skills",
@@ -7889,15 +7982,17 @@
         "repo.write"
       ],
       "canonicalChange": "none in aili-pi; consume the pinned upstream body without semantic transformation",
-      "adapterOwner": "@earendil-works/pi-coding-agent@0.84.4",
+      "adapterOwner": "planned:@earendil-works/pi-coding-agent@0.84.4",
       "verification": [
         "snapshot-hash:verified",
-        "vitest run tests/integration/extension-load.test.ts",
-        "vitest run tests/integration/persistent-agent-host-seams.test.ts"
+        "pending:vitest run tests/integration/extension-load.test.ts",
+        "pending:vitest run tests/integration/persistent-agent-host-seams.test.ts"
       ],
-      "status": "native",
-      "reason": "Required capabilities are covered by verified Pi adapter evidence: repo.read.",
-      "unverified": []
+      "status": "blocked",
+      "reason": "Required Pi adapter evidence remains unverified: repo.read.",
+      "unverified": [
+        "Fresh revision-bound P8 execution evidence is required before compatibility promotion."
+      ]
     }
   ]
 }

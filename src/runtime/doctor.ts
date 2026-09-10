@@ -45,7 +45,7 @@ export interface SharedWorkflowInspection {
 }
 
 const AGENT_SELECTION_PROTOCOL = "aili-agent-selection/v1";
-const SHARED_WORKFLOW_RELEASE = "0.4.8";
+const SHARED_WORKFLOW_RELEASE = "0.4.13";
 const SHARED_REFERENCE_MAX_BYTES = 256 * 1024;
 const AGENT_SELECTION_PATH = ".agents/skills/parallel-subagent-dispatch/references/agent-selection-matrix.md";
 const FORMAL_TASK_BOARD_PATH = ".agents/skills/aili-delivery-flow/references/formal-task-board.md";
@@ -249,12 +249,18 @@ function inspectAgentSelection(text: string, requiredRoles: readonly string[]): 
 
 function inspectFormalTaskNotesReference(text: string): { reasons: string[] } {
   const required = [
-    "# Formal Task Notes and Runtime State",
+    "# Lightweight TODO and Progress",
     "## Authority boundaries",
-    "## Progress continuity",
-    "`formal-task-board.md` is an optional human-readable notes file",
-    "Never parse or format-validate it",
-    "Only the orchestrator writes `progress.txt`",
+    "## Triggers and placement",
+    "## Current actions: todo.md",
+    "## Useful history: progress.txt",
+    "The main model (ROSE) must create and maintain `todo.md` and `progress.txt`",
+    "When writing is forbidden or unavailable, use an in-conversation TODO",
+    "Resume reads the selected task's TODO first",
+    "preserve the original `formal-task-board.md` as history without renaming or deleting it",
+    "Never parse or format-validate them",
+    "They do not edit `todo.md` or `progress.txt`",
+    "ROSE alone maintains the main task's two files",
   ];
   return { reasons: required.every((marker) => text.includes(marker)) ? [] : ["formal-notes-invalid"] };
 }

@@ -114,10 +114,10 @@ When official sources conflict with each other (e.g. a migration guide contradic
 
 ### Step 3: Return the Documented Pattern
 
-Return the exact supported pattern and constraints to the primary owner. If implementation is already in scope, ROSE may apply it directly; this skill does not start another implementation loop.
+Return the exact supported pattern and constraints to the primary owner. If implementation is already in scope and any applicable pattern choice below is settled, ROSE may apply it subject to remaining gates; this skill does not start another implementation loop.
 
 - Use the API signatures from the docs, not from memory
-- If the docs show a new way to do something, use the new way
+- If an applicable official recommendation differs from the affected project's existing pattern, explain the evidence and options and ask the user to preserve the local pattern, adopt the recommendation, or defer—even when both patterns remain supported. Do not automatically choose either the newer or locally established pattern
 - If the docs deprecate a pattern, don't use the deprecated version
 - If the docs don't cover something, flag it as unverified
 
@@ -137,7 +137,7 @@ B) Match existing code (useState) — consistent with codebase
 
 Surface the conflict. Don't silently pick one.
 
-🔴 CHECKPOINT / 🛑 STOP: If documented best practice conflicts with existing project conventions, compatibility constraints, or tests, pause with options before editing. The user must choose whether to follow current docs, preserve local patterns, or defer the change.
+🔴 CHECKPOINT / 🛑 STOP: If applicable documented best practice differs from existing project conventions or conflicts with compatibility constraints or tests, pause with options before editing unless the user has already explicitly settled the same-task choice and its scope, conditions, and validity are unchanged. Honor that valid choice without re-asking, subject to compatibility evidence and remaining permissions. The pattern choice does not authorize dependency upgrades, public-contract changes, or other separately gated operations.
 
 ### Step 4: Cite Your Sources
 
@@ -204,7 +204,7 @@ Honesty about what you couldn't verify is more valuable than false confidence.
 
 - Do not use Stack Overflow, tutorials, AI summaries, or memory as the primary authority for framework-specific code.
 - Do not hide missing docs behind hedging language like "probably" or "should work"; label it `UNVERIFIED`.
-- Do not keep coding through a docs/code conflict without a visible checkpoint and user decision.
+- Do not keep coding through a docs/code conflict without an applicable explicit user decision; reuse a still-valid same-task choice rather than repeat the checkpoint.
 - Do not add a repository-local docs tool or Context7 skill as a workaround for unavailable documentation tooling.
 - Do not cite a source you did not actually read for the detected version or feature.
 
@@ -219,5 +219,5 @@ Before returning the bounded source result:
 - [ ] Any implementation need is returned to ROSE without an extra scheme approval
 - [ ] Non-trivial decisions include source citations with full URLs
 - [ ] Deprecation/migration guidance was checked when the selected gap involves an API transition
-- [ ] Conflicts between docs and existing code were surfaced to the user
+- [ ] Applicable recommendation/local-pattern differences were surfaced and the user choice obtained or a still-valid same-task choice reused, even when both patterns are supported
 - [ ] Anything that could not be verified is explicitly flagged as unverified

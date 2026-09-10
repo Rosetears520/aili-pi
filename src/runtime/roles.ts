@@ -8,7 +8,7 @@ const ROOT_URL = new URL("../../", import.meta.url);
 const ROOT_PATH = fileURLToPath(ROOT_URL);
 const ROLES_PATH = resolve(ROOT_PATH, "roles");
 const SOURCE_REPOSITORY = "https://github.com/Rosetears520/aili-workflows.git";
-const SOURCE_COMMIT = "a5284ee105a084392a944aee04313dcf7c294a64";
+const SOURCE_COMMIT = "2fb0f64f165bba9f3d70acb60c8923c1efec0d93";
 const OUTPUT_CONTRACT = ["status", "summary", "evidence", "changedFiles", "verification", "blockers", "risks", "confidence"] as const;
 
 export const SPECIALIZED_ROLE_NAMES = [

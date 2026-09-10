@@ -3,9 +3,9 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "@rosetears/aili-pi-0.2.9",
-  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/0581d73e2fa89e44448784d19d326b32",
+  "documentNamespace": "https://github.com/Rosetears520/aili-pi/sbom/69db3650c08caaf3c0bf465a83df363a",
   "creationInfo": {
-    "created": "2026-09-05T01:03:27.483Z",
+    "created": "2026-09-10T13:41:16.340Z",
     "creators": [
       "Tool: @rosetears/aili-pi scripts/generate-provenance.ts"
     ]
@@ -37,14 +37,14 @@
     {
       "SPDXID": "SPDXRef-source-aili-workflows-ad83a8f0ba",
       "name": "aili-workflows",
-      "versionInfo": "0.4.8",
-      "downloadLocation": "https://github.com/Rosetears520/aili-workflows/commit/a5284ee105a084392a944aee04313dcf7c294a64",
+      "versionInfo": "0.4.13",
+      "downloadLocation": "https://github.com/Rosetears520/aili-workflows/commit/2fb0f64f165bba9f3d70acb60c8923c1efec0d93",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
       "licenseDeclared": "MIT",
       "checksums": [],
       "primaryPackagePurpose": "SOURCE",
-      "comment": "revision=a5284ee105a084392a944aee04313dcf7c294a64; files=upstream/aili-workflows.lock.json#files (562 exact skill files), upstream/aili-workflows-runtime/** (exact generated Pi runtime bundle), manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.8 source revision); symbols=58 canonical skill bodies and owned assets, 20 canonical Specialized Agent roles, Pi system/role/selection/package-protocol/installation runtime bundle; local changes=skills/** is an exact byte-for-byte snapshot with no semantic overlay | the generated Pi runtime bundle is copied byte-for-byte and validated through one lock-bound loader | specialized role prompts and deterministic routing were regenerated from the exact 0.4.8 source revision and remain manifest-hash bound | legacy APPEND_SYSTEM and global-role installation ownership is retired and report-only"
+      "comment": "revision=2fb0f64f165bba9f3d70acb60c8923c1efec0d93; files=upstream/aili-workflows.lock.json#files (exact skill file inventory), upstream/aili-workflows-runtime/** (exact generated Pi runtime bundle), manifests/roles.json#records[].sourcePath (role adapters generated from the exact 0.4.13 source revision); symbols=58 canonical skill bodies and owned assets, 20 canonical Specialized Agent roles, Pi system/role/selection/package-protocol/installation runtime bundle; local changes=skills/** is an exact byte-for-byte snapshot with no semantic overlay | the generated Pi runtime bundle is copied byte-for-byte and validated through one lock-bound loader | specialized role prompts and deterministic routing use the exact 0.4.13 source revision and remain manifest-hash bound | legacy APPEND_SYSTEM and global-role installation ownership is retired and report-only"
     },
     {
       "SPDXID": "SPDXRef-source-pi-mcp-adapter-03221c765d",

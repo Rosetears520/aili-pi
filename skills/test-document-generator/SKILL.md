@@ -51,24 +51,24 @@ Do not ask questions that can be answered from repository code, docs, specs, tes
 
 ## Output Placement Contract
 
-OpenSpec change output is the only deterministic no-question placement. For non-OpenSpec output without an approved project-local location, ask one placement decision. Generate the draft, run this skill's direct consistency pass, persist, reread once, then summarize the path.
+OpenSpec change output has deterministic placement. For non-OpenSpec output, reuse an explicit user-selected or previously approved applicable repository-local target while target, scope, and ownership remain unchanged. Ask one placement decision only when none exists or target, ownership, or write scope materially changes or conflicts. Existence or an obvious sibling path is not approval. Placement approval is not write authority and never overrides no-write or runtime permissions. Generate the draft, run this skill's direct consistency pass, and, when writing is permitted, persist by scoped merge, reread once, then summarize the path.
 
 🔴 STOP before writing when a non-OpenSpec placement is unresolved, existing target ownership/scope conflicts, or workspace permissions are uncertain. An existing owned target is updated by scoped merge; existence alone does not create another question.
 
 Target path resolution:
 
 1. If the source is an OpenSpec change directory, write `openspec/changes/<change-id>/test-plan.md` without asking.
-2. If the source is non-OpenSpec, ask where to place the output before writing, even when the source is a single document:
+2. If the source is non-OpenSpec, reuse the applicable approved target without re-asking. Only if placement is missing or target, ownership, or write scope materially changes/conflicts, ask before writing:
    - A. create a sibling Markdown file beside the main source file;
    - B. create a sibling folder beside the source directory;
    - C. append a new section to the existing spec/design document;
    - D. print the result in chat only.
-3. If the user pasted only free-form text and no source path exists, ask whether to:
+3. If the user pasted only free-form text and no applicable approved target exists, ask whether to:
    - A. create a new file in a user-specified location;
    - B. append to an existing spec/document;
    - C. print in chat only.
 4. If the target already exists, update it by merging or appending a new revision section instead of blindly overwriting.
-5. If the user explicitly says "print in chat", "do not create files", or "chat only", do not write files.
+5. If the user explicitly says "print in chat", "do not create files", or "chat only", do not write files even when a target is approved. Deliver the draft/analysis using otherwise permitted read-only evidence; distinguish actual evidence gaps from missing persistence. Chat delivery does not satisfy required formal artifacts, record formal acceptance, authorize implementation, or bypass operation/runtime gates.
 
 Target-exists merge fallbacks:
 
@@ -76,7 +76,7 @@ Target-exists merge fallbacks:
 - If the existing target uses a different structure, add `## New Revision: <date/change>` and preserve the original content unchanged above it.
 - If merging would contradict accepted scope, requirements, or prior test history, stop and ask whether to supersede, append a revision, or choose a different target.
 
-Use this concise placement question for non-OpenSpec sources:
+Use this concise placement question only when non-OpenSpec placement needs a decision:
 
 ```text
 这个非 OpenSpec 输出需要先确认落点，你选一个：
@@ -133,11 +133,11 @@ Repair the document in scope before persistence or return the exact blocker to R
 
 ### Phase E: Persist and Report
 
-1. Resolve the target path using the Output Placement Contract.
-2. Write or update the target Markdown file.
-3. Inspect the written file and diff for accidental unrelated changes.
-4. Leave formal acceptance awaiting explicit user confirmation unless a qualifying exact acceptance event already exists; never infer implementation authorization.
-5. Return only the concise chat summary defined by the Output Placement Contract.
+1. Apply the Output Placement Contract: reuse applicable approved placement; ask only for missing or materially changed/conflicting placement when persistence is needed.
+2. When writing is permitted, write or update the target Markdown file by scoped merge. Under no-write, deliver the chat draft/analysis without persistence or formal advancement.
+3. After writing, inspect the written file and diff for accidental unrelated changes.
+4. Leave formal acceptance awaiting explicit user confirmation unless a qualifying exact acceptance event already exists; no-write prevents acceptance writeback, and never infer implementation authorization.
+5. Return the concise persistence summary, or the requested chat output with formal persistence/gates reported separately.
 
 ## Test Document Template
 
@@ -152,4 +152,4 @@ Before finishing:
 - Confirm formal changes include a traceability matrix from requirement/decision/risk to task/package, file/artifact, verification command or inspection, evidence, and coverage status.
 - Confirm the output location follows the placement contract.
 - Confirm only applicable check, acceptance, execution, or defect sections exist; no empty matrix/ledger was emitted.
-- Confirm the chat response contains only the generated path, coverage summary, unresolved count, and next action.
+- After persistence, confirm the chat response contains only the generated path, coverage summary, unresolved count, and next action; under no-write, provide the requested chat output and separate pending formal gates.

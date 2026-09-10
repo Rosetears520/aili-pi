@@ -120,12 +120,12 @@ describe("provenance and SBOM", () => {
     ]);
     expect(provenance.sources.find((item: { name: string }) => item.name === "aili-workflows")).toMatchObject({
       repository: "https://github.com/Rosetears520/aili-workflows.git",
-      revision: "a5284ee105a084392a944aee04313dcf7c294a64",
-      version: "0.4.8",
+      revision: "2fb0f64f165bba9f3d70acb60c8923c1efec0d93",
+      version: "0.4.13",
       status: "adapted",
     });
-    expect(notices).toContain("Revision: a5284ee105a084392a944aee04313dcf7c294a64");
-    expect(notices).toContain("Version: 0.4.8");
+    expect(notices).toContain("Revision: 2fb0f64f165bba9f3d70acb60c8923c1efec0d93");
+    expect(notices).toContain("Version: 0.4.13");
   });
 
   it("converts locked npm SHA512 integrity to canonical SPDX hex", async () => {

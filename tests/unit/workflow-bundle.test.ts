@@ -45,13 +45,15 @@ afterEach(async () => {
 });
 
 describe("validated Workflow runtime bundle", () => {
-  it("loads one immutable 0.4.8 view with all 20 canonical specialists", async () => {
+  it("loads one immutable 0.4.13 view with all 20 canonical specialists", async () => {
     const bundle = await loadWorkflowRuntimeBundle();
     expect(bundle).toMatchObject({
       package: "rose-aili",
-      version: "0.4.8",
-      commit: "a5284ee105a084392a944aee04313dcf7c294a64",
+      version: "0.4.13",
+      commit: "2fb0f64f165bba9f3d70acb60c8923c1efec0d93",
     });
+    expect(bundle.system).toContain("todo.md");
+    expect(bundle.system).toContain("progress.txt");
     expect(bundle.canonicalSpecialists).toHaveLength(20);
     expect(bundle.canonicalSpecialists).toContain("solution-architect");
     expect(Object.isFrozen(bundle)).toBe(true);
@@ -65,7 +67,23 @@ describe("validated Workflow runtime bundle", () => {
       rm(join(paths.bundle, "AGENTS.md")),
       rm(join(paths.bundle, "prompts"), { recursive: true }),
     ]);
-    await expect(load(paths)).resolves.toMatchObject({ package: "rose-aili", version: "0.4.8" });
+    await expect(load(paths)).resolves.toMatchObject({ package: "rose-aili", version: "0.4.13" });
+  });
+
+  it("rejects old, future, and mixed release identities", async () => {
+    for (const identity of [
+      { version: "0.4.8", commit: "a5284ee105a084392a944aee04313dcf7c294a64" },
+      { version: "0.4.14", commit: "2fb0f64f165bba9f3d70acb60c8923c1efec0d93" },
+      { version: "0.4.13", commit: "a5284ee105a084392a944aee04313dcf7c294a64" },
+    ]) {
+      const paths = await fixture();
+      const lock = JSON.parse(await readFile(paths.lock, "utf8"));
+      lock.release.version = identity.version;
+      lock.release.npmGitHead = identity.commit;
+      lock.commit = identity.commit;
+      await writeFile(paths.lock, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
+      await expect(load(paths)).rejects.toThrow(/release identity is unsupported or mixed/);
+    }
   });
 
   it("fails closed for missing and byte-drifted runtime artifacts", async () => {

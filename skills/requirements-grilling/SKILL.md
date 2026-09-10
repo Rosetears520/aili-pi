@@ -66,7 +66,7 @@ This skill owns clarification and `interview.md` only. Local facts are inspected
 - **Primary owner:** ROSE/`aili-delivery-flow` owns mode, approvals, progress, and verification; this skill is one bounded clarification adapter.
 - **Near miss:** a clear spec, a test-plan request, implementation, general research, plan review, or completion check does not trigger this skill merely because requirements exist.
 - **Question budget:** ask one decision-changing question by default; use one bounded static Packet Mode artifact only when several known independent blockers are cheaper to answer together; use Frontier Batch Mode only when the user explicitly asks for batch grilling or the complete current frontier, never merely because blocker count is high.
-- **Stop:** persist and reread the accepted answer/packet once, then return `complete`, `need-user`, `need-evidence`, `material-delta`, `blocked`, or `Unverified` to ROSE.
+- **Stop:** when writing is permitted, persist and reread the accepted answer/packet once; under no-write, return chat analysis with formal persistence/readiness still pending. Then return `complete`, `need-user`, `need-evidence`, `material-delta`, `blocked`, or `Unverified` to ROSE.
 - **Precedence:** lifecycle approval and verification rules win. This skill creates no scheme, packet, research-summary, or proposal approval and never auto-chains stress-test, test-plan, planning, TDD, review, or security work.
 
 Realistic trigger prompts:
@@ -113,7 +113,7 @@ Possible targets:
 - OpenSpec files under `openspec/changes/<change-id>/`
 - temporary chat preview, only when the user explicitly asks for it; it is not a readiness source until persisted to an agreed file
 
-Only OpenSpec change directories have deterministic no-question file output. For every non-OpenSpec source, including a single source document with an obvious sibling path, ask one concise placement question before writing.
+OpenSpec change directories have deterministic placement. For non-OpenSpec output, reuse an explicit user-selected or previously approved applicable repository-local target while target, scope, and ownership remain unchanged; update it by scoped merge when writing is authorized. Ask one concise placement question only when no such target exists or target, ownership, or write scope materially changes or conflicts. Existence or an obvious sibling path is not approval; placement approval is not write authority and never overrides no-write or runtime permissions.
 
 ## Output Placement Contract
 
@@ -122,34 +122,34 @@ When Packet Mode is selected, it defaults to persistent artifact output; a focus
 ### Quick Reference Flow
 
 ```text
-targeted evidence -> one question, explicit frontier round, or bounded static packet -> direct consistency check -> persist -> reread once -> return outcome to ROSE
+targeted evidence -> one question, explicit frontier round, or bounded static packet -> direct consistency check -> permitted persistence and reread once, or no-write chat analysis -> return outcome to ROSE
 ```
 
-When a packet is warranted, generate it, run the direct consistency checklist in this skill, persist it, reread it once, then summarize the path. Do not print the full packet in chat unless the user requests a preview or persistence is blocked. A chat preview is not a readiness artifact.
+When a packet is warranted, generate it and run the direct consistency checklist in this skill; when writing is permitted, persist it, reread it once, then summarize the path. Under no-write, deliver chat analysis and report formal persistence/readiness separately. Do not print the full packet in chat unless the user requests a preview or persistence is blocked. A chat preview is not a readiness artifact.
 
-After the initial packet exists, do not require the user to manually edit `interview.md` by default. When unresolved OpenSpec readiness questions remain, ask one decision-changing blocking question in chat, offer evidence-backed short options plus custom input, write the user's accepted answer, accepted default, explicit waiver, or named `UNVERIFIED` state into `interview.md`, then re-read the file from disk before classifying answers or claiming readiness. A waiver or accepted `UNVERIFIED` state records the answer but cannot clear decision-shaping research or replace final test-plan acceptance. Direct user edits to `interview.md` remain a supported fallback, but disk content must be re-read and reconciled before use.
+After the initial packet exists, do not require the user to manually edit `interview.md` by default. When unresolved OpenSpec readiness questions remain, ask one decision-changing blocking question in chat, offer evidence-backed short options plus custom input, when writing is permitted, merge the user's accepted answer, accepted default, explicit waiver, or named `UNVERIFIED` state into `interview.md`, then re-read the file from disk before formal classification or readiness. Under no-write, analyze the answer in chat without formal writeback or advancement. A waiver or accepted `UNVERIFIED` state records the answer but cannot clear decision-shaping research or replace final test-plan acceptance. Direct user edits to `interview.md` remain a supported fallback, but disk content must be re-read and reconciled before use.
 
-Frontier Batch Mode is different from a static interview packet. It asks the complete current dependency-ready frontier in one interactive round, accepts partial answers, persists and re-reads the round, then recomputes the next frontier. It never turns a static generic questionnaire into a batch and never groups permission or approval questions.
+Frontier Batch Mode is different from a static interview packet. It asks the complete current dependency-ready frontier in one interactive round and accepts partial answers. When writing is permitted, it persists and re-reads supplied confirmed answers before recomputing the formal next frontier; under no-write, chat recomputation remains provisional analysis. It never turns a static generic questionnaire into a batch and never groups permission or approval questions.
 
-OpenSpec change output is the only deterministic no-question placement. For every non-OpenSpec source, ask where to place the output before writing; chat preview is an explicit temporary fallback only, and the gate remains `BLOCKED_FOR_CLARIFICATION` until the packet or follow-up round is persisted to an agreed file or explicitly waived.
+Reuse applicable approved non-OpenSpec placement without another question. Chat-only analysis can be delivered without persistence; formal readiness remains blocked pending required persistence and other gates. A waiver may record a named disposition but cannot replace required artifacts or clear material evidence gaps.
 
-🔴 STOP before writing when placement is not deterministic: for any non-OpenSpec source, missing workspace access, ambiguous target, existing target ownership conflict, or user-pasted text with no path, ask the placement question and wait. Do not choose a path silently.
+🔴 STOP before writing when no applicable approved placement exists, the target or ownership/write scope conflicts, workspace access is missing, or permissions are uncertain. Ask the missing placement decision or report the access/permission blocker; do not choose a path silently.
 
 Target path resolution:
 
-1. If the source is an OpenSpec change directory, write `openspec/changes/<change-id>/interview.md` without asking.
-2. If the source is non-OpenSpec, ask where to place the output before writing, even when the source is a single document:
+1. If the source is an OpenSpec change directory and writing is permitted, use `openspec/changes/<change-id>/interview.md` without a placement question.
+2. If the source is non-OpenSpec, reuse its applicable approved target by scoped merge when writes are permitted. Only if placement is missing or target, ownership, or write scope materially changes, ask before writing:
    - A. create a sibling Markdown file beside the main source file;
    - B. create a sibling folder beside the source directory;
    - C. append a new section to the existing spec/design document;
    - D. preview in chat first, then choose a file target before readiness or write-back.
-3. If the user pasted only free-form text and no source path exists, ask whether to:
+3. If the user pasted only free-form text and no applicable approved target exists, ask whether to:
    - A. create a new file in a user-specified location;
    - B. append to an existing spec/document;
    - C. preview in chat first, then choose a file target before readiness or write-back.
-4. If the user explicitly says "print in chat", "do not create files", or "chat only", provide only a temporary preview marked `BLOCKED_FOR_CLARIFICATION` and `UNVERIFIED`. Do not call the packet `READY` from chat-only content. For formal work, do not create/reuse/update OpenSpec, satisfy readiness, record acceptance, or start BUILD until the user later explicitly permits writeback.
+4. If the user explicitly says "print in chat", "do not create files", or "chat only", deliver the requested analysis using otherwise permitted task-scoped read-only evidence gathering. Do not label supported facts `Unverified` solely because they are not persisted; name actual missing, stale, or contradictory evidence. Separately report formal readiness as `BLOCKED` pending required persistence/gates. Perform no persistence, implementation, formal acceptance writeback, or formal advancement, even with an approved target or simultaneous continuation/acceptance-plus-BUILD intent. Preserve existing counters and stop state; a chat preview consumes no implementation or repair iteration. No-write grants no operation permission and cannot bypass runtime denial.
 
-Use this concise placement question for non-OpenSpec sources:
+Use this concise placement question only when non-OpenSpec placement needs a decision:
 
 ```text
 这个非 OpenSpec 输出需要先确认落点，你选一个：
@@ -174,16 +174,16 @@ Choose the mode from user invocation, interaction need, and known material block
 
 - If current evidence resolves the material decisions, record the resolved decision and do not manufacture a question or packet.
 - If one blocker remains or one answer determines the next question, use Interactive Mode and ask one question at a time.
-- Use Frontier Batch Mode only when the user explicitly requests batch grilling, “批量拷问”, or every currently answerable decision together. Build a decision tree, ask the complete current frontier in one numbered round, wait for the user's answers, persist and re-read them, and recompute. Never infer this mode from blocker count.
+- Use Frontier Batch Mode only when the user explicitly requests batch grilling, “批量拷问”, or every currently answerable decision together. Build a decision tree, ask the complete current frontier in one numbered round, wait for the user's answers, and follow the Output Placement Contract for permitted persistence/re-read or no-write provisional analysis before recomputing. Never infer this mode from blocker count.
 - Use Packet Mode only when several already-known independent blockers are cheaper to answer as one static durable questionnaire, especially for asynchronous/direct-file completion. Include only those blockers in dependency order; do not instantiate a generic coverage form or call it a dynamic frontier.
-- Persist accepted answers in `interview.md` for OpenSpec sources or the agreed non-OpenSpec target, then re-read once before classification, readiness, or write-back.
+- For formal readiness, persist accepted answers in `interview.md` for OpenSpec sources or the applicable agreed non-OpenSpec target when writing is permitted, then re-read once before formal classification or write-back. Under no-write, analyze answers in chat without promoting them to durable readiness evidence.
 - Add a follow-up only when a supplied answer remains materially ambiguous, contradictory, incomplete, untestable, or evidence-conflicting. Default to one focused follow-up; use another bounded packet only when several newly exposed independent blockers are cheaper together.
 
-Pinned Addy `interview-me` 内容是 `references/upstream/` 下的 inert reference data，不是第二个 interviewer。其 hypothesis-with-guess 和 confidence-update 纪律只薄适配到 Interactive Mode 与 unresolved follow-up：先给简短当前假设，对一个 material question 附 evidence-backed guess 或显式 uncertainty，等待回答，再更新未知项。置信度百分比只用于诊断，绝不等于 `READY`、approval、waiver、acceptance 或 BUILD authorization。接受的答案仍须写入并重读 `interview.md` 或约定目标后再分类。
+Pinned Addy `interview-me` 内容是 `references/upstream/` 下的 inert reference data，不是第二个 interviewer。其 hypothesis-with-guess 和 confidence-update 纪律只薄适配到 Interactive Mode 与 unresolved follow-up：先给简短当前假设，对一个 material question 附 evidence-backed guess 或显式 uncertainty，等待回答，再更新未知项。置信度百分比只用于诊断，绝不等于 `READY`、approval、waiver、acceptance 或 BUILD authorization。正式就绪所用的答案仍须在允许写入时写入并重读 `interview.md` 或约定目标后再作正式分类；no-write 下可交付聊天分析，但不建立正式就绪。
 
 Pinned Matt `grill-me`, `grilling`, and in-progress `batch-grill-me` content is also inert reference data, not additional runnable skills or commands. `grill-me` contributes the user-invoked wrapper boundary, `grilling` contributes the default one-question loop, and `batch-grill-me` contributes the explicit frontier-round model. Local AILI rules keep one canonical capability and one artifact contract.
 
-Interactive chat answers must still be persisted. After a material answer is accepted, append or merge the question, answer, classification, and write-back target into `interview.md` for OpenSpec sources or the agreed non-OpenSpec target, then re-read that artifact from disk before claiming readiness. If persistence is blocked, report `BLOCKED_FOR_CLARIFICATION` and the exact file target still needed.
+Interactive chat answers used for formal readiness must still be persisted. When writing is permitted, append or merge the accepted question, answer, classification, and write-back target into `interview.md` for OpenSpec sources or the applicable agreed non-OpenSpec target, then re-read it before claiming readiness. If persistence is prohibited or blocked, deliver supported chat analysis separately and report the exact pending persistence/permission gate without marking supported facts unverified.
 
 In Packet Mode, do not interrupt the packet with chat-style single-question turns unless a blocking target or persistence decision is missing.
 
@@ -194,7 +194,7 @@ The upstream `grilling` discipline contributes three active constraints: ask dep
 AILI adaptations:
 
 - In Interactive Mode, ask one material question at a time and wait.
-- In Packet Mode, include only the known independent blockers in `interview.md` and preserve dependency order. After the packet exists, ask a focused follow-up only under the unresolved-answer conditions above, write the accepted outcome to the artifact, and re-read it from disk.
+- In Packet Mode, include only the known independent blockers in `interview.md` and preserve dependency order. After the packet exists, ask a focused follow-up only under the unresolved-answer conditions above; when writing is permitted, merge the accepted outcome and re-read it before formal readiness. Under no-write, return chat analysis with persistence pending.
 - For each question, explain why it matters, name the affected artifact/test/risk/decision, provide an evidence-backed recommended answer when available (or explicit uncertainty), state the tradeoff, offer short selectable options plus a custom-answer option, include an answer slot, and name the write-back target.
 - If the answer can be discovered from code, docs, specs, tests, configs, or official sources, inspect those sources instead of asking.
 - If no evidence-backed default exists, use `Open Question` or `Unverified`; do not present a model guess as a recommendation.
@@ -203,12 +203,12 @@ AILI adaptations:
 
 Frontier Batch Mode is an explicit user interaction mode, not an automatic optimization and not a second skill.
 
-- Resolve change identity and non-OpenSpec placement first. Keep permission, approval, destructive, external-access, dependency, schema/auth/security, commit/push/merge/release, and exact-operation questions separate and single. A batch answer never grants or implies authority.
+- Resolve change identity and, when persistence is needed, reuse applicable approved non-OpenSpec placement or ask for the missing/changed placement decision first. Keep permission, approval, destructive, external-access, dependency, schema/auth/security, commit/push/merge/release, and exact-operation questions separate and single. A batch answer never grants or implies authority.
 - Model only the accepted material scope as a decision tree. The frontier is the complete set of material user decisions whose prerequisite decisions and required evidence are settled. Ask that frontier in one numbered packet; if only one decision is ready, ask one question.
 - A question whose answer depends on another question still open in this round belongs to a later round. Do not assume the prerequisite merely to enlarge the current packet.
 - Every frontier question still passes the material-question threshold and includes why it matters, affected target, evidence-backed recommendation or explicit uncertainty, trade-off, concise options plus custom input, and write-back target. Do not add generic coverage questions.
 - Finding facts remains the agent's job. ROSE inspects directly by default. This skill may return `need-evidence` with the blocked dependency but never dispatches; only downstream questions wait. If ROSE separately justifies a Task, it uses a fresh single-use context under existing limits and never resumes an old `task_id`.
-- Accept partial answers. Persist confirmed answers and named dispositions in the same `interview.md` or agreed target, re-read disk, keep unanswered or invalid answers unresolved, and recompute the frontier before the next round.
+- Accept partial answers. When writing is permitted, persist confirmed answers and named dispositions in the same `interview.md` or applicable agreed target and re-read disk. Under no-write, retain them in chat analysis only. Keep unanswered or invalid answers unresolved and recompute the next frontier under Phase D's formal/provisional distinction.
 - Finish only when the frontier is empty and the user explicitly confirms shared understanding. This does not itself establish `READY`, final test-plan acceptance, BUILD authorization, or operation approval.
 
 ## Domain-Modeling Discipline
@@ -243,7 +243,7 @@ Keep ADRs short. The value is recording the decision and why; status, options, a
 
 - Do not fill in requirements, design, or acceptance criteria by guessing.
 - Ask or include questions according to the selected interview mode; record unresolved items as `Open Question:`.
-- Treat files as the source of truth: chat questions and answers are temporary until written to `interview.md` or the agreed target and re-read from disk.
+- Treat files as the durable formal source of truth: chat questions and answers require permitted persistence to `interview.md` or the agreed target and disk re-read before formal readiness. Lack of persistence alone does not invalidate evidence-backed chat analysis.
 - Preserve existing author content and structure whenever possible.
 - If restructuring is necessary, keep original text under `## Appendix: Original Draft` in the same file.
 - Never record unconfirmed information as fact. Use `Assumption:` only when the user has accepted it as a working assumption.
@@ -290,14 +290,14 @@ Potential gaps when the current source or request makes them material; this is n
 - missing security, privacy, reliability, performance, or observability requirements
 - acceptance criteria that are not executable or verifiable
 
-Do not write a material answer as accepted content until the selected question, frontier round, or bounded static packet is resolved. If the user explicitly says to write with current information, unresolved items may be recorded as `Open Question`, explicitly `WAIVED`, or named `UNVERIFIED`, but unresolved decision-shaping research remains blocking and cannot be presented for coherent final acceptance or BUILD readiness. Never mark the requirements-grilling gate `READY` from unresolved material ambiguity.
+Write only individually confirmed material answers as accepted content under the Decision-state contract and current write permission; a partial frontier response may be persisted while unanswered or invalid items remain unresolved. If the user explicitly says to write with current information, unresolved items may be recorded as `Open Question`, explicitly `WAIVED`, or named `UNVERIFIED`, but unresolved decision-shaping research remains blocking and cannot be presented for coherent final acceptance or BUILD readiness. Never mark the requirements-grilling gate `READY` from unresolved material ambiguity.
 
 ## Readiness States
 
 Report the requirements-grilling gate with exactly one state whenever a packet or frontier round is persisted, chat or direct-file answers are ingested, a focused follow-up is appended, or write-back / BUILD readiness is discussed:
 
-- `READY`: material questions are answered, answers are coherent with evidence, domain language is not contradictory, every material policy has concrete behavior/boundaries, and acceptance/testability is sufficient for implementation.
-- `BLOCKED`: material ambiguity, contradiction, incomplete answer, evidence conflict, unsupported default, out-of-scope answer, fuzzy domain term, source-of-truth conflict, or untestable acceptance remains. Use `BLOCKED_FOR_CLARIFICATION` as the detailed reason when the next action is another grilling round.
+- `READY`: material questions are answered, applicable answers have been persisted and re-read, answers are coherent with evidence, domain language is not contradictory, every material policy has concrete behavior/boundaries, and acceptance/testability is sufficient for implementation.
+- `BLOCKED`: required formal persistence is pending, or material ambiguity, contradiction, incomplete answer, evidence conflict, unsupported default, out-of-scope answer, fuzzy domain term, source-of-truth conflict, or untestable acceptance remains. A persistence-only blocker does not invalidate supported chat analysis. Use `BLOCKED_FOR_CLARIFICATION` as the detailed reason when the next action is another grilling round.
 - `WAIVED`: the user explicitly waived a named question despite the missing information; this records disposition only and cannot clear decision-shaping research or final test-plan acceptance.
 - `UNVERIFIED`: the user explicitly accepted named unresolved or unverifiable items as `UNVERIFIED`; do not describe those items as confirmed or use the state to clear a material research/readiness gate.
 
@@ -305,16 +305,16 @@ Report the requirements-grilling gate with exactly one state whenever a packet o
 
 Choose exactly one current question shape:
 
-- Interactive Mode: ask the single next dependency-ordered material question and persist its answer.
-- Frontier Batch Mode: after explicit user invocation, ask the complete current dependency-ready frontier in one numbered round, persist and re-read supplied answers, then recompute before another round.
+- Interactive Mode: ask the single next dependency-ordered material question; persist its confirmed answer when writing is permitted, otherwise analyze it in chat.
+- Frontier Batch Mode: after explicit user invocation, ask the complete current dependency-ready frontier in one numbered round; follow Phase D for permitted persistence/re-read or no-write provisional analysis, then recompute before another round.
 - Packet Mode: generate a static Markdown interview packet only when several already-known independent material blockers meet the Packet Mode threshold.
 
 Do not silently convert one mode into another. A static packet is not a frontier round, and a high blocker count does not activate Frontier Batch Mode.
 
 Default behavior:
 
-- For OpenSpec sources, write `openspec/changes/<change-id>/interview.md` without asking.
-- For every non-OpenSpec source, including a single source document, ask for placement before writing.
+- When writing is permitted, OpenSpec sources use `openspec/changes/<change-id>/interview.md` without a placement question.
+- Non-OpenSpec sources reuse an applicable approved target by scoped merge; ask only for missing or materially changed/conflicting target, ownership, or write scope. No-write prevents persistence in either case.
 - Use chat-only output only when the user explicitly asks for it or selects chat-only in the placement question.
 
 Packet Mode produces a draft artifact. Frontier Batch Mode produces one draft numbered round. Do not present or persist either before Phase C. Use `references/INTERVIEW-PACKET-FORMAT.md` only for the static Packet Mode artifact and omit sections that have no selected material decision.
@@ -356,11 +356,11 @@ If the user says `先这样`, `按目前信息写回`, or equivalent, stop askin
 
 After generating the selected question, frontier round, or static packet, inspect it once directly. Do not invoke an independent stress-test or review lane merely because a question artifact exists.
 
-🔴 STOP before presentation or persistence if direct inspection finds an omitted dependency-ready material question, a prematurely included dependent question, unsupported default, non-executable acceptance criterion, fuzzy domain term, ADR misuse, or unmarked `Open Question` / `Unverified` item. Repair in scope or report the blocker.
+🔴 STOP before presentation or persistence if direct inspection finds a completeness failure for the selected mode, a prematurely included dependent question, unsupported default, non-executable acceptance criterion, fuzzy domain term, ADR misuse, or unmarked `Open Question` / `Unverified` item. Repair in scope or report the blocker.
 
 Check:
 
-- Does every included question pass the material-question threshold, and is any known material blocker omitted?
+- Does every included question pass the material-question threshold? Interactive Mode includes only the next dependency-ready material question and tracks remaining blockers for later turns. Static Packet Mode covers its selected independent blockers and tracks other known blockers separately. Only explicitly invoked Frontier Batch Mode must include the complete current dependency-ready frontier; defer questions with unresolved prerequisites/evidence. Tracked deferred questions are not omissions.
 - Which question asks the user for information that should be discovered from code/docs instead?
 - Which recommended default lacks evidence?
 - Which user answer would lead to a completely different design?
@@ -373,35 +373,35 @@ Check:
 
 Apply fixes to the selected question shape before sending it to the user.
 
-After Phase C, persist the final static packet according to the Output Placement Contract. For an interactive or frontier round, ask the approved question shape, then persist accepted question/answer/classification trails before reporting readiness or computing another frontier. Only then present a concise chat summary.
+After Phase C, persist the final static packet only when permitted by the Output Placement Contract. For an interactive or frontier round, ask the checked question shape, then persist and re-read supplied confirmed question/answer/classification trails before formal readiness or formal frontier recomputation. Under no-write, present the analysis and mode-appropriate questions in chat, keep unresolved items tracked, and distinguish any provisional next frontier from durable formal state.
 
 ## Phase D: Ingest User Answers
 
 After the user answers in chat or directly edits the interview packet:
 
-1. Re-read the artifact from disk first; compatibility marker: Re-read the filled packet from disk. Conversation summaries and chat-only answers are stale until confirmed against the saved artifact. If answers were collected in chat, write them to the agreed artifact first, then re-read from disk before classification or readiness. If the user edited the file directly, treat the on-disk content as the fallback source of truth after re-reading and reconciling material changes.
+1. For formal ingestion, Re-read the filled packet from disk. When chat answers need persistence and writing is permitted, merge them into the applicable agreed artifact first, then re-read before formal classification or readiness. Reconcile direct user edits after disk re-read; file text alone creates no acceptance. Under no-write, inspect otherwise permitted evidence and classify answers provisionally in chat without persistence or formal advancement. Supported current answers are not stale or unverified merely because they are chat-only; identify actual evidence gaps separately.
 2. Classify every material answer as one of: `confirmed`, `ambiguous`, `contradictory`, `incomplete`, `untestable`, `evidence-conflicting`, `out-of-scope`, or `Unverified`.
    - Answers that repeat broad labels such as “做安全策略”, “按幂等处理”, “正常回滚”, “走 quota”, “写 audit”, or “按现有逻辑” without concrete behavior, boundary, source-of-truth, and testable acceptance remain `incomplete` or `untestable`. A named waiver or `UNVERIFIED` disposition may preserve the gap but cannot turn it into concrete accepted behavior.
 3. Convert only `confirmed` answers into factual requirements, design notes, tasks, acceptance criteria, verification commands, Language updates, or ADR proposals. Assign the decision state from the explicit user event under the Decision-state contract; a confirmed answer may still be `direction-recorded`, `conditional`, or `awaiting-confirmation` rather than `accepted`. Record explicit waivers and user-accepted `Unverified` items only as named limitations; they cannot clear decision-shaping research or supply missing acceptance behavior.
 4. Keep unanswered, ambiguous, contradictory, incomplete, untestable, evidence-conflicting, out-of-scope, or terminology-conflicting answers out of factual write-back.
 5. Choose the next interaction from the active mode. Interactive Mode and static Packet Mode default to one focused follow-up for the next dependency-ordered material blocker; use another bounded static packet only when several newly exposed independent blockers are cheaper together. Frontier Batch Mode instead recomputes and asks the complete next dependency-ready frontier; an ambiguous answer remains an unresolved frontier item and does not unlock its dependents. Every follow-up still includes why it blocks, affected artifact/decision, recommended default if evidence supports one, consequences/trade-offs, answer slot, and write-back target.
-6. Persist the follow-up in the same `interview.md` artifact for OpenSpec sources; do not create `grill.md`, `requirements-grilling.md`, or a parallel artifact.
+6. When writing is permitted, persist the follow-up in the same `interview.md` artifact for OpenSpec sources or applicable agreed non-OpenSpec target; otherwise present it in chat with formal persistence pending. Do not create `grill.md`, `requirements-grilling.md`, or a parallel artifact.
 7. Keep unverifiable external claims as `Unverified` only when named and explicitly accepted by the user; otherwise classify them as blocking or `Open Question`. If the claim could change scope, architecture, dependency, public contract, permissions, acceptance, or verification strategy, it remains blocking even when named and accepted as `Unverified`.
 8. Do not silently resolve conflicts or treat a filled answer slot as confirmation when the answer remains unclear.
 9. Record only the affected answer classification, evidence, write-back target, and readiness state; add domain-language or ADR fields only when that decision touches them.
 10. Run the Phase C direct consistency check after answer classification; do not auto-chain another process skill.
-11. In Frontier Batch Mode, accept partial answers, preserve every unanswered or invalid frontier item as unresolved, and recompute the next frontier only from persisted/re-read confirmed answers and current evidence. Do not ask a downstream question whose prerequisite remains unresolved.
+11. In Frontier Batch Mode, accept partial answers and preserve every unanswered or invalid frontier item as unresolved. Recompute the formal next frontier from persisted/re-read confirmed answers and current evidence; under no-write, any chat recomputation is provisional analysis only. Do not ask a downstream question whose prerequisite remains unresolved.
 12. When the frontier becomes empty, restate the shared understanding and require explicit user confirmation before acting. Keep readiness, final test-plan acceptance, and every permission/operation approval separate.
 
 After answer ingestion, classify every confirmed correction, new requirement, artifact/design/task/test change, accepted finding, or implementation feedback into exactly one exhaustive delta class:
 
 - `covered`: the current accepted artifacts and tests already cover it; link the evidence and do not duplicate writeback.
 - `material-question`: one unresolved decision can change scope, contract, tasks, acceptance, risk handling, or implemented behavior; ask one focused question and do not guess.
-- `material-delta`: confirmed material change; write and re-read only the owning artifacts and direct dependents, read OpenSpec status/instructions when those dependencies require it, run one lifecycle-selected targeted strict validation only when an OpenSpec-native planning artifact changed or an explicit acceptance/archive gate requires it, and stale prior test-plan acceptance when acceptance or required verification changes.
+- `material-delta`: confirmed material change; when writing is permitted, write and re-read only the owning artifacts and direct dependents, read OpenSpec status/instructions when those dependencies require it, run one lifecycle-selected targeted strict validation only when an OpenSpec-native planning artifact changed or an explicit acceptance/archive gate requires it, and stale prior test-plan acceptance when acceptance or required verification changes. Under no-write, report these pending formal actions without performing them or using affected old acceptance to advance.
 - `ordinary-steering`: presentation/process guidance that changes no material dimension; apply without reopening acceptance.
 - `Unverified`: evidence is missing or cannot currently establish the class; name the gap and block any dependent claim/action.
 
-Do not ask whether to save a material delta. Do not guess change identity, expand permission, bypass high-risk/operation approval, continue BUILD, or use old acceptance after acceptance/verification changed. If material writeback leaves the acceptance contract unchanged, preserve acceptance only with explicit comparison evidence.
+When write authority and placement remain applicable, do not ask again whether to save a material delta. Under no-write, only analyze its classification and affected targets; do not write, validate by mutation, stale/record formal acceptance, or advance the lifecycle. Do not guess change identity, expand permission, bypass high-risk/operation approval, continue BUILD, or use old acceptance after acceptance/verification changed. If material writeback leaves the acceptance contract unchanged, preserve acceptance only with explicit comparison evidence.
 
 If the direct consistency check finds material ambiguity, contradiction, incompleteness, untestable acceptance, evidence conflict, terminology conflict, out-of-scope expansion, or unresolved decision-shaping research, report readiness as `BLOCKED` / `BLOCKED_FOR_CLARIFICATION`, persist or present the focused follow-up according to the placement contract, and do not write affected content as accepted fact. Waiver or accepted-`UNVERIFIED` may record a named non-material limitation but cannot clear a material research/readiness blocker.
 
@@ -409,7 +409,7 @@ If the user explicitly says to proceed despite named unresolved items, record wh
 
 ## Phase E: Write Back
 
-Write only to the agreed target files.
+Write only to applicable agreed target files when current write authority permits; no-write returns chat analysis with formal write-back pending.
 
 🔴 STOP before write-back when the target file is not explicitly agreed, the requirements-grilling gate is `BLOCKED`, answers conflict, existing content would need replacement instead of merge, a confirmed answer would change scope/design/tasks beyond the agreed package, Language would absorb an implementation decision, or an ADR would be created without passing the ADR gate. Ask or report the conflict instead of overwriting.
 

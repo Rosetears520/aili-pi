@@ -18,12 +18,12 @@ This distribution is licensed under MIT. The following adapted sources, behavior
 
 - Status: adapted
 - Source: https://github.com/Rosetears520/aili-workflows.git
-- Revision: a5284ee105a084392a944aee04313dcf7c294a64
-- Version: 0.4.8
+- Revision: 2fb0f64f165bba9f3d70acb60c8923c1efec0d93
+- Version: 0.4.13
 - License: MIT
-- Source files: upstream/aili-workflows.lock.json#files (562 exact skill files), upstream/aili-workflows-runtime/** (exact generated Pi runtime bundle), manifests/roles.json#records[].sourcePath (role adapters regenerated from the exact 0.4.8 source revision)
+- Source files: upstream/aili-workflows.lock.json#files (exact skill file inventory), upstream/aili-workflows-runtime/** (exact generated Pi runtime bundle), manifests/roles.json#records[].sourcePath (role adapters generated from the exact 0.4.13 source revision)
 - Reused symbols/patterns: 58 canonical skill bodies and owned assets, 20 canonical Specialized Agent roles, Pi system/role/selection/package-protocol/installation runtime bundle
-- Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; the generated Pi runtime bundle is copied byte-for-byte and validated through one lock-bound loader; specialized role prompts and deterministic routing were regenerated from the exact 0.4.8 source revision and remain manifest-hash bound; legacy APPEND_SYSTEM and global-role installation ownership is retired and report-only
+- Local changes: skills/** is an exact byte-for-byte snapshot with no semantic overlay; the generated Pi runtime bundle is copied byte-for-byte and validated through one lock-bound loader; specialized role prompts and deterministic routing use the exact 0.4.13 source revision and remain manifest-hash bound; legacy APPEND_SYSTEM and global-role installation ownership is retired and report-only
 
 ## pi-mcp-adapter
 
