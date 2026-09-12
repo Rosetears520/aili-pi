@@ -25,20 +25,18 @@ describe("external CLI vendor-native model and thinking planning", () => {
   it("keeps the exact model and effort in separate package-owned argv entries", () => {
     const plan = createExternalCliLaunchPlan(
       probe("  --model <MODEL>\n  --effort <EFFORT>\n      Possible values: low, medium, high\n  --other"),
-      false,
       { model: "gemini-3.7-flash-high", thinking: "high" },
     );
     expect(plan.argv).toEqual(["--model", "gemini-3.7-flash-high", "--effort", "high"]);
   });
 
   it("preserves AGY defaults when both choices are omitted", () => {
-    expect(createExternalCliLaunchPlan(probe("agy help"), false).argv).toEqual([]);
+    expect(createExternalCliLaunchPlan(probe("agy help")).argv).toEqual([]);
   });
 
   it("fails explicitly when the effort value is not supported by frozen help", () => {
     expect(() => createExternalCliLaunchPlan(
       probe("  --model <MODEL>\n  --effort <EFFORT>\n      Possible values: low, medium\n  --other"),
-      false,
       { model: "vendor-model-with-high-suffix", thinking: "high" },
     )).toThrow(/SUB_CLI_PROBE_FAILED.*does not enumerate thinking value 'high'.*no thinking fallback/i);
   });
@@ -46,7 +44,6 @@ describe("external CLI vendor-native model and thinking planning", () => {
   it("fails explicitly when the installed model flag is absent", () => {
     expect(() => createExternalCliLaunchPlan(
       probe("  --effort <EFFORT>\n      Possible values: high"),
-      false,
       { model: "arbitrary-vendor-model" },
     )).toThrow(/SUB_CLI_PROBE_FAILED.*no uniquely identifiable value-taking model option/i);
   });

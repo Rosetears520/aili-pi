@@ -1111,6 +1111,49 @@ describe("external asynchronous completion (HASYNC-AGY-20260907)", () => {
 });
 
 describe("herdr execution backend end-to-end (fake daemon + real child bridge)", () => {
+  it.each((["default", "plan", "build", "yolo"] as const).flatMap((selection) =>
+    (["claude-code", "codex-cli"] as const).flatMap((cli) =>
+      [true, false].map((available) => ({ selection, cli, available }))),
+  ))("defaults direct $cli native policy with parent $selection and support=$available", async ({ selection, cli, available }) => {
+    const stock = loadStockDefaults();
+    const modeName = selection === "default" ? stock.defaultMode : selection;
+    const permissionModeSnapshot = { name: modeName, mode: structuredClone(stock.modes[modeName]!) };
+    const before = structuredClone(permissionModeSnapshot);
+    const journal = await fixtureJournal("parent-native-policy");
+    const reviewer = (await loadRoleProfiles()).find((role) => role.selector === "aili.code-reviewer")!;
+    const server = new FakeHerdrServer();
+    const socketPath = await server.start();
+    const backend = new HerdrExecutionBackend({
+      journal, layout: journal.layout, parentId: "parent-native-policy", cwd: scratch, socketPath,
+      bootstrapModulePath: "/dev/null", skipAvailabilitySetup: true, startupTimeoutMs: 2_000,
+      onExternalPromptAccepted: async ({ resultPath, runId, turnId }) => {
+        await writeFile(resultPath, JSON.stringify({ schemaVersion: 1, runId, turnId, status: "completed", output: "native policy fixture" }));
+      },
+    });
+    try {
+      const definition = EXTERNAL_CLI_REGISTRY[cli];
+      const agentId = "Native";
+      const timestamp = "2026-09-09T00:00:00.000Z";
+      await journal.append({ kind: "agent.created", agentId, payload: { record: { id: agentId, name: agentId, selector: reviewer.selector, state: "queued", backend: "herdr", driver: "external-cli", createdAt: timestamp, updatedAt: timestamp } } });
+      await journal.append({ kind: "job.created", agentId, jobId: "job-1", payload: { record: { id: "job-1", agentId, state: "queued", createdAt: timestamp, updatedAt: timestamp } } });
+      await journal.append({ kind: "turn.created", agentId, jobId: "job-1", turnId: "turn-1", payload: { record: { id: "turn-1", agentId, jobId: "job-1", state: "queued", createdAt: timestamp, updatedAt: timestamp } } });
+      await journal.append({ kind: "agent.state", agentId, payload: { from: "queued", to: "running", currentJobId: "job-1", currentTurnId: "turn-1" } });
+      await journal.append({ kind: "job.state", agentId, jobId: "job-1", payload: { from: "queued", to: "running" } });
+      await journal.append({ kind: "turn.state", agentId, jobId: "job-1", turnId: "turn-1", payload: { from: "queued", to: "running" } });
+      const argv = available ? [...definition.yolo!.argv] : [];
+      const input = executorInput(agentId, reviewer, {
+        nestedCli: cli, permissionModeSnapshot,
+        cliProbe: { cli, executable: definition.executables[0]!, version: "fixture", help: argv.join(" "), identity: "confirmed", completed: { version: true, help: true }, outputTruncated: false, yolo: { disposition: available ? "available" : "yolo-unavailable", argv } },
+      });
+      const output = await backend.execute(input);
+      expect(output).toMatchObject({ status: "completed", evidence: { yolo: available ? "enabled" : "yolo-unavailable", permissionMode: modeName, executionBoundary: "trusted-local-vendor" } });
+      expect(server.calls.filter((call) => call.method === "agent.start").at(-1)?.params).toMatchObject({ kind: definition.herdrKind, args: argv });
+      expect(permissionModeSnapshot).toEqual(before);
+      const loadout = JSON.parse(await readFile(join(journal.layout.root, "herdr-runs", output.runId!, "loadout.json"), "utf8"));
+      expect(loadout.permission).toEqual({ modeName, mode: before.mode });
+    } finally { await server.stop(); }
+  });
+
   it("starts an authorized vendor kind directly, prompts it, and applies the post-working guard", async () => {
     const journal = await fixtureJournal("parent-direct-cli");
     const profiles = await loadRoleProfiles();

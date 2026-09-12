@@ -238,8 +238,8 @@ export function resolveCurrentPermissionModeName(context: ExtensionContext): str
   return resolveCurrentMode(config, context).name;
 }
 
-/** YOLO permits only a verified vendor bypass flag; it does not relax
- * model/CLI validation or the trusted-local vendor boundary. */
+/** Parent-mode query retained for compatibility. External CLI native
+ * noninteractive launch policy is independent of this mode. */
 export function isBypassPermissionMode(context: ExtensionContext): boolean {
   return resolveCurrentPermissionModeName(context) === "yolo";
 }
@@ -1457,7 +1457,7 @@ export class PersistentAgentProduction {
         throw new SubRequestError("SUB_CLI_UNAVAILABLE", "requested external CLI requires an available Herdr daemon; no fallback to managed Pi is permitted");
       }
       const cliProbe = await probeExternalCli(nestedCli, requestSignal);
-      const launchPlan = createExternalCliLaunchPlan(cliProbe, permissionModeSnapshot?.name === "yolo", {
+      const launchPlan = createExternalCliLaunchPlan(cliProbe, {
         model: item.model,
         thinking: item.thinking,
       });

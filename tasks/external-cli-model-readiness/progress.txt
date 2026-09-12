@@ -1,0 +1,13 @@
+用户明确批准：仅修改 Pi Herdr 子代理机制，在当前 main 直接实施，避免新增 AGY 或版本特化。
+决策：外部 CLI 采用自身支持的免审批模式，不依赖父会话是否 YOLO；主 Agent 根据实际帮助/Skill判断启动条件和信任方式，必要时允许仅信任本次准确项目目录（优先临时，必要时持久）。不得扩大至父目录/所有目录，方式不明确则询问。
+本轮仅落地规则和通用启动行为，不实际修改用户信任配置、不启用外部 CLI 真实运行、不修改上游或全局安装、不提交/push。已记录原工作区diff，以保护既有改动。
+
+CLI-YOLO 子 Agent 以 stopReason error 结束，留下部分代码和测试修改，无完成证据。主模型读取当前文件和相对基线的差异后接手，未重派或重放。修正 direct Herdr 测试循环提前退出的问题，补齐所有构造器调用（包括既有 AGY 测试，仅调整通用函数签名）。
+external-cli.ts 统一构造器默认启用已由现有注册项与 installed help 证实的原生免审批参数；production.ts 和 Herdr adapter.ts 不再传入父 YOLO 条件。父权限快照、模型/thinking 校验、漂移拒绝保持原样；没有新增 vendor/version 分支或信任扫描/配置修改程序。
+runtime.ts 的 sub 提示要求使用 Herdr 前读 Skill；主模型基于实际帮助/非敏感配置判断启动条件，可复用未变化的证据。准确任务目录信任优先临时，必要时才使用保留其他设置的官方持久方式；禁止扩大信任或绕过工具拒绝。docs/persistent-agents.md 同步说明。提示集中在 sub 注册面，未复制到共享上游或生成投影。
+验证：npm test -- tests/unit/persistent-agent-external-cli.test.ts tests/unit/persistent-agent-agy-cli.test.ts tests/unit/herdr-backends.test.ts tests/integration/persistent-agent-production.test.ts tests/unit/runtime.test.ts，5 文件 206 测试通过。production/direct Herdr 均覆盖 Default/Plan/Build/YOLO、Claude/Codex 和支持/缺失原生参数的组合，核对父快照未变。npm run typecheck、git diff --check 通过。已检查构造器全部调用及旧父 YOLO 条件残留。
+这些是确定性 fixture 和提示契约证据，不证明真实模型已学会或执行自动信任。未测试真实 Herdr/vendor 启动、消费者安装加载或共享治理跨仓库认可。未提交/推送。现有 AGY integration/readiness 特例未修改；本次新增策略不依赖这些特例。
+
+用户追加授权：仅本次修改拆分提交并推送 origin/main，不包括其他未提交内容或 npm 发布。直接由主模型执行 Git 拆分，避免共享 index 的并发所有权冲突。
+以原始工作区补丁还原任务前基线，提取本次十个代码/测试/文档文件增量；在 HEAD 的普通临时副本 .tmp/external-cli-push-candidate 独立应用（未创建 Git worktree）。将新增 Herdr 测试的 journal 初始化内联，消除对其他未提交任务辅助函数的依赖；既有辅助函数恢复为任务前内容。
+拆分候选的五个聚焦文件 168 测试通过，typecheck 通过；此前 206 是混合工作区的数量，不作为此次独立提交的测试数量。远端 main 与本地原 HEAD 均为 977b5ae7746af538a316e294872bb2588b3d26a2。准备只暂存已验证候选及本任务两份连续性文件，提交后正常推送，禁止 force push。

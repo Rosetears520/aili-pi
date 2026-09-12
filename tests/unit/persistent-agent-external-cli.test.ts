@@ -61,16 +61,22 @@ describe("external CLI deterministic probe", () => {
     expect(probe.yolo).toEqual({ disposition: "yolo-unavailable", argv: [] });
     // Empty native choice argv is the vendor-default contract: omission does
     // not cause the runtime to synthesize either model or thinking flags.
-    expect(createExternalCliLaunchPlan(probe, false, {})).toMatchObject({ argv: [], yolo: "yolo-unavailable", herdrKind: "opencode" });
-    expect(createExternalCliLaunchPlan(probe, true)).toMatchObject({ argv: [], yolo: "yolo-unavailable", herdrKind: "opencode" });
+    expect(createExternalCliLaunchPlan(probe, {})).toMatchObject({ argv: [], yolo: "yolo-unavailable", herdrKind: "opencode" });
+    expect(createExternalCliLaunchPlan(probe)).toMatchObject({ argv: [], yolo: "yolo-unavailable", herdrKind: "opencode" });
   });
 
-  it("derives an exact allowlisted YOLO flag only from bounded help", async () => {
-    await fake("claude", "if [ \"$1\" = \"--version\" ]; then echo 'Claude Code 1.0'; else echo 'usage: claude --dangerously-skip-permissions'; fi");
-    const probe = await probeExternalCli("claude-code");
-    expect(probe.yolo).toEqual({ disposition: "available", argv: ["--dangerously-skip-permissions"] });
-    expect(createExternalCliLaunchPlan(probe, false)).toMatchObject({ argv: [], yolo: "available" });
-    expect(createExternalCliLaunchPlan(probe, true)).toMatchObject({ argv: ["--dangerously-skip-permissions"], yolo: "enabled", herdrKind: "claude", executableBinding: "Unverified" });
+  it.each(["claude-code", "codex-cli"] as const)("enables %s native noninteractive mode by default only when bounded help proves it", async (cli) => {
+    const definition = EXTERNAL_CLI_REGISTRY[cli];
+    const executable = definition.executables[0]!;
+    const argv = [...definition.yolo!.argv];
+    await fake(executable, `if [ "$1" = "--version" ]; then echo 'fixture 1.0'; else echo 'usage: ${executable} ${argv.join(" ")}'; fi`);
+    const probe = await probeExternalCli(cli);
+    const before = structuredClone(probe);
+    expect(probe.yolo).toEqual({ disposition: "available", argv });
+    expect(createExternalCliLaunchPlan(probe)).toMatchObject({ argv, yolo: "enabled", herdrKind: definition.herdrKind, executableBinding: "Unverified" });
+    expect(probe).toEqual(before);
+    await fake(executable, "echo 'fixture without bypass support'");
+    expect(createExternalCliLaunchPlan(await probeExternalCli(cli))).toMatchObject({ argv: [], yolo: "yolo-unavailable" });
   });
 
   it("requires a post-prompt working transition and current idle/done state", () => {
@@ -85,7 +91,7 @@ describe("external CLI deterministic probe", () => {
     await fake("agy", "if [ \"$1\" = \"--version\" ]; then echo '1.1.22'; else echo 'Usage of agy: --dangerously-skip-permissions --prompt-interactive'; fi");
     const probe = await probeExternalCli("agy-cli");
     expect(probe).toMatchObject({ cli: "agy-cli", executable: "agy", yolo: { disposition: "available", argv: ["--dangerously-skip-permissions"] } });
-    expect(createExternalCliLaunchPlan(probe, true)).toMatchObject({ herdrKind: "agy", argv: ["--dangerously-skip-permissions"], yolo: "enabled" });
+    expect(createExternalCliLaunchPlan(probe)).toMatchObject({ herdrKind: "agy", argv: ["--dangerously-skip-permissions"], yolo: "enabled" });
   });
 
   it("discovers alternate model/thinking names and obeys displayed value syntax", async () => {
@@ -93,7 +99,7 @@ describe("external CLI deterministic probe", () => {
     const probe = await probeExternalCli("agy-cli");
     expect(discoverExternalCliChoiceOption(probe.help, "model")).toMatchObject({ flag: "--engine", syntax: "separate" });
     expect(discoverExternalCliChoiceOption(probe.help, "thinking")).toMatchObject({ flag: "--reasoning-level", syntax: "equals" });
-    expect(createExternalCliLaunchPlan(probe, false, { model: "vendor-model", thinking: "high" }).argv)
+    expect(createExternalCliLaunchPlan(probe, { model: "vendor-model", thinking: "high" }).argv)
       .toEqual(["--engine", "vendor-model", "--reasoning-level=high"]);
   });
 
@@ -118,9 +124,9 @@ describe("external CLI deterministic probe", () => {
 
     await fake("codex", "if [ \"$1\" = \"--version\" ]; then echo 'codex 1.0'; else printf '%s\\n' 'Options:' '  --engine <MODEL>' '      Model to use' '  --reasoning-level=<LEVEL>' '      Reasoning effort. Possible values: low, medium'; fi");
     const probe = await probeExternalCli("codex-cli");
-    expect(() => createExternalCliLaunchPlan(probe, false, { thinking: "high" }))
+    expect(() => createExternalCliLaunchPlan(probe, { thinking: "high" }))
       .toThrow(/does not enumerate thinking value 'high'.*no thinking fallback/);
-    expect(() => createExternalCliLaunchPlan(probe, false, { model: "--arbitrary-runner-flag" }))
+    expect(() => createExternalCliLaunchPlan(probe, { model: "--arbitrary-runner-flag" }))
       .toThrow(/cannot be interpreted as a runner flag/);
   });
 

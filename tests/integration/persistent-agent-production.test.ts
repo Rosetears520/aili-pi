@@ -584,6 +584,9 @@ describe("production structured preallocation boundaries", () => {
         [{ thinking: "turbo" }, /thinking/],
         [{ cli: "unknown" }, /sub.cli/],
         [{ confirmed: true }, /unknown fields/],
+        [{ cli: "codex-cli", argv: ["--arbitrary"] }, /unknown fields/],
+        [{ cli: "codex-cli", args: ["--arbitrary"] }, /unknown fields/],
+        [{ cli: "codex-cli", enableYolo: false }, /unknown fields/],
         [{ model: " vendor-model " }, /exact model/],
         [{ selectionScope: "bad\nlabel" }, /selectionScope/],
         [{ cli: "codex-cli", thinking: "max" }, /does not enumerate thinking/],
@@ -597,6 +600,37 @@ describe("production structured preallocation boundaries", () => {
       expect(fixture.managedExecute).not.toHaveBeenCalled();
       expect(fixture.externalExecute).not.toHaveBeenCalled();
       expect(fixture.questionnaire).not.toHaveBeenCalled();
+    } finally { await fixture.close(); }
+  });
+
+  it.each(["default", "plan", "build", "yolo"] as const)("defaults external CLI native noninteractive policy independently of parent %s mode", async (selection) => {
+    const stock = loadStockDefaults();
+    const modeName = selection === "default" ? stock.defaultMode : selection;
+    vi.stubEnv("PI_PERMISSION_MODE", modeName);
+    const fixture = await createPreflightFixture();
+    const parentBefore = structuredClone(stock.modes[modeName]);
+    try {
+      for (const cli of ["claude-code", "codex-cli"] as const) {
+        const definition = externalCli.EXTERNAL_CLI_REGISTRY[cli];
+        for (const available of [true, false]) {
+          const argv = available ? [...definition.yolo!.argv] : [];
+          const probe: externalCli.ExternalCliProbe = {
+            ...fixture.cliProbe, cli, executable: definition.executables[0]!,
+            help: `${fixture.cliProbe.help}\n${argv.join(" ")}`,
+            yolo: { disposition: available ? "available" : "yolo-unavailable", argv },
+          };
+          fixture.probe.mockResolvedValueOnce(probe);
+          expect((await fixture.submit({ cli })).results[0]).toMatchObject({ status: "completed" });
+          const accepted = fixture.externalExecute.mock.calls.at(-1)![0];
+          expect(accepted.launchPlan).toMatchObject({ argv, yolo: available ? "enabled" : "yolo-unavailable", executableBinding: "Unverified" });
+          expect(accepted.permissionModeSnapshot).toEqual({ name: modeName, mode: parentBefore });
+          expect(probe.yolo.argv).toEqual(argv);
+        }
+      }
+      expect(process.env.PI_PERMISSION_MODE).toBe(modeName);
+      expect(fixture.context.sessionManager.getEntries()).toEqual([]);
+      expect(fixture.questionnaire).not.toHaveBeenCalled();
+      expect(fixture.select).not.toHaveBeenCalled();
     } finally { await fixture.close(); }
   });
 

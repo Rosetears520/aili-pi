@@ -146,6 +146,31 @@ describe("AILI runtime composition", () => {
     expect(JSON.stringify(task.parameters)).toContain("subagent_type");
   });
 
+  it("exposes vendor-neutral model-owned startup preparation on sub", async () => {
+    const harness = await runtimeHarness();
+    const sub = harness.registeredToolDefinitions.find((tool) => tool.name === "sub")!;
+    const readiness = sub.promptGuidelines!.find((line) => line.startsWith("Before first Herdr use"))!;
+    const policy = sub.promptGuidelines!.find((line) => line.startsWith("External CLI policy:"))!;
+    expect(readiness).toContain("reads the installed herdr Skill");
+    expect(readiness).toContain("Before each external CLI launch");
+    expect(readiness).toContain("Reuse findings");
+    expect(readiness).toContain("not a vendor/version trust detector");
+    expect(readiness).toContain("report the gap rather than assume readiness");
+    expect(policy).toContain("independently of the parent Pi permission mode");
+    expect(policy).toContain("unsupported stays yolo-unavailable");
+    expect(policy).toContain("does not imply workspace trust");
+    expect(policy).toContain("only its exact task working directory without another confirmation");
+    expect(policy).toContain("prefer a supported temporary mechanism");
+    expect(policy).toContain("preserving unrelated settings");
+    expect(policy).toContain("never trust a parent directory");
+    expect(policy).toContain("require a focused user decision");
+    expect(policy).toContain("or bypass a tool denial");
+    expect(policy).toContain("no unrelated task, Git, publication or release authority");
+    expect(`${readiness}\n${policy}`).not.toMatch(/agy|antigravity|trustedWorkspaces|settings\.json/i);
+    const schema = JSON.stringify(sub.parameters);
+    expect(schema).not.toMatch(/"(?:argv|args|enableYolo|trustedWorkspaces)"/);
+  });
+
   it("appends only dynamic runtime state while the static ROSE adapter is global", async () => {
     const harness = await runtimeHarness();
     const context = {

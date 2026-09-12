@@ -8,8 +8,8 @@ export interface ExternalCliDefinition {
   executables: readonly string[];
   /** Herdr's built-in, recognized CUI Agent kind. */
   herdrKind: "claude" | "codex" | "gemini" | "opencode" | "grok" | "agy";
-  /** Exact native argv which may be enabled only when every token is present
-   * in bounded installed help and the active AILI mode already permits it. */
+  /** Exact native argv enabled by default when evidenced by bounded installed
+   * help, independently of the parent Pi permission mode. */
   yolo?: { argv: readonly string[]; evidence: RegExp };
   /** Generic grok must prove the installed product from bounded help/version. */
   genericIdentity?: RegExp;
@@ -180,13 +180,12 @@ function appendChoiceArg(argv: string[], option: ExternalCliChoiceOption, value:
 
 export function createExternalCliLaunchPlan(
   probe: ExternalCliProbe,
-  enableYolo: boolean,
   requested: { model?: string; thinking?: string } = {},
 ): ExternalCliLaunchPlan {
   const definition = EXTERNAL_CLI_REGISTRY[probe.cli];
   if (!definition.executables.includes(probe.executable)) throw new ExternalCliProbeError("SUB_CLI_AMBIGUOUS", "probe executable is not registered for the requested product");
   const available = probe.yolo.disposition === "available";
-  const argv = enableYolo && available ? [...probe.yolo.argv] : [];
+  const argv = available ? [...probe.yolo.argv] : [];
   if (requested.model !== undefined) {
     assertChoiceValue(requested.model, "model");
     appendChoiceArg(argv, discoverExternalCliChoiceOption(probe.help, "model"), requested.model);
@@ -204,7 +203,7 @@ export function createExternalCliLaunchPlan(
     executable: probe.executable,
     herdrKind: definition.herdrKind,
     argv,
-    yolo: enableYolo && available ? "enabled" : available ? "available" : "yolo-unavailable",
+    yolo: available ? "enabled" : "yolo-unavailable",
     executableBinding: "Unverified",
   };
 }

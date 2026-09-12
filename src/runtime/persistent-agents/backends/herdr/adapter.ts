@@ -949,7 +949,7 @@ export class HerdrExecutionBackend implements ExecutionBackend {
     let launchPlan = input.launchPlan;
     if (input.nestedCli) {
       cliProbe ??= await probeExternalCli(input.nestedCli, input.context.signal);
-      const expectedPlan = createExternalCliLaunchPlan(cliProbe!, permissionModeSnapshot.name === "yolo", {
+      const expectedPlan = createExternalCliLaunchPlan(cliProbe!, {
         model: input.item.model,
         thinking: input.item.thinking,
       });
